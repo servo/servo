@@ -299,7 +299,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "digest".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "digest") {
+        let normalized_algorithm = match normalize_algorithm_for_digest(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -314,7 +314,6 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 6. Return promise and perform the remaining steps in parallel.
         let (task_source, canceller) = self.task_source_with_canceller();
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let alg = normalized_algorithm.clone();
 
         let _ = task_source.queue_with_canceller(
             task!(generate_key: move || {
@@ -324,7 +323,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
 
                 // Step 8. Let result be the result of performing the digest operation specified by
                 // normalizedAlgorithm using algorithm, with data as message.
-                let digest = match alg.digest(&data) {
+                let digest = match normalized_algorithm.digest(&data) {
                     Ok(digest) => digest,
                     Err(e) => {
                         promise.reject_error(e);
@@ -726,18 +725,6 @@ pub enum NormalizedAlgorithm {
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
     Pbkdf2Params(SubtlePbkdf2Params),
-
-    /// <https://w3c.github.io/webcrypto/#sha>
-    Sha1,
-
-    /// <https://w3c.github.io/webcrypto/#sha>
-    Sha256,
-
-    /// <https://w3c.github.io/webcrypto/#sha>
-    Sha384,
-
-    /// <https://w3c.github.io/webcrypto/#sha>
-    Sha512,
 }
 
 // These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
@@ -823,7 +810,7 @@ pub struct SubtlePbkdf2Params {
     iterations: u32,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: DigestAlgorithm,
 }
 
 impl SubtlePbkdf2Params {
@@ -836,7 +823,7 @@ impl SubtlePbkdf2Params {
         let params = Self {
             salt,
             iterations: params.iterations,
-            hash: Box::new(normalize_algorithm(cx, &params.hash, "digest")?),
+            hash: normalize_algorithm_for_digest(cx, &params.hash)?,
         };
 
         Ok(params)
@@ -845,6 +832,21 @@ impl SubtlePbkdf2Params {
 
 enum GetKeyLengthAlgorithm {
     Aes(u16),
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DigestAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha1,
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha256,
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha384,
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha512,
 }
 
 macro_rules! value_from_js_object {
@@ -888,6 +890,36 @@ fn normalize_algorithm_for_get_key_length(
             Err(Error::NotSupported)
         },
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"digest"`
+#[allow(unsafe_code)]
+fn normalize_algorithm_for_digest(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<DigestAlgorithm, Error> {
+    let name = match algorithm {
+        AlgorithmIdentifier::Object(obj) => {
+            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
+            else {
+                return Err(Error::Syntax);
+            };
+
+            algorithm.name.str().to_uppercase()
+        },
+        AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
+    };
+
+    let normalized_algorithm = match name.as_str() {
+        ALG_SHA1 => DigestAlgorithm::Sha1,
+        ALG_SHA256 => DigestAlgorithm::Sha256,
+        ALG_SHA384 => DigestAlgorithm::Sha384,
+        ALG_SHA512 => DigestAlgorithm::Sha512,
+        _ => return Err(Error::NotSupported),
+    };
+
+    Ok(normalized_algorithm)
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
@@ -959,10 +991,7 @@ fn normalize_algorithm(
                 (ALG_PBKDF2, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_PBKDF2.to_string(),
                 }),
-                (ALG_SHA1, "digest") => NormalizedAlgorithm::Sha1,
-                (ALG_SHA256, "digest") => NormalizedAlgorithm::Sha256,
-                (ALG_SHA384, "digest") => NormalizedAlgorithm::Sha384,
-                (ALG_SHA512, "digest") => NormalizedAlgorithm::Sha512,
+
                 _ => return Err(Error::NotSupported),
             };
 
@@ -1370,16 +1399,11 @@ impl SubtlePbkdf2Params {
 
         // Step 3. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1]
         // using the hash function described by the hash member of normalizedAlgorithm.
-        let NormalizedAlgorithm::Algorithm(alg) = &*self.hash else {
-            return Err(Error::NotSupported);
-        };
-
-        let prf = match alg.name.as_str() {
-            ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
-            ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
-            ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
-            ALG_SHA512 => pbkdf2::PBKDF2_HMAC_SHA512,
-            _ => return Err(Error::NotSupported),
+        let prf = match self.hash {
+            DigestAlgorithm::Sha1 => pbkdf2::PBKDF2_HMAC_SHA1,
+            DigestAlgorithm::Sha256 => pbkdf2::PBKDF2_HMAC_SHA256,
+            DigestAlgorithm::Sha384 => pbkdf2::PBKDF2_HMAC_SHA384,
+            DigestAlgorithm::Sha512 => pbkdf2::PBKDF2_HMAC_SHA512,
         };
 
         // Step 4. Let result be the result of performing the PBKDF2 operation defined in Section 5.2 of [RFC8018] using
@@ -1439,19 +1463,6 @@ impl NormalizedAlgorithm {
             _ => Err(Error::NotSupported),
         }
     }
-
-    fn digest(&self, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
-        let algorithm = match self {
-            Self::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
-            Self::Sha256 => &digest::SHA256,
-            Self::Sha384 => &digest::SHA384,
-            Self::Sha512 => &digest::SHA512,
-            _ => {
-                return Err(Error::NotSupported);
-            },
-        };
-        Ok(digest::digest(algorithm, data))
-    }
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
@@ -1471,5 +1482,17 @@ impl GetKeyLengthAlgorithm {
         match self {
             Self::Aes(length) => get_key_length_for_aes(*length),
         }
+    }
+}
+
+impl DigestAlgorithm {
+    fn digest(&self, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
+        let algorithm = match self {
+            Self::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
+            Self::Sha256 => &digest::SHA256,
+            Self::Sha384 => &digest::SHA384,
+            Self::Sha512 => &digest::SHA512,
+        };
+        Ok(digest::digest(algorithm, data))
     }
 }
