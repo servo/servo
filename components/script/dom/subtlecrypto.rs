@@ -389,6 +389,137 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-deriveKey>
+    fn DeriveKey(
+        &self,
+        cx: SafeJSContext,
+        algorithm: AlgorithmIdentifier,
+        base_key: &CryptoKey,
+        derived_key_type: AlgorithmIdentifier,
+        extractable: bool,
+        key_usages: Vec<KeyUsage>,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let algorithm, baseKey, derivedKeyType, extractable and usages be the algorithm, baseKey,
+        // derivedKeyType, extractable and keyUsages parameters passed to the deriveKey() method, respectively.
+
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to algorithm
+        // and op set to "deriveBits".
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "deriveBits") {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                promise.reject_error(e);
+                return promise;
+            },
+        };
+
+        // Step 4. Let normalizedDerivedKeyAlgorithmImport be the result of normalizing an algorithm,
+        // with alg set to derivedKeyType and op set to "importKey".
+        let normalized_derived_key_algorithm_import =
+            match normalize_algorithm(cx, &derived_key_type, "importKey") {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    // Step 5. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmImport.
+                    promise.reject_error(e);
+                    return promise;
+                },
+            };
+
+        // Step 6. Let normalizedDerivedKeyAlgorithmLength be the result of normalizing an algorithm, with alg set
+        // to derivedKeyType and op set to "get key length".
+        let normalized_derived_key_algorithm_length =
+            match normalize_algorithm(cx, &derived_key_type, "get key length") {
+                Ok(algorithm) => algorithm,
+                Err(e) => {
+                    // Step 7. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmLength.
+                    promise.reject_error(e);
+                    return promise;
+                },
+            };
+
+        // Step 8. Let promise be a new Promise.
+        // NOTE: We created the promise earlier, after Step 1.
+
+        // Step 9. Return promise and perform the remaining steps in parallel.
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_base_key = Trusted::new(base_key);
+        let this = Trusted::new(self);
+        let _ = task_source.queue_with_canceller(
+            task!(derive_key: move || {
+                // Step 10. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+
+                // TODO Step 11. If the name member of normalizedAlgorithm is not equal to the name attribute of the #
+                // [[algorithm]] internal slot of baseKey then throw an InvalidAccessError.
+                let promise = trusted_promise.root();
+                let base_key = trusted_base_key.root();
+                let subtle = this.root();
+
+                // Step 12. If the [[usages]] internal slot of baseKey does not contain an entry that is
+                // "deriveKey", then throw an InvalidAccessError.
+                if !base_key.usages().contains(&KeyUsage::DeriveKey) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 13. Let length be the result of performing the get key length algorithm specified by
+                // normalizedDerivedKeyAlgorithmLength using derivedKeyType.
+                let length = match normalized_derived_key_algorithm_length.get_key_length() {
+                    Ok(length) => length,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                // Step 14. Let secret be the result of performing the derive bits operation specified by
+                // normalizedAlgorithm using key, algorithm and length.
+                let secret = match normalized_algorithm.derive_bits(&base_key, Some(length as u32)){
+                    Ok(secret) => secret,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                // Step 15.  Let result be the result of performing the import key operation specified by
+                // normalizedDerivedKeyAlgorithmImport using "raw" as format, secret as keyData, derivedKeyType as
+                // algorithm and using extractable and usages.
+                let result = normalized_derived_key_algorithm_import.import_key(
+                    &subtle,
+                    KeyFormat::Raw,
+                    &secret,
+                    extractable,
+                    key_usages
+                );
+                let result = match result  {
+                    Ok(key) => key,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                // Step 17. If the [[type]] internal slot of result is "secret" or "private" and usages
+                // is empty, then throw a SyntaxError.
+                if matches!(result.Type(), KeyType::Secret | KeyType::Private) && result.usages().is_empty() {
+                    promise.reject_error(Error::Syntax);
+                    return;
+                }
+
+                // Step 17. Resolve promise with result.
+                promise.resolve_native(&*result);
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
     /// <https://w3c.github.io/webcrypto/#dfn-SubtleCrypto-method-deriveBits>
     fn DeriveBits(
         &self,
@@ -1235,6 +1366,15 @@ impl NormalizedAlgorithm {
         }
     }
 
+    fn get_key_length(&self) -> Result<u16, Error> {
+        match self {
+            Self::AesCtrParams(aes_ctr_params) => {
+                get_key_length_for_aes(aes_ctr_params.length as u16)
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
+
     fn import_key(
         &self,
         subtle: &SubtleCrypto,
@@ -1274,4 +1414,16 @@ impl NormalizedAlgorithm {
         };
         Ok(digest::digest(algorithm, data))
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
+fn get_key_length_for_aes(length: u16) -> Result<u16, Error> {
+    // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256,
+    // then throw an OperationError.
+    if !matches!(length, 128 | 192 | 256) {
+        return Err(Error::Operation);
+    }
+
+    // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.
+    Ok(length)
 }

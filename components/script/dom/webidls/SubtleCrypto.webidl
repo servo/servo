@@ -39,11 +39,11 @@ interface SubtleCrypto {
   Promise<any> generateKey(AlgorithmIdentifier algorithm,
                           boolean extractable,
                           sequence<KeyUsage> keyUsages );
-  // Promise<any> deriveKey(AlgorithmIdentifier algorithm,
-  //                        CryptoKey baseKey,
-  //                        AlgorithmIdentifier derivedKeyType,
-  //                        boolean extractable,
-  //                        sequence<KeyUsage> keyUsages );
+  Promise<any> deriveKey(AlgorithmIdentifier algorithm,
+                         CryptoKey baseKey,
+                         AlgorithmIdentifier derivedKeyType,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
   Promise<ArrayBuffer> deriveBits(AlgorithmIdentifier algorithm,
                           CryptoKey baseKey,
                           optional unsigned long? length = null);
