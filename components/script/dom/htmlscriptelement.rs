@@ -1053,7 +1053,7 @@ impl HTMLScriptElement {
             if let Some(record) = record {
                 rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
                 let evaluated =
-                    module_tree.execute_module(global, record, rval.handle_mut().into());
+                    module_tree.execute_module(global, record, rval.handle_mut().into(), can_gc);
 
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
