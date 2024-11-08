@@ -101,6 +101,14 @@ impl DisplayList {
         SpatialTreeItemKey::new(pipeline_tag, self.spatial_tree_count)
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_stacking_context_tree",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     pub fn build_stacking_context_tree(
         &mut self,
         fragment_tree: &FragmentTree,
