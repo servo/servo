@@ -22,7 +22,7 @@ use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
-    BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage, LengthPercentageOrAuto,
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::rect::Rect;

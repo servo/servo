@@ -148,7 +148,7 @@ impl PartialOrd for CollapsedBorder {
             BorderStyle::Double => 8,
             BorderStyle::Hidden => 9,
         };
-        let candidate = (is_hidden(self).cmp(&is_hidden(&other)))
+        let candidate = (is_hidden(self).cmp(&is_hidden(other)))
             .then_with(|| self.width.cmp(&other.width))
             .then_with(|| style_specificity(self).cmp(&style_specificity(other)));
         if !candidate.is_eq() || self.style_color.color == other.style_color.color {
@@ -245,7 +245,7 @@ impl<'a> TableLayout<'a> {
         // It's not clear whether `inline-size: stretch` allows fixed table mode or not,
         // we align with Gecko and Blink.
         // <https://github.com/w3c/csswg-drafts/issues/10937>.
-        let is_in_fixed_mode = self.table.style.get_table().clone_table_layout() ==
+        let is_in_fixed_mode = self.table.grid_style.get_table().clone_table_layout() ==
             TableLayoutMode::Fixed &&
             !matches!(
                 self.table.grid_style.box_size(writing_mode).inline,
@@ -772,7 +772,7 @@ impl<'a> TableLayout<'a> {
                 inline: AuOrAuto::Auto,
                 block: AuOrAuto::Auto,
             },
-            writing_mode: self.table.style.writing_mode,
+            writing_mode: self.table.wrapper_style.writing_mode,
         };
         self.table
             .captions
@@ -796,12 +796,9 @@ impl<'a> TableLayout<'a> {
     fn compute_table_width(
         &mut self,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
         grid_min_max: ContentSizes,
         caption_minimum_inline_size: Au,
     ) {
-        let style = &self.table.grid_style;
-
         // These diverge a little from the specification, but should be roughtly equivalent
         // to what the spec calls "resolved-table-width" and "used width of a table".
         // https://drafts.csswg.org/css-tables/#resolved-table-width
@@ -1675,7 +1672,6 @@ impl<'a> TableLayout<'a> {
 
         self.compute_table_width(
             containing_block_for_children2,
-            containing_block_for_table,
             grid_min_max,
             caption_minimum_inline_size,
         );
@@ -1705,7 +1701,7 @@ impl<'a> TableLayout<'a> {
 
         let depends_on_block_constraints = self
             .table
-            .style
+            .grid_style
             .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
             .depends_on_block_constraints;
 
@@ -1736,9 +1732,10 @@ impl<'a> TableLayout<'a> {
                     .to_logical(table_writing_mode);
 
                 let caption_relative_offset = match caption_fragment.style.clone_position() {
-                    Position::Relative => {
-                        relative_adjustement(&caption_fragment.style, containing_block_for_children)
-                    },
+                    Position::Relative => relative_adjustement(
+                        &caption_fragment.style,
+                        containing_block_for_children2,
+                    ),
                     _ => LogicalVec2::zero(),
                 };
 
