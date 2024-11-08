@@ -406,7 +406,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to algorithm
         // and op set to "deriveBits".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "deriveBits") {
+        let normalized_algorithm = match normalize_algorithm_for_derive_bits(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -535,7 +535,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "deriveBits".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "deriveBits") {
+        let normalized_algorithm = match normalize_algorithm_for_derive_bits(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -858,6 +858,13 @@ enum ImportKeyAlgorithm {
     Pbkdf2,
 }
 
+/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"deriveBits"`
+///
+/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+enum DeriveBitsAlgorithm {
+    Pbkdf2(SubtlePbkdf2Params),
+}
+
 macro_rules! value_from_js_object {
     ($t: ty, $cx: ident, $value: ident) => {{
         let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::Operation)?;
@@ -960,6 +967,33 @@ fn normalize_algorithm_for_import_key(
     Ok(normalized_algorithm)
 }
 
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"deriveBits"`
+#[allow(unsafe_code)]
+fn normalize_algorithm_for_derive_bits(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<DeriveBitsAlgorithm, Error> {
+    let AlgorithmIdentifier::Object(obj) = algorithm else {
+        // All algorithms that support "deriveBits" require additional parameters
+        return Err(Error::NotSupported);
+    };
+
+    rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+    let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
+        return Err(Error::Syntax);
+    };
+
+    let normalized_algorithm = if algorithm.name.str().eq_ignore_ascii_case(ALG_PBKDF2) {
+        let params = value_from_js_object!(Pbkdf2Params, cx, value);
+        let subtle_params = SubtlePbkdf2Params::new(cx, params)?;
+        DeriveBitsAlgorithm::Pbkdf2(subtle_params)
+    } else {
+        return Err(Error::NotSupported);
+    };
+
+    Ok(normalized_algorithm)
+}
+
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 #[allow(unsafe_code)]
 fn normalize_algorithm(
@@ -1004,21 +1038,6 @@ fn normalize_algorithm(
                         return Err(Error::Syntax);
                     };
                     NormalizedAlgorithm::AesKeyGenParams(params.into())
-                },
-                (ALG_ECDSA, "deriveBits") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
-                    name: ALG_ECDSA.to_string(),
-                }),
-                (ALG_HKDF, "deriveBits") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
-                    name: ALG_HKDF.to_string(),
-                }),
-                (ALG_PBKDF2, "deriveBits") => {
-                    let params_result =
-                        Pbkdf2Params::new(cx, value.handle()).map_err(|_| Error::Operation)?;
-                    let ConversionResult::Success(params) = params_result else {
-                        return Err(Error::Syntax);
-                    };
-                    let subtle_params = SubtlePbkdf2Params::new(cx, params)?;
-                    NormalizedAlgorithm::Pbkdf2Params(subtle_params)
                 },
                 _ => return Err(Error::NotSupported),
             };
@@ -1457,15 +1476,6 @@ impl SubtlePbkdf2Params {
     }
 }
 
-impl NormalizedAlgorithm {
-    fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
-        match self {
-            Self::Pbkdf2Params(pbkdf2_params) => pbkdf2_params.derive_bits(key, length),
-            _ => Err(Error::NotSupported),
-        }
-    }
-}
-
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
 fn get_key_length_for_aes(length: u16) -> Result<u16, Error> {
     // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256,
@@ -1515,6 +1525,14 @@ impl ImportKeyAlgorithm {
                 subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
             },
             Self::Pbkdf2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
+        }
+    }
+}
+
+impl DeriveBitsAlgorithm {
+    fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
+        match self {
+            Self::Pbkdf2(pbkdf2_params) => pbkdf2_params.derive_bits(key, length),
         }
     }
 }
