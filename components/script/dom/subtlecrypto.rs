@@ -418,7 +418,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 4. Let normalizedDerivedKeyAlgorithmImport be the result of normalizing an algorithm,
         // with alg set to derivedKeyType and op set to "importKey".
         let normalized_derived_key_algorithm_import =
-            match normalize_algorithm(cx, &derived_key_type, "importKey") {
+            match normalize_algorithm_for_import_key(cx, &derived_key_type) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 5. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmImport.
@@ -606,7 +606,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "importKey") {
+        let normalized_algorithm = match normalize_algorithm_for_import_key(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 promise.reject_error(e);
@@ -849,6 +849,15 @@ enum DigestAlgorithm {
     Sha512,
 }
 
+/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"importKey"`
+///
+/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+enum ImportKeyAlgorithm {
+    AesCbc,
+    AesCtr,
+    Pbkdf2,
+}
+
 macro_rules! value_from_js_object {
     ($t: ty, $cx: ident, $value: ident) => {{
         let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::Operation)?;
@@ -922,6 +931,35 @@ fn normalize_algorithm_for_digest(
     Ok(normalized_algorithm)
 }
 
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"importKey"`
+#[allow(unsafe_code)]
+fn normalize_algorithm_for_import_key(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<ImportKeyAlgorithm, Error> {
+    let name = match algorithm {
+        AlgorithmIdentifier::Object(obj) => {
+            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
+            else {
+                return Err(Error::Syntax);
+            };
+
+            algorithm.name.str().to_uppercase()
+        },
+        AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
+    };
+
+    let normalized_algorithm = match name.as_str() {
+        ALG_AES_CBC => ImportKeyAlgorithm::AesCbc,
+        ALG_AES_CTR => ImportKeyAlgorithm::AesCtr,
+        ALG_PBKDF2 => ImportKeyAlgorithm::Pbkdf2,
+        _ => return Err(Error::NotSupported),
+    };
+
+    Ok(normalized_algorithm)
+}
+
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 #[allow(unsafe_code)]
 fn normalize_algorithm(
@@ -982,16 +1020,6 @@ fn normalize_algorithm(
                     let subtle_params = SubtlePbkdf2Params::new(cx, params)?;
                     NormalizedAlgorithm::Pbkdf2Params(subtle_params)
                 },
-                (ALG_AES_CBC, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
-                    name: ALG_AES_CBC.to_string(),
-                }),
-                (ALG_AES_CTR, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
-                    name: ALG_AES_CTR.to_string(),
-                }),
-                (ALG_PBKDF2, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
-                    name: ALG_PBKDF2.to_string(),
-                }),
-
                 _ => return Err(Error::NotSupported),
             };
 
@@ -1436,33 +1464,6 @@ impl NormalizedAlgorithm {
             _ => Err(Error::NotSupported),
         }
     }
-
-    fn import_key(
-        &self,
-        subtle: &SubtleCrypto,
-        format: KeyFormat,
-        secret: &[u8],
-        extractable: bool,
-        key_usages: Vec<KeyUsage>,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
-        let alg = match self {
-            Self::Algorithm(name) => name,
-            _ => {
-                return Err(Error::NotSupported);
-            },
-        };
-
-        match alg.name.as_str() {
-            ALG_AES_CBC => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC)
-            },
-            ALG_AES_CTR => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
-            },
-            ALG_PBKDF2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
-            _ => Err(Error::NotSupported),
-        }
-    }
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
@@ -1494,5 +1495,26 @@ impl DigestAlgorithm {
             Self::Sha512 => &digest::SHA512,
         };
         Ok(digest::digest(algorithm, data))
+    }
+}
+
+impl ImportKeyAlgorithm {
+    fn import_key(
+        &self,
+        subtle: &SubtleCrypto,
+        format: KeyFormat,
+        secret: &[u8],
+        extractable: bool,
+        key_usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        match self {
+            Self::AesCbc => {
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC)
+            },
+            Self::AesCtr => {
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
+            },
+            Self::Pbkdf2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
+        }
     }
 }
