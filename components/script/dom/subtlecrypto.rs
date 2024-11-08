@@ -189,7 +189,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                             Err(Error::InvalidAccess)
                         } else {
                             match subtle.encrypt_decrypt_aes_ctr(
-                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
+                                &key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
                             ) {
                                 Ok(_) => Ok(array_buffer_ptr.handle()),
                                 Err(e) => Err(e),
@@ -219,8 +219,15 @@ impl SubtleCryptoMethods for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let normalized_algorithm = normalize_algorithm(cx, &algorithm, "decrypt");
         let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm_for_encrypt_or_decrypt(cx, &algorithm)
+        {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                promise.reject_error(e);
+                return promise;
+            },
+        };
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -230,7 +237,6 @@ impl SubtleCryptoMethods for SubtleCrypto {
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
-        let alg = normalized_algorithm.clone();
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Decrypt);
         let _ = task_source.queue_with_canceller(
@@ -240,37 +246,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let key = trusted_key.root();
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                let text = match alg {
-                    Ok(NormalizedAlgorithm::AesCbcParams(key_gen_params)) => {
-                        if !valid_usage || key_gen_params.name != key_alg {
-                            Err(Error::InvalidAccess)
-                        } else {
-                            match subtle.decrypt_aes_cbc(
-                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
-                            ) {
-                                Ok(_) => Ok(array_buffer_ptr.handle()),
-                                Err(e) => Err(e),
-                            }
-                        }
-                    },
-                    Ok(NormalizedAlgorithm::AesCtrParams(key_gen_params)) => {
-                        if !valid_usage || key_gen_params.name != key_alg {
-                            Err(Error::InvalidAccess)
-                        } else {
-                            match subtle.encrypt_decrypt_aes_ctr(
-                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
-                            ) {
-                                Ok(_) => Ok(array_buffer_ptr.handle()),
-                                Err(e) => Err(e),
-                            }
-                        }
-                    },
-                    _ => Err(Error::NotSupported),
-                };
-                match text {
-                    Ok(text) => promise.resolve_native(&*text),
-                    Err(e) => promise.reject_error(e),
+
+                if !valid_usage || normalized_algorithm.name() != key_alg {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
                 }
+
+                if let Err(e) = normalized_algorithm.decrypt(&subtle, &key, &data, cx, array_buffer_ptr.handle_mut()) {
+                    promise.reject_error(e);
+                    return;
+                }
+
+                promise.resolve_native(&*array_buffer_ptr.handle());
             }),
             &canceller,
         );
@@ -865,6 +852,14 @@ enum DeriveBitsAlgorithm {
     Pbkdf2(SubtlePbkdf2Params),
 }
 
+/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"encrypt"` or `"decrypt"`
+///
+/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+enum EncryptionAlgorithm {
+    AesCbc(SubtleAesCbcParams),
+    AesCtr(SubtleAesCtrParams),
+}
+
 macro_rules! value_from_js_object {
     ($t: ty, $cx: ident, $value: ident) => {{
         let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::Operation)?;
@@ -994,6 +989,36 @@ fn normalize_algorithm_for_derive_bits(
     Ok(normalized_algorithm)
 }
 
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"deriveBits"`
+#[allow(unsafe_code)]
+fn normalize_algorithm_for_encrypt_or_decrypt(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<EncryptionAlgorithm, Error> {
+    let AlgorithmIdentifier::Object(obj) = algorithm else {
+        // All algorithms that support "encrypt" or "decrypt" require additional parameters
+        return Err(Error::NotSupported);
+    };
+
+    rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+    let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
+        return Err(Error::Syntax);
+    };
+
+    let name = algorithm.name.str();
+    let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) {
+        let params = value_from_js_object!(AesCbcParams, cx, value);
+        EncryptionAlgorithm::AesCbc(params.into())
+    } else if name.eq_ignore_ascii_case(ALG_AES_CTR) {
+        let params = value_from_js_object!(AesCtrParams, cx, value);
+        EncryptionAlgorithm::AesCtr(params.into())
+    } else {
+        return Err(Error::NotSupported);
+    };
+
+    Ok(normalized_algorithm)
+}
+
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 #[allow(unsafe_code)]
 fn normalize_algorithm(
@@ -1089,7 +1114,7 @@ impl SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     fn decrypt_aes_cbc(
         &self,
-        params: SubtleAesCbcParams,
+        params: &SubtleAesCbcParams,
         key: &CryptoKey,
         data: &[u8],
         cx: JSContext,
@@ -1133,7 +1158,7 @@ impl SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
     fn encrypt_decrypt_aes_ctr(
         &self,
-        params: SubtleAesCtrParams,
+        params: &SubtleAesCtrParams,
         key: &CryptoKey,
         data: &[u8],
         cx: JSContext,
@@ -1533,6 +1558,35 @@ impl DeriveBitsAlgorithm {
     fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
         match self {
             Self::Pbkdf2(pbkdf2_params) => pbkdf2_params.derive_bits(key, length),
+        }
+    }
+}
+
+impl EncryptionAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    fn name(&self) -> &str {
+        match self {
+            Self::AesCbc(key_gen_params) => &key_gen_params.name,
+            Self::AesCtr(key_gen_params) => &key_gen_params.name,
+        }
+    }
+
+    // FIXME: This doesn't really need the "SubtleCrypto" argument
+    fn decrypt(
+        &self,
+        subtle: &SubtleCrypto,
+        key: &CryptoKey,
+        data: &[u8],
+        cx: JSContext,
+        result: MutableHandleObject,
+    ) -> Result<(), Error> {
+        match self {
+            Self::AesCbc(key_gen_params) => {
+                subtle.decrypt_aes_cbc(key_gen_params, key, data, cx, result)
+            },
+            Self::AesCtr(key_gen_params) => {
+                subtle.encrypt_decrypt_aes_ctr(key_gen_params, key, data, cx, result)
+            },
         }
     }
 }
