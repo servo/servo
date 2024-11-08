@@ -1235,6 +1235,15 @@ impl NormalizedAlgorithm {
         }
     }
 
+    fn get_key_length(&self) -> Result<u16, Error> {
+        match self {
+            Self::AesCtrParams(aes_ctr_params) => {
+                get_key_length_for_aes(aes_ctr_params.length as u16)
+            },
+            _ => Err(Error::NotSupported),
+        }
+    }
+
     fn import_key(
         &self,
         subtle: &SubtleCrypto,
@@ -1274,4 +1283,16 @@ impl NormalizedAlgorithm {
         };
         Ok(digest::digest(algorithm, data))
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
+fn get_key_length_for_aes(length: u16) -> Result<u16, Error> {
+    // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256,
+    // then throw an OperationError.
+    if !matches!(length, 128 | 192 | 256) {
+        return Err(Error::Operation);
+    }
+
+    // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.
+    Ok(length)
 }
