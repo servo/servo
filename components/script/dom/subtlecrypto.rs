@@ -26,8 +26,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesCbcParams, AesCtrParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm, AlgorithmIdentifier,
-    JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
+    AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm,
+    AlgorithmIdentifier, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -431,7 +431,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 6. Let normalizedDerivedKeyAlgorithmLength be the result of normalizing an algorithm, with alg set
         // to derivedKeyType and op set to "get key length".
         let normalized_derived_key_algorithm_length =
-            match normalize_algorithm(cx, &derived_key_type, "get key length") {
+            match normalize_algorithm_for_get_key_length(cx, &derived_key_type) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 7. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmLength.
@@ -840,6 +840,53 @@ impl SubtlePbkdf2Params {
         };
 
         Ok(params)
+    }
+}
+
+enum GetKeyLengthAlgorithm {
+    Aes(u16),
+}
+
+macro_rules! value_from_js_object {
+    ($t: ty, $cx: ident, $value: ident) => {{
+        let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::Operation)?;
+        let ConversionResult::Success(params) = params_result else {
+            return Err(Error::Syntax);
+        };
+        params
+    }};
+}
+
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"get key length"`
+#[allow(unsafe_code)]
+fn normalize_algorithm_for_get_key_length(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<GetKeyLengthAlgorithm, Error> {
+    match algorithm {
+        AlgorithmIdentifier::Object(obj) => {
+            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
+            else {
+                return Err(Error::Syntax);
+            };
+
+            let name = algorithm.name.str();
+            let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
+                name.eq_ignore_ascii_case(ALG_AES_CTR)
+            {
+                let params = value_from_js_object!(AesDerivedKeyParams, cx, value);
+                GetKeyLengthAlgorithm::Aes(params.length)
+            } else {
+                return Err(Error::NotSupported);
+            };
+
+            Ok(normalized_algorithm)
+        },
+        AlgorithmIdentifier::String(_) => {
+            // All algorithms that support "get key length" require additional parameters
+            Err(Error::NotSupported)
+        },
     }
 }
 
@@ -1366,15 +1413,6 @@ impl NormalizedAlgorithm {
         }
     }
 
-    fn get_key_length(&self) -> Result<u16, Error> {
-        match self {
-            Self::AesCtrParams(aes_ctr_params) => {
-                get_key_length_for_aes(aes_ctr_params.length as u16)
-            },
-            _ => Err(Error::NotSupported),
-        }
-    }
-
     fn import_key(
         &self,
         subtle: &SubtleCrypto,
@@ -1426,4 +1464,12 @@ fn get_key_length_for_aes(length: u16) -> Result<u16, Error> {
 
     // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.
     Ok(length)
+}
+
+impl GetKeyLengthAlgorithm {
+    fn get_key_length(&self) -> Result<u16, Error> {
+        match self {
+            Self::Aes(length) => get_key_length_for_aes(*length),
+        }
+    }
 }
