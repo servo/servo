@@ -688,16 +688,6 @@ impl SubtleCryptoMethods for SubtleCrypto {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum NormalizedAlgorithm {
-    #[allow(dead_code)]
-    Algorithm(SubtleAlgorithm),
-    AesCbcParams(SubtleAesCbcParams),
-    AesCtrParams(SubtleAesCtrParams),
-    AesKeyGenParams(SubtleAesKeyGenParams),
-    Pbkdf2Params(SubtlePbkdf2Params),
-}
-
 // These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
 // so they can be sent safely when running steps in parallel.
 
@@ -1036,35 +1026,6 @@ fn normalize_algorithm_for_generate_key(
         };
 
     Ok(normalized_algorithm)
-}
-
-/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-#[allow(unsafe_code)]
-fn normalize_algorithm(
-    cx: JSContext,
-    algorithm: &AlgorithmIdentifier,
-    operation: &str,
-) -> Result<NormalizedAlgorithm, Error> {
-    match algorithm {
-        AlgorithmIdentifier::String(name) => {
-            Ok(NormalizedAlgorithm::Algorithm(name.clone().into()))
-        },
-        AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
-            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
-            else {
-                return Err(Error::Syntax);
-            };
-            let normalized_name = algorithm.name.str().to_uppercase();
-
-            // This implements the table from https://w3c.github.io/webcrypto/#algorithm-overview
-            let normalized_algorithm = match (normalized_name.as_str(), operation) {
-                _ => return Err(Error::NotSupported),
-            };
-
-            Ok(normalized_algorithm)
-        },
-    }
 }
 
 impl SubtleCrypto {
