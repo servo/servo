@@ -36,6 +36,7 @@ use metrics::{
     ProgressiveWebMetric,
 };
 use mime::{self, Mime};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
@@ -75,7 +76,7 @@ use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
+use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
@@ -377,6 +378,9 @@ pub struct Document {
     referrer: Option<String>,
     /// <https://html.spec.whatwg.org/multipage/#target-element>
     target_element: MutNullableDom<Element>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-policy-container>
+    #[no_trace]
+    policy_container: DomRefCell<PolicyContainer>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
@@ -446,10 +450,6 @@ pub struct Document {
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// List of all WebGPU context IDs that need flushing.
     dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
-    /// <https://html.spec.whatwg.org/multipage/#concept-document-csp-list>
-    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
-    #[no_trace]
-    csp_list: DomRefCell<Option<CspList>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -2175,12 +2175,16 @@ impl Document {
         }
     }
 
-    /// Add the CSP list and HTTPS state to a given request.
+    pub fn policy_container(&self) -> Ref<PolicyContainer> {
+        self.policy_container.borrow()
+    }
+
+    /// Add the policy container and HTTPS state to a given request.
     ///
     /// TODO: Can this hapen for all requests that go through the document?
     pub(crate) fn prepare_request(&self, request: RequestBuilder) -> RequestBuilder {
         request
-            .csp_list(self.get_csp_list().map(|list| list.clone()))
+            .policy_container(self.policy_container().to_owned())
             .https_state(self.https_state.get())
     }
 
@@ -3399,6 +3403,7 @@ impl Document {
             referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableDom::new(None),
+            policy_container: DomRefCell::new(PolicyContainer::default()),
             last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
             ignore_opens_during_unload_counter: Default::default(),
@@ -3424,7 +3429,6 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
-            csp_list: DomRefCell::new(None),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())
@@ -3495,11 +3499,11 @@ impl Document {
     }
 
     pub fn set_csp_list(&self, csp_list: Option<CspList>) {
-        *self.csp_list.borrow_mut() = csp_list;
+        self.policy_container.borrow_mut().set_csp_list(csp_list);
     }
 
-    pub fn get_csp_list(&self) -> Option<Ref<CspList>> {
-        ref_filter_map(self.csp_list.borrow(), Option::as_ref)
+    pub fn get_csp_list(&self) -> Option<CspList> {
+        self.policy_container.borrow().csp_list.clone()
     }
 
     /// <https://www.w3.org/TR/CSP/#should-block-inline>
@@ -4273,6 +4277,7 @@ impl ProfilerMetadataFactory for Document {
     }
 }
 
+#[allow(non_snake_case)]
 impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-document
     fn Constructor(
@@ -5619,11 +5624,11 @@ fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     match_ignore_ascii_case! { token,
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
-        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
+        "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
         "origin" => Some(ReferrerPolicy::Origin),
         "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "strict-origin" => Some(ReferrerPolicy::StrictOrigin),
-        "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
+        "default" | "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
         "" => Some(ReferrerPolicy::NoReferrer),

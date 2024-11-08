@@ -6,6 +6,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use ipc_channel::ipc;
+use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -127,7 +128,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
-        csp_list: None,
+        policy_container: request.policy_container,
         https_state: request.https_state,
         response_tainting: request.response_tainting,
         crash: None,
@@ -167,7 +168,8 @@ pub fn Fetch(
     let timing_type = request.timing_type();
 
     let mut request_init = request_init_from_request(request);
-    request_init.csp_list.clone_from(&global.get_csp_list());
+    request_init.policy_container =
+        RequestPolicyContainer::PolicyContainer(global.policy_container());
 
     // TODO: Step 4. If requestObject’s signal is aborted, then: [..]
 
