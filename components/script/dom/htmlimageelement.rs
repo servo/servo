@@ -1519,8 +1519,8 @@ pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
 
 fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
     if token == "" {
-        // Empty token is treated as no-referrer inside determine_policy_for_token,
-        // while here it should be treated as the default value, so it should remain unchanged.
+        // Empty token is treated as the default referrer policy inside determine_policy_for_token,
+        // so it should remain unchanged.
         DOMString::new()
     } else {
         match determine_policy_for_token(token) {
@@ -1532,6 +1532,7 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
     }
 }
 
+#[allow(non_snake_case)]
 impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-image
     fn Image(

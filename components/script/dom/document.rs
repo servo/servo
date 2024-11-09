@@ -5631,7 +5631,7 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
         "default" | "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
-        "" => Some(ReferrerPolicy::NoReferrer),
+        "" => Some(ReferrerPolicy::default()),
         _ => None,
     }
 }
