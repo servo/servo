@@ -10,14 +10,18 @@ use webrender_api::units::{DeviceIntPoint, LayoutVector2D};
 
 use self::TouchState::*;
 
+
+// TODO: All `_SCREEN_PX` units below are currently actually used as `DevicePixel`
+// without multiplying with the `hidpi_factor`. This should be fixed and the
+// constants adjusted accordingly.
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
 /// Factor by which the flinging velocity changes on each tick
 const FLING_SCALING_FACTOR: f32 = 0.95;
 /// Minimum velocity required for transitioning to fling when panning ends
-const FLING_MIN: f32 = 3.0;
+const FLING_MIN_SCREEN_PX: f32 = 3.0;
 /// Maximum velocity when flinging
-const FLING_MAX: f32 = 4000.0;
+const FLING_MAX_SCREEN_PX: f32 = 4000.0;
 
 pub struct TouchHandler {
     pub state: TouchState,
@@ -113,14 +117,14 @@ impl TouchHandler {
         } = &mut self.state else {
             return None;
         };
-        if velocity.length().abs() < FLING_MIN {
+        if velocity.length().abs() < FLING_MIN_SCREEN_PX  {
             self.state = Nothing;
             return None;
         }
         // TODO: Probably we should multiply with the current refresh rate (and divide on each frame)
         // or save a timestamp to account for a potentially changing display refresh rate.
         *velocity *= FLING_SCALING_FACTOR;
-        debug_assert!(velocity.length() <= FLING_MAX);
+        debug_assert!(velocity.length() <= FLING_MAX_SCREEN_PX);
         Some(FlingAction {
             delta: LayoutVector2D::new(velocity.x, velocity.y),
             cursor: *cursor,
@@ -206,7 +210,7 @@ impl TouchHandler {
                 self.state = Nothing;
                 TouchAction::NoAction
             },
-            Panning { velocity } if velocity.length().abs() >= FLING_MIN => {
+            Panning { velocity } if velocity.length().abs() >= FLING_MIN_SCREEN_PX => {
                 // TODO: point != old. Not sure which one is better to take as cursor for flinging.
                 debug!(
                     "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
@@ -217,7 +221,7 @@ impl TouchHandler {
                 let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
                 // Multiplying the initial velocity gives the fling a much more snappy feel
                 // and serves well as a poor-mans acceleration algorithm.
-                let velocity = (velocity * 2.0).with_max_length(FLING_MAX);
+                let velocity = (velocity * 2.0).with_max_length(FLING_MAX_SCREEN_PX);
                 self.state = Flinging { velocity, cursor };
                 TouchAction::NoAction
             },
