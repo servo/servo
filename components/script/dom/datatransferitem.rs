@@ -83,6 +83,10 @@ impl DataTransferItem {
             _ => None,
         }
     }
+
+    pub fn text_type_matches(&self, type_: &DOMString) -> bool {
+        matches!(self.kind, KindStorage::Text(_) if self.type_.borrow().eq(type_))
+    }
 }
 
 impl DataTransferItemMethods for DataTransferItem {
