@@ -87,6 +87,10 @@ impl DataTransfer {
     pub fn can_write(&self) -> bool {
         self.mode.get() == Mode::ReadWrite
     }
+
+    pub fn can_read(&self) -> bool {
+        self.mode.get() != Mode::Protected
+    }
 }
 
 impl DataTransferMethods for DataTransfer {
