@@ -852,14 +852,13 @@ macro_rules! value_from_js_object {
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"get key length"`
-#[allow(unsafe_code)]
 fn normalize_algorithm_for_get_key_length(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
 ) -> Result<GetKeyLengthAlgorithm, Error> {
     match algorithm {
         AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+            rooted!(in(*cx) let value = ObjectValue(obj.get()));
             let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
             else {
                 return Err(Error::Syntax);
@@ -885,14 +884,13 @@ fn normalize_algorithm_for_get_key_length(
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"digest"`
-#[allow(unsafe_code)]
 fn normalize_algorithm_for_digest(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
 ) -> Result<DigestAlgorithm, Error> {
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+            rooted!(in(*cx) let value = ObjectValue(obj.get()));
             let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
             else {
                 return Err(Error::Syntax);
@@ -915,14 +913,13 @@ fn normalize_algorithm_for_digest(
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"importKey"`
-#[allow(unsafe_code)]
 fn normalize_algorithm_for_import_key(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
 ) -> Result<ImportKeyAlgorithm, Error> {
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
-            rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+            rooted!(in(*cx) let value = ObjectValue(obj.get()));
             let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
             else {
                 return Err(Error::Syntax);
@@ -944,7 +941,6 @@ fn normalize_algorithm_for_import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"deriveBits"`
-#[allow(unsafe_code)]
 fn normalize_algorithm_for_derive_bits(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
@@ -954,7 +950,7 @@ fn normalize_algorithm_for_derive_bits(
         return Err(Error::NotSupported);
     };
 
-    rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+    rooted!(in(*cx) let value = ObjectValue(obj.get()));
     let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
         return Err(Error::Syntax);
     };
@@ -971,7 +967,6 @@ fn normalize_algorithm_for_derive_bits(
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"deriveBits"`
-#[allow(unsafe_code)]
 fn normalize_algorithm_for_encrypt_or_decrypt(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
@@ -981,7 +976,7 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
         return Err(Error::NotSupported);
     };
 
-    rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+    rooted!(in(*cx) let value = ObjectValue(obj.get()));
     let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
         return Err(Error::Syntax);
     };
@@ -1001,7 +996,6 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"generateKey"`
-#[allow(unsafe_code)]
 fn normalize_algorithm_for_generate_key(
     cx: JSContext,
     algorithm: &AlgorithmIdentifier,
@@ -1011,7 +1005,7 @@ fn normalize_algorithm_for_generate_key(
         return Err(Error::NotSupported);
     };
 
-    rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+    rooted!(in(*cx) let value = ObjectValue(obj.get()));
     let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
         return Err(Error::Syntax);
     };
