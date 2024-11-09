@@ -12,8 +12,11 @@ use self::TouchState::*;
 
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
+/// Factor by which the flinging velocity changes on each tick
 const FLING_SCALING_FACTOR: f32 = 0.95;
-const FLING_MINIMUM: f32 = 3.0;
+/// Minimum velocity required for transitioning to fling when panning ends
+const FLING_MIN: f32 = 3.0;
+/// Maximum velocity when flinging
 const FLING_MAX: f32 = 4000.0;
 
 pub struct TouchHandler {
@@ -51,7 +54,6 @@ pub enum TouchState {
         velocity: Vector2D<f32, DevicePixel>,
     },
     /// No active touch points, but there is still scrolling velocity
-    /// Note: For now we only support flinging along the y-axis
     Flinging {
         velocity: Vector2D<f32, DevicePixel>,
         cursor: DeviceIntPoint,
@@ -105,27 +107,25 @@ impl TouchHandler {
     }
 
     pub fn on_vsync(&mut self) -> Option<FlingAction> {
-        if let Flinging {
+        let Flinging {
             velocity,
             ref cursor,
-        } = &mut self.state
-        {
-            if velocity.length().abs() >= FLING_MINIMUM {
-                // Todo: Probably we should multiply with the current refresh rate (and divide on each frame)
-                // or save a timestamp to account for a potentially changing display refresh rate.
-                *velocity *= FLING_SCALING_FACTOR;
-                debug_assert!(velocity.length() <= FLING_MAX && velocity.length() >= -FLING_MAX);
-                Some(FlingAction {
-                    delta: LayoutVector2D::new(velocity.x, velocity.y),
-                    cursor: *cursor,
-                })
-            } else {
-                self.state = Nothing;
-                None
-            }
-        } else {
-            None
+        } = &mut self.state else {
+            return None;
+        };
+        if velocity.length().abs() < FLING_MIN {
+            self.state = Nothing;
+            return None;
         }
+        // TODO: Probably we should multiply with the current refresh rate (and divide on each frame)
+        // or save a timestamp to account for a potentially changing display refresh rate.
+        *velocity *= FLING_SCALING_FACTOR;
+        debug_assert!(velocity.length() <= FLING_MAX);
+        Some(FlingAction {
+            delta: LayoutVector2D::new(velocity.x, velocity.y),
+            cursor: *cursor,
+        })
+
     }
 
     pub fn on_touch_move(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) -> TouchAction {
@@ -155,7 +155,7 @@ impl TouchHandler {
             },
             Panning { ref mut velocity } => {
                 let delta = point - old_point;
-                // Todo: Probably we should track 1-3 more points and use a smarter algorithm
+                // TODO: Probably we should track 1-3 more points and use a smarter algorithm
                 *velocity += delta;
                 *velocity /= 2.0;
                 TouchAction::Scroll(delta)
@@ -206,25 +206,25 @@ impl TouchHandler {
                 self.state = Nothing;
                 TouchAction::NoAction
             },
-            Panning { velocity } => {
-                if velocity.length().abs() >= FLING_MINIMUM {
-                    // Todo: point != old. Not sure which one is better to take as cursor for flinging.
-                    debug!(
-                        "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
-                        Raw velocity is {velocity:?}."
-                    );
-                    debug_assert!((point.x as i64) < (i32::MAX as i64));
-                    debug_assert!((point.y as i64) < (i32::MAX as i64));
-                    let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
-                    // Multiplying the initial velocity gives the fling a much more snappy feel
-                    // and serves well as a poor-mans acceleration algorithm.
-                    let velocity = (velocity * 2.0).with_max_length(FLING_MAX);
-                    self.state = Flinging { velocity, cursor };
-                } else {
-                    self.state = Nothing;
-                }
+            Panning { velocity } if velocity.length().abs() >= FLING_MIN => {
+                // TODO: point != old. Not sure which one is better to take as cursor for flinging.
+                debug!(
+                    "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
+                    Raw velocity is {velocity:?}."
+                );
+                debug_assert!((point.x as i64) < (i32::MAX as i64));
+                debug_assert!((point.y as i64) < (i32::MAX as i64));
+                let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
+                // Multiplying the initial velocity gives the fling a much more snappy feel
+                // and serves well as a poor-mans acceleration algorithm.
+                let velocity = (velocity * 2.0).with_max_length(FLING_MAX);
+                self.state = Flinging { velocity, cursor };
                 TouchAction::NoAction
             },
+            Panning { .. } => {
+                self.state = Nothing;
+                TouchAction::NoAction
+            }
             Pinching => {
                 self.state = Panning {
                     velocity: Vector2D::new(0.0, 0.0),
