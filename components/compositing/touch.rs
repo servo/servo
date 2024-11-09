@@ -10,7 +10,6 @@ use webrender_api::units::{DeviceIntPoint, LayoutVector2D};
 
 use self::TouchState::*;
 
-
 // TODO: All `_SCREEN_PX` units below are currently actually used as `DevicePixel`
 // without multiplying with the `hidpi_factor`. This should be fixed and the
 // constants adjusted accordingly.
@@ -114,10 +113,11 @@ impl TouchHandler {
         let Flinging {
             velocity,
             ref cursor,
-        } = &mut self.state else {
+        } = &mut self.state
+        else {
             return None;
         };
-        if velocity.length().abs() < FLING_MIN_SCREEN_PX  {
+        if velocity.length().abs() < FLING_MIN_SCREEN_PX {
             self.state = Nothing;
             return None;
         }
@@ -129,7 +129,6 @@ impl TouchHandler {
             delta: LayoutVector2D::new(velocity.x, velocity.y),
             cursor: *cursor,
         })
-
     }
 
     pub fn on_touch_move(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) -> TouchAction {
@@ -228,7 +227,7 @@ impl TouchHandler {
             Panning { .. } => {
                 self.state = Nothing;
                 TouchAction::NoAction
-            }
+            },
             Pinching => {
                 self.state = Panning {
                     velocity: Vector2D::new(0.0, 0.0),
