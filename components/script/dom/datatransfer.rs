@@ -156,15 +156,19 @@ impl DataTransferMethods for DataTransfer {
     fn Types(&self, _cx: JSContext, _retval: MutableHandleValue) {}
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
-    fn GetData(&self, _format: DOMString) -> DOMString {
-        todo!()
+    fn GetData(&self, format: DOMString) -> DOMString {
+        self.items.get_data(format)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdata>
-    fn SetData(&self, _format: DOMString, _data: DOMString) {}
+    fn SetData(&self, format: DOMString, data: DOMString) {
+        self.items.set_data(format, data);
+    }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata>
-    fn ClearData(&self, _format: Option<DOMString>) {}
+    fn ClearData(&self, format: Option<DOMString>) {
+        self.items.clear_data(format);
+    }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
     fn Files(&self) -> DomRoot<FileList> {

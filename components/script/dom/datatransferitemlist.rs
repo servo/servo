@@ -47,6 +47,110 @@ impl DataTransferItemList {
 
         item
     }
+
+    pub fn get_data(&self, mut format: DOMString) -> DOMString {
+        if self
+            .data_store
+            .root()
+            .is_some_and(|data_store| data_store.can_read())
+        {
+            // Step 3 Convert format to ASCII lowercase.
+            format.make_ascii_lowercase();
+            // Step 4 Let convert-to-URL be false.
+            let mut convert_to_url = false;
+
+            // Step 5 & 6
+            let type_ = match format.as_ref() {
+                "text" => DOMString::from("text/plain"),
+                "url" => {
+                    convert_to_url = true;
+                    DOMString::from("text/uri-list")
+                },
+                _ => format,
+            };
+
+            // Step 8
+            let data = self
+                .items
+                .borrow()
+                .iter()
+                .find(|item| item.text_type_matches(&type_))
+                .map(|item| item.as_string())
+                .flatten();
+
+            if let Some(result) = data {
+                // Step 9
+                if convert_to_url {
+                    //TODO parse uri-list as [RFC2483]
+                }
+                // Step 10
+                result
+            } else {
+                // Step 7 If there is no item whose kind is text and whose type is equal to format, return the empty string.
+                DOMString::new()
+            }
+        } else {
+            // Step 1 & 2
+            DOMString::new()
+        }
+    }
+
+    pub fn set_data(&self, mut format: DOMString, data: DOMString) {
+        //Step 1 If the DataTransfer is no longer associated with a data store, return.
+        if let Some(data_store) = self.data_store.root() {
+            //Step 2 If the data store is not int the read/write mode, return.
+            if !data_store.can_write() {
+                return;
+            }
+
+            // Step 3 Convert format to ASCII lowercase.
+            format.make_ascii_lowercase();
+            // Step 4
+            let type_ = match format.as_ref() {
+                "text" => DOMString::from("text/plain"),
+                "url" => DOMString::from("text/uri-list"),
+                _ => format,
+            };
+
+            // Step 5 Remove the item in the item list whose kind is text and whose type is equal to format.
+            self.items
+                .borrow_mut()
+                .retain(|item| !item.text_type_matches(&type_));
+
+            // Step 6 Add an item to the item list whose kind is text,
+            // whose type is equal to format, and whose data is the method's second argument.
+            self.add_item(Kind::Text(data), type_);
+        }
+    }
+
+    pub fn clear_data(&self, format: Option<DOMString>) {
+        // Step 1 If the DataTransfer is no longer associated with a data store, return.
+        if let Some(data_store) = self.data_store.root() {
+            // Step 2 If the data store is not int the read/write mode, return.
+            if !data_store.can_write() {
+                return;
+            }
+
+            if let Some(mut format) = format {
+                // Step 4 Convert format to ASCII lowercase.
+                format.make_ascii_lowercase();
+                // Step 5
+                let type_ = match format.as_ref() {
+                    "text" => DOMString::from("text/plain"),
+                    "url" => DOMString::from("text/uri-list"),
+                    _ => format,
+                };
+
+                // Step 6 Remove the item in the item list whose kind is text and whose type is equal to format.
+                self.items
+                    .borrow_mut()
+                    .retain(|item| !item.text_type_matches(&type_));
+            } else {
+                // Step 3 If format is None, remove each item in the item list whose kind is text.
+                self.items.borrow_mut().retain(|item| item.is_file());
+            }
+        }
+    }
 }
 
 impl DataTransferItemListMethods for DataTransferItemList {

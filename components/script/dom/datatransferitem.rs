@@ -77,6 +77,13 @@ impl DataTransferItem {
         self.type_.borrow().clone()
     }
 
+    pub fn as_string(&self) -> Option<DOMString> {
+        match &self.kind {
+            KindStorage::Text(data) => Some(data.clone()),
+            _ => None,
+        }
+    }
+
     pub fn as_file(&self) -> Option<DomRoot<File>> {
         match &self.kind {
             KindStorage::File(file) => Some(DomRoot::from_ref(file)),
@@ -86,6 +93,10 @@ impl DataTransferItem {
 
     pub fn text_type_matches(&self, type_: &DOMString) -> bool {
         matches!(self.kind, KindStorage::Text(_) if self.type_.borrow().eq(type_))
+    }
+
+    pub fn is_file(&self) -> bool {
+        matches!(self.kind, KindStorage::File(_))
     }
 }
 
