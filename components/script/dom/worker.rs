@@ -13,6 +13,7 @@ use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
+use net_traits::request::Referrer;
 use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use uuid::Uuid;
 
@@ -178,8 +179,12 @@ impl WorkerMethods for Worker {
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {
-            referrer_url: None,
-            referrer_policy: None,
+            referrer_url: match global.get_referrer() {
+                Referrer::Client(url) => Some(url),
+                Referrer::ReferrerUrl(url) => Some(url),
+                _ => None,
+            },
+            referrer_policy: global.get_referrer_policy(),
             pipeline_id: global.pipeline_id(),
         };
 

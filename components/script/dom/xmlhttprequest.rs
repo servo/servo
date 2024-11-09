@@ -174,14 +174,6 @@ pub struct XMLHttpRequest {
 
 impl XMLHttpRequest {
     fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
-        //TODO - update this when referrer policy implemented for workers
-        let referrer_policy = if let Some(window) = global.downcast::<Window>() {
-            let document = window.Document();
-            document.get_referrer_policy()
-        } else {
-            None
-        };
-
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
@@ -213,7 +205,7 @@ impl XMLHttpRequest {
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
             referrer: global.get_referrer(),
-            referrer_policy,
+            referrer_policy: global.get_referrer_policy(),
             canceller: DomRefCell::new(Default::default()),
         }
     }
