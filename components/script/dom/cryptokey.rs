@@ -27,6 +27,7 @@ pub enum Handle {
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
     Pbkdf2(Vec<u8>),
+    Hkdf(Vec<u8>),
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
@@ -148,6 +149,7 @@ impl Handle {
             Self::Aes192(bytes) => bytes,
             Self::Aes256(bytes) => bytes,
             Self::Pbkdf2(bytes) => bytes,
+            Self::Hkdf(bytes) => bytes,
         }
     }
 }

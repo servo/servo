@@ -92,6 +92,13 @@ dictionary AesCtrParams : Algorithm {
   required [EnforceRange] octet length;
 };
 
+// https://w3c.github.io/webcrypto/#hkdf-params
+dictionary HkdfParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+  required BufferSource salt;
+  required BufferSource info;
+};
+
 // https://w3c.github.io/webcrypto/#pbkdf2-params
 dictionary Pbkdf2Params : Algorithm {
   required BufferSource salt;
