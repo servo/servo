@@ -14,7 +14,6 @@ mod headed_window;
 mod headless_window;
 mod keyutils;
 mod minibrowser;
-mod protocols;
 mod tracing;
 mod webview;
 mod window_trait;
