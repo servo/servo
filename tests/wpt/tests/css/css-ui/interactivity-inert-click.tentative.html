@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: interactivity:inert blocks click events</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10711#issuecomment-2379913684">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #inert {
+    interactivity: inert;
+    width: 100px;
+    height: 100px;
+    background: lime;
+  }
+</style>
+<div id="inert"></div>
+<script>
+  let clicked = false;
+  inert.addEventListener('click', () => clicked = true);
+
+  promise_test(async () => {
+    try {
+      await test_driver.click(inert);
+      assert_false(clicked);
+    } catch (e) {
+      // test driver detects inert elements as unclickable and throws an error
+      assert_false(clicked);
+    }
+  }, "No click event for interactivity:inert element");
+
+  promise_test(async () => {
+    inert.style.interactivity = 'auto';
+    await test_driver.click(inert);
+    assert_true(clicked);
+  }, "Click event should work after interactivity change");
+</script>

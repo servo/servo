@@ -15,12 +15,6 @@
 
 const ROUTER_RULE_KEY_INVALID_REQUEST_METHOD =
     'condition-invalid-request-method';
-const ROUTER_RULE_KEY_INVALID_OR_CONDITION_DEPTH =
-    'condition-invalid-or-condition-depth';
-const ROUTER_RULE_KEY_INVALID_NOT_CONDITION_DEPTH =
-    'condition-invalid-not-condition-depth';
-const ROUTER_RULE_KEY_INVALID_ROUTER_SIZE =
-    'condition-invalid-router-size';
 const ROUTER_RULE_KEY_LACK_OF_CONDITION =
     'condition-lack-of-condition';
 const ROUTER_RULE_KEY_LACK_OF_SOURCE =
@@ -32,27 +26,6 @@ promise_test(async t => {
   const {errors} = await get_info_from_worker(worker);
   assert_equals(errors.length, 1);
 }, 'addRoutes should raise for invalid request method.');
-
-promise_test(async t => {
-  const worker = await registerAndActivate(t, ROUTER_RULE_KEY_INVALID_OR_CONDITION_DEPTH);
-  t.add_cleanup(() => {reset_info_in_worker(worker)});
-  const {errors} = await get_info_from_worker(worker);
-  assert_equals(errors.length, 1);
-}, 'addRoutes should raise if or condition exceeds the depth limit');
-
-promise_test(async t => {
-  const worker = await registerAndActivate(t, ROUTER_RULE_KEY_INVALID_NOT_CONDITION_DEPTH);
-  t.add_cleanup(() => {reset_info_in_worker(worker)});
-  const {errors} = await get_info_from_worker(worker);
-  assert_equals(errors.length, 1);
-}, 'addRoutes should raise if not condition exceeds the depth limit');
-
-promise_test(async t => {
-  const worker = await registerAndActivate(t, ROUTER_RULE_KEY_INVALID_ROUTER_SIZE);
-  t.add_cleanup(() => {reset_info_in_worker(worker)});
-  const {errors} = await get_info_from_worker(worker);
-  assert_equals(errors.length, 1);
-}, 'addRoutes should raise if the number of router rules exceeds the length limit');
 
 promise_test(async t => {
   const worker = await registerAndActivate(t, ROUTER_RULE_KEY_LACK_OF_CONDITION);

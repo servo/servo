@@ -16,7 +16,7 @@ promise_test(async t => {
     e.preventDefault();
     assert_throws_dom("InvalidStateError", () => e.scroll());
   }), { once : true });
-  assertBothRejectDOM(t, navigation.navigate("#frag"), "AbortError");
+  await assertBothRejectDOM(t, navigation.navigate("#frag"), "AbortError");
 }, "scroll: scroll() should throw after preventDefault");
 </script>
 </body>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: parsing interactivity</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10711#issuecomment-2379913684">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+  test_valid_value("interactivity", "auto");
+  test_valid_value("interactivity", "inert");
+
+  test_valid_value("interactivity", "initial");
+  test_valid_value("interactivity", "inherit");
+  test_valid_value("interactivity", "unset");
+  test_valid_value("interactivity", "revert");
+
+  test_invalid_value("interactivity", "normal");
+  test_invalid_value("interactivity", "none");
+  test_invalid_value("interactivity", "auto inert");
+</script>

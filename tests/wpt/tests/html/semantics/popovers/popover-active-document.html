@@ -12,6 +12,6 @@
     popover.setAttribute('popover','');
     doc.body.appendChild(popover);
     assert_throws_dom('InvalidStateError',() => popover.showPopover());
-    assert_false(popover.matches(':open'));
+    assert_false(popover.matches(':popover-open'));
   },'showPopover should throw when the document isn\'t active');
 </script>

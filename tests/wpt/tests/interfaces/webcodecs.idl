@@ -317,6 +317,8 @@ interface VideoFrame {
   readonly attribute unsigned long codedHeight;
   readonly attribute DOMRectReadOnly? codedRect;
   readonly attribute DOMRectReadOnly? visibleRect;
+  readonly attribute double rotation;
+  readonly attribute boolean flip;
   readonly attribute unsigned long displayWidth;
   readonly attribute unsigned long displayHeight;
   readonly attribute unsigned long long? duration;  // microseconds
@@ -344,6 +346,9 @@ dictionary VideoFrameInit {
   // aspect ratio unless an explicit displayWidth and displayHeight are given.
   DOMRectInit visibleRect;
 
+  double rotation = 0;
+  boolean flip = false;
+
   // Default matches image unless visibleRect is provided.
   [EnforceRange] unsigned long displayWidth;
   [EnforceRange] unsigned long displayHeight;
@@ -363,6 +368,9 @@ dictionary VideoFrameBufferInit {
 
   // Default visible rect is coded size positioned at (0,0)
   DOMRectInit visibleRect;
+
+  double rotation = 0;
+  boolean flip = false;
 
   // Default display dimensions match visibleRect.
   [EnforceRange] unsigned long displayWidth;

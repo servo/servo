@@ -65,12 +65,31 @@ const tests = [
     starts: [0, 1, 2],
     sizes: [3, 4, 1]
   },
+  {
+    name:
+        '[slice] Throw if the length of strides is not equal to the rank of the input tensor.',
+    input: {dataType: 'float32', shape: [3, 4, 5]},
+    starts: [1, 2, 3],
+    sizes: [1, 1, 1],
+    strides: [1, 1, 1, 1]
+  },
+  {
+    name: '[slice] Throw if the strides are less than 1.',
+    input: {dataType: 'float32', shape: [3, 4, 5]},
+    starts: [1, 2, 3],
+    sizes: [1, 1, 1],
+    strides: [0, 0, 0]
+  }
 ];
 
 tests.forEach(
     test => promise_test(async t => {
       const builder = new MLGraphBuilder(context);
       const input = builder.input('input', test.input);
+      const options = {};
+      if (test.strides) {
+        options.strides = test.strides;
+      }
 
       if (test.output) {
         const output = builder.slice(input, test.starts, test.sizes);
@@ -78,7 +97,7 @@ tests.forEach(
         assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'slice_xxx';
-        const options = {label};
+        options.label = label;
         const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(
             () => builder.slice(input, test.starts, test.sizes, options),

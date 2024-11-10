@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-dialog-request-close">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../popovers/resources/popover-utils.js"></script>
+
+<dialog>Dialog</dialog>
+
+<script>
+const dialog = document.querySelector('dialog');
+function openDialog(modal) {
+  assert_false(dialog.open);
+  if (modal) {
+    dialog.showModal();
+  } else {
+    dialog.show();
+  }
+  assert_true(dialog.open);
+  assert_equals(dialog.matches(':modal'),modal);
+}
+function getSignal(t) {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  t.add_cleanup(() => controller.abort());
+  return signal;
+}
+
+// Run this test first, since the user activation from other tests will persist.
+promise_test(async (t) => {
+  t.add_cleanup(() => dialog.close());
+  const signal = getSignal(t);
+  dialog.addEventListener('cancel',(e) => {
+    e.preventDefault();
+  },{signal});
+  openDialog(/*modal*/true);
+  dialog.requestClose();
+  assert_false(dialog.open,'Without user activation, requestClose can\'t be cancelled');
+},`requestClose requires user activation in order to be cancelable`);
+
+[false,true].forEach(modal => {
+  promise_test(async (t) => {
+    t.add_cleanup(() => dialog.close());
+    openDialog(modal);
+    dialog.requestClose();
+    assert_false(dialog.open);
+  },`${modal ? "Modal:" : "Non-modal:"} requestClose closes the dialog`);
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => dialog.close());
+    const signal = getSignal(t);
+    let shouldPreventDefault = true;
+    dialog.addEventListener('cancel',(e) => {
+      if (shouldPreventDefault) {
+        e.preventDefault();
+      }
+    },{signal});
+    openDialog(modal);
+    await clickOn(dialog); // User activation
+    dialog.requestClose();
+    assert_true(dialog.open,'cancel event was cancelled - dialog shouldn\'t close');
+    shouldPreventDefault = false;
+    await clickOn(dialog); // User activation
+    dialog.requestClose();
+    assert_false(dialog.open,'cancel event was not cancelled - dialog should now close');
+  },`${modal ? "Modal:" : "Non-modal:"} requestClose can be cancelled`);
+});
+</script>

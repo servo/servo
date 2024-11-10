@@ -45,4 +45,18 @@ promise_test(async t => {
   assert_equals(blobTextOutput.type, 'text/plain');
   assert_equals(blobImageOutput.type, 'image/png');
 }, 'Verify write and read clipboard (multiple types)');
+
+promise_test(async () => {
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
+  const text_blob = new Blob(['hello'], {type: 'text/plain'});
+  const html_blob = new Blob(undefined, {type: 'text/html'});
+  const item = new ClipboardItem({'text/plain': text_blob, 'text/html': html_blob});
+
+  await waitForUserActivation();
+  await navigator.clipboard.write([item]);
+  await waitForUserActivation();
+  const [clipboardItem] = await navigator.clipboard.read();
+}, 'navigator.clipboard.read() does not crash if clipboard data has null values');
+
 </script>

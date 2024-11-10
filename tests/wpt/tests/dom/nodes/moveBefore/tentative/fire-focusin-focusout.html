@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>moveBefore should handle focus bubbling correctly</title>
+<title>moveBefore should not fire focus events</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -48,10 +48,8 @@ test(t => {
     new_parent.moveBefore(button, null);
     assert_collected_events_equals(collected_events, [
         {type: "focusin", target: button},
-        {type: "focusout", target: old_parent},
-        {type: "focusin", target: new_parent}
     ]);
-}, "Fire focusin/out when reparenting focused element directly");
+}, "Don't fire focusin/out when reparenting focused element directly");
 
 test(t => {
     const collected_events = collect_focusinout_events(t);
@@ -62,10 +60,8 @@ test(t => {
     new_parent.moveBefore(old_parent, null);
     assert_collected_events_equals(collected_events, [
         {type: "focusin", target: button},
-        {type: "focusout", target: document.body},
-        {type: "focusin", target: new_parent}
     ]);
-}, "Fire focusin/out when reparenting an element that has focus within");
+}, "Don't fire focusin/out when reparenting an element that has focus within");
 
 test(t => {
     const collected_events = collect_focusinout_events(t);
@@ -88,18 +84,13 @@ promise_test(async t => {
     button.focus();
     inert_parent.moveBefore(button, null);
     assert_collected_events_equals(collected_events, [
-        {type: "focusin", target: button},
-        {type: "focusout", target: old_parent},
-        {type: "focusin", target: inert_parent}
-    ]);
+        {type: "focusin", target: button}]);
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     assert_collected_events_equals(collected_events, [
         {type: "focusin", target: button},
-        {type: "focusout", target: old_parent},
-        {type: "focusin", target: inert_parent},
         {type: "focusout", target: button},
     ]);
-}, "Fire focusin and then correct when moving to an inert subtree");
+}, "Don't fire focusin and then correct when moving to an inert subtree");
 
 promise_test(async t => {
     const collected_events = collect_focusinout_events(t);
@@ -111,16 +102,12 @@ promise_test(async t => {
     inert_when_not_empty_parent.moveBefore(button, null);
     assert_collected_events_equals(collected_events, [
         {type: "focusin", target: button},
-        {type: "focusout", target: old_parent},
-        {type: "focusin", target: inert_when_not_empty_parent}
     ]);
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     assert_collected_events_equals(collected_events, [
         {type: "focusin", target: button},
-        {type: "focusout", target: old_parent},
-        {type: "focusin", target: inert_when_not_empty_parent},
         {type: "focusout", target: button},
     ]);
-}, "Fire focusin and then correct when moving to a tree that is made inert using style");
+}, "Don't fire focusin and then correct when moving to a tree that is made inert using style");
 
 </script>

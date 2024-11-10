@@ -20,12 +20,8 @@ async function cleanupDirectory(dir, ignoreRejections) {
       entry =>
           dir.removeEntry(entry.name, {recursive: entry.kind === 'directory'}));
 
-  // Wait for them all to resolve or reject.
-  if (ignoreRejections) {
-    await Promise.allSettled(remove_entry_promises);
-  } else {
-    await Promise.all(remove_entry_promises);
-  }
+  // Wait for them all to resolve or reject, ignoring any rejections.
+  await Promise.allSettled(remove_entry_promises);
 }
 
 function directory_test(func, description) {
@@ -33,13 +29,13 @@ function directory_test(func, description) {
     const dir = await navigator.storage.getDirectory();
 
     // To be extra resilient against bad tests, cleanup before every test.
-    await cleanupDirectory(dir, /*ignoreRejections=*/ false);
+    await cleanupDirectory(dir);
 
     // Cleanup after every test.
     t.add_cleanup(async () => {
       // Ignore any rejections since other cleanup code may have deleted them
       // before we could.
-      await cleanupDirectory(dir, /*ignoreRejections=*/ true);
+      await cleanupDirectory(dir);
     });
 
 

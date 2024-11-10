@@ -3,12 +3,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-const t = async_test(
-  'After <link rel=modulepreload> import maps should fire error events');
 const log = [];
 </script>
 <link rel="modulepreload" href="../resources/empty.js?pipe=trickle(d1)"></link>
-<script type="importmap" onerror="t.done()">
+<script type="importmap">
 {
   "imports": {
     "../resources/log.js?pipe=sub&name=A": "../resources/log.js?pipe=sub&name=B"
@@ -18,7 +16,7 @@ const log = [];
 <script>
 promise_test(() => {
   return import("../resources/log.js?pipe=sub&name=A")
-    .then(() => assert_array_equals(log, ["log:A"]))
+    .then(() => assert_array_equals(log, ["log:B"]))
   },
-  'After <link rel=modulepreload> import maps are not effective');
+  'After <link rel=modulepreload> import maps should work fine');
 </script>

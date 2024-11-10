@@ -21,7 +21,7 @@
     </head>
     <body onload="run()">
         <h1>Pointer Events touch-action attribute support</h1>
-        <h4 id="desc">Test Description: Press DOWN ARROW key. Wait for description update. Expected: pan enabled</h4>
+        <h4 id="desc">Test Description: Press DOWN ARROW key, then RIGHT ARROW key. Expected: pan enabled</h4>
         <p>Note: this test is for keyboard only</p>
         <div id="target0">
             <p>
@@ -78,67 +78,65 @@
             <p>Lorem ipsum dolor sit amet...</p>
         </div>
         <script type='text/javascript'>
+            var x_scroll_baseline, y_scroll_baseline, x_scroll, y_scroll;
 
-            var xScrollIsReceived = false;
-            var yScrollIsReceived = false;
-            var xScr0, yScr0, xScr1, yScr1;
+            var got_x_scroll = false;
+            var got_y_scroll = false;
 
-            function run() {
-                var target0 = document.getElementById("target0");
+            async function send_key_to_target(key_code) {
+                return new test_driver.Actions()
+                    .addKeyboard("keyboard1", "keyboard")
+                    .keyDown(key_code, {origin: target0})
+                    .keyUp(key_code, {origin: target0})
+                    .send();
+            }
 
+            async function run() {
                 var test_touchaction = async_test("touch-action attribute test");
-                var actions_promise;
 
-                xScr0 = target0.scrollLeft;
-                yScr0 = target0.scrollTop;
-
-                target0.focus();
-
-                on_event(target0, 'scroll', function(event) {
-                    xScr1 = target0.scrollLeft;
-                    yScr1 = target0.scrollTop;
-
-                    if(xScr1 != xScr0) {
-                        xScrollIsReceived = true;
-                    }
-
-                    if(yScr1 != yScr0) {
-                        test_touchaction.step(function () {
-                            yScrollIsReceived = true;
-                            assert_true(true, "y-scroll received.");
-                        });
-                        updateDescriptionNextStepKeyboard();
-                    }
-
-                    if(xScrollIsReceived && yScrollIsReceived) {
-                        // Make sure the test finishes after all the input actions are completed.
-                        actions_promise.then( () => {
-                            test_touchaction.done();
-                        });
-                        updateDescriptionComplete();
-                    }
-                });
+                const target0 = document.getElementById("target0");
+                const x_scroll_baseline = target0.scrollLeft;
+                const y_scroll_baseline = target0.scrollTop;
 
                 // Inject keyboard scroll inputs.
                 const arrow_down = "\uE015";
                 const arrow_right = "\uE014";
 
-                actions_promise = new test_driver.Actions()
+                on_event(target0, 'scroll', function(event) {
+                    x_scroll = target0.scrollLeft;
+                    y_scroll = target0.scrollTop;
+                    if (y_scroll > y_scroll_baseline && !got_y_scroll) {
+                        test_touchaction.step(function () {
+                            assert_true(true, "content was scrolled down.");
+                        });
+                        got_y_scroll = true;
+                    }
+                    if (x_scroll > x_scroll_baseline && !got_x_scroll) {
+                        test_touchaction.step(function () {
+                            assert_true(true, "content was scrolled right.");
+                        });
+                        got_x_scroll = true;
+                    }
+                    if (got_x_scroll && got_y_scroll) {
+                        test_touchaction.done();
+                    }
+                });
+
+                document.addEventListener('keyup', async function(e) {
+                    if (e.code == "ArrowDown") {
+                        send_key_to_target(arrow_right);
+                    }
+                });
+
+                await new test_driver.Actions()
                     .addPointer("mousePointer1", "mouse")
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerUp()
-                    .addTick()
                     .send();
-                actions_promise = actions_promise
-                    .then(()=>test_driver.send_keys(target0, arrow_down))
-                    .then(()=>test_driver.send_keys(target0, arrow_down))
-                    .then(()=>test_driver.send_keys(target0, arrow_right))
-                    .then(()=>test_driver.send_keys(target0, arrow_right));
-            }
 
-            function updateDescriptionNextStepKeyboard() {
-                document.getElementById('desc').innerHTML = "Test Description: press RIGHT ARROW key.";
+                await send_key_to_target(arrow_down);
+                await send_key_to_target(arrow_down);
             }
         </script>
         <h1>touch-action: none</h1>

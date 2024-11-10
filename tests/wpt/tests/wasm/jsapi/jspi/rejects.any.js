@@ -98,7 +98,14 @@ promise_test(async (t) => {
   let instance = builder.instantiate();
   let wrapper = WebAssembly.promising(instance.exports.test);
 
-  promise_rejects_js(t, RangeError, wrapper(), "Maximum call stack size exceeded");
+  // Stack overflow has undefined behavior -- check if an exception was thrown.
+  let thrown = false;
+  try {
+    await wrapper();
+  } catch (e) {
+    thrown = true;
+  }
+  assert_true(thrown);
 }, "Stack overflow");
 
 promise_test(async (t) => {

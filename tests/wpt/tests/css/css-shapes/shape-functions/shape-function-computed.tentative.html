@@ -22,11 +22,23 @@ test_computed_value("clip-path", "shape(from 20px 40px, move to 20px 30px, hline
 test_computed_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline to 100px)");
 test_computed_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline by 100%)");
 
-test_computed_value("clip-path", "shape(from 20px 40px, curve by 20px 20px using 10px 30px)");
-test_computed_value("clip-path", "shape(from 20px 40px, curve by 20px 20px using 10px 30px 12px 32px)");
+test_computed_value("clip-path", "shape(from 20px 40px, curve by 20px 20px with 10px 30px)");
+test_computed_value("clip-path", "shape(from 20px 40px, curve by 20px 20px with 10px 30px / 12px 32px)");
+
+test_computed_value("clip-path", "shape(from center, curve to center bottom with top right / bottom right)",
+                                 "shape(from 50% 50%, curve to 50% 100% with 100% 0% / 100% 100%)");
+
+test_computed_value("clip-path", "shape(from center, curve by 20px 20px with 10px 30px from end / 12px 32px from start)",
+                                 "shape(from 50% 50%, curve by 20px 20px with 10px 30px from end / 12px 32px from start)");
+
+test_computed_value("clip-path", "shape(from center right, curve by 20px 20px with 10px 30px from origin / 12px 32px from origin)",
+                                 "shape(from 100% 50%, curve by 20px 20px with 10px 30px from origin / 12px 32px from origin)");
+
+test_computed_value("clip-path", "shape(from 20px 40px, curve to top right with 10px 30px from origin / 12px 32px from origin)",
+                                 "shape(from 20px 40px, curve to 100% 0% with 10px 30px from origin / 12px 32px from origin)");
 
 test_computed_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px)");
-test_computed_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px using 12px 32px)");
+test_computed_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px with 12px 32px)");
 
 test_computed_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10%)");
 test_computed_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 0)", "shape(from 20px 40px, arc by 20px 20px of 0px)");

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<form>
+  <select>
+    <button>
+      <selectedcontent></selectedcontent>
+    </button>
+    <option class=one value=one>
+      <span class=one>span</span> one
+    </option>
+    <option class=two value=two>
+      <span class=two>span</span> two
+    </option>
+  </select>
+</form>
+
+<script>
+promise_test(async () => {
+  const optionOne = document.querySelector('option.one');
+  const optionTwo = document.querySelector('option.two');
+  const selectedcontent = document.querySelector('selectedcontent');
+  const select = document.querySelector('select');
+  const spanTwo = document.querySelector('span.two');
+  const form = document.querySelector('form');
+  const button = document.querySelector('button');
+
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'The innerHTML of <selectedcontent> should initially match the innerHTML of the selected <option>.');
+
+  select.value = 'two';
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'The innerHTML of <selectedcontent> should change after the selected option is changed.');
+
+  let oldInnerHTML = optionTwo.innerHTML;
+  spanTwo.textContent = 'new span';
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, oldInnerHTML,
+    '<selectedcontent> should not respond to <option> text content changes.');
+
+  spanTwo.appendChild(document.createElement('div'));
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, oldInnerHTML,
+    '<selectedcontent> should not respond to new elements being added to descendants of <option>.');
+
+  spanTwo.setAttribute('data-foo', 'bar');
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, oldInnerHTML,
+    '<selectedcontent> should not respond to attributes being added to descendants of <option>.');
+
+  form.reset();
+  await new Promise(queueMicrotask);
+  assert_equals(select.value, 'one',
+    'form.reset() should change the selects value to one.');
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'The innerHTML of <selectedcontent> should be updated in response to a form reset.');
+
+  await test_driver.bless();
+  select.showPicker();
+  await test_driver.click(optionTwo);
+  await new Promise(queueMicrotask);
+  assert_equals(select.value, 'two',
+    'Clicking on another option should change select.value.');
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Clicking on an option element should update the <selectedcontent>.');
+
+  selectedcontent.remove();
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, '',
+    'Removing the <selectedcontent> from the <select> should make it clear its contents.');
+  button.appendChild(selectedcontent);
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Re-inserting the <selectedcontent> should make it update its contents.');
+
+  optionTwo.remove();
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'The innerHTML of <selectedcontent> should be updated in response to selected <option> removal.');
+  optionOne.remove();
+  assert_equals(selectedcontent.innerHTML, '',
+    'The content of <selectedcontent> should be cleared if there is no selected <option>.');
+
+  // TODO(crbug.com/336844298): Add tests for mutation records during parsing
+}, 'The <selectedcontent> element should reflect the HTML contents of the selected <option>.');
+</script>

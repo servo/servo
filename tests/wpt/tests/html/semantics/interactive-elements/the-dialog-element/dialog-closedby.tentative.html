@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dialog-light-dismiss">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../popovers/resources/popover-utils.js"></script>
+
+<button id="outside">Outside</button>
+
+<!-- test cases: -->
+<dialog closedby="any" data-behavior="any"></dialog>
+<dialog closedby="closerequest" data-behavior="closerequest"></dialog>
+<dialog closedby="none" data-behavior="none"></dialog>
+
+<dialog closedby="AnY" data-behavior="any"></dialog>
+<dialog closedby="ClOsErEqUeSt" data-behavior="closerequest"></dialog>
+<dialog closedby="NoNe" data-behavior="none"></dialog>
+
+<dialog closedby="invalid" data-behavior="auto"></dialog>
+<dialog closedby data-behavior="auto"></dialog>
+<dialog data-behavior="auto"></dialog>
+
+<script>
+  function openDialog(dialog,modal) {
+    assert_false(dialog.open);
+    if (modal) {
+      dialog.showModal();
+    } else {
+      dialog.show();
+    }
+    assert_true(dialog.open);
+    assert_equals(dialog.matches(':modal'),modal);
+  }
+  function runTest(dialog) {
+    for(modal of [false,true]) {
+      promise_test(async (t) => {
+        assert_false(dialog.open);
+        t.add_cleanup(() => dialog.close());
+        // Try hitting ESC
+        openDialog(dialog,modal);
+        const closedByReflectionWhileOpen = dialog.closedBy;
+        const ESC = '\uE00C';
+        await new test_driver.send_keys(document.documentElement,ESC);
+        const respondsToEsc = !dialog.open;
+        dialog.close();
+        // Try clicking outside
+        openDialog(dialog,modal);
+        await clickOn(outside);
+        const respondsToLightDismiss = !dialog.open;
+        dialog.close();
+        // See if expectations match
+        let expectedReflectionWhileOpen = dialog.dataset.behavior;
+        let expectedReflectionWhileClosed = dialog.dataset.behavior;
+        switch (dialog.dataset.behavior) {
+          case 'any':
+            assert_true(respondsToEsc,'Dialog should respond to ESC');
+            assert_true(respondsToLightDismiss,'Dialog should respond to light dismiss');
+            break;
+          case 'closerequest':
+            assert_true(respondsToEsc,'Dialog should respond to ESC');
+            assert_false(respondsToLightDismiss,'Dialog should NOT respond to light dismiss');
+            break;
+          case 'none':
+            assert_false(respondsToEsc,'Dialog should NOT respond to ESC');
+            assert_false(respondsToLightDismiss,'Dialog should NOT respond to light dismiss');
+            break;
+          case 'auto':
+            if (modal) {
+              assert_true(respondsToEsc,'Modal dialog in auto state should respond to ESC');
+              assert_false(respondsToLightDismiss,'Modal dialog in auto state should NOT respond to light dismiss');
+              expectedReflectionWhileOpen = 'closerequest';
+            } else {
+              assert_false(respondsToEsc,'Non-modal dialog in auto state should NOT respond to ESC');
+              assert_false(respondsToLightDismiss,'Non-modal dialog in auto state should NOT respond to light dismiss');
+              expectedReflectionWhileOpen = 'none';
+            }
+            expectedReflectionWhileClosed = 'none';
+            break;
+          default:
+            assert_notreached('Invalid expectation');
+        }
+        // Check reflection
+        assert_equals(closedByReflectionWhileOpen,expectedReflectionWhileOpen,'Reflection should be limited to known values (open)');
+        assert_equals(dialog.closedBy,expectedReflectionWhileClosed,'Reflection should be limited to known values (closed)');
+      }, `closedby=${dialog.getAttribute('closedby')}, ${modal ? 'Modal' : 'Non-modal'}`);
+    }
+  }
+
+  // Add close button, in case of manual testing
+  const testDialogs = document.querySelectorAll('dialog');
+  testDialogs.forEach(dialog => {
+    const button = dialog.appendChild(document.createElement('button'));
+    button.innerText = 'Close';
+    button.addEventListener('click',() => dialog.close());
+  });
+
+  // Run tests
+  testDialogs.forEach(runTest);
+</script>

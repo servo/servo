@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: interactivity:inert blocks focus()</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10711#issuecomment-2379913684">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #inert { interactivity: inert; }
+  #non-inert { interactivity: auto; }
+</style>
+<input id="inp_outer">
+<div id="inert">
+  <input id="inp_inert">
+  <div id="non-inert">
+    <input id="inp_non_inert">
+  </div>
+</div>
+<script>
+  test(() => {
+    inp_outer.focus();
+    assert_equals(document.activeElement, inp_outer);
+  }, "Focus outer input");
+
+  test(() => {
+    inp_inert.focus();
+    assert_equals(document.activeElement, inp_outer);
+  }, "Try focus inert input");
+
+  test(() => {
+    inp_non_inert.focus();
+    assert_equals(document.activeElement, inp_non_inert);
+  }, "Focus non-inert input inside inert ancestry");
+
+</script>

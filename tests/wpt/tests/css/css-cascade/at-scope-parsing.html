@@ -45,10 +45,10 @@
   test_valid('@scope (.a) to (> .b)');
   test_valid('@scope (.a) to (+ .b)');
   test_valid('@scope (.a) to (~ .b)');
-  test_valid('@scope ()', '@scope');
-  test_valid('@scope to ()', '@scope');
-  test_valid('@scope () to ()', '@scope');
 
+  test_invalid('@scope ()');
+  test_invalid('@scope to ()');
+  test_invalid('@scope () to ()');
   test_invalid('@scope (.c <> .d)');
   test_invalid('@scope (.a, .c <> .d)');
   test_invalid('@scope (.a <> .b, .c)');

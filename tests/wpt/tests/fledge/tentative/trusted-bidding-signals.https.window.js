@@ -820,19 +820,20 @@ subsetTest(promise_test, async test => {
 /////////////////////////////////////////////////////////////////////////////
 // maxTrustedBiddingSignalsURLLength tests
 /////////////////////////////////////////////////////////////////////////////
+// To detect whether two signals are fetched together or separately, the trusted bidding signals
+// Python server will return the request URL as the signal value if the request URL contains the
+// string url in its query parameters.
 
 // Trusted bidding signals can be retrieved when `maxTrustedBiddingSignalsURLLength` is set to 0,
 // which means infinite length limit.
-// In the following three tests, the generated request URL contains approximately 166 characters.
-// The target of the tests is primarily to make sure all the signals are fetched with the full URL.
 subsetTest(promise_test, async test => {
   const name = 'group';
+  const expect_queries = 'keys=interest-group-names,url&interestGroupNames=group';
   await runTrustedBiddingSignalsTest(
       test,
-      // Check the URL length is within an approximate range to ensure the URL is not truncated.
+      // Check returned signal contains expected queries to ensure the URL is not truncated.
       ` trustedBiddingSignals["interest-group-names"] === '["${name}"]' &&
-        trustedBiddingSignals["url"].length > 150 &&
-        trustedBiddingSignals["url"].length < 180 `,
+        trustedBiddingSignals["url"].includes("${expect_queries}") `,
       {
         name: name,
         trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
@@ -847,11 +848,12 @@ subsetTest(promise_test, async test => {
 // larger than the limit.
 subsetTest(promise_test, async test => {
   const name = 'group';
+  const expect_queries = 'keys=interest-group-names,url&interestGroupNames=group';
   await runTrustedBiddingSignalsTest(
       test,
+      // Check returned signal contains expected queries to ensure the URL is not truncated.
       ` trustedBiddingSignals["interest-group-names"] === '["${name}"]' &&
-        trustedBiddingSignals["url"].length > 150 &&
-        trustedBiddingSignals["url"].length < 180 `,
+        trustedBiddingSignals["url"].includes("${expect_queries}") `,
       {
         name: name,
         trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
@@ -864,10 +866,12 @@ subsetTest(promise_test, async test => {
 // a value larger than the length of the request URL.
 subsetTest(promise_test, async test => {
   const name = 'group';
+  const expect_queries = 'keys=interest-group-names,url&interestGroupNames=group';
   await runTrustedBiddingSignalsTest(
       test,
+      // Check returned signal contains expected queries to ensure the URL is not truncated.
       ` trustedBiddingSignals["interest-group-names"] === '["${name}"]' &&
-        trustedBiddingSignals["url"].length < 180 `,
+        trustedBiddingSignals["url"].includes("${expect_queries}") `,
       {
         name: name,
         trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
@@ -880,10 +884,7 @@ subsetTest(promise_test, async test => {
 // groups, will be split into two parts when `maxTrustedBiddingSignalsURLLength` is set to a
 // value larger than a single URL length and smaller than the combined URL length. A request
 // URL from a single interest group contains about 188 characters, while a request URL from
-// two interest groups contains about 216 characters. Note that this test can only verifies
-// the fetch status of the winner's trusted bidding signal, which is the second interest
-// group. We consider the request to be split if the URL length check passes for the second
-// interest group.
+// two interest groups contains about 216 characters.
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
   const name1 = 'extraordinarilyLongNameGroup1';
@@ -917,14 +918,14 @@ subsetTest(promise_test, async test => {
                 {
                   generateBid:
                     `if (trustedBiddingSignals["interest-group-names"] !== '["${name2}"]' ||
-                        trustedBiddingSignals["url"].length > 200) {
+                        trustedBiddingSignals["url"].includes("${name1}")) {
                       throw "unexpected trustedBiddingSignals";
                     }
                     return { bid: 10, render: interestGroup.ads[0].renderURL };`})
           })
       ]
   );
-  runBasicFledgeTestExpectingWinner(test, uuid);
+  await runBasicFledgeTestExpectingWinner(test, uuid);
 }, 'Trusted bidding signals splits the request if the combined URL length exceeds the limit of regular value.');
 
 // Test whether an oversized trusted bidding signals request URL, generated from two interest
@@ -960,14 +961,14 @@ subsetTest(promise_test, async test => {
                 {
                   generateBid:
                     `if (trustedBiddingSignals["interest-group-names"] !== '["${name2}"]' ||
-                        trustedBiddingSignals["url"].length > 200) {
+                        trustedBiddingSignals["url"].includes("${name1}")) {
                       throw "unexpected trustedBiddingSignals";
                     }
                     return { bid: 10, render: interestGroup.ads[0].renderURL };`})
           })
       ]
   );
-  runBasicFledgeTestExpectingWinner(test, uuid);
+  await runBasicFledgeTestExpectingWinner(test, uuid);
 }, 'Trusted bidding signals splits the request if the combined URL length exceeds the limit of small value.');
 
 /////////////////////////////////////////////////////////////////////////////

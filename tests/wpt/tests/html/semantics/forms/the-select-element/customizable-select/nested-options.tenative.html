@@ -2,6 +2,7 @@
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
 <link rel=help href="https://chromium-review.googlesource.com/c/chromium/src/+/5441435/1#message-cd8841d92a672a0276ab536dfaf3a20e93d5e6e3">
+<link rel=help href="https://issues.chromium.org/issues/376786406">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -34,10 +35,9 @@ test(() => {
 o1.appendChild(o2);
 
 test(() => {
-  assert_equals(select.options.length, 2, 'select.options.length');
+  assert_equals(select.options.length, 1, 'select.options.length');
   assert_equals(select.options[0], o1, 'select.options[0]');
-  assert_equals(select.options[1], o2, 'select.options[1]');
-}, 'Nested <options> should be listed in <select> IDLs.');
+}, 'Nested <options> not should be listed in <select> IDLs.');
 
 promise_test(async () => {
   await test_driver.bless();

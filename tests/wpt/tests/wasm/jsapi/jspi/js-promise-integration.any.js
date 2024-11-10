@@ -334,9 +334,7 @@ test(() => {
   builder.addFunction("export", kSig_v_v).addBody([]).exportFunc();
   let instance = builder.instantiate();
   let export_wrapper = WebAssembly.promising(instance.exports.export);
-  let export_sig = export_wrapper.type();
-  assert_array_equals(export_sig.parameters, []);
-  assert_array_equals(export_sig.results, ['externref']);
+  assert_true(export_wrapper instanceof Function);
 },"Promising with no return");
 
 promise_test(async () => {

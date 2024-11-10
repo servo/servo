@@ -16,9 +16,16 @@
 <div id="target"></div>
 <script>
 test(() => {
+  // Force a style update ahead of the transform change.
+  assert_equals(getComputedStyle(target).transform, 'none');
   target.style.transform = 'translate(50%, 50%)';
-  assert_equals(getComputedStyle(target).transform, 'matrix(1, 0, 0, 1, 50, 100)');
+  // Ultimate target is 50, 100, which is half of width and height,
+  // respectively. The translation puts us at the midpoint, which is at
+  // (x, y) = (25, 50).
+  assert_equals(getComputedStyle(target).transform, 'matrix(1, 0, 0, 1, 25, 50)');
   target.style.transform = 'translate3D(50%, 50%, 100px)';
-  assert_equals(getComputedStyle(target).transform, 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 50, 100, 50, 1)');
+  // After retargetting we preserve the progress between the current value and
+  // and new target value.
+  assert_equals(getComputedStyle(target).transform, 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 37.5, 75, 50, 1)');
 }, 'Retargeting transitions on box size relative transitions should work.');
 </script>

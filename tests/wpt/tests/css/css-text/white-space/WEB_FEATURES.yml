@@ -5,3 +5,7 @@ features:
 - name: text-wrap-nowrap
   files:
   - text-wrap-nowrap-*
+- name: white-space-collapse
+  files:
+  - white-space-collapse-*
+  - line-edge-white-space-collapse-*

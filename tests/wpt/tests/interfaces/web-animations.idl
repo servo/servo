@@ -136,6 +136,7 @@ dictionary KeyframeAnimationOptions : KeyframeEffectOptions {
 
 dictionary GetAnimationsOptions {
     boolean subtree = false;
+    CSSOMString? pseudoElement = null;
 };
 
 partial interface Document {

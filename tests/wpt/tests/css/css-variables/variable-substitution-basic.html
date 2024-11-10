@@ -29,13 +29,13 @@
             {
                 testName:"Simple substitution test",
                 propertyName:"border-spacing",
-                expectedValue:"20px 20px",
+                expectedValue:"20px",
                 style:"--gap: 20px;border-spacing: var(--gap);"
             },
             {
                 testName:"You can't build up a single token where part of it is provided by a variable",
                 propertyName:"border-spacing",
-                expectedValue:"0px 0px",
+                expectedValue:"0px",
                 style:"--gap: 20;border-spacing: var(--gap)px;"
             },
             {
@@ -59,13 +59,13 @@
             {
                 testName:"Fallback value",
                 propertyName:"border-spacing",
-                expectedValue:"11px 11px",
+                expectedValue:"11px",
                 style:"border-spacing:var(--gap,11px);"
             },
             {
                 testName:"Fallback value which is also a variable reference",
                 propertyName:"border-spacing",
-                expectedValue:"27px 27px",
+                expectedValue:"27px",
                 style:"--gap2: 27px; border-spacing:var(--gap,var(--gap2));"
             },
             {

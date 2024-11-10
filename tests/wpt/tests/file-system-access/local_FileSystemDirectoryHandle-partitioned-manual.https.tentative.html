@@ -1,6 +1,7 @@
 <!doctype html>
 <head>
   <meta charset=utf-8>
+  <meta name="timeout" content="long">
   <script src="/common/dispatcher/dispatcher.js"></script>
   <script src="/common/get-host-info.sub.js"></script>
   <script src="/common/utils.js"></script>
@@ -60,7 +61,7 @@ const assertNoAccess = (done) => `
 
 // To be resilient against tests not cleaning up properly, cleanup before
 // every test.
-function clearDirectories() {
+async function clearDirectories() {
   const directory = await directory_promise;
   for await (let entry of directory.values()) {
     await directory.removeEntry(
@@ -72,7 +73,7 @@ function clearDirectories() {
 // that send assertion scripts to multiple executor subframes.
 
 framed_test(async (t, sendTo) => {
-  clearDirectories();
+  await clearDirectories();
   // Ensure we have directory picker access in all child contexts.
   await sendTo(childContexts, setUpChildFrame);
   await sendTo(sameSiteContexts, assertNumEntries(0));
@@ -85,7 +86,7 @@ framed_test(async (t, sendTo) => {
 }, 'getDirectoryHandle can access handles across same-site contexts.');
 
 framed_test(async (t, sendTo) => {
-  clearDirectories();
+  await clearDirectories();
   // Ensure we have directory picker access in all child contexts.
   await sendTo(childContexts, setUpChildFrame);
   await sendTo(sameSiteContexts, assertNumEntries(0));
@@ -101,7 +102,7 @@ framed_test(async (t, sendTo) => {
 }, 'Directory handles can be removed from other same-site contexts.');
 
 framed_test(async (t, sendTo) => {
-  clearDirectories();
+  await clearDirectories();
   // Ensure we have directory picker access in all child contexts.
   await sendTo(childContexts, setUpChildFrame);
   // Assert that an error is raised when attempting to access

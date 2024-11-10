@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-layout">
+<link rel="match" href="align-self-with-flex-grid-parent-ref.html">
+<meta name="assert" content="Ensures that absolutely positioned elements with non-auto inset are w.r.t. absolute contain block.">
+<style>
+.container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  background: purple;
+}
+
+.inner {
+  width: 30px;
+  height: 30px;
+  margin-left: 270px;
+}
+
+.flex {
+  display: flex;
+}
+
+.grid {
+  display: grid;
+}
+
+.abs {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  inset: 0;
+  /* Should align to the center of .container. */
+  align-self: center;
+  justify-self: center;
+  background: pink;
+}
+</style>
+
+<div class="container">
+  <div class="inner flex">
+    <div class="abs"></div>
+  </div>
+</div>
+<br>
+<div class="container">
+  <div class="inner grid">
+    <div class="abs"></div>
+  </div>
+</div>

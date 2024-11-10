@@ -3,8 +3,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-const t = async_test(
-  'After dynamic imports, import maps should fire error events');
 const log = [];
 // To ensure we are testing that the flag is cleared at the beginning of module
 // script loading unconditionally, not at the end of loading or not at the
@@ -14,7 +12,7 @@ const log = [];
 promise_test(() => import('../resources/empty.js?pipe=trickle(d1)'),
              "A dynamic import succeeds");
 </script>
-<script type="importmap" onload="t.assert_unreached('onload')" onerror="t.done()">
+<script type="importmap">
 {
   "imports": {
     "../resources/log.js?pipe=sub&name=A": "../resources/log.js?pipe=sub&name=B"
@@ -24,7 +22,6 @@ promise_test(() => import('../resources/empty.js?pipe=trickle(d1)'),
 <script>
 promise_test(() => {
   return import("../resources/log.js?pipe=sub&name=A")
-    .then(() => assert_array_equals(log, ["log:A"]))
-  },
-  'After a dynamic import(), import maps are not effective');
+    .then(() => assert_array_equals(log, ["log:B"]))
+  }, 'After a dynamic import(), import maps work fine');
 </script>
