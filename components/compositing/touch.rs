@@ -15,11 +15,11 @@ use self::TouchState::*;
 // constants adjusted accordingly.
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
-/// Factor by which the flinging velocity changes on each tick
+/// Factor by which the flinging velocity changes on each tick.
 const FLING_SCALING_FACTOR: f32 = 0.95;
-/// Minimum velocity required for transitioning to fling when panning ends
+/// Minimum velocity required for transitioning to fling when panning ends.
 const FLING_MIN_SCREEN_PX: f32 = 3.0;
-/// Maximum velocity when flinging
+/// Maximum velocity when flinging.
 const FLING_MAX_SCREEN_PX: f32 = 4000.0;
 
 pub struct TouchHandler {
