@@ -56,6 +56,31 @@ impl DataTransferItemList {
         item
     }
 
+    pub fn types(&self) -> Vec<DOMString> {
+        // Step 1 Start with an empty list.
+        let mut types = Vec::new();
+
+        // Step 2 If the DataTransfer is associated with a data store
+        if self.data_store.root().is_some() {
+            let has_files = self.items.borrow().iter().fold(false, |has_files, item| {
+                if item.is_file() {
+                    return true;
+                } else {
+                    // Step 2.1 For each item in the item list whose kind is text, add its type to the list.
+                    types.push(item.type_());
+                }
+                has_files
+            });
+
+            // Step 2.2 If there are any items in the item list whose kind is File, add to the list the string "Files".
+            if has_files {
+                types.push(DOMString::from("Files"));
+            }
+        }
+
+        types
+    }
+
     pub fn get_data(&self, mut format: DOMString) -> DOMString {
         if self
             .data_store
@@ -128,6 +153,8 @@ impl DataTransferItemList {
             // Step 6 Add an item to the item list whose kind is text,
             // whose type is equal to format, and whose data is the method's second argument.
             self.add_item(Kind::Text(data), type_);
+
+            data_store.invalidate_frozen_types();
         }
     }
 
@@ -157,7 +184,32 @@ impl DataTransferItemList {
                 // Step 3 If format is None, remove each item in the item list whose kind is text.
                 self.items.borrow_mut().retain(|item| item.is_file());
             }
+
+            data_store.invalidate_frozen_types();
         }
+    }
+
+    pub fn files(&self) -> Vec<DomRoot<File>> {
+        // Step 1 Start with an empty list.
+        let mut files = Vec::new();
+
+        // Step 2 If the DataTransfer is not associated with a data store return the empty list.
+        // Step 3 If the data store is in the protected mode return the empty list.
+        if self
+            .data_store
+            .root()
+            .is_some_and(|data_store| data_store.can_read())
+        {
+            // Step 4 For each item in the item list whose kind is File, add the item's data to the list.
+            self.items
+                .borrow()
+                .iter()
+                .filter_map(|item| item.as_file())
+                .for_each(|file| files.push(file));
+        }
+
+        // Step 5
+        files
     }
 }
 
@@ -209,6 +261,8 @@ impl DataTransferItemListMethods for DataTransferItemList {
                 return Err(Error::NotSupported);
             }
 
+            data_store.invalidate_frozen_types();
+
             // Step 2.2
             Ok(Some(self.add_item(Kind::Text(data), type_)))
         } else {
@@ -223,6 +277,8 @@ impl DataTransferItemListMethods for DataTransferItemList {
             if !data_store.can_write() {
                 return Ok(None);
             }
+
+            data_store.invalidate_frozen_types();
 
             // Step 2
             let mut type_ = DOMString::from(data.file_type());
@@ -243,6 +299,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
                 }
 
                 if (index as usize) < self.items.borrow().len() {
+                    data_store.invalidate_frozen_types();
                     self.items.borrow_mut().remove(index as usize);
                 }
                 Some(())
@@ -261,6 +318,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
             // Step 2 remove all the items
             if !self.items.borrow().is_empty() {
                 self.items.borrow_mut().clear();
+                data_store.invalidate_frozen_types();
             }
         }
     }

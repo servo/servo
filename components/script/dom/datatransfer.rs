@@ -9,8 +9,9 @@ use js::rust::{HandleObject, MutableHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitemlist::DataTransferItemList;
@@ -56,6 +57,8 @@ pub struct DataTransfer {
     effect_allowed: DomRefCell<DOMString>,
     items: Dom<DataTransferItemList>,
     drag_image: DomRefCell<Option<DragBitmap>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_types: CachedFrozenArray,
     mode: Cell<Mode>,
 }
 
@@ -67,6 +70,7 @@ impl DataTransfer {
             effect_allowed: DomRefCell::new(DOMString::from("none")),
             items: Dom::from_ref(item_list),
             drag_image: DomRefCell::new(None),
+            frozen_types: CachedFrozenArray::new(),
             mode: Cell::new(Mode::ReadWrite),
         }
     }
@@ -85,6 +89,10 @@ impl DataTransfer {
         );
         data_transfer.items.set_data_store(Some(&data_transfer));
         data_transfer
+    }
+
+    pub fn invalidate_frozen_types(&self) {
+        self.frozen_types.clear();
     }
 
     pub fn can_write(&self) -> bool {
@@ -155,7 +163,10 @@ impl DataTransferMethods for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-types>
-    fn Types(&self, _cx: JSContext, _retval: MutableHandleValue) {}
+    fn Types(&self, cx: JSContext, retval: MutableHandleValue) {
+        self.frozen_types
+            .get_or_init(|| self.items.types(), cx, retval);
+    }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
     fn GetData(&self, format: DOMString) -> DOMString {
@@ -174,6 +185,6 @@ impl DataTransferMethods for DataTransfer {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
     fn Files(&self) -> DomRoot<FileList> {
-        todo!()
+        FileList::new(self.global().as_window(), self.items.files())
     }
 }
