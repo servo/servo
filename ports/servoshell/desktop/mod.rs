@@ -17,3 +17,4 @@ mod minibrowser;
 mod tracing;
 mod webview;
 mod window_trait;
+pub(crate) mod resources;
