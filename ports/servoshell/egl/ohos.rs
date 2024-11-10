@@ -13,10 +13,9 @@ use std::time::Duration;
 
 use log::{debug, error, info, trace, warn, LevelFilter};
 use napi_derive_ohos::{module_exports, napi};
-use napi_ohos::threadsafe_function::{
-    ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-};
-use napi_ohos::{Env, JsFunction, JsObject, JsString, NapiRaw};
+use napi_ohos::bindgen_prelude::Function;
+use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use napi_ohos::{Env, JsObject, JsString, NapiRaw};
 use ohos_sys::xcomponent::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetTouchEvent,
     OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_TouchEvent,
@@ -96,10 +95,22 @@ enum ServoAction {
     Vsync,
 }
 
+/// Queue length for the thread-safe function to submit URL updates to ArkTS
+const UPDATE_URL_QUEUE_SIZE: usize = 1;
+/// Queue length for the thread-safe function to submit prompts to ArkTS
+///
+/// We can submit alerts in a non-blocking fashion, but alerts will always come from the
+/// embedder thread. Specifying 4 as a max queue size seems reasonable for now, and can
+/// be adjusted later.
+const PROMPT_QUEUE_SIZE: usize = 4;
 // Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
 // if the activity gets suspended.
-static SET_URL_BAR_CB: OnceLock<ThreadsafeFunction<String, ErrorStrategy::Fatal>> = OnceLock::new();
-static PROMPT_TOAST: OnceLock<ThreadsafeFunction<String, ErrorStrategy::Fatal>> = OnceLock::new();
+static SET_URL_BAR_CB: OnceLock<
+    ThreadsafeFunction<String, (), String, false, false, UPDATE_URL_QUEUE_SIZE>,
+> = OnceLock::new();
+static PROMPT_TOAST: OnceLock<
+    ThreadsafeFunction<String, (), String, false, false, PROMPT_QUEUE_SIZE>,
+> = OnceLock::new();
 
 impl ServoAction {
     fn dispatch_touch_event(
@@ -423,46 +434,29 @@ pub fn go_forward() {
 }
 
 #[napi(js_name = "registerURLcallback")]
-pub fn register_url_callback(callback: JsFunction) -> napi_ohos::Result<()> {
-    // Currently we call the callback in a blocking fashion, always from the embedder thread,
-    // so a queue size of 1 is sufficient.
-    const UPDATE_URL_QUEUE_SIZE: usize = 1;
+pub fn register_url_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
     debug!("register_url_callback called!");
-    let function = callback.create_threadsafe_function(UPDATE_URL_QUEUE_SIZE, |ctx| {
-        Ok(vec![ctx
-            .env
-            .create_string_from_std(ctx.value)
-            .inspect_err(|e| {
-                error!("Failed to create JsString: {e:?}")
-            })?])
-    })?;
-    // We ignore any error for now - but probably we should propagate it back to the TS layer.
-    let _ = SET_URL_BAR_CB
-        .set(function)
-        .inspect_err(|_| warn!("Failed to set URL callback - register_url_callback called twice?"));
-    Ok(())
+    let mut tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder
+        .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
+        .build()?;
+
+    SET_URL_BAR_CB.set(function).map_err(|_e| {
+        napi_ohos::Error::from_reason(
+            "Failed to set URL callback - register_url_callback called twice?",
+        )
+    })
 }
 
 #[napi]
-pub fn register_prompt_toast_callback(callback: JsFunction) -> napi_ohos::Result<()> {
-    // We can submit alerts in a non-blocking fashion, but alerts will always come from the
-    // embedder thread. Specifying 4 as a max queue size seems reasonable for now, and can
-    // be adjusted later.
-    const PROMPT_QUEUE_SIZE: usize = 4;
+pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
     debug!("register_prompt_toast_callback called!");
-    let function = callback.create_threadsafe_function(PROMPT_QUEUE_SIZE, |ctx| {
-        Ok(vec![ctx
-            .env
-            .create_string_from_std(ctx.value)
-            .inspect_err(|e| {
-                error!("Failed to create JsString: {e:?}")
-            })?])
-    })?;
-    // We ignore any error for now - but probably we should propagate it back to the TS layer.
-    let _ = PROMPT_TOAST
+    let mut tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder.max_queue_size::<PROMPT_QUEUE_SIZE>().build()?;
+
+    PROMPT_TOAST
         .set(function)
-        .inspect_err(|_| error!("Failed to set prompt toast callback."));
-    Ok(())
+        .map_err(|_e| napi_ohos::Error::from_reason("Failed to set prompt toast callback"))
 }
 
 #[napi]
