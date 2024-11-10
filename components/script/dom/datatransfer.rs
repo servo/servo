@@ -77,12 +77,14 @@ impl DataTransfer {
         can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
         let item_list = DataTransferItemList::new(window);
-        reflect_dom_object_with_proto(
+        let data_transfer = reflect_dom_object_with_proto(
             Box::new(DataTransfer::new_inherited(&item_list)),
             window,
             proto,
             can_gc,
-        )
+        );
+        data_transfer.items.set_data_store(Some(&data_transfer));
+        data_transfer
     }
 
     pub fn can_write(&self) -> bool {

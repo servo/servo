@@ -73,6 +73,10 @@ impl DataTransferItem {
         )
     }
 
+    pub fn set_data_store(&self, data_transfer: Option<&DataTransfer>) {
+        self.data_store.set(data_transfer);
+    }
+
     pub fn type_(&self) -> DOMString {
         self.type_.borrow().clone()
     }

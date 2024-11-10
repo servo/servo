@@ -36,6 +36,14 @@ impl DataTransferItemList {
         reflect_dom_object(Box::new(DataTransferItemList::new_inherited()), window)
     }
 
+    pub fn set_data_store(&self, data_transfer: Option<&DataTransfer>) {
+        self.data_store.set(data_transfer);
+        self.items
+            .borrow()
+            .iter()
+            .for_each(|item| item.set_data_store(data_transfer));
+    }
+
     fn add_item(&self, kind: Kind, type_: DOMString) -> DomRoot<DataTransferItem> {
         let item = DataTransferItem::new(
             &self.global(),
