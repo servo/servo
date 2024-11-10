@@ -4,6 +4,7 @@
 
 use std::borrow::{Cow, ToOwned};
 use std::cell::{Cell, RefCell, RefMut};
+use std::cmp;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -13,7 +14,6 @@ use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{cmp, env};
 
 use app_units::Au;
 use backtrace::Backtrace;
@@ -154,6 +154,7 @@ use crate::script_thread::{
 use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
+use crate::unminify::unminified_path;
 use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::{fetch, window_named_properties};
 
@@ -294,10 +295,6 @@ pub struct Window {
     /// available at some point in the future.
     pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
 
-    /// Directory to store unminified scripts for this window if unminify-js
-    /// opt is enabled.
-    unminified_js_dir: DomRefCell<Option<String>>,
-
     /// Directory to store unminified css for this window if unminify-css
     /// opt is enabled.
     unminified_css_dir: DomRefCell<Option<String>>,
@@ -331,9 +328,6 @@ pub struct Window {
 
     /// True if it is safe to write to the image.
     prepare_for_screenshot: bool,
-
-    /// Unminify Javascript.
-    unminify_js: bool,
 
     /// Unminify Css.
     unminify_css: bool,
@@ -2259,13 +2253,9 @@ impl Window {
         assert!(document.window() == self);
         self.document.set(Some(document));
 
-        set_unminified_path(self.unminify_js, &self.unminified_js_dir, "unminified-js");
-
-        set_unminified_path(
-            self.unminify_css,
-            &self.unminified_css_dir,
-            "unminified-css",
-        );
+        if self.unminify_css {
+            *self.unminified_css_dir.borrow_mut() = Some(unminified_path("unminified-css"));
+        }
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -2528,10 +2518,6 @@ impl Window {
         self.throttled.get()
     }
 
-    pub fn unminified_js_dir(&self) -> Option<String> {
-        self.unminified_js_dir.borrow().clone()
-    }
-
     pub fn unminified_css_dir(&self) -> Option<String> {
         self.unminified_css_dir.borrow().clone()
     }
@@ -2636,6 +2622,7 @@ impl Window {
                 user_agent,
                 gpu_id_hub,
                 inherited_secure_context,
+                unminify_js,
             ),
             script_chan,
             task_manager,
@@ -2676,7 +2663,6 @@ impl Window {
             webgl_chan,
             webxr_registry,
             pending_layout_images: Default::default(),
-            unminified_js_dir: Default::default(),
             unminified_css_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),
@@ -2687,7 +2673,6 @@ impl Window {
             has_sent_idle_message: Cell::new(false),
             relayout_event,
             prepare_for_screenshot,
-            unminify_js,
             unminify_css,
             userscripts_path,
             replace_surrogates,
@@ -2919,13 +2904,4 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is_html_element()
-}
-
-fn set_unminified_path(option: bool, dir_ref: &DomRefCell<Option<String>>, folder_name: &str) {
-    if option {
-        // Set a path for the document host to store unminified files.
-        let mut path = env::current_dir().unwrap();
-        path.push(folder_name);
-        *dir_ref.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
-    }
 }

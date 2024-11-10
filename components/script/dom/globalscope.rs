@@ -143,6 +143,7 @@ use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
 };
+use crate::unminify::unminified_path;
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {
@@ -356,6 +357,10 @@ pub struct GlobalScope {
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
+
+    /// Directory to store unminified scripts for this window if unminify-js
+    /// opt is enabled.
+    unminified_js_dir: Option<String>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -764,6 +769,7 @@ impl GlobalScope {
         user_agent: Cow<'static, str>,
         gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
+        unminify_js: bool,
     ) -> Self {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
@@ -805,6 +811,7 @@ impl GlobalScope {
             console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
+            unminified_js_dir: unminify_js.then(|| unminified_path("unminified-js")),
         }
     }
 
@@ -3423,6 +3430,10 @@ impl GlobalScope {
             cancellation_receiver,
             network_listener.into_callback(),
         );
+    }
+
+    pub fn unminified_js_dir(&self) -> Option<String> {
+        self.unminified_js_dir.clone()
     }
 }
 

@@ -94,9 +94,9 @@ pub struct StylesheetContext {
 
 impl StylesheetContext {
     fn unminify_css(&self, data: Vec<u8>, file_url: ServoUrl) -> Vec<u8> {
-        if self.document.root().window().unminified_css_dir().is_none() {
+        let Some(unminified_dir) = self.document.root().window().unminified_css_dir() else {
             return data;
-        }
+        };
 
         let mut style_content = data;
 
@@ -110,11 +110,7 @@ impl StylesheetContext {
                 output.read_to_end(&mut style_content).unwrap();
             }
         }
-        match create_output_file(
-            self.document.root().window().unminified_css_dir(),
-            &file_url,
-            None,
-        ) {
+        match create_output_file(unminified_dir, &file_url, None) {
             Ok(mut file) => {
                 file.write_all(&style_content).unwrap();
             },
