@@ -46,6 +46,7 @@ struct DragBitmap {
 #[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum Mode {
     ReadWrite,
+    #[allow(dead_code)]
     ReadOnly,
     Protected,
 }
