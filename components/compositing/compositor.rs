@@ -1896,6 +1896,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .push(ScrollZoomEvent::PinchZoom(magnification));
     }
 
+    /// On a Window refresh tick (e.g. vsync)
+    pub fn on_vsync(&mut self) {
+        if let Some(fling_action) = self.touch_handler.on_vsync() {
+            self.on_scroll_window_event(
+                ScrollLocation::Delta(fling_action.delta),
+                fling_action.cursor,
+            );
+        }
+    }
+
     fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
         let details = match self.pipeline_details.get(pipeline_id) {
             Some(details) => details,

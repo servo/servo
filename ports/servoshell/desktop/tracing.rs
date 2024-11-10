@@ -233,6 +233,7 @@ mod to_servo {
                 Self::InvalidateNativeSurface => target!("InvalidateNativeSurface"),
                 Self::ReplaceNativeSurface(..) => target!("ReplaceNativeSurface"),
                 Self::Gamepad(..) => target!("Gamepad"),
+                Self::Vsync => target!("Vsync"),
             }
         }
     }
