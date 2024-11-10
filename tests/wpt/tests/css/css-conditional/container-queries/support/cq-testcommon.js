@@ -35,12 +35,22 @@ function set_container_query_style(text) {
   return style;
 }
 
+function test_cq_rule_invalid(query) {
+  const ruleText = `@container ${query} {}`;
+  test(t => {
+    t.add_cleanup(cleanup_container_query_main);
+    let style = set_container_query_style(ruleText);
+    assert_equals(style.sheet.rules.length, 0);
+  }, `@container rule should be invalid: ${ruleText} {}`);
+}
+
 function test_cq_rule_valid(query) {
+  const ruleText = `@container ${query} {}`;
   test(t => {
     t.add_cleanup(cleanup_container_query_main);
     let style = set_container_query_style(`@container ${query} {}`);
     assert_equals(style.sheet.rules.length, 1);
-  }, query);
+  }, `@container rule should be valid: ${ruleText} {}`);
 }
 
 function test_cq_condition_invalid(condition) {
@@ -48,7 +58,7 @@ function test_cq_condition_invalid(condition) {
     t.add_cleanup(cleanup_container_query_main);
     let style = set_container_query_style(`@container name ${condition} {}`);
     assert_equals(style.sheet.rules.length, 0);
-  }, condition);
+  }, `Query condition should be invalid: ${condition}`);
 }
 
 // Tests that 1) the condition parses, and 2) is either "unknown" or not, as
@@ -63,7 +73,7 @@ function test_cq_condition_valid(condition, unknown) {
     assert_equals(style.sheet.rules.length, 2);
     const expected = unknown ? '' : 'true';
     assert_equals(getComputedStyle(document.querySelector("#cq-main")).getPropertyValue('--match'), expected);
-  }, condition);
+  }, `Query condition should be valid: ${condition}`);
 }
 
 function test_cq_condition_known(condition) {

@@ -5,6 +5,9 @@ features:
 - name: cap
   files:
   - cap-*
+- name: rcap
+  files:
+  - rcap-*
 - name: exp-functions
   files:
   - exp-log-*
@@ -12,9 +15,24 @@ features:
 - name: ic
   files:
   - ic-*
+- name: ric
+  files:
+  - ric-*
 - name: lh
   files:
   - lh-*
+- name: rlh
+  files:
+  - rlh-*
+- name: ch
+  files:
+  - ch-*
+- name: rch
+  files:
+  - rch-*
+- name: rex
+  files:
+  - rex-*
 - name: round-mod-rem
   files:
   - round-function.html
@@ -23,3 +41,6 @@ features:
   files:
   - acos-asin-atan-atan2-*
   - sin-cos-tan-*
+- name: calc-constants
+  files:
+  - calc-infinity-*

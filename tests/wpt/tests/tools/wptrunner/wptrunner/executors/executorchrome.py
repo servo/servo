@@ -141,9 +141,6 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
     """
     def reset_browser_state(self):
         for command, params in [
-            # TODO(web-platform-tests/wpt#48078): Find a cross-vendor way to
-            # clear cookies for all domains.
-            ("Network.clearBrowserCookies", None),
             # Reset default permissions that `test_driver.set_permission(...)`
             # may have altered.
             ("Browser.resetPermissions", None),

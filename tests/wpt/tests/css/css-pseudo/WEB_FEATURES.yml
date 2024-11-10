@@ -2,3 +2,16 @@ features:
 - name: target-text
   files:
   - target-text-*
+features:
+- name: spelling-grammar-error
+  files:
+  - spelling-error-*
+  - grammar-spelling-errors-*
+features:
+- name: marker
+  files:
+  - marker-*
+features:
+- name: file-selector-button
+  files:
+  - file-selector-button-*

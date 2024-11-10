@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module" src="../resources/importer.sub.js?name=..%2Fresources%2Flog.sub.js%3Fname%3DA"></script>
+<script>
+const log = [];
+(async (variable) => {
+  await new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (variable.length > 0) {
+        clearInterval(interval);
+        resolve(variable);
+      }
+    }, 10);
+  });
+  const importMapScript = document.createElement('script');
+  importMapScript.type = 'importmap';
+  importMapScript.textContent = JSON.stringify({
+    imports: {
+      "../resources/log.sub.js?name=A": "../resources/log.sub.js?name=B"
+    }
+  });
+  document.head.appendChild(importMapScript);
+
+  const inlineModule = document.createElement('script');
+  inlineModule.type = 'module';
+  inlineModule.innerHTML = `test(() => {
+  assert_true(import.meta.resolve("../resources/log.sub.js?name=A").endsWith("/resources/log.sub.js?name=A"));
+}, "Resolution after import map should not be redefined");`;
+  document.head.appendChild(inlineModule);
+})(log);
+</script>
+</body>
+</html>
+
+

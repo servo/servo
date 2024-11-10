@@ -62,7 +62,7 @@ addEventListener("load", () => {
           if (event.target == node) {
             events.push({type: event.type, target: event.target});
           }
-        }, {capture: true});
+        });
       }
     }
     div3.addEventListener("click", event => {

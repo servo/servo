@@ -22,15 +22,13 @@ const log = [];
 }
 </script>
 <script>
-// Currently the spec doesn't allow multiple import maps, by setting acquiring
-// import maps to false on preparing the first import map.
 promise_test(() => {
   return import("../resources/log.js?pipe=sub&name=A1")
     .then(() => import("../resources/log.js?pipe=sub&name=A2"))
     .then(() => import("../resources/log.js?pipe=sub&name=A3"))
     .then(() => assert_array_equals(
                     log,
-                    ["onerror 2", "log:B1", "log:B2", "log:A3"]))
+                    ["log:B1", "log:B2", "log:C3"]))
   },
-  "Second import map should be rejected");
+  "Second import map should be used for resolution");
 </script>

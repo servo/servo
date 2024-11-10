@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>@container: multiple style containers - comma separated queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #combined {
+    container-type: inline-size:
+    --foo: qux;
+  }
+  #outer {
+    container-name: --container;
+    --foo: bar;
+  }
+  #inner {
+    --foo: baz;
+  }
+  #target {
+    --match: no;
+    --match-combined: no;
+  }
+
+  @container style(--foo: bar), --container style(--foo: bar) {
+    #target { --match: yes; }
+  }
+  @container style(--foo: bar) {
+    #target { --match: no-way; }
+  }
+
+  @container style(--foo: qux), (inline-size) and style(--foo: qux) {
+    #target { --match-combined: yes; }
+  }
+  @container style(--foo: qux) {
+    #target { --match-combined: no-way; }
+  }
+</style>
+<div id="combined">
+  <div id="outer">
+    <div id="inner">
+      <div id="target"></div>
+    </div>
+  </div>
+</div>
+<script>
+  setup(() => {
+    assert_implements_style_container_queries();
+    assert_implements_size_container_queries();
+  });
+
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--match"), "yes");
+  }, "Should match the named outer container for --foo:bar");
+
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--match-combined"), "yes");
+  }, "Match the #combined container for --foo:qux which is also a size container");
+</script>

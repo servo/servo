@@ -54,8 +54,9 @@
       if (!with100 && !with103)
         assert_equals(entry.firstInterimResponseStart, 0);
 
-      assert_greater_than(entry.responseStart, total_delay,
+      assert_greater_than(entry.finalResponseHeadersStart, total_delay,
                         "responseStart");
+      assert_equals(entry.responseStart, entry.firstInterimResponseStart || entry.finalResponseHeadersStart);
     }, `Fetch from ${origin} ${with103 ? "with" : "without"} early hints, ${
         with100 ? "with" : "without"} 100 response`);
   }

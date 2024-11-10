@@ -1,6 +1,7 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
 <iframe id="i" src="/common/blank.html"></iframe>
 <script>
 promise_test(async t => {
@@ -19,7 +20,7 @@ promise_test(async t => {
 
   navigation.onnavigate = e => e.preventDefault();
   i.contentWindow.navigation.onnavigate = t.unreached_func("navigate event should not fire in the iframe, because the traversal was cancelled in the top window");
-  await promise_rejects_dom(t, "AbortError", navigation.traverseTo(navigation.entries()[start_index].key).finished);
+  await assertBothRejectDOM(t, navigation.traverseTo(navigation.entries()[start_index].key), "AbortError");
   assert_equals(navigation.currentEntry.index, start_index + 1);
   assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
 }, "navigation.traverseTo() - if a top window cancels the traversal, any iframes should not fire navigate");

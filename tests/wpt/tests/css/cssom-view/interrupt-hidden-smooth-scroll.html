@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Smooth scrolling of overflow: hidden should be interruptible</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#concept-smooth-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  #scroller {
+    overflow-y: hidden;
+    width: 100px;
+    height: 100px;
+    scroll-behavior: smooth;
+  }
+  .green {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  .red {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<div id="scroller">
+  <div class="green"></div>
+  <div class="red"></div>
+  <div class="green"></div>
+</div>
+<script>
+  promise_test(async () => {
+    await waitForCompositorReady();
+  }, 'Make sure the page is ready for animation.');
+
+  let interrupted = false;
+  promise_test(() => {
+    return new Promise(function(resolve, reject) {
+      scroller.onscrollend = (event) => {
+        try {
+          if (interrupted) {
+            assert_equals(scroller.scrollTop, 1,
+                'Scroll should end at 1 when interrupted');
+          } else {
+            // If the testing environment doesn't support smooth scrolling, this
+            // test will not interrupt the scroll, and we can simply assert that
+            // the scroll ended at 200.
+            assert_equals(scroller.scrollTop, 200,
+                'Scroll should end at 200 if not interrupted');
+          }
+          resolve();
+        } catch(e) {
+          reject(e);
+        }
+      };
+      scroller.onscroll = (event) => {
+        if (scroller.scrollTop > 1) {
+          // Interrupt the smooth scroll.
+          scroller.scrollTop = 1;
+          interrupted = true;
+        }
+      };
+      scroller.scrollTop = 200;
+    });
+  }, 'scrollTop should be updated after a mid-scroll scrollTop change');
+</script>

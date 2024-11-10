@@ -83,8 +83,8 @@ const quantizeLinearTests = [
           'constant': true
         },
         'quantizeLinearZeroPoint': {
-          'data': [128],
-          'descriptor': {shape: [], dataType: 'uint8'},
+          'data': [128, 128, 128, 128],
+          'descriptor': {shape: [4], dataType: 'uint8'},
           'constant': true
         }
       },
@@ -100,6 +100,46 @@ const quantizeLinearTests = [
         'quantizeLinearOutput': {
           'data': [128, 111, 126, 133],
           'descriptor': {shape: [4], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 2D constant tensor broadcasting zeroPoint and scale',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            -2.549168109893799, -4.794857501983643, 8.413617134094238,
+            6.108623504638672
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [9.343092918395996],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [128],
+          'descriptor': {shape: [1], dataType: 'uint8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [128, 127, 129, 129],
+          'descriptor': {shape: [2, 2], dataType: 'uint8'}
         }
       }
     }
@@ -123,8 +163,8 @@ const quantizeLinearTests = [
           'constant': true
         },
         'quantizeLinearZeroPoint': {
-          'data': [128],
-          'descriptor': {shape: [], dataType: 'uint8'},
+          'data': [128, 128],
+          'descriptor': {shape: [2, 1], dataType: 'uint8'},
           'constant': true
         }
       },
@@ -140,6 +180,46 @@ const quantizeLinearTests = [
         'quantizeLinearOutput': {
           'data': [119, 111, 126, 127],
           'descriptor': {shape: [1, 1, 2, 2], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 3D input with implicit block_size = [1, 2, 1].',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            -2.549168109893799, -4.794857501983643, 8.413617134094238,
+            6.108623504638672
+          ],
+          'descriptor': {shape: [1, 4, 1], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [0.2800687253475189, -4.617084980010986],
+          'descriptor': {shape: [2, 1], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [128, 189],
+          'descriptor': {shape: [2, 1], dataType: 'uint8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [119, 111, 187, 188],
+          'descriptor': {shape: [1, 4, 1], dataType: 'uint8'}
         }
       }
     }
@@ -190,8 +270,8 @@ const quantizeLinearTests = [
           'constant': true
         },
         'quantizeLinearScale': {
-          'data': [1.1202747821807861],
-          'descriptor': {shape: [], dataType: 'float32'},
+          'data': [1.1202747821807861, 1.1202747821807861],
+          'descriptor': {shape: [2], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearZeroPoint': {
@@ -255,6 +335,47 @@ const quantizeLinearTests = [
     }
   },
   {
+    'name': 'quantizeLinear int4 zeroPoint with block_size = [3, 2]',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            4.794857501983643, 3.23434354545, 2.794857501983643,
+            5.794857501983643, 0, 7.23434354545, 4.794857501983643,
+            3.23434354545, 2.794857501983643, 5.794857501983643, 0,
+            7.23434354545
+          ],
+          'descriptor': {shape: [3, 4], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861, 2.1202747821807861],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [-6, -5],
+          'descriptor': {shape: [2], dataType: 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [-2, -3, -4, -3, -5, 0, -2, -3, -4, -1, -5, -2],
+          'descriptor': {shape: [3, 4], dataType: 'int4'}
+        }
+      }
+    }
+  },
+  {
     'name':
         'quantizeLinear float32 tensor with uint4 zeroPoint which has odd size',
     'graph': {
@@ -305,8 +426,8 @@ const quantizeLinearTests = [
           'constant': true
         },
         'quantizeLinearScale': {
-          'data': [1.1202747821807861],
-          'descriptor': {shape: [], dataType: 'float32'},
+          'data': [1.1202747821807861, 1.1202747821807861],
+          'descriptor': {shape: [2], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearZeroPoint': {
@@ -326,6 +447,45 @@ const quantizeLinearTests = [
       'expectedOutputs': {
         'quantizeLinearOutput':
             {'data': [5, 8], 'descriptor': {shape: [2], dataType: 'uint4'}}
+      }
+    }
+  },
+  {
+    'name': 'quantizeLinear uint4 zeroPoint with block_size = 3',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            4.794857501983643, 3.23434354545, 1.794857501983643, 2.23434354545,
+            4.794857501983643, 3.23434354545
+          ],
+          'descriptor': {shape: [6], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861, 1.1202747821807861],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [1, 5],
+          'descriptor': {shape: [2], dataType: 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [5, 4, 3, 7, 9, 8],
+          'descriptor': {shape: [6], dataType: 'uint4'}
+        }
       }
     }
   }

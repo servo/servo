@@ -18,7 +18,13 @@
 </style>
 <script>
 test_computed_value("border-spacing", "10px 20px");
-test_computed_value("border-spacing", "0", "0px 0px");
+
+// This should be "0px" and not "0px 0px" due to the shortest serialization principle:
+// https://drafts.csswg.org/cssom/#serializing-css-values
+// > If component values can be omitted or replaced with a shorter
+// > representation without changing the meaning of the value, omit/replace them.
+test_computed_value("border-spacing", "0", "0px");
+
 test_computed_value("border-spacing", "calc(10px + 0.5em) calc(10px - 0.5em)", "30px 0px");
 test_computed_value("border-spacing", "calc(10px - 0.5em) calc(10px + 0.5em)", "0px 30px");
 </script>

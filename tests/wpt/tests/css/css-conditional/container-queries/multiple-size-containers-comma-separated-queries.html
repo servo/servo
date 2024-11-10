@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>@container: multiple size containers - comma separated queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #outer {
+    container: --container / inline-size;
+    width: 500px;
+  }
+  #inner {
+    container-type: inline-size;
+    width: 300px;
+  }
+  #target { --match: no; }
+  @container (width > 400px), --container (width > 400px) {
+    #target { --match: yes; }
+  }
+  @container (width > 400px) {
+    #target { --match: no-way; }
+  }
+</style>
+<div id="outer">
+  <div id="inner">
+    <div id="target"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_size_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--match"), "yes");
+  }, "Should match the named outer container for width > 400px");
+</script>

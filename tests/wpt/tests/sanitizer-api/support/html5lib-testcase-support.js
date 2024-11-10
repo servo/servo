@@ -116,6 +116,12 @@ function is_html_template(node) {
 function build_node_tree(root, docstr) {
   // Format described here:
   // https://github.com/html5lib/html5lib-tests/blob/master/tree-construction/README.md
+
+  // Special-case empty string: Don't build anything.
+  // (Happens for test docs that cause parse errors, but also for genuinely
+  // empty expectation documents.)
+  if (!docstr) return root;
+
   for (const line of docstr.split("\n")) {
     const [_, indent, remainder] = line.match(/^\| ( *)(.*)/);
     const level = indent.length / 2;

@@ -3,18 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-const t = async_test(
-  'After inline <script type="module"> import maps should fire error events');
 const log = [];
 </script>
 <script type="module">
-// While this inline module script doesn't have any specifiers and doesn't fetch
-// anything, this still disables subsequent import maps, because
-// https://wicg.github.io/import-maps/#wait-for-import-maps
-// is anyway called at the beginning of
-// https://html.spec.whatwg.org/multipage/webappapis.html#fetch-an-inline-module-script-graph
 </script>
-<script type="importmap" onerror="t.done()">
+<script type="importmap">
 {
   "imports": {
     "../resources/log.js?pipe=sub&name=A": "../resources/log.js?pipe=sub&name=B"
@@ -24,7 +17,7 @@ const log = [];
 <script>
 promise_test(() => {
   return import("../resources/log.js?pipe=sub&name=A")
-    .then(() => assert_array_equals(log, ["log:A"]))
+    .then(() => assert_array_equals(log, ["log:B"]))
   },
-  'After inline <script type="module"> import maps are not effective');
+  'After inline <script type="module"> import maps work fine');
 </script>

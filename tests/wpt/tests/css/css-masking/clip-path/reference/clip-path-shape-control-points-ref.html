@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style type="text/css">
+    body {
+      margin: 0;
+    }
+    #shape {
+      margin: 20px;
+      width: 200px;
+      height: 200px;
+      background-color: green;
+      clip-path: url("#clip");
+    }
+  </style>
+</head>
+<body>
+  <div id="shape"></div>
+  <svg height="0" width="0">
+    <defs>
+      <clipPath id="clip">
+        <path clip-rule="nonzero" d="M0 100 C100 0 100 0 200 100 C100 200 100 200 0 100z"/>
+      </clippath>
+    </defs>
+  </svg>
+</body>
+</html>

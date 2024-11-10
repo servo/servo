@@ -1,11 +1,17 @@
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 'use strict';
 
-window.onload = function() {
-  self.queryLocalFonts().then(() => {
+test_driver.set_test_context(parent);
+
+window.onload = async function() {
+  try {
+    await test_driver.bless('enable local font queries');
+    await self.queryLocalFonts();
     parent.postMessage({ type: 'availability-result', enabled: true }, '*');
-  }, error => {
+  } catch (error) {
     parent.postMessage({ type: 'availability-result', enabled: false }, '*');
-  });
+  }
 }
 </script>

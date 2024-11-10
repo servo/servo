@@ -40,6 +40,7 @@ enum XRVisibilityState {
   readonly attribute Float32Array? supportedFrameRates;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
+  [SameObject] readonly attribute XRInputSourceArray trackedSources;
   readonly attribute FrozenArray<DOMString> enabledFeatures;
   readonly attribute boolean isSystemKeyboardSupported;
 

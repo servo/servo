@@ -9,6 +9,24 @@ class Browser(BidiModule):
         return {}
 
     @command
+    def get_client_windows(self) -> Mapping[str, Any]:
+        return {}
+
+    @get_client_windows.result
+    def _get_client_windows(self, result: Mapping[str, Any]) -> Any:
+        assert result['clientWindows'] is not None
+        assert isinstance(result["clientWindows"], list)
+        for client_window_info in result["clientWindows"]:
+            assert isinstance(client_window_info["active"], bool)
+            assert isinstance(client_window_info["clientWindow"], str)
+            assert isinstance(client_window_info["state"], str)
+            assert isinstance(client_window_info["height"], int)
+            assert isinstance(client_window_info["width"], int)
+            assert isinstance(client_window_info["x"], int)
+            assert isinstance(client_window_info["y"], int)
+        return result["clientWindows"]
+
+    @command
     def create_user_context(self) -> Mapping[str, Any]:
         return {}
 

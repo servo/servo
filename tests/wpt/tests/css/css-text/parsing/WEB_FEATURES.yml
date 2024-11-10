@@ -5,3 +5,14 @@ features:
 - name: text-wrap-pretty
   files:
   - text-wrap-pretty.html
+- name: text-wrap-style
+  files:
+  - text-wrap-style-*
+- name: white-space-collapse
+  files:
+  - white-space-collapse-*
+- name: text-wrap
+  files:
+  - text-wrap-computed.html
+  - text-wrap-invalid.html
+  - text-wrap-pretty.html

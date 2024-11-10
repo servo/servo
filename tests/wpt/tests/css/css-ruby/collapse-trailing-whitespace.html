@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://crbug.com/376097115">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="collapse-trailing-whitespace-ref.html"/>
+<meta name="assert" content="A space after '|' should be preserved,
+    a space after 'n' should be collapsed,
+    and a space after 'go' should be preserved.">
+<style>
+p {
+  font: 20px/1 Ahem;
+  xtext-align: justify;
+  xtext-align-last: justify;
+  width: 12em;
+}
+ruby { color: blue; }
+rt { color: orange; }
+</style>
+
+<p>nihongo | <ruby>n <rt>n</ruby><ruby>hon<rt>hon</ruby><ruby>go <rt>go</ruby>|</p>

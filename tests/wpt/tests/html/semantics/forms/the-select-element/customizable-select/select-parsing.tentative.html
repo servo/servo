@@ -6,7 +6,17 @@
 
 <body>
 
-<select id=s1>
+<select class=test
+    data-description='<div>s, <button>s, and <datalist>s should be allowed in <select>'
+    data-expect='
+      <div>div 1</div>
+      <button>button</button>
+      <div>div 2</div>
+      <datalist>
+        <option>option</option>
+      </datalist>
+      <div>div 3</div>
+      '>
   <div>div 1</div>
   <button>button</button>
   <div>div 2</div>
@@ -16,34 +26,56 @@
   <div>div 3</div>
 </select>
 
-<select id=s2>
+<select class=test
+    data-description='</select> should close <button>'
+    data-expect='<button>button</button>'>
   <button>button
 </select>
 
-<select id=s3>
+<select class=test
+    data-description='</select> should close <datalist>'
+    data-expect='<datalist>datalist</datalist>'>
   <datalist>datalist
 </select>
 
-<select id=s4>
+<select id=nested1 class=test
+    data-description='<select> in <button> in <select> should remove inner <select>'
+    data-expect='<button></button>'>
   <button>
-    <select></select>
+    <select id=expectafter1></select>
+    <div id=expectafter1b></div>
   </button>
 </select>
 
-<select id=s5>
+<select id=nested2 class=test
+    data-description='<select> in <select><button><div> should remove inner <select>'
+    data-expect='<button><div></div></button>'>
   <button>
     <div>
-      <select>
+      <select id=expectafter2>
 </select>
 
-<select id=s6>
+<select class=test
+    data-description='Divs and imgs should be allowed as direct children of select and within options without a datalist'
+    data-expect='
+    <div>
+      <option><img>option</option>
+    </div>'>
   <div>
     <option><img>option</option>
   </div>
 </select>
 
-<select id=s7>
-  <input>
+<select class=test
+    data-description='Input tags should parse inside select instead of closing the select'
+    data-expect='<input>'>
+    <input>
+</select>
+
+<select class=test
+    data-description='textarea tags should parse inside select instead of closing the select'
+    data-expect='<textarea></textarea>'>
+    <textarea></textarea>
 </select>
 
 <div id=afterlast>
@@ -51,64 +83,36 @@
 </div>
 
 <script>
-test(() => {
-  // The document.body check here and in the other tests is to make sure that a
-  // previous test case didn't leave the HTML parser open on another element.
-  assert_equals(document.getElementById('s1').parentNode, document.body);
-  assert_equals(document.getElementById('s1').innerHTML.trim(),
-  `<div>div 1</div>
-  <button>button</button>
-  <div>div 2</div>
-  <datalist>
-    <option>option</option>
-  </datalist>
-  <div>div 3</div>`);
-}, '<div>s, <button>s, and <datalist>s should be allowed in <select>.');
-
-test(() => {
-  assert_equals(document.getElementById('s2').parentNode, document.body);
-  assert_equals(document.getElementById('s2').innerHTML.trim(),
-  `<button>button
-</button>`);
-}, '</select> should close <button>.');
-
-test(() => {
-  assert_equals(document.getElementById('s3').parentNode, document.body);
-  assert_equals(document.getElementById('s3').innerHTML.trim(),
-  `<datalist>datalist
-</datalist>`);
-}, '</select> should close <datalist>.');
-
-test(() => {
-  assert_equals(document.getElementById('s4').parentNode, document.body);
-  assert_equals(document.getElementById('s4').innerHTML.trim(),
-  `<button>
-    </button>`);
-}, '<select> in <button> in <select> should remove inner <select>.');
-
-test(() => {
-  assert_equals(document.getElementById('s5').parentNode, document.body);
-  assert_equals(document.getElementById('s5').innerHTML.trim(),
-  `<button>
-    <div>
-      </div></button>`);
-}, '<select> in <select><button><div> should remove inner <select>.');
-
-test(() => {
-  assert_equals(document.getElementById('s6').parentNode, document.body);
-  assert_equals(document.getElementById('s6').innerHTML.trim(),
-  `<div>
-    <option><img>option</option>
-  </div>`);
-}, 'Divs and imgs should be allowed as direct children of select and within options without a datalist.');
-
-test(() => {
-  assert_equals(document.getElementById('s7').parentNode, document.body);
-  assert_equals(document.getElementById('s7').innerHTML.trim(),
-  `<input>`);
-}, 'Input tags should parse inside select instead of closing the select.');
+function removeWhitespace(t) {
+  return t.replace(/\s/g,'');
+}
+document.querySelectorAll('select.test').forEach(s => {
+  assert_true(!!s.dataset.description.length);
+  test(() => {
+    // The document.body check here and in the other tests is to make sure that a
+    // previous test case didn't leave the HTML parser open on another element.
+    assert_equals(s.parentNode, document.body);
+    assert_equals(removeWhitespace(s.innerHTML),removeWhitespace(s.dataset.expect));
+  },s.dataset.description)
+});
 
 test(() => {
   assert_equals(document.getElementById('afterlast').parentNode, document.body);
-}, 'The last test should not leave any tags open after parsing.');
+}, 'The last test should not leave any tags open after parsing');
+
+test(() => {
+  const outerSelect = document.getElementById('nested1');
+  const innerSelect = document.getElementById('expectafter1');
+  const nextDiv = document.getElementById('expectafter1b');
+  assert_true(!!outerSelect && !!innerSelect);
+  assert_equals(outerSelect.nextSibling, innerSelect,'Nested select should be pushed out as the next sibling');
+  assert_equals(innerSelect.nextElementSibling, nextDiv,'Subsequent content is there too');
+}, 'Nested selects should be retained 1');
+
+test(() => {
+  const outerSelect = document.getElementById('nested2');
+  const innerSelect = document.getElementById('expectafter2');
+  assert_true(!!outerSelect && !!innerSelect);
+  assert_equals(outerSelect.nextSibling, innerSelect,'Nested select should be pushed out as the next sibling');
+}, 'Nested selects should be retained 2');
 </script>

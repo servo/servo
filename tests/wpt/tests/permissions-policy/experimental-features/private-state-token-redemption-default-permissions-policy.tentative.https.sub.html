@@ -59,8 +59,15 @@
     async_test(t => {
       test_feature_availability('Private state token redemption', t, cross_origin_src,
         (data, desc) => {
-          assert_equals(data.num_operations_enabled, 0, desc);
+          assert_equals(data.num_operations_enabled, 4, desc);
         });
-    }, header + ' disallows cross-origin iframes.');
+    }, header + ' allows cross-origin iframes.');
+
+    async_test(t => {
+    test_feature_availability(
+        'Private State Token issuance request', t, cross_origin_src,
+        (data, desc) => {assert_equals(data.num_operations_enabled, 0, desc);},
+        'private-state-token-redemption \'none\'');
+  }, header + ' and allow="private-state-token-redemption \'none\'" disallows cross-origin iframes.');
   </script>
 </body>

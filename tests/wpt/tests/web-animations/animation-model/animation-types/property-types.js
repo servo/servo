@@ -164,7 +164,7 @@ const lengthType = {
 };
 
 const lengthPairType = {
-  testInterpolation: (property, setup) => {
+  testInterpolation: (property, setup, serializesToSingleValue = true) => {
     test(t => {
       const idlName = propertyToIDL(property);
       const target = createTestElement(t, setup);
@@ -172,8 +172,14 @@ const lengthPairType = {
         { [idlName]: ['10px 10px', '50px 50px'] },
         { duration: 1000, fill: 'both' }
       );
+
+      let expected = '30px 30px';
+      if (serializesToSingleValue) {
+        expected = '30px';
+      }
+
       testAnimationSamples(animation, idlName,
-                           [{ time: 500,  expected: '30px 30px' }]);
+                           [{ time: 500,  expected }]);
     }, `${property} supports animating as a length pair`);
 
     test(t => {
@@ -183,12 +189,18 @@ const lengthPairType = {
         { [idlName]: ['1rem 1rem', '5rem 5rem'] },
         { duration: 1000, fill: 'both' }
       );
+
+      let expected = '30px 30px';
+      if (serializesToSingleValue) {
+        expected = '30px';
+      }
+
       testAnimationSamples(animation, idlName,
-                           [{ time: 500,  expected: '30px 30px' }]);
+                           [{ time: 500,  expected }]);
     }, `${property} supports animating as a length pair of rem`);
   },
 
-  testAdditionOrAccumulation: (property, setup, composite) => {
+  testAdditionOrAccumulation: (property, setup, composite, serializesToSingleValue = true) => {
     test(t => {
       const idlName = propertyToIDL(property);
       const target = createTestElement(t, setup);
@@ -197,10 +209,16 @@ const lengthPairType = {
         { [idlName]: ['10px 10px', '50px 50px'] },
         { duration: 1000, composite }
       );
+
+      let expected = '20px 20px';
+      if (serializesToSingleValue) {
+        expected = '20px';
+      }
+
       testAnimationSamples(
         animation,
         idlName,
-        [{ time: 0, expected: '20px 20px' }]
+        [{ time: 0, expected }]
       );
     }, `${property}: length pair`);
 
@@ -212,10 +230,17 @@ const lengthPairType = {
         { [idlName]: ['1rem 1rem', '5rem 5rem'] },
         { duration: 1000, composite }
       );
+
+
+      let expected = '20px 20px';
+      if (serializesToSingleValue) {
+        expected = '20px';
+      }
+
       testAnimationSamples(
         animation,
         idlName,
-        [{ time: 0, expected: '20px 20px' }]
+        [{ time: 0, expected }]
       );
     }, `${property}: length pair of rem`);
   },
@@ -2708,7 +2733,7 @@ const boxShadowListType = {
 
 const positionType = {
   testInterpolation: (property, setup) => {
-    lengthPairType.testInterpolation(property, setup);
+    lengthPairType.testInterpolation(property, setup, false);
 
     test(t => {
       const idlName = propertyToIDL(property);
@@ -2722,7 +2747,7 @@ const positionType = {
   },
 
   testAdditionOrAccumulation: (property, setup, composite) => {
-    lengthPairType.testAddition(property, setup);
+    lengthPairType.testAdditionOrAccumulation(property, setup, composite, false);
 
     test(t => {
       const idlName = propertyToIDL(property);

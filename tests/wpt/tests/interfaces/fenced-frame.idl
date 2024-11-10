@@ -74,9 +74,14 @@ interface Fence {
     undefined reportEvent(optional ReportEventType event = {});
     undefined setReportEventDataForAutomaticBeacons(optional FenceEvent event = {});
     sequence<FencedFrameConfig> getNestedConfigs();
+    undefined notifyEvent(Event event);
 };
 
 partial interface Window {
   // Collection of fenced frame APIs
   readonly attribute Fence? fence;
+};
+
+partial interface mixin GlobalEventHandlers {
+  attribute EventHandler onfencedtreeclick;
 };

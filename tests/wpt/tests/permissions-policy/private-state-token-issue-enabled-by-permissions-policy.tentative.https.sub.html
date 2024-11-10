@@ -45,14 +45,14 @@
     test_feature_availability('Private State Token issuance request', t,
         cross_origin_src,
         (data, desc) => {
-            assert_equals(data.num_operations_enabled, 0, desc);});
-  }, test_desc_begin + ' disallows cross-origin iframes.');
+            assert_equals(data.num_operations_enabled, 2, desc);});
+  }, test_desc_begin + ' allows cross-origin iframes.');
 
   async_test(t => {
     test_feature_availability(
         'Private State Token issuance request', t, cross_origin_src,
-        (data, desc) => {assert_equals(data.num_operations_enabled, 2, desc);},
-        'private-state-token-issuance');
-  }, test_desc_begin + ' and allow="private-state-token-issuance" allows cross-origin iframes.');
+        (data, desc) => {assert_equals(data.num_operations_enabled, 0, desc);},
+        'private-state-token-issuance \'none\'');
+  }, test_desc_begin + ' and allow="private-state-token-issuance \'none\'" disallows cross-origin iframes.');
   </script>
 </body>

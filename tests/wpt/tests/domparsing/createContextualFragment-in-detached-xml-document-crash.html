@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+<iframe id="i" src="resources/dummy-xml.xml"></iframe>
+<script>
+window.onload = () => {
+  let i = document.getElementById("i");
+  var range = i.contentDocument.createRange();
+  range.setStart(i.contentDocument.firstElementChild, 0);
+  i.remove();
+
+  range.createContextualFragment('<p>Should not crash</p>');
+}
+</script>
+</body>

@@ -576,3 +576,79 @@ test((t) => {
   assert_equals(getComputedStyle(child).zIndex, '1');
 }, 'Scoped nested within another scope');
 </script>
+
+<template id=test_implicit_scope_nested_group_rule>
+  <div class=nest>
+    <style>
+      .nest {
+        @scope {
+          #child {
+            color: green;
+          }
+        }
+      }
+    </style>
+    <div id=child>Foo</div>
+</div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_implicit_scope_nested_group_rule.content.cloneNode(true));
+  assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+}, 'Implicit (prelude-less) @scope as a nested group rule');
+</script>
+
+<template id=test_insert_ampersand_rule_within_scope>
+<style>
+  .a {
+    @scope (.b) {
+      #child {
+        color: red;
+      }
+    }
+  }
+</style>
+<div class=a>
+  <div class=b>
+    <div id=child>Foo</div>
+  </div>
+</div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_insert_ampersand_rule_within_scope.content.cloneNode(true));
+  assert_equals(getComputedStyle(child).color, 'rgb(255, 0, 0)');
+  let scope_rule = main.querySelector('style').sheet.cssRules[0].cssRules[0];
+  scope_rule.insertRule('& #child { color: green; }');
+  assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+}, 'Insert a nested style rule within @scope, &');
+</script>
+
+<template id=test_insert_pseudo_scope_rule_within_scope>
+<style>
+  .a {
+    @scope (.b) {
+      #child {
+        color: red;
+      }
+    }
+  }
+</style>
+<div class=a>
+  <div class=b>
+    <div id=child>Foo</div>
+  </div>
+</div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_insert_pseudo_scope_rule_within_scope.content.cloneNode(true));
+  assert_equals(getComputedStyle(child).color, 'rgb(255, 0, 0)');
+  let scope_rule = main.querySelector('style').sheet.cssRules[0].cssRules[0];
+  scope_rule.insertRule(':scope #child { color: green; }');
+  assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+}, 'Insert a nested style rule within @scope, :scope');
+</script>

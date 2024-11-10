@@ -18,15 +18,11 @@ Parse Error
 }
 </script>
 <script>
-// Currently the spec doesn't allow multiple import maps, by setting acquiring
-// import maps to false on preparing the first import map.
-// Even the first import map has errors and thus Document's import map is not
-// updated, the second import map is still rejected at preparationg.
 promise_test(() => {
   return import("../resources/log.js?pipe=sub&name=A")
     .then(() => assert_array_equals(
                     log,
-                    ["onerror 2", "log:A"]))
+                    ["log:C"]))
   },
-  "Second import map should be rejected after an import map with errors");
+  "Second import map should be used for resolution even after an import map with errors");
 </script>

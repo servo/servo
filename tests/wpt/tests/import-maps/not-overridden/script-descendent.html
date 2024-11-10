@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script type="module">
+import "../resources/log.js?pipe=sub&name=A";
+</script>
+<script>
+const log = [];
+
+// Try to redefine the descendent with an import map
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "../resources/log.js?pipe=sub&name=A": "../resources/log.js?pipe=sub&name=B"
+  }
+}
+</script>
+<script type="module">
+// Testing that the resolution is correct using `resolve`, as you can't import
+// the same module twice.
+test(() => {
+  assert_true(import.meta.resolve("../resources/log.js?pipe=sub&name=A")
+              .endsWith("/resources/log.js?pipe=sub&name=A"));
+}, "Resolution after import map should not be redefined");
+</script>
+</body>
+</html>
+

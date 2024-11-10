@@ -6,3 +6,6 @@ features:
   files:
   - at-scope-*
   - scope-*
+- name: revert
+  files:
+  - revert-val-*

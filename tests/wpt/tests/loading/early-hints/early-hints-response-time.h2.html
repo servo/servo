@@ -21,7 +21,8 @@
     await new Promise(resolve => iframe.addEventListener("load", resolve));
     const [entry] = iframe.contentWindow.performance.getEntriesByType("navigation");
     assert_greater_than(entry.firstInterimResponseStart, entry.requestStart + delays[0]);
-    assert_greater_than(entry.responseStart, entry.firstInterimResponseStart + delays[1]);
+    assert_greater_than(entry.finalResponseHeadersStart, entry.firstInterimResponseStart + delays[1]);
+    assert_equals(entry.responseStart, entry.firstInterimResponseStart);
 }, `Interim response times should correspond to delays (h2)`);
 </script>
 </body>

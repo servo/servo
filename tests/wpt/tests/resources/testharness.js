@@ -2032,30 +2032,46 @@
 
 
     /**
-     * Assert that ``object`` has a property named ``property_name`` and that the property is readonly.
+     * Assert that ``object`` has a property named ``property_name`` and that the property is not writable or has no setter.
      *
-     * Note: The implementation tries to update the named property, so
-     * any side effects of updating will be triggered. Users are
-     * encouraged to instead inspect the property descriptor of ``property_name`` on ``object``.
-     *
-     * @param {Object} object - Object that should have the given property in its prototype chain.
+     * @param {Object} object - Object that should have the given (not necessarily own) property.
      * @param {string} property_name - Expected property name.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_readonly(object, property_name, description)
     {
-         var initial_value = object[property_name];
-         try {
-             //Note that this can have side effects in the case where
-             //the property has PutForwards
-             object[property_name] = initial_value + "a"; //XXX use some other value here?
-             assert(same_value(object[property_name], initial_value),
-                    "assert_readonly", description,
-                    "changing property ${p} succeeded",
-                    {p:property_name});
-         } finally {
-             object[property_name] = initial_value;
-         }
+        assert(property_name in object,
+               "assert_readonly", description,
+               "property ${p} not found",
+               {p:property_name});
+
+        let desc;
+        while (object && (desc = Object.getOwnPropertyDescriptor(object, property_name)) === undefined) {
+            object = Object.getPrototypeOf(object);
+        }
+
+        assert(desc !== undefined,
+               "assert_readonly", description,
+               "could not find a descriptor for property ${p}",
+               {p:property_name});
+
+        if (desc.hasOwnProperty("value")) {
+            // We're a data property descriptor
+            assert(desc.writable === false, "assert_readonly", description,
+                   "descriptor [[Writable]] expected false got ${actual}", {actual:desc.writable});
+        } else if (desc.hasOwnProperty("get") || desc.hasOwnProperty("set")) {
+            // We're an accessor property descriptor
+            assert(desc.set === undefined, "assert_readonly", description,
+                   "property ${p} is an accessor property with a [[Set]] attribute, cannot test readonly-ness",
+                   {p:property_name});
+        } else {
+            // We're a generic property descriptor
+            // This shouldn't happen, because Object.getOwnPropertyDescriptor
+            // forwards the return value of [[GetOwnProperty]] (P), which must
+            // be a fully populated Property Descriptor or Undefined.
+            assert(false, "assert_readonly", description,
+                   "Object.getOwnPropertyDescriptor must return a fully populated property descriptor");
+        }
     }
     expose_assert(assert_readonly, "assert_readonly");
 

@@ -20,6 +20,20 @@ const KNOWN_CAPABILITIES_SET = new Set([
   "signalCurrentUserDetails",
   "signalUnknownCredential",
   "userVerifyingPlatformAuthenticator",
+
+  // Extensions implemented by the client
+  "extension:appid",
+  "extension:appidExclude",
+  "extension:hmacCreateSecret",
+  "extension:credentialProtectionPolicy",
+  "extension:enforceCredentialProtectionPolicy",
+  "extension:minPinLength",
+  "extension:credProps",
+  "extension:largeBlob",
+  "extension:credBlob",
+  "extension:getCredBlob",
+  "extension:payment",
+  "extension:prf",
 ]);
 
 promise_test(async t => {

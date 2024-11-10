@@ -244,3 +244,11 @@ function doTests(importMapString, importMapBaseURL, tests) {
     });
   }, { explicit_done: true });
 }
+
+function test_loaded(specifier, expected_log, description) {
+  promise_test(async t => {
+    log = [];
+    await import(specifier);
+    assert_array_equals(log, expected_log);
+  }, description);
+};
