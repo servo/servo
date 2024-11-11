@@ -949,7 +949,7 @@ def check_config_file(config_file, print_text=True):
 
     # Check for invalid listed ignored directories
     exclude_dirs = [d for p in exclude.get("directories", []) for d in (glob.glob(p) or [p])]
-    skip_dirs = ["./target", "./tests"]
+    skip_dirs = ["./target", "./tests", "./support/crown/target"]
     invalid_dirs = [d for d in exclude_dirs if not os.path.isdir(d) and not any(s in d for s in skip_dirs)]
 
     # Check for invalid listed ignored files
