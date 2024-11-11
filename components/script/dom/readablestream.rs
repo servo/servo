@@ -17,7 +17,7 @@ use js::rust::{
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamGetReaderOptions, ReadableStreamMethods,
+    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -568,25 +568,30 @@ impl ReadableStreamMethods for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-get-reader>
     fn GetReader(
         &self,
-        _options: &ReadableStreamGetReaderOptions,
+        options: &ReadableStreamGetReaderOptions,
         can_gc: CanGc,
     ) -> Fallible<ReadableStreamReader> {
-        if self.is_locked() {
-            return Err(Error::Type("Stream is locked".to_string()));
+        // 1, If options["mode"] does not exist, return ? AcquireReadableStreamDefaultReader(this).
+        if options.mode.is_none() {
+            match self.reader {
+                ReaderType::Default(ref reader) => {
+                    reader.set(Some(&*ReadableStreamDefaultReader::set_up(
+                        &self.global(),
+                        self,
+                        can_gc,
+                    )?));
+                    return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
+                        reader.get().unwrap(),
+                    ));
+                },
+                _ => unreachable!("Getting BYOBReader can only be done when options.mode is set."),
+            }
         }
-        match self.reader {
-            ReaderType::Default(ref reader) => {
-                reader.set(Some(&*ReadableStreamDefaultReader::set_up(
-                    &self.global(),
-                    self,
-                    can_gc,
-                )?));
-                Ok(ReadableStreamReader::ReadableStreamDefaultReader(
-                    reader.get().unwrap(),
-                ))
-            },
-            _ => todo!(),
-        }
+        // 2. Assert: options["mode"] is "byob".
+        assert!(options.mode.unwrap() == ReadableStreamReaderMode::Byob);
+
+        // 3. Return ? AcquireReadableStreamBYOBReader(this).
+        todo!();
     }
 }
 
