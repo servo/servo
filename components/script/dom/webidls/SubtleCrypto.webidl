@@ -29,10 +29,10 @@ interface SubtleCrypto {
   Promise<any> sign(AlgorithmIdentifier algorithm,
                     CryptoKey key,
                     BufferSource data);
-  // Promise<any> verify(AlgorithmIdentifier algorithm,
-  //                     CryptoKey key,
-  //                     BufferSource signature,
-  //                     BufferSource data);
+  Promise<any> verify(AlgorithmIdentifier algorithm,
+                      CryptoKey key,
+                      BufferSource signature,
+                      BufferSource data);
   Promise<any> digest(AlgorithmIdentifier algorithm,
                       BufferSource data);
 

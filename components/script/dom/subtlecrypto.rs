@@ -337,6 +337,95 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-verify>
+    fn Verify(
+        &self,
+        cx: SafeJSContext,
+        algorithm: AlgorithmIdentifier,
+        key: &CryptoKey,
+        signature: ArrayBufferViewOrArrayBuffer,
+        data: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the verify() method,
+        // respectively.
+
+        // Step 2. Let signature be the result of getting a copy of the bytes held by the signature parameter passed
+        // to the verify() method.
+        let signature = match &signature {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 3. Let data be the result of getting a copy of the bytes held by the data parameter passed to the
+        // verify() method.
+        let data = match &data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 4. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
+        // algorithm and op set to "verify".
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm_for_sign_or_verify(cx, &algorithm) {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                promise.reject_error(e);
+                return promise;
+            },
+        };
+
+        // Step 6. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 6.
+
+        // Step 7. Return promise and perform the remaining steps in parallel.
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_key = Trusted::new(key);
+
+        let _ = task_source.queue_with_canceller(
+            task!(sign: move || {
+                // Step 8. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+
+                // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
+                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
+                // then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Verify) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 1. Let result be the result of performing the verify operation specified by normalizedAlgorithm
+                // using key, algorithm and signature and with data as message.
+                let cx = GlobalScope::get_cx();
+                let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                // Step 9. Resolve promise with result.
+                promise.resolve_native(&result);
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-digest>
     fn Digest(
         &self,
@@ -1993,6 +2082,18 @@ impl SignatureAlgorithm {
             Self::Hmac => sign_hmac(cx, key, data).map(|s| s.as_ref().to_vec()),
         }
     }
+
+    fn verify(
+        &self,
+        cx: JSContext,
+        key: &CryptoKey,
+        data: &[u8],
+        signature: &[u8],
+    ) -> Result<bool, Error> {
+        match self {
+            Self::Hmac => verify_hmac(cx, key, data, signature),
+        }
+    }
 }
 
 impl KeyGenerationAlgorithm {
@@ -2031,4 +2132,21 @@ fn sign_hmac(cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<impl AsRef<[
     // Step 2. Return the result of creating an ArrayBuffer containing mac.
     // NOTE: This is done by the caller
     Ok(mac)
+}
+
+/// <https://w3c.github.io/webcrypto/#hmac-operations>
+fn verify_hmac(
+    cx: JSContext,
+    key: &CryptoKey,
+    data: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
+    // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
+    // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
+    // of the [[algorithm]] internal slot of key and message as the input data text.
+    let mac = sign_hmac(cx, key, data)?;
+
+    // Step 2. Return true if mac is equal to signature and false otherwise.
+    let is_valid = mac.as_ref() == signature;
+    Ok(is_valid)
 }
