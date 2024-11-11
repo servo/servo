@@ -4524,9 +4524,9 @@ dependencies = [
 
 [[package]]
 name = "napi-ohos"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9f51da5368ed904ee9274332875955442a7dda4f0352d3eb7a29d238650fc96"
+checksum = "2595591bd7525f697450c326b0b786babd5b568d61a582e96e48e4ede82f5ac4"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
@@ -4535,9 +4535,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys-ohos"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f7fcdef583bb4e03060b852a65d2d9ca3a781c43b97cf7e546d3937ea2b0612"
+checksum = "271aa4dcc256a7e30d9f6564f8540e0f9fd323c838c63c259ff1a2fd2c7ba16b"
 dependencies = [
  "libloading",
 ]

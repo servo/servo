@@ -87,7 +87,7 @@ env_filter = "0.1.2"
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 hilog = "0.1.1"
 napi-derive-ohos = "1.0.1"
-napi-ohos = "1.0.1"
+napi-ohos = "1.0.2"
 ohos-sys = { version = "0.4.0", features = ["xcomponent"] }
 ohos-vsync = "0.1.2"
 
