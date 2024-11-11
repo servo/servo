@@ -27,8 +27,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm,
-    AlgorithmIdentifier, HkdfParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    SubtleCryptoMethods,
+    AlgorithmIdentifier, HkdfParams, HmacImportParams, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm,
+    KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -762,6 +762,26 @@ impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams>
+struct SubtleHmacImportParams {
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
+    hash: DigestAlgorithm,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
+    length: Option<u32>,
+}
+
+impl SubtleHmacImportParams {
+    fn new(cx: JSContext, params: RootedTraceableBox<HmacImportParams>) -> Fallible<Self> {
+        let hash = normalize_algorithm_for_digest(cx, &params.hash)?;
+        let params = Self {
+            hash,
+            length: params.length,
+        };
+        Ok(params)
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
 #[derive(Clone, Debug)]
 pub struct SubtleHkdfParams {
@@ -848,6 +868,7 @@ enum DigestAlgorithm {
 enum ImportKeyAlgorithm {
     AesCbc,
     AesCtr,
+    Hmac(SubtleHmacImportParams),
     Pbkdf2,
     Hkdf,
 }
@@ -959,7 +980,14 @@ fn normalize_algorithm_for_import_key(
                 return Err(Error::Syntax);
             };
 
-            algorithm.name.str().to_uppercase()
+            let name = algorithm.name.str().to_uppercase();
+            if name == ALG_HMAC {
+                let params = value_from_js_object!(HmacImportParams, cx, value);
+                let subtle_params = SubtleHmacImportParams::new(cx, params)?;
+                return Ok(ImportKeyAlgorithm::Hmac(subtle_params));
+            }
+
+            name
         },
         AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
     };
@@ -1398,6 +1426,101 @@ impl SubtleCrypto {
         }
     }
 
+    /// <https://w3c.github.io/webcrypto/#hmac-operations>
+    #[allow(unsafe_code)]
+    fn import_key_hmac(
+        &self,
+        normalized_algorithm: &SubtleHmacImportParams,
+        format: KeyFormat,
+        key_data: &[u8],
+        extractable: bool,
+        usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        // Step 1. Let keyData be the key data to be imported.
+        // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
+        if usages
+            .iter()
+            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+        {
+            return Err(Error::Syntax);
+        }
+
+        // Step 3. Let hash be a new KeyAlgorithm.
+        let hash;
+
+        // Step 4.
+        let data;
+        match format {
+            // If format is "raw":
+            KeyFormat::Raw => {
+                // Step 4.1 Let data be the octet string contained in keyData.
+                data = key_data;
+
+                // Step 4.2 Set hash to equal the hash member of normalizedAlgorithm.
+                hash = normalized_algorithm.hash;
+            },
+            // If format is "jwk":
+            KeyFormat::Jwk => {
+                // TODO: This seems to require having key_data be more than just &[u8]
+                return Err(Error::NotSupported);
+            },
+            // Otherwise:
+            _ => {
+                // throw a NotSupportedError.
+                return Err(Error::NotSupported);
+            },
+        }
+
+        // Step 5. Let length be equivalent to the length, in octets, of data, multiplied by 8.
+        let mut length = data.len() as u32 * 8;
+
+        // Step 6. If length is zero then throw a DataError.
+        if length == 0 {
+            return Err(Error::Data);
+        }
+
+        // Step 7. If the length member of normalizedAlgorithm is present:
+        if let Some(given_length) = normalized_algorithm.length {
+            //  If the length member of normalizedAlgorithm is greater than length:
+            if given_length > length {
+                // throw a DataError.
+                return Err(Error::Data);
+            }
+            // Otherwise:
+            else {
+                // Set length equal to the length member of normalizedAlgorithm.
+                length = given_length;
+            }
+        }
+
+        // Step 8. Let key be a new CryptoKey object representing an HMAC key with the first length bits of data.
+        // Step 9. Set the [[type]] internal slot of key to "secret".
+        // Step 10. Let algorithm be a new HmacKeyAlgorithm.
+        // Step 11. Set the name attribute of algorithm to "HMAC".
+        // Step 12. Set the length attribute of algorithm to length.
+        // Step 13. Set the hash attribute of algorithm to hash.
+        // Step 14. Set the [[algorithm]] internal slot of key to algorithm.
+        let truncated_data = data[..length as usize / 8].to_vec();
+        let name = DOMString::from(ALG_HMAC);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
+        HmacKeyAlgorithm::from_length_and_hash(length, hash, algorithm_object.handle_mut(), cx);
+
+        let key = CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages,
+            Handle::Hmac(truncated_data),
+        );
+
+        // Step 15. Return key.
+        Ok(key)
+    }
+
     /// <https://w3c.github.io/webcrypto/#pbkdf2-operations>
     #[allow(unsafe_code)]
     fn import_key_pbkdf2(
@@ -1476,6 +1599,28 @@ impl KeyAlgorithm {
 
         unsafe {
             key_algorithm.to_jsobject(*cx, out);
+        }
+    }
+}
+
+impl HmacKeyAlgorithm {
+    #[allow(unsafe_code)]
+    fn from_length_and_hash(
+        length: u32,
+        hash: DigestAlgorithm,
+        out: MutableHandleObject,
+        cx: JSContext,
+    ) {
+        let hmac_key_algorithm = Self {
+            parent: KeyAlgorithm {
+                name: ALG_HMAC.into(),
+            },
+            length,
+            hash: KeyAlgorithm { name: hash.name() },
+        };
+
+        unsafe {
+            hmac_key_algorithm.to_jsobject(*cx, out);
         }
     }
 }
@@ -1614,6 +1759,17 @@ impl GetKeyLengthAlgorithm {
 }
 
 impl DigestAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    fn name(&self) -> DOMString {
+        match self {
+            Self::Sha1 => ALG_SHA1,
+            Self::Sha256 => ALG_SHA256,
+            Self::Sha384 => ALG_SHA384,
+            Self::Sha512 => ALG_SHA512,
+        }
+        .into()
+    }
+
     fn digest(&self, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
         let algorithm = match self {
             Self::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
@@ -1640,6 +1796,9 @@ impl ImportKeyAlgorithm {
             },
             Self::AesCtr => {
                 subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
+            },
+            Self::Hmac(params) => {
+                subtle.import_key_hmac(params, format, secret, extractable, key_usages)
             },
             Self::Pbkdf2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
             Self::Hkdf => subtle.import_key_hkdf(format, secret, extractable, key_usages),

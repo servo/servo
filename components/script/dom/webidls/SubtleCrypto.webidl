@@ -92,6 +92,18 @@ dictionary AesCtrParams : Algorithm {
   required [EnforceRange] octet length;
 };
 
+// https://w3c.github.io/webcrypto/#dfn-HmacImportParams
+dictionary HmacImportParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+  [EnforceRange] unsigned long length;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm
+dictionary HmacKeyAlgorithm : KeyAlgorithm {
+  required KeyAlgorithm hash;
+  required unsigned long length;
+};
+
 // https://w3c.github.io/webcrypto/#hkdf-params
 dictionary HkdfParams : Algorithm {
   required HashAlgorithmIdentifier hash;
