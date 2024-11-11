@@ -14,7 +14,7 @@ use style::Zero;
 
 use crate::geom::Size;
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
-use crate::{AuOrAuto, IndefiniteContainingBlock, LogicalVec2};
+use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2, SizeConstraint};
 
 #[derive(PartialEq)]
 pub(crate) enum IntrinsicSizingMode {
@@ -120,7 +120,7 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
-    get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> InlineContentSizesResult,
+    get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
     let ContentBoxSizesAndPBM {
         content_box_size,
@@ -140,7 +140,7 @@ pub(crate) fn outer_inline(
             .block
             .non_auto()
             .map(|v| Au::zero().max(v - pbm_sums.block));
-        let block_size = if content_box_size.block.is_initial() &&
+        let preferred_block_size = if content_box_size.block.is_initial() &&
             auto_block_size_stretches_to_containing_block
         {
             depends_on_block_constraints = true;
@@ -149,24 +149,18 @@ pub(crate) fn outer_inline(
             content_box_size
                 .block
                 .maybe_resolve_extrinsic(available_block_size)
-        }
-        .map(|block_size| {
-            let min_block_size = content_min_box_size
-                .block
-                .maybe_resolve_extrinsic(available_block_size)
-                .unwrap_or(auto_minimum.block);
-            let max_block_size = content_max_box_size
-                .block
-                .maybe_resolve_extrinsic(available_block_size);
-            block_size.clamp_between_extremums(min_block_size, max_block_size)
-        })
-        .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
-        let containing_block_for_children =
-            IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
-                style.writing_mode,
-                block_size,
-            );
-        get_content_size(&containing_block_for_children)
+        };
+        let min_block_size = content_min_box_size
+            .block
+            .maybe_resolve_extrinsic(available_block_size)
+            .unwrap_or(auto_minimum.block);
+        let max_block_size = content_max_box_size
+            .block
+            .maybe_resolve_extrinsic(available_block_size);
+        get_content_size(&ConstraintSpace::new(
+            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
+            style.writing_mode,
+        ))
     });
     let resolve_non_initial = |inline_size| {
         Some(match inline_size {

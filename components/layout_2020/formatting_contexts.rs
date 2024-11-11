@@ -21,7 +21,9 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, DisplayInside};
 use crate::table::Table;
-use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
+use crate::{
+    ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2, SizeConstraint,
+};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, Serialize)]
@@ -36,7 +38,7 @@ pub(crate) struct NonReplacedFormattingContext {
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
-    pub content_sizes_result: Option<(AuOrAuto, InlineContentSizesResult)>,
+    pub content_sizes_result: Option<(SizeConstraint, InlineContentSizesResult)>,
     pub contents: NonReplacedFormattingContextContents,
 }
 
@@ -188,16 +190,16 @@ impl IndependentFormattingContext {
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
         containing_block: &IndefiniteContainingBlock,
     ) -> InlineContentSizesResult {
         match self {
             Self::NonReplaced(inner) => {
-                inner.inline_content_sizes(layout_context, containing_block_for_children)
+                inner.inline_content_sizes(layout_context, constraint_space)
             },
             Self::Replaced(inner) => inner.contents.inline_content_sizes(
                 layout_context,
-                containing_block_for_children,
+                constraint_space,
                 inner.preferred_aspect_ratio(containing_block),
             ),
         }
@@ -222,10 +224,10 @@ impl IndependentFormattingContext {
                 containing_block,
                 auto_minimum,
                 auto_block_size_stretches_to_containing_block,
-                |containing_block_for_children| {
+                |constraint_space| {
                     replaced.contents.inline_content_sizes(
                         layout_context,
-                        containing_block_for_children,
+                        constraint_space,
                         replaced.preferred_aspect_ratio(containing_block),
                     )
                 },
@@ -276,16 +278,11 @@ impl NonReplacedFormattingContext {
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        assert_eq!(
-            containing_block_for_children.size.inline,
-            AuOrAuto::Auto,
-            "inline_content_sizes() got non-auto containing block inline-size",
-        );
         if let Some((previous_cb_block_size, result)) = self.content_sizes_result {
             if !result.depends_on_block_constraints ||
-                previous_cb_block_size == containing_block_for_children.size.block
+                previous_cb_block_size == constraint_space.block_size
             {
                 return result;
             }
@@ -294,9 +291,9 @@ impl NonReplacedFormattingContext {
 
         self.content_sizes_result
             .insert((
-                containing_block_for_children.size.block,
+                constraint_space.block_size,
                 self.contents
-                    .inline_content_sizes(layout_context, containing_block_for_children),
+                    .inline_content_sizes(layout_context, constraint_space),
             ))
             .1
     }
@@ -313,9 +310,7 @@ impl NonReplacedFormattingContext {
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
-            |containing_block_for_children| {
-                self.inline_content_sizes(layout_context, containing_block_for_children)
-            },
+            |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
         )
     }
 }
@@ -324,18 +319,14 @@ impl NonReplacedFormattingContextContents {
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         match self {
             Self::Flow(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, containing_block_for_children),
-            Self::Flex(inner) => {
-                inner.inline_content_sizes(layout_context, containing_block_for_children)
-            },
-            Self::Table(table) => {
-                table.inline_content_sizes(layout_context, containing_block_for_children)
-            },
+                .inline_content_sizes(layout_context, constraint_space),
+            Self::Flex(inner) => inner.inline_content_sizes(layout_context, constraint_space),
+            Self::Table(table) => table.inline_content_sizes(layout_context, constraint_space),
         }
     }
 }

@@ -31,7 +31,7 @@ use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFrag
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size};
 use crate::sizing::InlineContentSizesResult;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
-use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {
@@ -259,36 +259,46 @@ impl ReplacedContent {
         })
     }
 
+    #[inline]
+    fn content_size(
+        &self,
+        axis: Direction,
+        preferred_aspect_ratio: Option<AspectRatio>,
+        get_size_in_opposite_axis: &dyn Fn() -> SizeConstraint,
+        get_fallback_size: &dyn Fn() -> Au,
+    ) -> Au {
+        let Some(ratio) = preferred_aspect_ratio else {
+            return get_fallback_size();
+        };
+        let transfer = |size| ratio.compute_dependent_size(axis, size);
+        match get_size_in_opposite_axis() {
+            SizeConstraint::Definite(size) => transfer(size),
+            SizeConstraint::MinMax(min_size, max_size) => get_fallback_size()
+                .clamp_between_extremums(transfer(min_size), max_size.map(transfer)),
+        }
+    }
+
     pub fn inline_content_sizes(
         &self,
         _: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> InlineContentSizesResult {
-        // FIXME: min/max-content of replaced elements is not defined in
-        // https://dbaron.org/css/intrinsic/
-        // This seems sensible?
-        let block_size = containing_block_for_children.size.block;
-        match (block_size, preferred_aspect_ratio) {
-            (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => InlineContentSizesResult {
-                sizes: ratio
-                    .compute_dependent_size(Direction::Inline, block_size)
-                    .into(),
-                depends_on_block_constraints: true,
-            },
-            _ => {
-                let writing_mode = containing_block_for_children.writing_mode;
-                InlineContentSizesResult {
-                    sizes: self
-                        .flow_relative_natural_size(writing_mode)
-                        .inline
-                        .unwrap_or_else(|| {
-                            Self::flow_relative_default_object_size(writing_mode).inline
-                        })
-                        .into(),
-                    depends_on_block_constraints: false,
-                }
-            },
+        let get_inline_fallback_size = || {
+            let writing_mode = constraint_space.writing_mode;
+            self.flow_relative_natural_size(writing_mode)
+                .inline
+                .unwrap_or_else(|| Self::flow_relative_default_object_size(writing_mode).inline)
+        };
+        let inline_content_size = self.content_size(
+            Direction::Inline,
+            preferred_aspect_ratio,
+            &|| constraint_space.block_size,
+            &get_inline_fallback_size,
+        );
+        InlineContentSizesResult {
+            sizes: inline_content_size.into(),
+            depends_on_block_constraints: preferred_aspect_ratio.is_some(),
         }
     }
 
@@ -529,51 +539,51 @@ impl ReplacedContent {
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
         // <https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes>
-        // FIXME: Use ReplacedContent::inline_content_sizes() once it's fixed to correctly handle
-        // min and max constraints.
         let inline_content_size = LazyCell::new(|| {
-            let Some(ratio) = ratio else {
-                return get_inline_fallback_size();
+            let get_block_size = || {
+                let block_stretch_size = block_stretch_size.unwrap_or_else(get_block_fallback_size);
+                SizeConstraint::new(
+                    box_size
+                        .block
+                        .maybe_resolve_extrinsic(Some(block_stretch_size)),
+                    min_box_size
+                        .block
+                        .maybe_resolve_extrinsic(Some(block_stretch_size))
+                        .unwrap_or_default(),
+                    max_box_size
+                        .block
+                        .maybe_resolve_extrinsic(Some(block_stretch_size)),
+                )
             };
-            let block_stretch_size = block_stretch_size.unwrap_or_else(get_block_fallback_size);
-            let transfer = |size| ratio.compute_dependent_size(Direction::Inline, size);
-            let min = transfer(
-                min_box_size
-                    .block
-                    .maybe_resolve_extrinsic(Some(block_stretch_size))
-                    .unwrap_or_default(),
-            );
-            let max = max_box_size
-                .block
-                .maybe_resolve_extrinsic(Some(block_stretch_size))
-                .map(transfer);
-            box_size
-                .block
-                .maybe_resolve_extrinsic(Some(block_stretch_size))
-                .map_or_else(get_inline_fallback_size, transfer)
-                .clamp_between_extremums(min, max)
+            self.content_size(
+                Direction::Inline,
+                ratio,
+                &get_block_size,
+                &get_inline_fallback_size,
+            )
         });
         let block_content_size = LazyCell::new(|| {
-            let Some(ratio) = ratio else {
-                return get_block_fallback_size();
+            let get_inline_size = || {
+                let mut get_inline_content_size = || (*inline_content_size).into();
+                SizeConstraint::new(
+                    box_size
+                        .inline
+                        .maybe_resolve_extrinsic(Some(inline_stretch_size)),
+                    min_box_size
+                        .inline
+                        .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
+                        .unwrap_or_default(),
+                    max_box_size
+                        .inline
+                        .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size),
+                )
             };
-            let mut get_inline_content_size = || (*inline_content_size).into();
-            let transfer = |size| ratio.compute_dependent_size(Direction::Block, size);
-            let min = transfer(
-                min_box_size
-                    .inline
-                    .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
-                    .unwrap_or_default(),
-            );
-            let max = max_box_size
-                .inline
-                .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
-                .map(transfer);
-            box_size
-                .inline
-                .maybe_resolve_extrinsic(Some(inline_stretch_size))
-                .map_or_else(get_block_fallback_size, transfer)
-                .clamp_between_extremums(min, max)
+            self.content_size(
+                Direction::Block,
+                ratio,
+                &get_inline_size,
+                &get_block_fallback_size,
+            )
         });
         let mut get_inline_content_size = || (*inline_content_size).into();
         let mut get_block_content_size = || (*block_content_size).into();

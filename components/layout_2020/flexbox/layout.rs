@@ -40,7 +40,7 @@ use crate::sizing::{ContentSizes, InlineContentSizesResult, IntrinsicSizingMode}
 use crate::style_ext::{
     Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
 };
-use crate::{ContainingBlock, IndefiniteContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
 
 /// Layout parameters and intermediate results about a flex container,
 /// grouped to avoid passing around many parameters
@@ -401,19 +401,17 @@ impl FlexContainer {
     pub fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         match self.config.flex_axis {
             FlexAxis::Row => {
-                self.main_content_sizes(layout_context, containing_block_for_children, || {
+                self.main_content_sizes(layout_context, &constraint_space.into(), || {
                     unreachable!(
                         "Unexpected FlexContext query during row flex intrinsic size calculation."
                     )
                 })
             },
-            FlexAxis::Column => {
-                self.cross_content_sizes(layout_context, containing_block_for_children)
-            },
+            FlexAxis::Column => self.cross_content_sizes(layout_context, &constraint_space.into()),
         }
     }
 
@@ -1882,17 +1880,16 @@ impl FlexItem<'_> {
         } else {
             (
                 cross_size.auto_is(|| {
-                    let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
-                            item_writing_mode,
-                            AuOrAuto::LengthPercentage(used_main_size),
-                        );
+                    let constraint_space = ConstraintSpace::new(
+                        SizeConstraint::Definite(used_main_size),
+                        item_writing_mode,
+                    );
                     let content_contributions = self
                         .box_
                         .independent_formatting_context
                         .inline_content_sizes(
                             flex_context.layout_context,
-                            &containing_block_for_children,
+                            &constraint_space,
                             &containing_block.into(),
                         )
                         .sizes
@@ -2474,7 +2471,7 @@ impl FlexItemBox {
             Direction::Block
         };
 
-        let cross_size =
+        let cross_size = SizeConstraint::new(
             if content_box_size.cross.is_auto() && auto_cross_size_stretches_to_container_size {
                 if cross_axis_is_item_block_axis {
                     containing_block.size.block
@@ -2485,14 +2482,17 @@ impl FlexItemBox {
             } else {
                 content_box_size.cross
             }
-            .map(|v| v.clamp_between_extremums(min_size.cross.auto_is(Au::zero), max_size.cross));
+            .non_auto(),
+            min_size.cross.auto_is(Au::zero),
+            max_size.cross,
+        );
 
         // > **transferred size suggestion**
         // > If the item has a preferred aspect ratio and its preferred cross size is definite, then the
         // > transferred size suggestion is that size (clamped by its minimum and maximum cross sizes if they
         // > are definite), converted through the aspect ratio. It is otherwise undefined.
         let transferred_size_suggestion = match (ratio, cross_size) {
-            (Some(ratio), AuOrAuto::LengthPercentage(cross_size)) => {
+            (Some(ratio), SizeConstraint::Definite(cross_size)) => {
                 Some(ratio.compute_dependent_size(main_axis, cross_size))
             },
             _ => None,
@@ -2504,17 +2504,9 @@ impl FlexItemBox {
         // > aspect ratio.
         let main_content_size = if cross_axis_is_item_block_axis {
             let writing_mode = self.independent_formatting_context.style().writing_mode;
-            let containing_block_for_children =
-                IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
-                    writing_mode,
-                    cross_size,
-                );
+            let constraint_space = ConstraintSpace::new(cross_size, writing_mode);
             self.independent_formatting_context
-                .inline_content_sizes(
-                    layout_context,
-                    &containing_block_for_children,
-                    containing_block,
-                )
+                .inline_content_sizes(layout_context, &constraint_space, containing_block)
                 .sizes
                 .min_content
         } else {
@@ -2664,23 +2656,16 @@ impl FlexItemBox {
                     // The main axis is the inline axis, so we can get the content size from the normal
                     // preferred widths calculation.
                     let writing_mode = flex_item.style().writing_mode;
-                    let block_size = content_box_size.cross.map(|v| {
-                        v.clamp_between_extremums(
+                    let constraint_space = ConstraintSpace::new(
+                        SizeConstraint::new(
+                            content_box_size.cross.non_auto(),
                             content_min_box_size.cross,
                             content_max_box_size.cross,
-                        )
-                    });
-                    let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
-                            writing_mode,
-                            block_size,
-                        );
+                        ),
+                        writing_mode,
+                    );
                     let max_content = flex_item
-                        .inline_content_sizes(
-                            layout_context,
-                            &containing_block_for_children,
-                            containing_block,
-                        )
+                        .inline_content_sizes(layout_context, &constraint_space, containing_block)
                         .sizes
                         .max_content;
                     if let Some(ratio) = ratio {
@@ -2764,9 +2749,7 @@ impl FlexItemBox {
                             containing_block_inline_size_minus_pbm
                         } else {
                             let containing_block_for_children =
-                                IndefiniteContainingBlock::new_for_writing_mode(
-                                    non_replaced.style.writing_mode,
-                                );
+                                ConstraintSpace::new_for_style(&non_replaced.style);
                             non_replaced
                                 .inline_content_sizes(
                                     flex_context.layout_context,

@@ -29,8 +29,8 @@ use crate::geom::{
     PhysicalRect, PhysicalVec, Size, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::sizing::ContentSizes;
-use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside};
-use crate::{ContainingBlock, DefiniteContainingBlock, IndefiniteContainingBlock};
+use crate::style_ext::{ComputedValuesExt, DisplayInside};
+use crate::{ConstraintSpace, ContainingBlock, DefiniteContainingBlock, SizeConstraint};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
@@ -546,17 +546,9 @@ impl HoistedAbsolutelyPositionedBox {
         // The inline axis can be fully resolved, computing intrinsic sizes using the
         // tentative block size.
         let mut inline_axis = inline_axis_solver.solve(Some(|| {
-            let containing_block_for_children =
-                IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
-                    style.writing_mode,
-                    block_axis.size,
-                );
+            let constraint_space = ConstraintSpace::new(block_axis.size, style.writing_mode);
             context
-                .inline_content_sizes(
-                    layout_context,
-                    &containing_block_for_children,
-                    &containing_block.into(),
-                )
+                .inline_content_sizes(layout_context, &constraint_space, &containing_block.into())
                 .sizes
         }));
 
@@ -578,10 +570,10 @@ impl HoistedAbsolutelyPositionedBox {
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                    let inline_size = inline_axis.size.non_auto().unwrap();
+                    let inline_size = inline_axis.size.to_definite().unwrap();
                     let containing_block_for_children = ContainingBlock {
                         inline_size,
-                        block_size: block_axis.size,
+                        block_size: block_axis.size.to_auto_or(),
                         style: &style,
                     };
                     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -608,7 +600,7 @@ impl HoistedAbsolutelyPositionedBox {
                                 inline_axis = inline_axis_solver.solve_with_size(table_inline_size);
                             }
                             let table_block_size = independent_layout.content_block_size;
-                            if block_axis.size != AuOrAuto::LengthPercentage(table_block_size) {
+                            if block_axis.size != SizeConstraint::Definite(table_block_size) {
                                 block_axis = block_axis_solver.solve_with_size(table_block_size);
                             }
                             (table_block_size, table_inline_size)
@@ -617,7 +609,7 @@ impl HoistedAbsolutelyPositionedBox {
                             // Now we can properly solve the block size.
                             block_axis = block_axis_solver
                                 .solve(Some(|| independent_layout.content_block_size.into()));
-                            (block_axis.size.non_auto().unwrap(), inline_size)
+                            (block_axis.size.to_definite().unwrap(), inline_size)
                         },
                     };
 
@@ -747,7 +739,7 @@ impl Anchor {
 
 struct AxisResult {
     anchor: Anchor,
-    size: AuOrAuto,
+    size: SizeConstraint,
     margin_start: Au,
     margin_end: Au,
 }
@@ -787,38 +779,37 @@ impl<'a> AbsoluteAxisSolver<'a> {
             let content_size = LazyCell::new(get_content_size);
             move || *content_size
         });
-        let mut solve_size = |initial_behavior, stretch_size: Au| {
+        let mut solve_size = |initial_behavior, stretch_size: Au| -> SizeConstraint {
             let initial_is_stretch = initial_behavior == Size::Stretch;
             let stretch_size = stretch_size.max(Au::zero());
-            get_content_size
-                .as_mut()
-                .map(|mut get_content_size| {
-                    let min_size = self
-                        .computed_min_size
-                        .resolve_non_initial(stretch_size, &mut get_content_size)
-                        .unwrap_or_default();
-                    let max_size = self
-                        .computed_max_size
-                        .resolve_non_initial(stretch_size, &mut get_content_size);
-                    self.computed_size
-                        .resolve(initial_behavior, stretch_size, &mut get_content_size)
-                        .clamp_between_extremums(min_size, max_size)
-                })
-                .or_else(|| {
-                    self.computed_size
-                        .maybe_resolve_extrinsic(Some(stretch_size))
-                        .or(initial_is_stretch.then_some(stretch_size))
-                        .map(|size| {
-                            let min_size = self
-                                .computed_min_size
-                                .maybe_resolve_extrinsic(Some(stretch_size))
-                                .unwrap_or_default();
-                            let max_size = self
-                                .computed_max_size
-                                .maybe_resolve_extrinsic(Some(stretch_size));
-                            size.clamp_between_extremums(min_size, max_size)
-                        })
-                })
+            if let Some(mut get_content_size) = get_content_size.as_mut() {
+                let preferred_size = Some(self.computed_size.resolve(
+                    initial_behavior,
+                    stretch_size,
+                    &mut get_content_size,
+                ));
+                let min_size = self
+                    .computed_min_size
+                    .resolve_non_initial(stretch_size, &mut get_content_size)
+                    .unwrap_or_default();
+                let max_size = self
+                    .computed_max_size
+                    .resolve_non_initial(stretch_size, &mut get_content_size);
+                SizeConstraint::new(preferred_size, min_size, max_size)
+            } else {
+                let preferred_size = self
+                    .computed_size
+                    .maybe_resolve_extrinsic(Some(stretch_size))
+                    .or(initial_is_stretch.then_some(stretch_size));
+                let min_size = self
+                    .computed_min_size
+                    .maybe_resolve_extrinsic(Some(stretch_size))
+                    .unwrap_or_default();
+                let max_size = self
+                    .computed_max_size
+                    .maybe_resolve_extrinsic(Some(stretch_size));
+                SizeConstraint::new(preferred_size, min_size, max_size)
+            }
         };
         let mut solve_for_anchor = |anchor: Anchor| {
             let margin_start = self.computed_margin_start.auto_is(Au::zero);
@@ -828,8 +819,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 self.padding_border_sum -
                 margin_start -
                 margin_end;
-            let size = solve_size(Size::FitContent, stretch_size)
-                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+            let size = solve_size(Size::FitContent, stretch_size);
             AxisResult {
                 anchor,
                 size,
@@ -859,7 +849,9 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 let stretch_size = free_space -
                     self.computed_margin_start.auto_is(Au::zero) -
                     self.computed_margin_end.auto_is(Au::zero);
-                let used_size = solve_size(Size::Stretch, stretch_size).unwrap();
+                let used_size = solve_size(Size::Stretch, stretch_size)
+                    .to_definite()
+                    .unwrap();
                 free_space -= used_size;
                 let (margin_start, margin_end) =
                     match (self.computed_margin_start, self.computed_margin_end) {
@@ -883,7 +875,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     };
                 AxisResult {
                     anchor: Anchor::Start(start),
-                    size: AuOrAuto::LengthPercentage(used_size),
+                    size: SizeConstraint::Definite(used_size),
                     margin_start,
                     margin_end,
                 }
