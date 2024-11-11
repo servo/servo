@@ -17,7 +17,7 @@ use js::jsapi::{JSObject, JS_NewObject};
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
-use ring::{digest, hkdf, pbkdf2};
+use ring::{digest, hkdf, hmac, pbkdf2};
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -27,8 +27,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm,
-    AlgorithmIdentifier, HkdfParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
-    SubtleCryptoMethods,
+    AlgorithmIdentifier, HkdfParams, HmacImportParams, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm,
+    KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -246,6 +246,179 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 }
 
                 promise.resolve_native(&*array_buffer_ptr.handle());
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-sign>
+    fn Sign(
+        &self,
+        cx: SafeJSContext,
+        algorithm: AlgorithmIdentifier,
+        key: &CryptoKey,
+        data: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the sign() method, respectively.
+
+        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter passed to
+        // the sign() method.
+        let data = match &data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to algorithm and
+        // op set to "sign".
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm_for_sign_or_verify(cx, &algorithm) {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                promise.reject_error(e);
+                return promise;
+            },
+        };
+
+        // Step 5. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 4.
+
+        // Step 6. Return promise and perform the remaining steps in parallel.
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_key = Trusted::new(key);
+
+        let _ = task_source.queue_with_canceller(
+            task!(sign: move || {
+                // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+
+                // Step 8. If the name member of normalizedAlgorithm is not equal to the name attribute of the
+                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 9. If the [[usages]] internal slot of key does not contain an entry that is "sign",
+                // then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Sign) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 10.  Let result be the result of performing the sign operation specified by normalizedAlgorithm
+                // using key and algorithm and with data as message.
+                let cx = GlobalScope::get_cx();
+                let result = match normalized_algorithm.sign(cx, &key, &data) {
+                    Ok(signature) => signature,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for exported key.");
+
+                // Step 9. Resolve promise with result.
+                promise.resolve_native(&*array_buffer_ptr);
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-verify>
+    fn Verify(
+        &self,
+        cx: SafeJSContext,
+        algorithm: AlgorithmIdentifier,
+        key: &CryptoKey,
+        signature: ArrayBufferViewOrArrayBuffer,
+        data: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let algorithm and key be the algorithm and key parameters passed to the verify() method,
+        // respectively.
+
+        // Step 2. Let signature be the result of getting a copy of the bytes held by the signature parameter passed
+        // to the verify() method.
+        let signature = match &signature {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 3. Let data be the result of getting a copy of the bytes held by the data parameter passed to the
+        // verify() method.
+        let data = match &data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 4. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
+        // algorithm and op set to "verify".
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm_for_sign_or_verify(cx, &algorithm) {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                promise.reject_error(e);
+                return promise;
+            },
+        };
+
+        // Step 6. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 6.
+
+        // Step 7. Return promise and perform the remaining steps in parallel.
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_key = Trusted::new(key);
+
+        let _ = task_source.queue_with_canceller(
+            task!(sign: move || {
+                // Step 8. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+
+                // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
+                // [[algorithm]] internal slot of key then throw an InvalidAccessError.
+                if normalized_algorithm.name() != key.algorithm() {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
+                // then throw an InvalidAccessError.
+                if !key.usages().contains(&KeyUsage::Verify) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+                // Step 1. Let result be the result of performing the verify operation specified by normalizedAlgorithm
+                // using key, algorithm and signature and with data as message.
+                let cx = GlobalScope::get_cx();
+                let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
+                    Ok(result) => result,
+                    Err(e) => {
+                        promise.reject_error(e);
+                        return;
+                    }
+                };
+
+                // Step 9. Resolve promise with result.
+                promise.resolve_native(&result);
             }),
             &canceller,
         );
@@ -762,6 +935,26 @@ impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams>
+struct SubtleHmacImportParams {
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
+    hash: DigestAlgorithm,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
+    length: Option<u32>,
+}
+
+impl SubtleHmacImportParams {
+    fn new(cx: JSContext, params: RootedTraceableBox<HmacImportParams>) -> Fallible<Self> {
+        let hash = normalize_algorithm_for_digest(cx, &params.hash)?;
+        let params = Self {
+            hash,
+            length: params.length,
+        };
+        Ok(params)
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
 #[derive(Clone, Debug)]
 pub struct SubtleHkdfParams {
@@ -848,6 +1041,7 @@ enum DigestAlgorithm {
 enum ImportKeyAlgorithm {
     AesCbc,
     AesCtr,
+    Hmac(SubtleHmacImportParams),
     Pbkdf2,
     Hkdf,
 }
@@ -866,6 +1060,13 @@ enum DeriveBitsAlgorithm {
 enum EncryptionAlgorithm {
     AesCbc(SubtleAesCbcParams),
     AesCtr(SubtleAesCtrParams),
+}
+
+/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"sign"` or `"verify"`
+///
+/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+enum SignatureAlgorithm {
+    Hmac,
 }
 
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"generateKey"`
@@ -959,7 +1160,14 @@ fn normalize_algorithm_for_import_key(
                 return Err(Error::Syntax);
             };
 
-            algorithm.name.str().to_uppercase()
+            let name = algorithm.name.str().to_uppercase();
+            if name == ALG_HMAC {
+                let params = value_from_js_object!(HmacImportParams, cx, value);
+                let subtle_params = SubtleHmacImportParams::new(cx, params)?;
+                return Ok(ImportKeyAlgorithm::Hmac(subtle_params));
+            }
+
+            name
         },
         AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
     };
@@ -1029,6 +1237,33 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
         EncryptionAlgorithm::AesCtr(params.into())
     } else {
         return Err(Error::NotSupported);
+    };
+
+    Ok(normalized_algorithm)
+}
+
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"sign"`
+/// or `"verify"`
+fn normalize_algorithm_for_sign_or_verify(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<SignatureAlgorithm, Error> {
+    let name = match algorithm {
+        AlgorithmIdentifier::Object(obj) => {
+            rooted!(in(*cx) let value = ObjectValue(obj.get()));
+            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
+            else {
+                return Err(Error::Syntax);
+            };
+
+            algorithm.name.str().to_uppercase()
+        },
+        AlgorithmIdentifier::String(name) => name.str().to_uppercase(),
+    };
+
+    let normalized_algorithm = match name.as_str() {
+        ALG_HMAC => SignatureAlgorithm::Hmac,
+        _ => return Err(Error::NotSupported),
     };
 
     Ok(normalized_algorithm)
@@ -1398,6 +1633,101 @@ impl SubtleCrypto {
         }
     }
 
+    /// <https://w3c.github.io/webcrypto/#hmac-operations>
+    #[allow(unsafe_code)]
+    fn import_key_hmac(
+        &self,
+        normalized_algorithm: &SubtleHmacImportParams,
+        format: KeyFormat,
+        key_data: &[u8],
+        extractable: bool,
+        usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        // Step 1. Let keyData be the key data to be imported.
+        // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
+        if usages
+            .iter()
+            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+        {
+            return Err(Error::Syntax);
+        }
+
+        // Step 3. Let hash be a new KeyAlgorithm.
+        let hash;
+
+        // Step 4.
+        let data;
+        match format {
+            // If format is "raw":
+            KeyFormat::Raw => {
+                // Step 4.1 Let data be the octet string contained in keyData.
+                data = key_data;
+
+                // Step 4.2 Set hash to equal the hash member of normalizedAlgorithm.
+                hash = normalized_algorithm.hash;
+            },
+            // If format is "jwk":
+            KeyFormat::Jwk => {
+                // TODO: This seems to require having key_data be more than just &[u8]
+                return Err(Error::NotSupported);
+            },
+            // Otherwise:
+            _ => {
+                // throw a NotSupportedError.
+                return Err(Error::NotSupported);
+            },
+        }
+
+        // Step 5. Let length be equivalent to the length, in octets, of data, multiplied by 8.
+        let mut length = data.len() as u32 * 8;
+
+        // Step 6. If length is zero then throw a DataError.
+        if length == 0 {
+            return Err(Error::Data);
+        }
+
+        // Step 7. If the length member of normalizedAlgorithm is present:
+        if let Some(given_length) = normalized_algorithm.length {
+            //  If the length member of normalizedAlgorithm is greater than length:
+            if given_length > length {
+                // throw a DataError.
+                return Err(Error::Data);
+            }
+            // Otherwise:
+            else {
+                // Set length equal to the length member of normalizedAlgorithm.
+                length = given_length;
+            }
+        }
+
+        // Step 8. Let key be a new CryptoKey object representing an HMAC key with the first length bits of data.
+        // Step 9. Set the [[type]] internal slot of key to "secret".
+        // Step 10. Let algorithm be a new HmacKeyAlgorithm.
+        // Step 11. Set the name attribute of algorithm to "HMAC".
+        // Step 12. Set the length attribute of algorithm to length.
+        // Step 13. Set the hash attribute of algorithm to hash.
+        // Step 14. Set the [[algorithm]] internal slot of key to algorithm.
+        let truncated_data = data[..length as usize / 8].to_vec();
+        let name = DOMString::from(ALG_HMAC);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
+        HmacKeyAlgorithm::from_length_and_hash(length, hash, algorithm_object.handle_mut(), cx);
+
+        let key = CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages,
+            Handle::Hmac(truncated_data),
+        );
+
+        // Step 15. Return key.
+        Ok(key)
+    }
+
     /// <https://w3c.github.io/webcrypto/#pbkdf2-operations>
     #[allow(unsafe_code)]
     fn import_key_pbkdf2(
@@ -1476,6 +1806,28 @@ impl KeyAlgorithm {
 
         unsafe {
             key_algorithm.to_jsobject(*cx, out);
+        }
+    }
+}
+
+impl HmacKeyAlgorithm {
+    #[allow(unsafe_code)]
+    fn from_length_and_hash(
+        length: u32,
+        hash: DigestAlgorithm,
+        out: MutableHandleObject,
+        cx: JSContext,
+    ) {
+        let hmac_key_algorithm = Self {
+            parent: KeyAlgorithm {
+                name: ALG_HMAC.into(),
+            },
+            length,
+            hash: KeyAlgorithm { name: hash.name() },
+        };
+
+        unsafe {
+            hmac_key_algorithm.to_jsobject(*cx, out);
         }
     }
 }
@@ -1614,6 +1966,17 @@ impl GetKeyLengthAlgorithm {
 }
 
 impl DigestAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
+    fn name(&self) -> DOMString {
+        match self {
+            Self::Sha1 => ALG_SHA1,
+            Self::Sha256 => ALG_SHA256,
+            Self::Sha384 => ALG_SHA384,
+            Self::Sha512 => ALG_SHA512,
+        }
+        .into()
+    }
+
     fn digest(&self, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
         let algorithm = match self {
             Self::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
@@ -1640,6 +2003,9 @@ impl ImportKeyAlgorithm {
             },
             Self::AesCtr => {
                 subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
+            },
+            Self::Hmac(params) => {
+                subtle.import_key_hmac(params, format, secret, extractable, key_usages)
             },
             Self::Pbkdf2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
             Self::Hkdf => subtle.import_key_hkdf(format, secret, extractable, key_usages),
@@ -1704,6 +2070,32 @@ impl EncryptionAlgorithm {
     }
 }
 
+impl SignatureAlgorithm {
+    fn name(&self) -> &str {
+        match self {
+            Self::Hmac => ALG_HMAC,
+        }
+    }
+
+    fn sign(&self, cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<Vec<u8>, Error> {
+        match self {
+            Self::Hmac => sign_hmac(cx, key, data).map(|s| s.as_ref().to_vec()),
+        }
+    }
+
+    fn verify(
+        &self,
+        cx: JSContext,
+        key: &CryptoKey,
+        data: &[u8],
+        signature: &[u8],
+    ) -> Result<bool, Error> {
+        match self {
+            Self::Hmac => verify_hmac(cx, key, data, signature),
+        }
+    }
+}
+
 impl KeyGenerationAlgorithm {
     // FIXME: This doesn't really need the "SubtleCrypto" argument
     fn generate_key(
@@ -1716,4 +2108,45 @@ impl KeyGenerationAlgorithm {
             Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable),
         }
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#hmac-operations>
+fn sign_hmac(cx: JSContext, key: &CryptoKey, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
+    // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
+    // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
+    // of the [[algorithm]] internal slot of key and message as the input data text.
+    rooted!(in(*cx) let mut algorithm_slot = ObjectValue(key.Algorithm(cx).as_ptr()));
+    let params = value_from_js_object!(HmacKeyAlgorithm, cx, algorithm_slot);
+
+    let hash_algorithm = match params.hash.name.str() {
+        ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
+        ALG_SHA256 => hmac::HMAC_SHA256,
+        ALG_SHA384 => hmac::HMAC_SHA384,
+        ALG_SHA512 => hmac::HMAC_SHA512,
+        _ => return Err(Error::NotSupported),
+    };
+
+    let sign_key = hmac::Key::new(hash_algorithm, key.handle().as_bytes());
+    let mac = hmac::sign(&sign_key, data);
+
+    // Step 2. Return the result of creating an ArrayBuffer containing mac.
+    // NOTE: This is done by the caller
+    Ok(mac)
+}
+
+/// <https://w3c.github.io/webcrypto/#hmac-operations>
+fn verify_hmac(
+    cx: JSContext,
+    key: &CryptoKey,
+    data: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
+    // Step 1. Let mac be the result of performing the MAC Generation operation described in Section 4 of [FIPS-198-1]
+    // using the key represented by [[handle]] internal slot of key, the hash function identified by the hash attribute
+    // of the [[algorithm]] internal slot of key and message as the input data text.
+    let mac = sign_hmac(cx, key, data)?;
+
+    // Step 2. Return true if mac is equal to signature and false otherwise.
+    let is_valid = mac.as_ref() == signature;
+    Ok(is_valid)
 }

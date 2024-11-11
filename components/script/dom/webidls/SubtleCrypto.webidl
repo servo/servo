@@ -26,13 +26,13 @@ interface SubtleCrypto {
   Promise<any> decrypt(AlgorithmIdentifier algorithm,
                        CryptoKey key,
                        BufferSource data);
-  // Promise<any> sign(AlgorithmIdentifier algorithm,
-  //                   CryptoKey key,
-  //                   BufferSource data);
-  // Promise<any> verify(AlgorithmIdentifier algorithm,
-  //                     CryptoKey key,
-  //                     BufferSource signature,
-  //                     BufferSource data);
+  Promise<any> sign(AlgorithmIdentifier algorithm,
+                    CryptoKey key,
+                    BufferSource data);
+  Promise<any> verify(AlgorithmIdentifier algorithm,
+                      CryptoKey key,
+                      BufferSource signature,
+                      BufferSource data);
   Promise<any> digest(AlgorithmIdentifier algorithm,
                       BufferSource data);
 
@@ -90,6 +90,18 @@ dictionary AesCbcParams : Algorithm {
 dictionary AesCtrParams : Algorithm {
   required BufferSource counter;
   required [EnforceRange] octet length;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-HmacImportParams
+dictionary HmacImportParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+  [EnforceRange] unsigned long length;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm
+dictionary HmacKeyAlgorithm : KeyAlgorithm {
+  required KeyAlgorithm hash;
+  required unsigned long length;
 };
 
 // https://w3c.github.io/webcrypto/#hkdf-params
