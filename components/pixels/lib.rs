@@ -172,8 +172,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
             },
             Err(e) => {
                 debug!("Image decoding error: {:?}", e);
-                let decoder =
-                    jxl_oxide::integration::JxlDecoder::new(buffer).ok()?;
+                let decoder = jxl_oxide::integration::JxlDecoder::new(buffer).ok()?;
                 if let Ok(image) = image::DynamicImage::from_decoder(decoder) {
                     let mut rgba = image.into_rgba8();
                     rgba8_byte_swap_colors_inplace(&mut rgba);
@@ -204,7 +203,7 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
     } else if is_webp(buffer) {
         Ok(ImageFormat::WebP)
     } else if is_jxl(buffer) {
-    //TODO: image-rs does not support jxl, has no associated imageformat, deal with this
+        //TODO: image-rs does not support jxl, has no associated imageformat, deal with this
         Ok(ImageFormat::Tiff)
     } else if is_bmp(buffer) {
         Ok(ImageFormat::Bmp)
@@ -260,7 +259,9 @@ fn is_webp(buffer: &[u8]) -> bool {
 
 fn is_jxl(buffer: &[u8]) -> bool {
     buffer.starts_with(&[0xff, 0x0a]) ||
-    buffer.starts_with(&[0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a])
+        buffer.starts_with(&[
+            0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a,
+        ])
 }
 
 #[cfg(test)]

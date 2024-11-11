@@ -197,19 +197,18 @@ checksum = "dde20b3d026af13f561bdd0f15edf01fc734f0dafcedbaf42bba506a9517f223"
 
 [[package]]
 name = "arboard"
-version = "3.3.2"
+version = "3.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2041f1943049c7978768d84e6d0fd95de98b76d6c4727b09e78ec253d29fa58"
+checksum = "df099ccb16cd014ff054ac1bf392c67feeef57164b05c42f037cd40f5d4357f4"
 dependencies = [
  "clipboard-win",
  "core-graphics",
- "image 0.24.9",
+ "image",
  "log",
- "objc",
- "objc-foundation",
- "objc_id",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
  "parking_lot",
- "thiserror",
  "windows-sys 0.48.0",
  "x11rb",
 ]
@@ -1041,7 +1040,7 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "gleam",
- "image 0.25.5",
+ "image",
  "ipc-channel",
  "keyboard-types",
  "libc",
@@ -3634,20 +3633,6 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.24.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5690139d2f55868e080017335e4b94cb7414274c74f1669c84fb5feba2c9f69d"
-dependencies = [
- "bytemuck",
- "byteorder",
- "color_quant",
- "num-traits",
- "png",
- "tiff",
-]
-
-[[package]]
-name = "image"
 version = "0.25.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd6f44aed642f18953a158afeb30206f4d50da59fbc66ecb53c66488de73563b"
@@ -3976,7 +3961,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ad97ec13689c37000bb64c5df1cfed7c43b12491ff0d6626ae08cd521b83ad0"
 dependencies = [
  "bytemuck",
- "image 0.25.5",
+ "image",
  "jxl-bitstream",
  "jxl-color",
  "jxl-frame",
@@ -4961,7 +4946,7 @@ dependencies = [
  "http",
  "hyper",
  "hyper_serde",
- "image 0.25.5",
+ "image",
  "ipc-channel",
  "log",
  "malloc_size_of",
@@ -5689,7 +5674,7 @@ version = "0.0.1"
 dependencies = [
  "criterion",
  "euclid",
- "image 0.25.5",
+ "image",
  "ipc-channel",
  "jxl-oxide",
  "log",
@@ -6387,7 +6372,7 @@ dependencies = [
  "html5ever",
  "http",
  "hyper_serde",
- "image 0.25.5",
+ "image",
  "indexmap",
  "ipc-channel",
  "itertools 0.13.0",
@@ -6953,7 +6938,7 @@ dependencies = [
  "hilog",
  "hitrace",
  "http",
- "image 0.25.5",
+ "image",
  "ipc-channel",
  "jni",
  "jxl-oxide",
@@ -8478,7 +8463,7 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "http",
- "image 0.25.5",
+ "image",
  "ipc-channel",
  "keyboard-types",
  "log",
