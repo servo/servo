@@ -16,7 +16,10 @@ def main():
     sys.path.insert(0, os.path.join(SERVO_ROOT, "third_party", "ply"))
 
     css_properties_json, out_dir = sys.argv[1:]
-    doc_servo = os.path.join(SERVO_ROOT, "target", "doc", "servo")
+    # Four dotdots: /path/to/target(4)/debug(3)/build(2)/style-*(1)/out
+    # Do not ascend above the target dir, because it may not be called target
+    # or even have a parent (see CARGO_TARGET_DIR).
+    doc_servo = os.path.join(out_dir, "..", "..", "..", "..", "doc")
     webidls_dir = os.path.join(SCRIPT_PATH, "..", "..", "webidls")
     config_file = "Bindings.conf"
 
