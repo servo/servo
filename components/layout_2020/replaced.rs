@@ -29,7 +29,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size};
-use crate::sizing::InlineContentSizesResult;
+use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
 
@@ -561,21 +561,21 @@ impl ReplacedContent {
                 &get_block_size,
                 &get_inline_fallback_size,
             )
+            .into()
         });
-        let block_content_size = LazyCell::new(|| {
+        let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                let mut get_inline_content_size = || (*inline_content_size).into();
                 SizeConstraint::new(
                     box_size
                         .inline
                         .maybe_resolve_extrinsic(Some(inline_stretch_size)),
                     min_box_size
                         .inline
-                        .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
+                        .resolve_non_initial(inline_stretch_size, &inline_content_size)
                         .unwrap_or_default(),
                     max_box_size
                         .inline
-                        .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size),
+                        .resolve_non_initial(inline_stretch_size, &inline_content_size),
                 )
             };
             self.content_size(
@@ -584,36 +584,35 @@ impl ReplacedContent {
                 &get_inline_size,
                 &get_block_fallback_size,
             )
+            .into()
         });
-        let mut get_inline_content_size = || (*inline_content_size).into();
-        let mut get_block_content_size = || (*block_content_size).into();
-        let block_stretch_size = block_stretch_size.unwrap_or_else(|| *block_content_size);
+        let block_stretch_size =
+            block_stretch_size.unwrap_or_else(|| block_content_size.max_content);
 
         // <https://drafts.csswg.org/css-sizing-3/#sizing-properties>
-        let preferred_inline = box_size.inline.resolve(
-            Size::FitContent,
-            inline_stretch_size,
-            &mut get_inline_content_size,
-        );
-        let preferred_block = box_size.block.resolve(
-            Size::FitContent,
-            block_stretch_size,
-            &mut get_block_content_size,
-        );
+        let preferred_inline =
+            box_size
+                .inline
+                .resolve(Size::FitContent, inline_stretch_size, &inline_content_size);
+        let preferred_block =
+            box_size
+                .block
+                .resolve(Size::FitContent, block_stretch_size, &block_content_size);
         let min_inline = min_box_size
             .inline
-            .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
+            .resolve_non_initial(inline_stretch_size, &inline_content_size)
             .unwrap_or_default();
         let min_block = min_box_size
             .block
-            .resolve_non_initial(block_stretch_size, &mut get_block_content_size)
+            .resolve_non_initial(block_stretch_size, &block_content_size)
             .unwrap_or_default();
         let max_inline = max_box_size
             .inline
-            .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size);
+            .resolve_non_initial(inline_stretch_size, &inline_content_size);
         let max_block = max_box_size
             .block
-            .resolve_non_initial(block_stretch_size, &mut get_block_content_size);
+            .resolve_non_initial(block_stretch_size, &block_content_size);
+
         LogicalVec2 {
             inline: preferred_inline.clamp_between_extremums(min_inline, max_inline),
             block: preferred_block.clamp_between_extremums(min_block, max_block),

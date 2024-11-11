@@ -773,28 +773,25 @@ impl<'a> AbsoluteAxisSolver<'a> {
     ///
     /// In the replaced case, `size` is never `Auto`.
     fn solve(&self, get_content_size: Option<impl FnOnce() -> ContentSizes>) -> AxisResult {
-        let mut get_content_size = get_content_size.map(|get_content_size| {
-            // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
-            // A LazyCell will only invoke it once if needed, and then reuse the result.
-            let content_size = LazyCell::new(get_content_size);
-            move || *content_size
-        });
-        let mut solve_size = |initial_behavior, stretch_size: Au| -> SizeConstraint {
+        // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
+        // A LazyCell will only invoke it once if needed, and then reuse the result.
+        let content_size = get_content_size.map(LazyCell::new);
+        let solve_size = |initial_behavior, stretch_size: Au| -> SizeConstraint {
             let initial_is_stretch = initial_behavior == Size::Stretch;
             let stretch_size = stretch_size.max(Au::zero());
-            if let Some(mut get_content_size) = get_content_size.as_mut() {
+            if let Some(ref content_size) = content_size {
                 let preferred_size = Some(self.computed_size.resolve(
                     initial_behavior,
                     stretch_size,
-                    &mut get_content_size,
+                    content_size,
                 ));
                 let min_size = self
                     .computed_min_size
-                    .resolve_non_initial(stretch_size, &mut get_content_size)
+                    .resolve_non_initial(stretch_size, content_size)
                     .unwrap_or_default();
                 let max_size = self
                     .computed_max_size
-                    .resolve_non_initial(stretch_size, &mut get_content_size);
+                    .resolve_non_initial(stretch_size, content_size);
                 SizeConstraint::new(preferred_size, min_size, max_size)
             } else {
                 let preferred_size = self
@@ -811,7 +808,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 SizeConstraint::new(preferred_size, min_size, max_size)
             }
         };
-        let mut solve_for_anchor = |anchor: Anchor| {
+        let solve_for_anchor = |anchor: Anchor| {
             let margin_start = self.computed_margin_start.auto_is(Au::zero);
             let margin_end = self.computed_margin_end.auto_is(Au::zero);
             let stretch_size = self.containing_size -

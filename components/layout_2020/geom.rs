@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::convert::From;
 use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
@@ -798,17 +799,17 @@ impl LogicalVec2<Size<LengthPercentage>> {
 impl Size<Au> {
     /// Resolves any size into a numerical value.
     #[inline]
-    pub(crate) fn resolve(
+    pub(crate) fn resolve<F: FnOnce() -> ContentSizes>(
         &self,
         initial_behavior: Self,
         stretch_size: Au,
-        get_content_size: &mut impl FnMut() -> ContentSizes,
+        content_size: &LazyCell<ContentSizes, F>,
     ) -> Au {
         if self.is_initial() {
             assert!(!initial_behavior.is_initial());
-            initial_behavior.resolve_non_initial(stretch_size, get_content_size)
+            initial_behavior.resolve_non_initial(stretch_size, content_size)
         } else {
-            self.resolve_non_initial(stretch_size, get_content_size)
+            self.resolve_non_initial(stretch_size, content_size)
         }
         .unwrap()
     }
@@ -816,16 +817,16 @@ impl Size<Au> {
     /// Resolves a non-initial size into a numerical value.
     /// Returns `None` if the size is the initial one.
     #[inline]
-    pub(crate) fn resolve_non_initial(
+    pub(crate) fn resolve_non_initial<F: FnOnce() -> ContentSizes>(
         &self,
         stretch_size: Au,
-        get_content_size: &mut impl FnMut() -> ContentSizes,
+        content_size: &LazyCell<ContentSizes, F>,
     ) -> Option<Au> {
         match self {
             Self::Initial => None,
-            Self::MinContent => Some(get_content_size().min_content),
-            Self::MaxContent => Some(get_content_size().max_content),
-            Self::FitContent => Some(get_content_size().shrink_to_fit(stretch_size)),
+            Self::MinContent => Some(content_size.min_content),
+            Self::MaxContent => Some(content_size.max_content),
+            Self::FitContent => Some(content_size.shrink_to_fit(stretch_size)),
             Self::Stretch => Some(stretch_size),
             Self::Numeric(numeric) => Some(*numeric),
         }
