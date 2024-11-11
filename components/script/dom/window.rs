@@ -299,6 +299,10 @@ pub struct Window {
     /// opt is enabled.
     unminified_css_dir: DomRefCell<Option<String>>,
 
+    /// Directory to store unminified html for this window if unminify-html
+    /// opt is enabled.
+    unminified_html_dir: DomRefCell<Option<String>>,
+
     /// Directory with stored unminified scripts
     local_script_source: Option<String>,
 
@@ -331,6 +335,9 @@ pub struct Window {
 
     /// Unminify Css.
     unminify_css: bool,
+
+    /// Unminify Html.
+    unminify_html: bool,
 
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
@@ -2522,6 +2529,10 @@ impl Window {
         self.unminified_css_dir.borrow().clone()
     }
 
+    pub fn unminified_html_dir(&self) -> Option<String> {
+        self.unminified_html_dir.borrow().clone()
+    }
+
     pub fn local_script_source(&self) -> &Option<String> {
         &self.local_script_source
     }
@@ -2587,6 +2598,7 @@ impl Window {
         prepare_for_screenshot: bool,
         unminify_js: bool,
         unminify_css: bool,
+        unminify_html: bool,
         local_script_source: Option<String>,
         userscripts_path: Option<String>,
         is_headless: bool,
@@ -2664,6 +2676,7 @@ impl Window {
             webxr_registry,
             pending_layout_images: Default::default(),
             unminified_css_dir: Default::default(),
+            unminified_html_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
@@ -2674,6 +2687,7 @@ impl Window {
             relayout_event,
             prepare_for_screenshot,
             unminify_css,
+            unminify_html,
             userscripts_path,
             replace_surrogates,
             player_context,
