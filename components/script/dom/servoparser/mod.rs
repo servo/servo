@@ -71,6 +71,9 @@ use crate::network_listener::PreInvoke;
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+use crate::unminify::{
+    create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
+};
 
 mod async_html;
 mod html;
@@ -877,34 +880,42 @@ impl FetchResponseListener for ParserContext {
                 parser.parse_sync(CanGc::note());
                 parser.tokenizer.set_plaintext_state();
             },
-            (mime::TEXT, mime::HTML, _) => match error {
-                Some(NetworkError::SslValidation(reason, bytes)) => {
-                    self.is_synthesized_document = true;
-                    let page = resources::read_string(Resource::BadCertHTML);
-                    let page = page.replace("${reason}", &reason);
-                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(bytes);
-                    let page = page.replace("${bytes}", encoded_bytes.as_str());
-                    let page =
-                        page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
-                    parser.push_string_input_chunk(page);
-                    parser.parse_sync(CanGc::note());
-                },
-                Some(NetworkError::Internal(reason)) => {
-                    self.is_synthesized_document = true;
-                    let page = resources::read_string(Resource::NetErrorHTML);
-                    let page = page.replace("${reason}", &reason);
-                    parser.push_string_input_chunk(page);
-                    parser.parse_sync(CanGc::note());
-                },
-                Some(NetworkError::Crash(details)) => {
-                    self.is_synthesized_document = true;
-                    let page = resources::read_string(Resource::CrashHTML);
-                    let page = page.replace("${details}", &details);
-                    parser.push_string_input_chunk(page);
-                    parser.parse_sync(CanGc::note());
-                },
-                Some(_) => {},
-                None => {},
+            (mime::TEXT, mime::HTML, _) => {
+                match error {
+                    Some(NetworkError::SslValidation(reason, bytes)) => {
+                        self.is_synthesized_document = true;
+                        let page = resources::read_string(Resource::BadCertHTML)
+                            .replace("${reason}", &reason)
+                            .replace("${bytes}", &general_purpose::STANDARD_NO_PAD.encode(bytes))
+                            .replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
+                        parser.push_string_input_chunk(page);
+                        parser.parse_sync(CanGc::note());
+                    },
+                    Some(NetworkError::Internal(reason)) => {
+                        self.is_synthesized_document = true;
+                        let page = resources::read_string(Resource::NetErrorHTML)
+                            .replace("${reason}", &reason);
+                        parser.push_string_input_chunk(page);
+                        parser.parse_sync(CanGc::note());
+                    },
+                    Some(NetworkError::Crash(details)) => {
+                        self.is_synthesized_document = true;
+                        let page = resources::read_string(Resource::CrashHTML)
+                            .replace("${details}", &details);
+                        parser.push_string_input_chunk(page);
+                        parser.parse_sync(CanGc::note());
+                    },
+                    Some(_) | None => {
+                        // No specific error, proceed with HTML caching logic
+                        if let Some(cached_html) = self.get_cached_html() {
+                            self.use_cached_html = true;
+                            self.load_html_from_cache(cached_html);
+                        } else {
+                            self.use_cached_html = false;
+                            self.prepare_html_cache();
+                        }
+                    },
+                }
             },
             (mime::TEXT, mime::XML, _) |
             (mime::APPLICATION, mime::XML, _) |
@@ -925,8 +936,13 @@ impl FetchResponseListener for ParserContext {
     }
 
     fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
-        if self.is_synthesized_document {
+        if self.is_synthesized_document || self.use_cached_html {
             return;
+        }
+        if let Some(mut cache_file) = self.get_cache_file_writer() {
+            if let Err(e) = cache_file.write_all(&payload) {
+                log::warn!("Failed to write chunk to cache: {}", e);
+            }
         }
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
@@ -951,6 +967,16 @@ impl FetchResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
+        if self.use_cached_html {
+            if let Some((input, output)) = create_temp_files() {
+                execute_js_beautify(
+                    input.path(),
+                    output.try_clone().unwrap(),
+                    BeautifyFileType::Html,
+                );
+                create_output_file(self.into().window().unminified_html_dir(), &self.url, None);
+            }
+        }
         if parser.aborted.get() {
             return;
         }

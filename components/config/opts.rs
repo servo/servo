@@ -133,6 +133,9 @@ pub struct Opts {
     /// Unminify Css.
     pub unminify_css: bool,
 
+    ///Unminify Html.
+    pub unminify_html: bool,
+
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
 }
@@ -430,6 +433,7 @@ pub fn default_opts() -> Opts {
         unminify_js: false,
         local_script_source: None,
         unminify_css: false,
+        unminify_html: false,
         print_pwm: false,
     }
 }
@@ -581,6 +585,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "",
     );
     opts.optflag("", "unminify-css", "Unminify Css");
+    opts.optflag("", "unminify-html", "Unminify Html");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -796,6 +801,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         unminify_js: opt_match.opt_present("unminify-js"),
         local_script_source: opt_match.opt_str("local-script-source"),
         unminify_css: opt_match.opt_present("unminify-css"),
+        unminify_html: opt_match.opt_present("unminify-html"),
         print_pwm: opt_match.opt_present("print-pwm"),
     };
 
