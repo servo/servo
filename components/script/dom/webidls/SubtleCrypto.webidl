@@ -26,9 +26,9 @@ interface SubtleCrypto {
   Promise<any> decrypt(AlgorithmIdentifier algorithm,
                        CryptoKey key,
                        BufferSource data);
-  // Promise<any> sign(AlgorithmIdentifier algorithm,
-  //                   CryptoKey key,
-  //                   BufferSource data);
+  Promise<any> sign(AlgorithmIdentifier algorithm,
+                    CryptoKey key,
+                    BufferSource data);
   // Promise<any> verify(AlgorithmIdentifier algorithm,
   //                     CryptoKey key,
   //                     BufferSource signature,
