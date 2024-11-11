@@ -45,7 +45,7 @@ impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
         _global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         _can_gc: CanGc,
-        _stream: DomRoot<ReadableStream>,
+        _stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
         // TODO
         Err(Error::NotFound)

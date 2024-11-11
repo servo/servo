@@ -95,10 +95,10 @@ impl ReadableStreamDefaultReader {
         global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         can_gc: CanGc,
-        stream: DomRoot<ReadableStream>,
+        stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
         // step 1
-        Self::set_up(global, &stream, can_gc)
+        Self::set_up(global, stream, can_gc)
     }
 
     fn new_inherited(
@@ -120,8 +120,8 @@ impl ReadableStreamDefaultReader {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // step 1
-        if !stream.is_locked() {
-            return Err(Error::Type("stream is not locked".to_owned()));
+        if stream.is_locked() {
+            return Err(Error::Type("stream is locked".to_owned()));
         }
         // step 2 & 3
         Ok(Self::generic_initialize(global, stream, can_gc))
@@ -319,7 +319,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         can_gc: CanGc,
-        stream: DomRoot<ReadableStream>,
+        stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
         ReadableStreamDefaultReader::Constructor(global, proto, can_gc, stream)
     }
