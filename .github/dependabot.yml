@@ -23,6 +23,10 @@ updates:
          - "egui_glow"
          - "emath"
          - "epaint"
+    napi-ohos-related:
+      patterns:
+        - "napi-ohos*"
+        - "napi-*-ohos*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: servo_atoms
