@@ -28,9 +28,10 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm,
-    AlgorithmIdentifier, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
-    JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
+    AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, HkdfParams, HmacImportParams,
+    HmacKeyAlgorithm, HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -1140,6 +1141,34 @@ impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
 }
 
 #[derive(Clone, Debug)]
+pub struct SubtleAesGcmParams {
+    pub name: String,
+    pub iv: Vec<u8>,
+    pub additional_data: Option<Vec<u8>>,
+    pub tag_length: Option<u8>,
+}
+
+impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
+    fn from(params: RootedTraceableBox<AesGcmParams>) -> Self {
+        let iv = match &params.iv {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+        let additional_data = params.additionalData.as_ref().map(|data| match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        });
+
+        SubtleAesGcmParams {
+            name: params.parent.name.to_string(),
+            iv,
+            additional_data,
+            tag_length: params.tagLength,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct SubtleAesKeyGenParams {
     pub name: String,
     pub length: u16,
@@ -1332,6 +1361,7 @@ enum DeriveBitsAlgorithm {
 enum EncryptionAlgorithm {
     AesCbc(SubtleAesCbcParams),
     AesCtr(SubtleAesCtrParams),
+    AesGcm(SubtleAesGcmParams),
 }
 
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"sign"` or `"verify"`
@@ -1510,6 +1540,9 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
     } else if name.eq_ignore_ascii_case(ALG_AES_CTR) {
         let params = value_from_js_object!(AesCtrParams, cx, value);
         EncryptionAlgorithm::AesCtr(params.into())
+    } else if name.eq_ignore_ascii_case(ALG_AES_GCM) {
+        let params = value_from_js_object!(AesGcmParams, cx, value);
+        EncryptionAlgorithm::AesGcm(params.into())
     } else {
         return Err(Error::NotSupported);
     };
@@ -2551,8 +2584,9 @@ impl EncryptionAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     fn name(&self) -> &str {
         match self {
-            Self::AesCbc(key_gen_params) => &key_gen_params.name,
-            Self::AesCtr(key_gen_params) => &key_gen_params.name,
+            Self::AesCbc(params) => &params.name,
+            Self::AesCtr(params) => &params.name,
+            Self::AesGcm(params) => &params.name,
         }
     }
 
@@ -2566,12 +2600,9 @@ impl EncryptionAlgorithm {
         result: MutableHandleObject,
     ) -> Result<Vec<u8>, Error> {
         match self {
-            Self::AesCbc(key_gen_params) => {
-                subtle.encrypt_aes_cbc(key_gen_params, key, data, cx, result)
-            },
-            Self::AesCtr(key_gen_params) => {
-                subtle.encrypt_decrypt_aes_ctr(key_gen_params, key, data, cx, result)
-            },
+            Self::AesCbc(params) => subtle.encrypt_aes_cbc(params, key, data, cx, result),
+            Self::AesCtr(params) => subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result),
+            Self::AesGcm(params) => todo!(),
         }
     }
 
@@ -2585,12 +2616,9 @@ impl EncryptionAlgorithm {
         result: MutableHandleObject,
     ) -> Result<Vec<u8>, Error> {
         match self {
-            Self::AesCbc(key_gen_params) => {
-                subtle.decrypt_aes_cbc(key_gen_params, key, data, cx, result)
-            },
-            Self::AesCtr(key_gen_params) => {
-                subtle.encrypt_decrypt_aes_ctr(key_gen_params, key, data, cx, result)
-            },
+            Self::AesCbc(params) => subtle.decrypt_aes_cbc(params, key, data, cx, result),
+            Self::AesCtr(params) => subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result),
+            Self::AesGcm(params) => todo!(),
         }
     }
 }

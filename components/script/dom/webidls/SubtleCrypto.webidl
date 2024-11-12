@@ -92,6 +92,13 @@ dictionary AesCtrParams : Algorithm {
   required [EnforceRange] octet length;
 };
 
+// https://w3c.github.io/webcrypto/#aes-gcm-params
+dictionary AesGcmParams : Algorithm {
+  required BufferSource iv;
+  BufferSource additionalData;
+  [EnforceRange] octet tagLength;
+};
+
 // https://w3c.github.io/webcrypto/#dfn-HmacImportParams
 dictionary HmacImportParams : Algorithm {
   required HashAlgorithmIdentifier hash;
