@@ -622,7 +622,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
 
                 // Step 14. Let secret be the result of performing the derive bits operation specified by
                 // normalizedAlgorithm using key, algorithm and length.
-                let secret = match normalized_algorithm.derive_bits(&base_key, Some(length as u32)){
+                let secret = match normalized_algorithm.derive_bits(&base_key, Some(length)){
                     Ok(secret) => secret,
                     Err(e) => {
                         promise.reject_error(e);
@@ -953,6 +953,37 @@ impl SubtleHmacImportParams {
         };
         Ok(params)
     }
+
+    /// <https://w3c.github.io/webcrypto/#hmac-operations>
+    fn get_key_length(&self) -> Result<u32, Error> {
+        // Step 1.
+        let length = match self.length {
+            // If the length member of normalizedDerivedKeyAlgorithm is not present:
+            None => {
+                // Let length be the block size in bits of the hash function identified by the hash member of
+                // normalizedDerivedKeyAlgorithm.
+                match self.hash {
+                    DigestAlgorithm::Sha1 => 160,
+                    DigestAlgorithm::Sha256 => 256,
+                    DigestAlgorithm::Sha384 => 384,
+                    DigestAlgorithm::Sha512 => 512,
+                }
+            },
+            // Otherwise, if the length member of normalizedDerivedKeyAlgorithm is non-zero:
+            Some(length) if length != 0 => {
+                // Let length be equal to the length member of normalizedDerivedKeyAlgorithm.
+                length
+            },
+            // Otherwise:
+            _ => {
+                // throw a TypeError.
+                return Err(Error::Type("[[length]] must not be zero".to_string()));
+            },
+        };
+
+        // Step 2. Return length.
+        Ok(length)
+    }
 }
 
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
@@ -1018,6 +1049,7 @@ impl SubtlePbkdf2Params {
 
 enum GetKeyLengthAlgorithm {
     Aes(u16),
+    Hmac(SubtleHmacImportParams),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1105,6 +1137,10 @@ fn normalize_algorithm_for_get_key_length(
             {
                 let params = value_from_js_object!(AesDerivedKeyParams, cx, value);
                 GetKeyLengthAlgorithm::Aes(params.length)
+            } else if name.eq_ignore_ascii_case(ALG_HMAC) {
+                let params = value_from_js_object!(HmacImportParams, cx, value);
+                let subtle_params = SubtleHmacImportParams::new(cx, params)?;
+                return Ok(GetKeyLengthAlgorithm::Hmac(subtle_params));
             } else {
                 return Err(Error::NotSupported);
             };
@@ -1946,7 +1982,7 @@ impl SubtlePbkdf2Params {
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
-fn get_key_length_for_aes(length: u16) -> Result<u16, Error> {
+fn get_key_length_for_aes(length: u16) -> Result<u32, Error> {
     // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256,
     // then throw an OperationError.
     if !matches!(length, 128 | 192 | 256) {
@@ -1954,13 +1990,14 @@ fn get_key_length_for_aes(length: u16) -> Result<u16, Error> {
     }
 
     // Step 2. Return the length member of normalizedDerivedKeyAlgorithm.
-    Ok(length)
+    Ok(length as u32)
 }
 
 impl GetKeyLengthAlgorithm {
-    fn get_key_length(&self) -> Result<u16, Error> {
+    fn get_key_length(&self) -> Result<u32, Error> {
         match self {
             Self::Aes(length) => get_key_length_for_aes(*length),
+            Self::Hmac(params) => params.get_key_length(),
         }
     }
 }
