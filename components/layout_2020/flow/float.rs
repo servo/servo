@@ -891,7 +891,7 @@ impl FloatBox {
     /// the float containing block formatting context. A later step adjusts the position
     /// to be relative to the containing block.
     pub fn layout(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,

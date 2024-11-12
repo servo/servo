@@ -449,8 +449,8 @@ impl HoistedAbsolutelyPositionedBox {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let containing_block_writing_mode = containing_block.style.writing_mode;
-        let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
-        let context = &mut absolutely_positioned_box.context;
+        let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
+        let context = &absolutely_positioned_box.context;
         let style = context.style().clone();
         let containing_block = &containing_block.into();
         let pbm = style.padding_border_margin(containing_block);
