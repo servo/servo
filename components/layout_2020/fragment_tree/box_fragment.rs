@@ -15,6 +15,7 @@ use style::Zero;
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
+use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
@@ -324,5 +325,12 @@ impl BoxFragment {
         };
 
         convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
+    }
+
+    /// Whether this is a non-replaced inline-level box whose inner display type is `flow`.
+    /// <https://drafts.csswg.org/css-display-3/#inline-box>
+    pub(crate) fn is_inline_box(&self) -> bool {
+        self.style.get_box().display.is_inline_flow() &&
+            !self.base.flags.contains(FragmentFlags::IS_REPLACED)
     }
 }
