@@ -448,7 +448,7 @@ impl crate::unminify::ScriptSource for ModuleSource {
 }
 
 impl ModuleTree {
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-module-script>
     /// Step 7-11.
     fn compile_module_script(

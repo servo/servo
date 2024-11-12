@@ -131,5 +131,5 @@ pub(crate) fn unminify_js(script: &mut dyn ScriptSource) {
 pub(crate) fn unminified_path(dir: &str) -> String {
     let mut path = env::current_dir().unwrap();
     path.push(dir);
-    return path.into_os_string().into_string().unwrap();
+    path.into_os_string().into_string().unwrap()
 }
