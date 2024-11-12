@@ -20,6 +20,8 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
+use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamController_Binding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
@@ -280,6 +282,18 @@ impl ReadableStream {
                 .to_jsval(*cx, &self.global(), rval.handle_mut())
         };
         self.error(rval.handle());
+    }
+
+    /// Call into the controller's `Close` method.
+    pub fn close_native(&self) {
+        match self.controller {
+            ControllerType::Default(ref controller) => {
+                let _ = controller.Close();
+            },
+            ControllerType::Byte(ref controller) => {
+                let _ = controller.Close();
+            },
+        }
     }
 
     /// Returns a boolean reflecting whether the stream has all data in memory.
