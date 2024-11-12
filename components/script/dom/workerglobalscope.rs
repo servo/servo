@@ -166,6 +166,7 @@ impl WorkerGlobalScope {
                 init.user_agent,
                 gpu_id_hub,
                 init.inherited_secure_context,
+                false,
             ),
             worker_id: init.worker_id,
             worker_name,

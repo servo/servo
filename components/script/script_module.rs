@@ -418,8 +418,37 @@ pub enum ModuleStatus {
     Finished,
 }
 
+struct ModuleSource {
+    source: Rc<DOMString>,
+    unminified_dir: Option<String>,
+    external: bool,
+    url: ServoUrl,
+}
+
+impl crate::unminify::ScriptSource for ModuleSource {
+    fn unminified_dir(&self) -> Option<String> {
+        self.unminified_dir.clone()
+    }
+
+    fn extract_bytes(&self) -> &[u8] {
+        self.source.as_bytes()
+    }
+
+    fn rewrite_source(&mut self, source: Rc<DOMString>) {
+        self.source = source;
+    }
+
+    fn url(&self) -> ServoUrl {
+        self.url.clone()
+    }
+
+    fn is_external(&self) -> bool {
+        self.external
+    }
+}
+
 impl ModuleTree {
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-module-script>
     /// Step 7-11.
     fn compile_module_script(
@@ -430,17 +459,25 @@ impl ModuleTree {
         url: &ServoUrl,
         options: ScriptFetchOptions,
         mut module_script: RustMutableHandleObject,
+        inline: bool,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         let compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
+        let mut module_source = ModuleSource {
+            source: module_script_text,
+            unminified_dir: global.unminified_js_dir(),
+            external: !inline,
+            url: url.clone(),
+        };
+        crate::unminify::unminify_js(&mut module_source);
 
         unsafe {
             module_script.set(CompileModule1(
                 *cx,
                 compile_options.ptr,
-                &mut transform_str_to_source_text(&module_script_text),
+                &mut transform_str_to_source_text(&module_source.source),
             ));
 
             if module_script.is_null() {
@@ -931,12 +968,14 @@ impl ModuleOwner {
                                 script_src.clone(),
                                 fetch_options,
                                 ScriptType::Module,
+                                global.unminified_js_dir(),
                             )),
                             ModuleIdentity::ScriptId(_) => Ok(ScriptOrigin::internal(
                                 Rc::clone(&module_tree.get_text().borrow()),
                                 document.base_url().clone(),
                                 fetch_options,
                                 ScriptType::Module,
+                                global.unminified_js_dir(),
                             )),
                         },
                     }
@@ -1149,6 +1188,7 @@ impl FetchResponseListener for ModuleContext {
                 meta.final_url,
                 self.options.clone(),
                 ScriptType::Module,
+                global.unminified_js_dir(),
             ))
         });
 
@@ -1178,6 +1218,7 @@ impl FetchResponseListener for ModuleContext {
                     &self.url,
                     self.options.clone(),
                     compiled_module.handle_mut(),
+                    false,
                 );
 
                 match compiled_module_result {
@@ -1748,6 +1789,7 @@ pub(crate) fn fetch_inline_module_script(
         &url,
         options.clone(),
         compiled_module.handle_mut(),
+        true,
     );
 
     match compiled_module_result {

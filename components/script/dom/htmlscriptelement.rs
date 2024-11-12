@@ -4,8 +4,7 @@
 #![allow(unused_imports)]
 use core::ffi::c_void;
 use std::cell::Cell;
-use std::fs::{create_dir_all, read_to_string, File};
-use std::io::{Read, Seek, Write};
+use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::process::Command;
 use std::ptr;
@@ -70,9 +69,34 @@ use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
-use crate::unminify::{
-    create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
-};
+use crate::unminify::{unminify_js, ScriptSource};
+
+impl ScriptSource for ScriptOrigin {
+    fn unminified_dir(&self) -> Option<String> {
+        self.unminified_dir.clone()
+    }
+
+    fn extract_bytes(&self) -> &[u8] {
+        match &self.code {
+            SourceCode::Text(text) => text.as_bytes(),
+            SourceCode::Compiled(compiled_source_code) => {
+                compiled_source_code.original_text.as_bytes()
+            },
+        }
+    }
+
+    fn rewrite_source(&mut self, source: Rc<DOMString>) {
+        self.code = SourceCode::Text(source);
+    }
+
+    fn url(&self) -> ServoUrl {
+        self.url.clone()
+    }
+
+    fn is_external(&self) -> bool {
+        self.external
+    }
+}
 
 // TODO Implement offthread compilation in mozjs
 /*pub struct OffThreadCompilationContext {
@@ -263,6 +287,7 @@ pub struct ScriptOrigin {
     external: bool,
     fetch_options: ScriptFetchOptions,
     type_: ScriptType,
+    unminified_dir: Option<String>,
 }
 
 impl ScriptOrigin {
@@ -271,6 +296,7 @@ impl ScriptOrigin {
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
         type_: ScriptType,
+        unminified_dir: Option<String>,
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
@@ -278,6 +304,7 @@ impl ScriptOrigin {
             external: false,
             fetch_options,
             type_,
+            unminified_dir,
         }
     }
 
@@ -286,6 +313,7 @@ impl ScriptOrigin {
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
         type_: ScriptType,
+        unminified_dir: Option<String>,
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
@@ -293,6 +321,7 @@ impl ScriptOrigin {
             external: true,
             fetch_options,
             type_,
+            unminified_dir,
         }
     }
 
@@ -471,6 +500,7 @@ impl FetchResponseListener for ClassicContext {
             final_url.clone(),
             self.fetch_options.clone(),
             ScriptType::Classic,
+            elem.parser_document.global().unminified_js_dir(),
         );
         finish_fetching_a_classic_script(
             &elem,
@@ -813,6 +843,7 @@ impl HTMLScriptElement {
                 base_url.clone(),
                 options.clone(),
                 script_type,
+                self.global().unminified_js_dir(),
             ));
 
             // Step 27-2.
@@ -852,51 +883,6 @@ impl HTMLScriptElement {
                     );
                 },
             }
-        }
-    }
-
-    fn unminify_js(&self, script: &mut ScriptOrigin) {
-        if self.parser_document.window().unminified_js_dir().is_none() {
-            return;
-        }
-
-        if let Some((mut input, mut output)) = create_temp_files() {
-            match &script.code {
-                SourceCode::Text(text) => {
-                    input.write_all(text.as_bytes()).unwrap();
-                },
-                SourceCode::Compiled(compiled_source_code) => {
-                    input
-                        .write_all(compiled_source_code.original_text.as_bytes())
-                        .unwrap();
-                },
-            }
-
-            if execute_js_beautify(
-                input.path(),
-                output.try_clone().unwrap(),
-                BeautifyFileType::Js,
-            ) {
-                let mut script_content = String::new();
-                output.seek(std::io::SeekFrom::Start(0)).unwrap();
-                output.read_to_string(&mut script_content).unwrap();
-                script.code = SourceCode::Text(Rc::new(DOMString::from(script_content)));
-            }
-        }
-
-        match create_output_file(
-            window_from_node(self).unminified_js_dir(),
-            &script.url,
-            Some(script.external),
-        ) {
-            Ok(mut file) => match &script.code {
-                SourceCode::Text(text) => file.write_all(text.as_bytes()).unwrap(),
-                SourceCode::Compiled(compiled_source_code) => {
-                    file.write_all(compiled_source_code.original_text.as_bytes())
-                        .unwrap();
-                },
-            },
-            Err(why) => warn!("Could not store script {:?}", why),
         }
     }
 
@@ -948,7 +934,7 @@ impl HTMLScriptElement {
         };
 
         if script.type_ == ScriptType::Classic {
-            self.unminify_js(&mut script);
+            unminify_js(&mut script);
             self.substitute_with_local_script(&mut script);
         }
 
