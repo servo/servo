@@ -6,7 +6,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{IsPromiseObject, JSObject};
+use js::jsapi::{IsPromiseObject, JSObject, JS_NewObject};
 use js::rust::IntoHandle;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -94,7 +94,11 @@ impl UnderlyingSourceContainer {
             if let Some(pull) = &source.pull {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+                // TODO: move this into `bindings`.
                 unsafe {
+                    let obj = JS_NewObject(*cx, ptr::null_mut());
+                    assert!(!obj.is_null());
+                    this_object.set(obj);
                     source.to_jsobject(*cx, this_object.handle_mut());
                 }
                 let this_handle = this_object.handle();
@@ -125,7 +129,11 @@ impl UnderlyingSourceContainer {
             if let Some(start) = &source.start {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+                // TODO: move this into `bindings`.
                 unsafe {
+                    let obj = JS_NewObject(*cx, ptr::null_mut());
+                    assert!(!obj.is_null());
+                    this_object.set(obj);
                     source.to_jsobject(*cx, this_object.handle_mut());
                 }
                 let this_handle = this_object.handle();
