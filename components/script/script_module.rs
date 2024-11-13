@@ -389,7 +389,7 @@ impl ModuleTree {
             &owner.global(),
             Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
-                    this.finish_dynamic_module(identity, module_id);
+                    this.finish_dynamic_module(identity, module_id, CanGc::note());
                 }),
             ))),
             None,
@@ -451,6 +451,8 @@ impl ModuleTree {
     #[allow(unsafe_code, clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-module-script>
     /// Step 7-11.
+    /// Although the CanGc argument appears unused, it represents the GC operations that
+    /// can occur as part of compiling a script.
     fn compile_module_script(
         &self,
         global: &GlobalScope,
@@ -460,6 +462,7 @@ impl ModuleTree {
         options: ScriptFetchOptions,
         mut module_script: RustMutableHandleObject,
         inline: bool,
+        _can_gc: CanGc,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
@@ -540,12 +543,16 @@ impl ModuleTree {
         }
     }
 
+    /// Execute the provided module, storing the evaluation return value in the provided
+    /// mutable handle. Although the CanGc appears unused, it represents the GC operations
+    /// possible when evluating arbitrary JS.
     #[allow(unsafe_code)]
     pub fn execute_module(
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
         eval_result: MutableHandleValue,
+        _can_gc: CanGc,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
@@ -1000,10 +1007,11 @@ impl ModuleOwner {
     #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#hostimportmoduledynamically(referencingscriptormodule,-specifier,-promisecapability):fetch-an-import()-module-script-graph>
     /// Step 6-9
-    pub fn finish_dynamic_module(
+    fn finish_dynamic_module(
         &self,
         module_identity: ModuleIdentity,
         dynamic_module_id: DynamicModuleId,
+        can_gc: CanGc,
     ) {
         let global = self.global();
 
@@ -1029,7 +1037,7 @@ impl ModuleOwner {
 
             if let Some(record) = record {
                 let evaluated = module_tree
-                    .execute_module(&global, record, rval.handle_mut().into())
+                    .execute_module(&global, record, rval.handle_mut().into(), can_gc)
                     .err();
 
                 if let Some(exception) = evaluated.clone() {
@@ -1219,6 +1227,7 @@ impl FetchResponseListener for ModuleContext {
                     self.options.clone(),
                     compiled_module.handle_mut(),
                     false,
+                    CanGc::note(),
                 );
 
                 match compiled_module_result {
@@ -1790,6 +1799,7 @@ pub(crate) fn fetch_inline_module_script(
         options.clone(),
         compiled_module.handle_mut(),
         true,
+        can_gc,
     );
 
     match compiled_module_result {
