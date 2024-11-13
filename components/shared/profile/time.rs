@@ -195,10 +195,17 @@ pub enum TimerMetadataReflowType {
     FirstReflow,
 }
 
-pub fn profile_without_tracing<T, F>(
+#[cfg(feature = "tracing")]
+pub type Span = tracing::Span;
+#[cfg(not(feature = "tracing"))]
+pub type Span = ();
+
+pub fn profile<T, F>(
     category: ProfilerCategory,
     meta: Option<TimerMetadata>,
     profiler_chan: ProfilerChan,
+    #[cfg(feature = "tracing")] span: Span,
+    #[cfg(not(feature = "tracing"))] _span: Span,
     callback: F,
 ) -> T
 where
@@ -208,7 +215,11 @@ where
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
     let start_time = CrossProcessInstant::now();
-    let val = callback();
+    let val = {
+        #[cfg(feature = "tracing")]
+        let _enter = span.enter();
+        callback()
+    };
     let end_time = CrossProcessInstant::now();
 
     if opts::get().debug.signpost {
