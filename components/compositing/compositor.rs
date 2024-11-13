@@ -169,6 +169,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
 
+    #[cfg(feature = "webxr")]
     /// Some XR devices want to run on the main thread.
     pub webxr_main_thread: webxr::MainThreadRegistry,
 
@@ -409,6 +410,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webrender_api: state.webrender_api,
             rendering_context: state.rendering_context,
             webrender_gl: state.webrender_gl,
+            #[cfg(feature = "webxr")]
             webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
@@ -1803,7 +1805,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 pipeline_ids.push(*pipeline_id);
             }
         }
-        let animation_state = if pipeline_ids.is_empty() && !self.webxr_main_thread.running() {
+        #[cfg(feature = "webxr")]
+        let webxr_running = self.webxr_main_thread.running();
+        #[cfg(not(feature = "webxr"))]
+        let webxr_running = false;
+        let animation_state = if pipeline_ids.is_empty() && webxr_running {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
@@ -2395,6 +2401,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             CompositionRequest::CompositeNow(_) => self.composite(),
         }
 
+        #[cfg(feature = "webxr")]
         // Run the WebXR main thread
         self.webxr_main_thread.run_one_frame();
 

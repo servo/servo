@@ -287,7 +287,7 @@ pub struct Window {
 
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
-    webxr_registry: webxr_api::Registry,
+    webxr_registry: Option<webxr_api::Registry>,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the script thread
@@ -495,7 +495,7 @@ impl Window {
             .map(|chan| WebGLCommandSender::new(chan.clone()))
     }
 
-    pub fn webxr_registry(&self) -> webxr_api::Registry {
+    pub fn webxr_registry(&self) -> Option<webxr_api::Registry> {
         self.webxr_registry.clone()
     }
 
@@ -2579,7 +2579,7 @@ impl Window {
         creator_url: ServoUrl,
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
-        webxr_registry: webxr_api::Registry,
+        webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,

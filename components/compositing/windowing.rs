@@ -8,7 +8,7 @@ use std::fmt::{Debug, Error, Formatter};
 use std::time::Duration;
 
 use base::id::{PipelineId, TopLevelBrowsingContextId};
-use embedder_traits::{EmbedderProxy, EventLoopWaker};
+use embedder_traits::EventLoopWaker;
 use euclid::Scale;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
@@ -219,8 +219,14 @@ pub trait EmbedderMethods {
     /// Returns a thread-safe object to wake up the window's event loop.
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker>;
 
+    #[cfg(feature = "webxr")]
     /// Register services with a WebXR Registry.
-    fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry, _: EmbedderProxy) {}
+    fn register_webxr(
+        &mut self,
+        _: &mut webxr::MainThreadRegistry,
+        _: embedder_traits::EmbedderProxy,
+    ) {
+    }
 
     /// Returns the user agent string to report in network requests.
     fn get_user_agent_string(&self) -> Option<String> {

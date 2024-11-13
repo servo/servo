@@ -455,7 +455,7 @@ pub struct Constellation<STF, SWF> {
     webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
-    webxr_registry: webxr_api::Registry,
+    webxr_registry: Option<webxr_api::Registry>,
 
     /// A channel through which messages can be sent to the canvas paint thread.
     canvas_sender: Sender<ConstellationCanvasMsg>,
@@ -533,7 +533,7 @@ pub struct InitialConstellationState {
     pub webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
-    pub webxr_registry: webxr_api::Registry,
+    pub webxr_registry: Option<webxr_api::Registry>,
 
     pub glplayer_threads: Option<GLPlayerThreads>,
 

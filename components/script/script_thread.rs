@@ -669,7 +669,7 @@ pub struct ScriptThread {
 
     /// The WebXR device registry
     #[no_trace]
-    webxr_registry: webxr_api::Registry,
+    webxr_registry: Option<webxr_api::Registry>,
 
     /// The worklet thread pool
     worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
