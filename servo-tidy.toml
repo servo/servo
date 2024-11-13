@@ -76,6 +76,11 @@ packages = [
     # tracing-subscriber -> matchers -> regex-automata 0.1.0
     "regex-automata",
 
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex [-> regex-automata 0.4.7] -> regex-syntax 0.8.4
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
+    "regex-syntax",
+
     # gilrs is on 0.10.0, but Servo is still on 0.9.4
     "core-foundation",
 

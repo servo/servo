@@ -44,11 +44,11 @@ pub fn main() {
 pub fn init_tracing() {
     #[cfg(feature = "tracing")]
     {
+        use tracing_subscriber::layer::SubscriberExt;
         let subscriber = tracing_subscriber::registry();
 
         #[cfg(feature = "tracing-perfetto")]
         let subscriber = {
-            use tracing_subscriber::layer::SubscriberExt;
             // Set up a PerfettoLayer for performance tracing.
             // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
             let file = std::fs::File::create("servo.pftrace").unwrap();
@@ -59,10 +59,14 @@ pub fn init_tracing() {
 
         #[cfg(feature = "tracing-hitrace")]
         let subscriber = {
-            use tracing_subscriber::layer::SubscriberExt;
             // Set up a HitraceLayer for performance tracing.
             subscriber.with(HitraceLayer::default())
         };
+
+        // Filter events and spans by the directives in SERVO_TRACING, using EnvFilter as a global filter.
+        // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/layer/index.html#global-filtering>
+        let filter = tracing_subscriber::EnvFilter::from_env("SERVO_TRACING");
+        let subscriber = subscriber.with(filter);
 
         // Same as SubscriberInitExt::init, but avoids initialising the tracing-log compat layer,
         // since it would break Servo’s FromScriptLogger and FromCompositorLogger.
