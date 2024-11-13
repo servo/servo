@@ -19,6 +19,7 @@ rust-version = "1.80.1"
 accountable-refcell = "0.2.0"
 aes = "0.8.4"
 aes-kw = { version = "0.2.1", features = ["alloc"] }
+aes-gcm = "0.10.3"
 app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }

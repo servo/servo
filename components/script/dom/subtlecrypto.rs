@@ -1763,6 +1763,134 @@ impl SubtleCrypto {
         Ok(ciphertext)
     }
 
+    /// <https://w3c.github.io/webcrypto/#aes-gcm-operations>
+    fn encrypt_aes_gcm(
+        &self,
+        params: &SubtleAesGcmParams,
+        key: &CryptoKey,
+        plaintext: &[u8],
+        cx: JSContext,
+        handle: MutableHandleObject,
+    ) -> Result<(), Error> {
+        use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
+        use cipher::consts::{U12, U32};
+
+        type Aes128Gcm96Iv = AesGcm<Aes192, U12>;
+        type Aes192Gcm96Iv = AesGcm<Aes192, U12>;
+        type Aes256Gcm96Iv = AesGcm<Aes192, U12>;
+        type Aes128Gcm256Iv = AesGcm<Aes192, U32>;
+        type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
+        type Aes256Gcm256Iv = AesGcm<Aes192, U32>;
+
+        // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an OperationError.
+        if plaintext.len() > (2 << 39) - 256 {
+            return Err(Error::Operation);
+        }
+
+        // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
+        // then throw an OperationError.
+        if params.iv.len() > u64::MAX as usize {
+            return Err(Error::Operation);
+        }
+
+        // Step 3. If the additionalData member of normalizedAlgorithm is present and has a length greater than 2^64 - 1
+        // bytes, then throw an OperationError.
+        if params
+            .additional_data
+            .as_ref()
+            .is_some_and(|data| data.len() > u64::MAX as usize)
+        {
+            return Err(Error::Operation);
+        }
+
+        // Step 4.
+        let tag_length = match params.tag_length {
+            // If the tagLength member of normalizedAlgorithm is not present:
+            None => {
+                // Let tagLength be 128.
+                128
+            },
+            // If the tagLength member of normalizedAlgorithm is one of 32, 64, 96, 104, 112, 120 or 128:
+            Some(length) if matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128) => {
+                // Let tagLength be equal to the tagLength member of normalizedAlgorithm
+                length
+            },
+            // Otherwise:
+            _ => {
+                // throw an OperationError.
+                return Err(Error::Operation);
+            },
+        };
+
+        // Step 5. Let additionalData be the contents of the additionalData member of normalizedAlgorithm if present
+        // or the empty octet string otherwise.
+        let additional_data = params
+            .additional_data
+            .as_ref()
+            .map(|data| data.as_slice())
+            .unwrap_or_default();
+
+        // Step 6. Let C and T be the outputs that result from performing the Authenticated Encryption Function
+        // described in Section 7.1 of [NIST-SP800-38D] using AES as the block cipher, the contents of the iv member
+        // of normalizedAlgorithm as the IV input parameter, the contents of additionalData as the A input parameter,
+        // tagLength as the t pre-requisite and the contents of plaintext as the input plaintext.
+        let key_length = key.handle().as_bytes().len();
+        let iv_length = params.iv.len();
+        let mut ciphertext = plaintext.to_vec();
+        let key_bytes = key.handle().as_bytes();
+        let tag = match (key_length, iv_length) {
+            (16, 12) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes128Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
+            (20, 12) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes192Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
+            (32, 12) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes256Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
+            (16, 32) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes128Gcm256Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
+            (20, 32) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes192Gcm256Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
+            (32, 32) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes256Gcm256Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
+            _ => {
+                log::warn!("Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV");
+                return Err(Error::NotSupported);
+            },
+        };
+
+        // Step 7. Let ciphertext be equal to C | T, where '|' denotes concatenation.
+        ciphertext.extend_from_slice(&tag.unwrap()[..tag_length as usize / 8]);
+
+        // Step 8. Return the result of creating an ArrayBuffer containing ciphertext.
+        create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
+            .expect("failed to create buffer source for exported key.");
+
+        Ok(())
+    }
+
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
     /// <https://w3c.github.io/webcrypto/#aes-kw-operations>
@@ -2602,7 +2730,7 @@ impl EncryptionAlgorithm {
         match self {
             Self::AesCbc(params) => subtle.encrypt_aes_cbc(params, key, data, cx, result),
             Self::AesCtr(params) => subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result),
-            Self::AesGcm(params) => todo!(),
+            Self::AesGcm(params) => subtle.encrypt_aes_gcm(params, key, data, cx, result),
         }
     }
 

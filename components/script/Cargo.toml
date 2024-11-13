@@ -29,6 +29,7 @@ serde_json = { workspace = true }
 [dependencies]
 aes = { workspace = true }
 aes-kw = { workspace = true }
+aes-gcm = { workspace = true }
 accountable-refcell = { workspace = true, optional = true }
 app_units = { workspace = true }
 arrayvec = { workspace = true }
