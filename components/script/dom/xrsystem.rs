@@ -147,9 +147,9 @@ impl XRSystemMethods for XRSystem {
                 };
             }),
         );
-        window
-            .webxr_registry()
-            .map(|mut r| r.supports_session(mode.into(), sender));
+        if let Some(mut r) = window.webxr_registry() {
+            r.supports_session(mode.into(), sender);
+        }
 
         promise
     }
@@ -265,9 +265,9 @@ impl XRSystemMethods for XRSystem {
                 );
             }),
         );
-        window
-            .webxr_registry()
-            .map(|mut r| r.request_session(mode.into(), init, sender, frame_sender));
+        if let Some(mut r) = window.webxr_registry() {
+            r.request_session(mode.into(), init, sender, frame_sender);
+        }
         promise
     }
 

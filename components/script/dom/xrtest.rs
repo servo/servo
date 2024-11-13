@@ -175,9 +175,9 @@ impl XRTestMethods for XRTest {
                 );
             }),
         );
-        window
-            .webxr_registry()
-            .map(|mut r| r.simulate_device_connection(init, sender));
+        if let Some(mut r) = window.webxr_registry() {
+            r.simulate_device_connection(init, sender);
+        }
 
         p
     }
