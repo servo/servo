@@ -455,7 +455,7 @@ pub struct Constellation<STF, SWF> {
     webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
-    webxr_registry: webxr_api::Registry,
+    webxr_registry: Option<webxr_api::Registry>,
 
     /// A channel through which messages can be sent to the canvas paint thread.
     canvas_sender: Sender<ConstellationCanvasMsg>,
@@ -533,7 +533,7 @@ pub struct InitialConstellationState {
     pub webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
-    pub webxr_registry: webxr_api::Registry,
+    pub webxr_registry: Option<webxr_api::Registry>,
 
     pub glplayer_threads: Option<GLPlayerThreads>,
 
@@ -937,8 +937,8 @@ where
                 // If this is an about:blank or about:srcdoc load, it must share the creator's
                 // event loop. This must match the logic in the script thread when determining
                 // the proper origin.
-                if load_data.url.as_str() != "about:blank" &&
-                    load_data.url.as_str() != "about:srcdoc"
+                if load_data.url.as_str() != "about:blank"
+                    && load_data.url.as_str() != "about:srcdoc"
                 {
                     match reg_host(&load_data.url) {
                         None => (None, None),
@@ -2308,8 +2308,8 @@ where
                         entangled_with: entry.entangled_with,
                     }
                 },
-                TransferState::CompletionFailed(buffer) |
-                TransferState::CompletionRequested(_, buffer) => {
+                TransferState::CompletionFailed(buffer)
+                | TransferState::CompletionRequested(_, buffer) => {
                     // If the completion had already failed,
                     // this is a request coming from a global to complete a new transfer,
                     // but we're still awaiting the return of the buffer
@@ -5008,8 +5008,9 @@ where
             .focused_webview()
             .map(|(_, webview)| webview.focused_browsing_context_id);
         focused_browsing_context_id.is_some_and(|focus_ctx_id| {
-            focus_ctx_id == browsing_context_id ||
-                self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
+            focus_ctx_id == browsing_context_id
+                || self
+                    .fully_active_descendant_browsing_contexts_iter(browsing_context_id)
                     .any(|nested_ctx| nested_ctx.id == focus_ctx_id)
         })
     }
@@ -5614,8 +5615,8 @@ where
                     if self
                         .pending_changes
                         .iter()
-                        .any(|change| change.new_pipeline_id == pipeline.id) &&
-                        probability <= rng.gen::<f32>()
+                        .any(|change| change.new_pipeline_id == pipeline.id)
+                        && probability <= rng.gen::<f32>()
                     {
                         // We tend not to close pending pipelines, as that almost always
                         // results in pipelines being closed early in their lifecycle,

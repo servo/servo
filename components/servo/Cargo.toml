@@ -31,6 +31,13 @@ webgl_backtrace = [
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
+webxr = [
+    "dep:webxr",
+    "dep:webxr-api",
+    "compositing/webxr",
+    "embedder_traits/webxr",
+    "canvas/webxr",
+]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
@@ -82,8 +89,8 @@ webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { workspace = true }
-webxr-api = { workspace = true }
+webxr = { workspace = true, optional = true }
+webxr-api = { workspace = true, optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"

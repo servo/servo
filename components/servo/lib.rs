@@ -362,8 +362,8 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
-                        !opts.debug.disable_subpixel_text_antialiasing,
+                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled)
+                        && !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
                     upload_method,
@@ -396,6 +396,7 @@ where
 
         let WebGLComm {
             webgl_threads,
+            #[cfg(feature = "webxr")]
             webxr_layer_grand_manager,
             image_handler,
         } = WebGLComm::new(
@@ -410,9 +411,11 @@ where
         external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
         // Create the WebXR main thread
+        #[cfg(feature = "webxr")]
         let mut webxr_main_thread =
             webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
                 .expect("Failed to create WebXR device registry");
+        #[cfg(feature = "webxr")]
         if pref!(dom.webxr.enabled) {
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
@@ -454,6 +457,7 @@ where
             devtools_sender,
             webrender_document,
             webrender_api_sender,
+            #[cfg(feature = "webxr")]
             webxr_main_thread.registry(),
             player_context,
             Some(webgl_threads),
@@ -491,6 +495,7 @@ where
                 webrender_api,
                 rendering_context,
                 webrender_gl,
+                #[cfg(feature = "webxr")]
                 webxr_main_thread,
             },
             composite_target,
@@ -1033,7 +1038,7 @@ fn create_constellation(
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: DocumentId,
     webrender_api_sender: RenderApiSender,
-    webxr_registry: webxr_api::Registry,
+    #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
     glplayer_threads: Option<GLPlayerThreads>,
@@ -1082,7 +1087,10 @@ fn create_constellation(
         mem_profiler_chan,
         webrender_document,
         webrender_api_sender,
-        webxr_registry,
+        #[cfg(feature = "webxr")]
+        webxr_registry: Some(webxr_registry),
+        #[cfg(not(feature = "webxr"))]
+        webxr_registry: None,
         webgl_threads,
         glplayer_threads,
         player_context,

@@ -15,7 +15,6 @@ use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
-pub use webxr_api::MainThreadWaker as EventLoopWaker;
 
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
@@ -57,6 +56,21 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
+}
+
+#[cfg(feature = "webxr")]
+pub use webxr_api::MainThreadWaker as EventLoopWaker;
+#[cfg(not(feature = "webxr"))]
+pub trait EventLoopWaker: 'static + Send {
+    fn clone_box(&self) -> Box<dyn EventLoopWaker>;
+    fn wake(&self);
+}
+
+#[cfg(not(feature = "webxr"))]
+impl Clone for Box<dyn EventLoopWaker> {
+    fn clone(&self) -> Self {
+        EventLoopWaker::clone_box(self.as_ref())
+    }
 }
 
 /// Sends messages to the embedder.

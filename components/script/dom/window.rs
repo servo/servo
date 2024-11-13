@@ -287,7 +287,7 @@ pub struct Window {
 
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
-    webxr_registry: webxr_api::Registry,
+    webxr_registry: Option<webxr_api::Registry>,
 
     /// All of the elements that have an outstanding image request that was
     /// initiated by layout during a reflow. They are stored in the script thread
@@ -495,7 +495,7 @@ impl Window {
             .map(|chan| WebGLCommandSender::new(chan.clone()))
     }
 
-    pub fn webxr_registry(&self) -> webxr_api::Registry {
+    pub fn webxr_registry(&self) -> Option<webxr_api::Registry> {
         self.webxr_registry.clone()
     }
 
@@ -519,9 +519,9 @@ impl Window {
         }
         match response.response {
             ImageResponse::MetadataLoaded(_) => {},
-            ImageResponse::Loaded(_, _) |
-            ImageResponse::PlaceholderLoaded(_, _) |
-            ImageResponse::None => {
+            ImageResponse::Loaded(_, _)
+            | ImageResponse::PlaceholderLoaded(_, _)
+            | ImageResponse::None => {
                 nodes.remove();
             },
         }
@@ -769,9 +769,9 @@ impl WindowMethods for Window {
             let is_auxiliary = window_proxy.is_auxiliary();
 
             // https://html.spec.whatwg.org/multipage/#script-closable
-            let is_script_closable = (self.is_top_level() && history_length == 1) ||
-                is_auxiliary ||
-                pref!(dom.allow_scripts_to_close_windows);
+            let is_script_closable = (self.is_top_level() && history_length == 1)
+                || is_auxiliary
+                || pref!(dom.allow_scripts_to_close_windows);
 
             // TODO: rest of Step 3:
             // Is the incumbent settings object's responsible browsing context familiar with current?
@@ -1483,10 +1483,10 @@ impl WindowMethods for Window {
                     return true;
                 }
                 match type_ {
-                    HTMLElementTypeId::HTMLEmbedElement |
-                    HTMLElementTypeId::HTMLFormElement |
-                    HTMLElementTypeId::HTMLImageElement |
-                    HTMLElementTypeId::HTMLObjectElement => {
+                    HTMLElementTypeId::HTMLEmbedElement
+                    | HTMLElementTypeId::HTMLFormElement
+                    | HTMLElementTypeId::HTMLImageElement
+                    | HTMLElementTypeId::HTMLObjectElement => {
                         elem.get_name().as_ref() == Some(&self.name)
                     },
                     _ => false,
@@ -1986,10 +1986,10 @@ impl Window {
             let condition = self.Document().needs_reflow();
             assert!(
                 {
-                    condition.is_none() ||
-                        (!for_display &&
-                            condition == Some(ReflowTriggerCondition::PaintPostponed)) ||
-                        self.suppress_reflow.get()
+                    condition.is_none()
+                        || (!for_display
+                            && condition == Some(ReflowTriggerCondition::PaintPostponed))
+                        || self.suppress_reflow.get()
                 },
                 "condition was {:?}",
                 condition
@@ -2033,18 +2033,18 @@ impl Window {
             // and https://web-platform-tests.org/writing-tests/crashtest.html
             let html_element = document.GetDocumentElement();
             let reftest_wait = html_element.is_some_and(|elem| {
-                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
-                    elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
+                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
+                    || elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
             });
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
             let pending_images = !self.pending_layout_images.borrow().is_empty();
 
-            if !has_sent_idle_message &&
-                is_ready_state_complete &&
-                !reftest_wait &&
-                !pending_images &&
-                !pending_web_fonts
+            if !has_sent_idle_message
+                && is_ready_state_complete
+                && !reftest_wait
+                && !pending_images
+                && !pending_web_fonts
             {
                 debug!(
                     "{:?}: Sending DocumentState::Idle to Constellation",
@@ -2271,9 +2271,9 @@ impl Window {
         let doc = self.Document();
         // TODO: Important re security. See https://github.com/servo/servo/issues/23373
         // Step 3: check that the source browsing-context is "allowed to navigate" this window.
-        if !force_reload &&
-            load_data.url.as_url()[..Position::AfterQuery] ==
-                doc.url().as_url()[..Position::AfterQuery]
+        if !force_reload
+            && load_data.url.as_url()[..Position::AfterQuery]
+                == doc.url().as_url()[..Position::AfterQuery]
         {
             // Step 6
             if let Some(fragment) = load_data.url.fragment() {
@@ -2579,7 +2579,7 @@ impl Window {
         creator_url: ServoUrl,
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
-        webxr_registry: webxr_api::Registry,
+        webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
@@ -2751,10 +2751,10 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
     static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
     let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
 
-    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
-        (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
-        (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
+    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width
+        || (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width
+        || (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height
+        || (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &ReflowReason) {
@@ -2895,10 +2895,10 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
     };
     matches!(
         type_,
-        HTMLElementTypeId::HTMLEmbedElement |
-            HTMLElementTypeId::HTMLFormElement |
-            HTMLElementTypeId::HTMLImageElement |
-            HTMLElementTypeId::HTMLObjectElement
+        HTMLElementTypeId::HTMLEmbedElement
+            | HTMLElementTypeId::HTMLFormElement
+            | HTMLElementTypeId::HTMLImageElement
+            | HTMLElementTypeId::HTMLObjectElement
     )
 }
 

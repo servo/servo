@@ -149,7 +149,7 @@ impl XRSystemMethods for XRSystem {
         );
         window
             .webxr_registry()
-            .supports_session(mode.into(), sender);
+            .map(|mut r| r.supports_session(mode.into(), sender));
 
         promise
     }
@@ -267,7 +267,7 @@ impl XRSystemMethods for XRSystem {
         );
         window
             .webxr_registry()
-            .request_session(mode.into(), init, sender, frame_sender);
+            .map(|mut r| r.request_session(mode.into(), init, sender, frame_sender));
         promise
     }
 
