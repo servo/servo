@@ -61,6 +61,7 @@
   "js.baseline_interpreter.enabled": true,
   "js.baseline_jit.enabled": true,
   "js.baseline_jit.unsafe_eager_compilation.enabled": false,
+  "js.disable_jit": false,
   "js.discard_system_source.enabled": false,
   "js.dump_stack_on_debuggee_would_run.enabled": false,
   "js.ion.enabled": true,
