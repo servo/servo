@@ -772,7 +772,7 @@ impl<'a> TableLayout<'a> {
     }
 
     /// Compute CAPMIN: <https://drafts.csswg.org/css-tables/#capmin>
-    fn compute_caption_minimum_inline_size(&mut self, layout_context: &LayoutContext) -> Au {
+    fn compute_caption_minimum_inline_size(&self, layout_context: &LayoutContext) -> Au {
         let containing_block = IndefiniteContainingBlock {
             size: LogicalVec2 {
                 inline: AuOrAuto::Auto,
@@ -784,7 +784,7 @@ impl<'a> TableLayout<'a> {
             .captions
             .iter()
             .map(|caption| {
-                let mut context = caption.context.borrow_mut();
+                let context = caption.context.borrow();
                 context
                     .outer_inline_content_sizes(
                         layout_context,
@@ -1605,7 +1605,7 @@ impl<'a> TableLayout<'a> {
     }
 
     fn layout_caption(
-        &mut self,
+        &self,
         caption: &TableCaption,
         table_pbm: &PaddingBorderMargin,
         layout_context: &LayoutContext,
@@ -2186,7 +2186,7 @@ impl<'a> TableLayout<'a> {
     }
 
     fn make_fragments_for_columns_and_column_groups(
-        &mut self,
+        &self,
         dimensions: &TableAndTrackDimensions,
         fragments: &mut Vec<Fragment>,
     ) {
@@ -2630,7 +2630,7 @@ impl Table {
         )
     )]
     pub(crate) fn inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {

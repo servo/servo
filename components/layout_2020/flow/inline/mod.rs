@@ -1656,7 +1656,7 @@ impl InlineFormattingContext {
         }
 
         for item in self.inline_items.iter() {
-            let item = &mut *item.borrow_mut();
+            let item = &*item.borrow();
 
             // Any new box should flush a pending hard line break.
             if !matches!(item, InlineItem::EndInlineBox) {
@@ -1684,7 +1684,7 @@ impl InlineFormattingContext {
                         },
                     ));
                 },
-                InlineItem::OutOfFlowFloatBox(ref mut float_box) => {
+                InlineItem::OutOfFlowFloatBox(ref float_box) => {
                     float_box.layout_into_line_items(&mut layout);
                 },
             }
@@ -1915,7 +1915,7 @@ impl InlineContainerState {
 
 impl IndependentFormattingContext {
     fn layout_into_line_items(
-        &mut self,
+        &self,
         layout: &mut InlineFormattingContextLayout,
         offset_in_text: usize,
         bidi_level: Level,
@@ -2071,7 +2071,7 @@ impl IndependentFormattingContext {
 }
 
 impl FloatBox {
-    fn layout_into_line_items(&mut self, layout: &mut InlineFormattingContextLayout) {
+    fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
         let fragment = self.layout(
             layout.layout_context,
             layout.positioning_context,
@@ -2211,7 +2211,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         inline_formatting_context: &InlineFormattingContext,
     ) -> InlineContentSizesResult {
         for inline_item in inline_formatting_context.inline_items.iter() {
-            self.process_item(&mut inline_item.borrow_mut(), inline_formatting_context);
+            self.process_item(&inline_item.borrow(), inline_formatting_context);
         }
 
         self.forced_line_break();
@@ -2223,7 +2223,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
     fn process_item(
         &mut self,
-        inline_item: &mut InlineItem,
+        inline_item: &InlineItem,
         inline_formatting_context: &InlineFormattingContext,
     ) {
         match inline_item {

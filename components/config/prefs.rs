@@ -435,6 +435,8 @@ mod gen {
                 baseline_interpreter: {
                     enabled: bool,
                 },
+                /// Whether to disable the jit within SpiderMonkey
+                disable_jit: bool,
                 baseline_jit: {
                     enabled: bool,
                     unsafe_eager_compilation: {

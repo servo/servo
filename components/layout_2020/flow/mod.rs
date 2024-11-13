@@ -370,10 +370,10 @@ fn calculate_inline_content_size_for_block_level_boxes(
     containing_block: &IndefiniteContainingBlock,
 ) -> InlineContentSizesResult {
     let get_box_info = |box_: &ArcRefCell<BlockLevelBox>| {
-        match &mut *box_.borrow_mut() {
+        match &*box_.borrow() {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutsideMarker { .. } => None,
-            BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
+            BlockLevelBox::OutOfFlowFloatBox(ref float_box) => {
                 let inline_content_sizes_result = float_box.contents.outer_inline_content_sizes(
                     layout_context,
                     containing_block,
@@ -404,7 +404,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                 // Instead, we treat it like an independent block with 'clear: both'.
                 Some((inline_content_sizes_result, Float::None, Clear::Both))
             },
-            BlockLevelBox::Independent(ref mut independent) => {
+            BlockLevelBox::Independent(ref independent) => {
                 let inline_content_sizes_result = independent.outer_inline_content_sizes(
                     layout_context,
                     containing_block,
@@ -606,7 +606,7 @@ fn layout_block_level_children_in_parallel(
         .map(|child_box| {
             let mut child_positioning_context =
                 PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
-            let fragment = child_box.borrow_mut().layout(
+            let fragment = child_box.borrow().layout(
                 layout_context,
                 &mut child_positioning_context,
                 containing_block,
@@ -646,7 +646,7 @@ fn layout_block_level_children_sequentially(
         .iter()
         .map(|child_box| {
             let positioning_context_length_before_layout = positioning_context.len();
-            let mut fragment = child_box.borrow_mut().layout(
+            let mut fragment = child_box.borrow().layout(
                 layout_context,
                 positioning_context,
                 containing_block,
@@ -670,7 +670,7 @@ fn layout_block_level_children_sequentially(
 
 impl BlockLevelBox {
     fn layout(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
@@ -1997,7 +1997,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
 
 impl IndependentFormattingContext {
     pub(crate) fn layout_float_or_atomic_inline(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         child_positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
