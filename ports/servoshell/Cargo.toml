@@ -54,7 +54,7 @@ tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
-webxr = ["libservo/webxr"]
+webxr = ["dep:webxr", "libservo/webxr"]
 
 [dependencies]
 libc = { workspace = true }
@@ -96,7 +96,7 @@ ohos-vsync = "0.1.2"
 nix = { workspace = true, features = ["fs"] }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 serde_json = { workspace = true }
-webxr = { workspace = true }
+webxr = { workspace = true, optional = true }
 
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
