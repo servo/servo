@@ -11,6 +11,9 @@ rust-version.workspace = true
 name = "profile_traits"
 path = "lib.rs"
 
+[features]
+tracing = ["dep:tracing"]
+
 [dependencies]
 base = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -20,3 +23,4 @@ serde = { workspace = true }
 servo_config = { path = "../../config" }
 signpost = { git = "https://github.com/pcwalton/signpost.git" }
 time_03 = { workspace = true }
+tracing = { workspace = true, optional = true }
