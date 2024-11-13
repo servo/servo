@@ -4134,7 +4134,7 @@ impl ScriptThread {
             .origin(incomplete.origin.immutable().clone())
             .crash(load_data.crash);
 
-        let context = ParserContext::new(id, load_data.url);
+        let context = ParserContext::new(id, load_data.url, "unminified-html".to_string());
         self.incomplete_parser_contexts
             .0
             .borrow_mut()
@@ -4215,7 +4215,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::new(id, url.clone(), "unminified-html".to_string());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
@@ -4247,7 +4247,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:srcdoc").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::new(id, url.clone(), "unminified-html".to_string());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));

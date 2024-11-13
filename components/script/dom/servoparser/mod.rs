@@ -761,10 +761,12 @@ pub struct ParserContext {
     pushed_entry_index: Option<usize>,
     /// Indicates if cached HTML should be used.
     use_cached_html: bool,
+    /// Directory to store unminified HTML files.
+    unminified_html_dir: String,
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, url: ServoUrl) -> ParserContext {
+    pub fn new(id: PipelineId, url: ServoUrl, unminified_html_dir: String) -> ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
@@ -773,20 +775,15 @@ impl ParserContext {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
             pushed_entry_index: None,
             use_cached_html: false,
+            unminified_html_dir,
         }
     }
 
     pub fn get_cached_html(&self) -> Option<String> {
-        let unminified_dir = self.window().unminified_html_dir();
-        let cache_dir = match unminified_dir {
-            Some(dir) => PathBuf::from(dir),
-            None => {
-                warn!("Unminified HTML directory not found");
-                return None;
-            },
-        };
+        let unminified_dir = &self.unminified_html_dir;
+        let cache_dir = PathBuf::from(unminified_dir);
 
-        let (base_path, is_file) = match self.url.as_str().ends_with('/') {
+        let (base_path, _is_file) = match self.url.as_str().ends_with('/') {
             true => (
                 cache_dir.join(&self.url[url::Position::BeforeHost..]),
                 false,
@@ -1013,7 +1010,7 @@ impl FetchResponseListener for ParserContext {
                     output.try_clone().unwrap(),
                     BeautifyFileType::Html,
                 );
-                create_output_file(self.into().window().unminified_html_dir(), &self.url, None);
+                create_output_file(self.unminified_html_dir.clone(), &self.url, None);
             }
         }
         if parser.aborted.get() {
