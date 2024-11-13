@@ -371,9 +371,6 @@ pub struct Document {
     /// The document's origin.
     #[no_trace]
     origin: MutableOrigin,
-    ///  <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states>
-    #[no_trace]
-    referrer_policy: Cell<Option<ReferrerPolicy>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
     referrer: Option<String>,
     /// <https://html.spec.whatwg.org/multipage/#target-element>
@@ -3295,7 +3292,6 @@ impl Document {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         referrer: Option<String>,
-        referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
     ) -> Document {
@@ -3401,7 +3397,6 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             origin,
             referrer,
-            referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableDom::new(None),
             policy_container: DomRefCell::new(PolicyContainer::default()),
             last_click_info: DomRefCell::new(None),
@@ -3580,7 +3575,6 @@ impl Document {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         referrer: Option<String>,
-        referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
         can_gc: CanGc,
@@ -3598,7 +3592,6 @@ impl Document {
             source,
             doc_loader,
             referrer,
-            referrer_policy,
             status_code,
             canceller,
             can_gc,
@@ -3619,7 +3612,6 @@ impl Document {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         referrer: Option<String>,
-        referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
         can_gc: CanGc,
@@ -3637,7 +3629,6 @@ impl Document {
                 source,
                 doc_loader,
                 referrer,
-                referrer_policy,
                 status_code,
                 canceller,
             )),
@@ -3762,7 +3753,6 @@ impl Document {
                     DocumentLoader::new(&self.loader()),
                     None,
                     None,
-                    None,
                     Default::default(),
                     can_gc,
                 );
@@ -3848,12 +3838,13 @@ impl Document {
     }
 
     pub fn set_referrer_policy(&self, policy: Option<ReferrerPolicy>) {
-        self.referrer_policy.set(policy);
+        self.policy_container
+            .borrow_mut()
+            .set_referrer_policy(policy);
     }
 
-    //TODO - default still at no-referrer
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        self.referrer_policy.get()
+        Some(self.policy_container.borrow().referrer_policy)
     }
 
     pub fn set_target_element(&self, node: Option<&Element>, can_gc: CanGc) {
@@ -4299,7 +4290,6 @@ impl DocumentMethods for Document {
             DocumentActivity::Inactive,
             DocumentSource::NotFromParser,
             docloader,
-            None,
             None,
             None,
             Default::default(),

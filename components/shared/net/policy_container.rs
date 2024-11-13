@@ -38,14 +38,11 @@ pub struct PolicyContainer {
 }
 
 impl PolicyContainer {
-    pub fn new(csp_list: Option<CspList>, referrer_policy: Option<ReferrerPolicy>) -> Self {
-        PolicyContainer {
-            csp_list,
-            referrer_policy: referrer_policy.unwrap_or_default(),
-        }
-    }
-
     pub fn set_csp_list(&mut self, csp_list: Option<CspList>) {
         self.csp_list = csp_list;
+    }
+
+    pub fn set_referrer_policy(&mut self, referrer_policy: Option<ReferrerPolicy>) {
+        self.referrer_policy = referrer_policy.unwrap_or_default();
     }
 }

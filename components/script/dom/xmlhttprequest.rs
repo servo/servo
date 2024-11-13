@@ -1533,7 +1533,6 @@ impl XMLHttpRequest {
             docloader,
             None,
             None,
-            None,
             Default::default(),
             can_gc,
         )

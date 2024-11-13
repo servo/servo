@@ -55,7 +55,6 @@ impl XMLDocument {
                 doc_loader,
                 None,
                 None,
-                None,
                 Default::default(),
             ),
         }

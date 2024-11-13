@@ -3822,12 +3822,6 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
-        let referrer_policy = metadata
-            .headers
-            .as_deref()
-            .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
-            .map(ReferrerPolicy::from);
-
         let document = Document::new(
             &window,
             HasBrowsingContext::Yes,
@@ -3840,11 +3834,18 @@ impl ScriptThread {
             DocumentSource::FromParser,
             loader,
             referrer,
-            referrer_policy,
             Some(metadata.status.raw_code()),
             incomplete.canceller,
             can_gc,
         );
+
+        let referrer_policy = metadata
+            .headers
+            .as_deref()
+            .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
+            .map(ReferrerPolicy::from);
+
+        document.set_referrer_policy(referrer_policy);
         document.set_ready_state(DocumentReadyState::Loading, can_gc);
 
         self.documents

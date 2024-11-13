@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::{mem, ptr};
 
 use encoding_rs::UTF_8;
+use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexSet;
@@ -1189,6 +1190,18 @@ impl FetchResponseListener for ModuleContext {
                 return Err(NetworkError::Internal("No MIME type".into()));
             }
 
+            // Step 13.4: Let referrerPolicy be the result of parsing the `Referrer-Policy` header
+            // given response.
+            // Step 13.5: If referrerPolicy is not the empty string, set options's referrer policy
+            // to referrerPolicy.
+            if let Some(referrer_policy) = meta.headers.and_then(|headers| {
+                headers
+                    .typed_get::<ReferrerPolicyHeader>()
+                    .map(ReferrerPolicy::from)
+            }) {
+                self.options.referrer_policy = Some(referrer_policy);
+            }
+
             // Step 10.
             let (source_text, _, _) = UTF_8.decode(&self.data);
             Ok(ScriptOrigin::external(
@@ -1741,6 +1754,7 @@ fn fetch_single_module_script(
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
         .credentials_mode(options.credentials_mode)
+        .referrer_policy(options.referrer_policy)
         .mode(mode);
 
     let context = Arc::new(Mutex::new(ModuleContext {
