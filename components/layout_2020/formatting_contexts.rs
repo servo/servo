@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::RwLock;
+
 use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
@@ -38,7 +40,7 @@ pub(crate) struct NonReplacedFormattingContext {
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
-    pub content_sizes_result: Option<(SizeConstraint, InlineContentSizesResult)>,
+    pub content_sizes_result: RwLock<Option<(SizeConstraint, InlineContentSizesResult)>>,
     pub contents: NonReplacedFormattingContextContents,
 }
 
@@ -157,7 +159,7 @@ impl IndependentFormattingContext {
                 Self::NonReplaced(NonReplacedFormattingContext {
                     style: Arc::clone(&node_and_style_info.style),
                     base_fragment_info,
-                    content_sizes_result: None,
+                    content_sizes_result: RwLock::default(),
                     contents,
                 })
             },
@@ -188,7 +190,7 @@ impl IndependentFormattingContext {
     }
 
     pub(crate) fn inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
         containing_block: &IndefiniteContainingBlock,
@@ -206,7 +208,7 @@ impl IndependentFormattingContext {
     }
 
     pub(crate) fn outer_inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         containing_block: &IndefiniteContainingBlock,
         auto_minimum: &LogicalVec2<Au>,
@@ -276,30 +278,33 @@ impl NonReplacedFormattingContext {
     }
 
     pub(crate) fn inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        if let Some((previous_cb_block_size, result)) = self.content_sizes_result {
+        if let Ok(Some((previous_cb_block_size, result))) =
+            self.content_sizes_result.read().as_deref()
+        {
             if !result.depends_on_block_constraints ||
-                previous_cb_block_size == constraint_space.block_size
+                *previous_cb_block_size == constraint_space.block_size
             {
-                return result;
+                return *result;
             }
             // TODO: Should we keep multiple caches for various block sizes?
         }
 
-        self.content_sizes_result
-            .insert((
-                constraint_space.block_size,
-                self.contents
-                    .inline_content_sizes(layout_context, constraint_space),
-            ))
-            .1
+        let writer = self.content_sizes_result.write();
+        let result = self
+            .contents
+            .inline_content_sizes(layout_context, constraint_space);
+        if let Ok(mut cache) = writer {
+            *cache = Some((constraint_space.block_size, result));
+        }
+        result
     }
 
     pub(crate) fn outer_inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         containing_block: &IndefiniteContainingBlock,
         auto_minimum: &LogicalVec2<Au>,
@@ -317,7 +322,7 @@ impl NonReplacedFormattingContext {
 
 impl NonReplacedFormattingContextContents {
     pub(crate) fn inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
