@@ -4,6 +4,9 @@
 
 use std::borrow::Cow;
 use std::cell::Cell;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
@@ -771,6 +774,42 @@ impl ParserContext {
             pushed_entry_index: None,
             use_cached_html: false,
         }
+    }
+
+    pub fn get_cached_html(&self) -> Option<String> {
+        let unminified_dir = self.window().unminified_html_dir();
+        let cache_dir = match unminified_dir {
+            Some(dir) => PathBuf::from(dir),
+            None => {
+                warn!("Unminified HTML directory not found");
+                return None;
+            },
+        };
+
+        let (base_path, is_file) = match self.url.as_str().ends_with('/') {
+            true => (
+                cache_dir.join(&self.url[url::Position::BeforeHost..]),
+                false,
+            ),
+            false => (
+                cache_dir
+                    .join(&self.url[url::Position::BeforeHost..])
+                    .parent()
+                    .unwrap()
+                    .to_path_buf(),
+                true,
+            ),
+        };
+
+        let cache_path = base_path.join(&self.url[url::Position::BeforeHost..]);
+
+        if let Ok(mut file) = File::open(&cache_path) {
+            let mut content = String::new();
+            if file.read_to_string(&mut content).is_ok() {
+                return Some(content);
+            }
+        }
+        None
     }
 }
 
