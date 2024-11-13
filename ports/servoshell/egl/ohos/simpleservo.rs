@@ -141,7 +141,12 @@ pub fn init(
         rendering_context.clone(),
     ));
 
-    let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(waker, None, gl.clone()));
+    let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
+        waker,
+        #[cfg(feature = "webxr")]
+        None,
+        gl.clone(),
+    ));
 
     let servo = Servo::new(
         embedder_callbacks,
