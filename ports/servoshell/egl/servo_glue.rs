@@ -676,6 +676,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         self.waker.clone()
     }
 
+    #[cfg(feature = "webxr")]
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,

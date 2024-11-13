@@ -42,6 +42,7 @@ impl EmbedderMethods for EmbedderCallbacks {
         self.event_loop_waker.clone()
     }
 
+    #[cfg(feature = "webxr")]
     fn register_webxr(
         &mut self,
         xr: &mut webxr::MainThreadRegistry,
