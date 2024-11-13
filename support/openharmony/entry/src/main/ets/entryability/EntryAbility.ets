@@ -15,8 +15,10 @@ export default class EntryAbility extends UIAbility {
         // Skip some default parameters, since servo is not interested in those
         if (key.startsWith("ohos.")
           || key.startsWith("component.")
+          || key.startsWith("send_to_erms_")
           || key === "isCallBySCB"
           || key === "moduleName"
+          || key === "debugApp"
         ) {
           return
         }
