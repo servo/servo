@@ -65,7 +65,10 @@ pub fn init_tracing() {
 
         // Filter events and spans by the directives in SERVO_TRACING, using EnvFilter as a global filter.
         // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/layer/index.html#global-filtering>
-        let filter = tracing_subscriber::EnvFilter::from_env("SERVO_TRACING");
+        let filter = tracing_subscriber::EnvFilter::builder()
+            .with_default_directive(tracing::level_filters::LevelFilter::OFF.into())
+            .with_env_var("SERVO_TRACING")
+            .from_env_lossy();
         let subscriber = subscriber.with(filter);
 
         // Same as SubscriberInitExt::init, but avoids initialising the tracing-log compat layer,
