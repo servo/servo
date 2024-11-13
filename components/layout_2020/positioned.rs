@@ -492,7 +492,7 @@ impl HoistedAbsolutelyPositionedBox {
             end: box_offset.inline_end,
         };
         let inline_alignment = match inline_box_offsets.either_specified() {
-            true => AlignFlags::START | AlignFlags::SAFE,
+            true => style.clone_justify_self().0 .0,
             false => shared_fragment.resolved_alignment.inline,
         };
 
