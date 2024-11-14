@@ -205,10 +205,16 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
         match self.reader {
+            // Assert: stream.[[reader]] implements ReadableStreamDefaultReader.
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
                     panic!("Attempt to add a read request without having first acquired a reader.");
                 };
+
+                // Assert: stream.[[state]] is "readable".
+                assert!(self.is_readable());
+
+                // Append readRequest to stream.[[reader]].[[readRequests]].
                 reader.add_read_request(read_request);
             },
             _ => unreachable!("Adding a read request can only be done on a default reader."),
