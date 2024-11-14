@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -34,6 +34,7 @@ use profile_traits::time::{
 };
 use profile_traits::time_profile;
 use script_traits::DocumentActivity;
+use serde_json::to_vec;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
@@ -808,6 +809,45 @@ impl ParserContext {
         }
         None
     }
+
+    fn prepare_html_cache(
+        &self,
+        meta_result: Result<FetchMetadata, NetworkError>,
+        unminified_dir: String,
+    ) {
+        if let Ok(fetch_metadata) = meta_result {
+            let mut response_data = Vec::new();
+
+            match fetch_metadata {
+                FetchMetadata::Unfiltered(metadata) => {
+                    let metadata_bytes: Vec<u8> = to_vec(&metadata).unwrap();
+                    response_data.extend_from_slice(&metadata_bytes);
+                },
+                FetchMetadata::Filtered { filtered, .. } => {
+                    let filtered_bytes: Vec<u8> = to_vec(&filtered).unwrap();
+                    response_data.extend_from_slice(&filtered_bytes);
+                },
+            }
+
+            if response_data.is_empty() {
+                return;
+            }
+
+            let mut file = match create_output_file(unminified_dir, &self.url, None) {
+                Ok(file) => file,
+                Err(e) => {
+                    warn!("Failed to create output file for HTML cache: {:?}", e);
+                    return;
+                }
+            };
+
+            if let Err(e) = file.write_all(&response_data) {
+                warn!("Failed to write response data to cache file: {:?}", e);
+            }
+        } else {
+            warn!("Failed to fetch response metadata for caching.");
+        }
+    }
 }
 
 impl FetchResponseListener for ParserContext {
@@ -949,7 +989,7 @@ impl FetchResponseListener for ParserContext {
                         self.load_html_from_cache(cached_html);
                     } else {
                         self.use_cached_html = false;
-                        self.prepare_html_cache();
+                        self.prepare_html_cache(meta_result, self.unminified_html_dir.clone());
                     }
                 },
             },
