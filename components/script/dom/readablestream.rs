@@ -531,9 +531,7 @@ impl ReadableStreamMethods for ReadableStream {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
                 _ => {
-                    return Err(Error::Type(
-                        "Unknown format for underlying source.".to_string(),
-                    ))
+                    return Err(Error::JSFailed);
                 },
             }
         } else {
