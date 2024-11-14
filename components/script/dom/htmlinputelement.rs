@@ -2724,11 +2724,11 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
             InputType::Submit | InputType::Reset | InputType::File | InputType::Image => {
                 self.is_mutable()
             },
+            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
             InputType::Checkbox | InputType::Radio => true,
             _ => false,
         }
@@ -2841,22 +2841,19 @@ impl Activatable for HTMLInputElement {
                     )
                 }
             },
-            // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
-                // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                // Check if document owner is fully active
                 // Step 1: If the element does not have a form owner, then return.
                 if let Some(form_owner) = self.form_owner() {
-                    // Step 2: If the element's node document is not fully active, then return.
                     let document = document_from_node(self);
 
+                    // Step 2: If the element's node document is not fully active, then return.
                     if !document.is_fully_active() {
                         return;
                     }
 
                     // Step 3: Reset the form owner from the element.
-                    form_owner.reset(ResetFrom::NotFromForm, CanGc::note());
+                    form_owner.reset(ResetFrom::NotFromForm, can_gc);
                 }
             },
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
@@ -2878,7 +2875,7 @@ impl Activatable for HTMLInputElement {
                 target.fire_bubbling_event(atom!("change"), can_gc);
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
-            InputType::File => self.select_files(None, CanGc::note()),
+            InputType::File => self.select_files(None, can_gc),
             _ => (),
         }
     }
