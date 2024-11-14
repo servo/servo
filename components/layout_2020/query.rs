@@ -442,11 +442,11 @@ fn process_offset_parent_query_inner(
     let offset_parent_padding_box_corner = if let Some(offset_parent_node_address) =
         node_offset_box.offset_parent_node_address
     {
-        // Although the spec (https://www.w3.org/TR/cssom-view-1/#extensions-to-the-htmlelement-interface)
+        // The spec (https://www.w3.org/TR/cssom-view-1/#extensions-to-the-htmlelement-interface)
         // says that offsetTop/offsetLeft are always relative to the padding box of the offsetParent.
-        // In practice this is not true in major browsers in the case that the offsetParent is the body
+        // However, in practice this is not true in major browsers in the case that the offsetParent is the body
         // element and the body element is position:static. In that case offsetLeft/offsetTop are computed
-        // relative to the root nodes border box.
+        // relative to the root node's border box.
         if node_offset_box.is_static_body_element {
             fn extract_box_fragment(
                 fragment: &Fragment,
