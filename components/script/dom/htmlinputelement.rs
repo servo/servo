@@ -538,7 +538,7 @@ impl HTMLInputElement {
         self.default_maximum()
     }
 
-    // when allowed_value_step and minumum both exist, this is the smallest
+    // when allowed_value_step and minimum both exist, this is the smallest
     // value >= minimum that lies on an integer step
     fn stepped_minimum(&self) -> Option<f64> {
         match (self.minimum(), self.allowed_value_step()) {
@@ -1130,6 +1130,7 @@ impl TextControlElement for HTMLInputElement {
     }
 }
 
+#[allow(non_snake_case)]
 impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
@@ -2719,11 +2720,15 @@ impl Activatable for HTMLInputElement {
 
     fn is_instance_activatable(&self) -> bool {
         match self.input_type() {
-            // https://html.spec.whatwg.org/multipage/#submit-button-state-%28type=submit%29:activation-behaviour-2
-            // https://html.spec.whatwg.org/multipage/#reset-button-state-%28type=reset%29:activation-behaviour-2
-            // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
-            // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
-            InputType::Submit | InputType::Reset | InputType::File => self.is_mutable(),
+            // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior
+            InputType::Submit | InputType::Reset | InputType::File | InputType::Image => {
+                self.is_mutable()
+            },
+            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
             InputType::Checkbox | InputType::Radio => true,
             _ => false,
         }
@@ -2812,16 +2817,24 @@ impl Activatable for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
+    /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
-        let ty = self.input_type();
-        match ty {
-            InputType::Submit => {
-                // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
-                // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                // Check if document owner is fully active
-                if let Some(o) = self.form_owner() {
-                    o.submit(
+        match self.input_type() {
+            // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
+            // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=image):activation-behavior
+            InputType::Submit | InputType::Image => {
+                // Step 1: If the element does not have a form owner, then return.
+                if let Some(form_owner) = self.form_owner() {
+                    // Step 2: If the element's node document is not fully active, then return.
+                    let document = document_from_node(self);
+
+                    if !document.is_fully_active() {
+                        return;
+                    }
+
+                    // Step 3: Submit the element's form owner from the element with userInvolvement
+                    // set to event's user navigation involvement.
+                    form_owner.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Input(self),
                         CanGc::note(),
@@ -2830,24 +2843,39 @@ impl Activatable for HTMLInputElement {
             },
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
-                // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                // Check if document owner is fully active
-                if let Some(o) = self.form_owner() {
-                    o.reset(ResetFrom::NotFromForm, CanGc::note())
+                // Step 1: If the element does not have a form owner, then return.
+                if let Some(form_owner) = self.form_owner() {
+                    let document = document_from_node(self);
+
+                    // Step 2: If the element's node document is not fully active, then return.
+                    if !document.is_fully_active() {
+                        return;
+                    }
+
+                    // Step 3: Reset the form owner from the element.
+                    form_owner.reset(ResetFrom::NotFromForm, can_gc);
                 }
             },
+            // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
+            // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
             InputType::Checkbox | InputType::Radio => {
-                // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
-                // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
-                // Check if document owner is fully active
+                // Step 1: If the element is not connected, then return.
                 if !self.upcast::<Node>().is_connected() {
                     return;
                 }
+
                 let target = self.upcast::<EventTarget>();
+
+                // Step 2: Fire an event named input at the element with the bubbles and composed
+                // attributes initialized to true.
                 target.fire_bubbling_event(atom!("input"), can_gc);
+
+                // Step 3: Fire an event named change at the element with the bubbles attribute
+                // initialized to true.
                 target.fire_bubbling_event(atom!("change"), can_gc);
             },
-            InputType::File => self.select_files(None, CanGc::note()),
+            // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
+            InputType::File => self.select_files(None, can_gc),
             _ => (),
         }
     }
