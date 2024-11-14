@@ -11,7 +11,9 @@ use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
+use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use base64::prelude::*;
+use cipher::consts::{U12, U32};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSObject, JS_NewObject};
@@ -108,6 +110,13 @@ type Aes256CbcDec = cbc::Decryptor<Aes256>;
 type Aes128Ctr = ctr::Ctr64BE<Aes128>;
 type Aes192Ctr = ctr::Ctr64BE<Aes192>;
 type Aes256Ctr = ctr::Ctr64BE<Aes256>;
+
+type Aes128Gcm96Iv = AesGcm<Aes128, U12>;
+type Aes192Gcm96Iv = AesGcm<Aes192, U12>;
+type Aes256Gcm96Iv = AesGcm<Aes256, U12>;
+type Aes128Gcm256Iv = AesGcm<Aes128, U32>;
+type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
+type Aes256Gcm256Iv = AesGcm<Aes256, U32>;
 
 #[dom_struct]
 pub struct SubtleCrypto {
@@ -1412,7 +1421,8 @@ fn normalize_algorithm_for_get_key_length(
 
             let name = algorithm.name.str();
             let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
-                name.eq_ignore_ascii_case(ALG_AES_CTR) || name.eq_ignore_ascii_case(ALG_AES_GCM)
+                name.eq_ignore_ascii_case(ALG_AES_CTR) ||
+                name.eq_ignore_ascii_case(ALG_AES_GCM)
             {
                 let params = value_from_js_object!(AesDerivedKeyParams, cx, value);
                 GetKeyLengthAlgorithm::Aes(params.length)
@@ -1774,16 +1784,6 @@ impl SubtleCrypto {
         cx: JSContext,
         handle: MutableHandleObject,
     ) -> Result<Vec<u8>, Error> {
-        use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
-        use cipher::consts::{U12, U32};
-
-        type Aes128Gcm96Iv = AesGcm<Aes192, U12>;
-        type Aes192Gcm96Iv = AesGcm<Aes192, U12>;
-        type Aes256Gcm96Iv = AesGcm<Aes192, U12>;
-        type Aes128Gcm256Iv = AesGcm<Aes192, U32>;
-        type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
-        type Aes256Gcm256Iv = AesGcm<Aes192, U32>;
-
         // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an OperationError.
         if plaintext.len() > (2 << 39) - 256 {
             return Err(Error::Operation);
@@ -1888,9 +1888,137 @@ impl SubtleCrypto {
 
         // Step 8. Return the result of creating an ArrayBuffer containing ciphertext.
         create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
-            .expect("failed to create buffer source for exported key.");
+            .expect("failed to create buffer source for encrypted ciphertext");
 
         Ok(ciphertext)
+    }
+
+    /// <https://w3c.github.io/webcrypto/#aes-gcm-operations>
+    fn decrypt_aes_gcm(
+        &self,
+        params: &SubtleAesGcmParams,
+        key: &CryptoKey,
+        ciphertext: &[u8],
+        cx: JSContext,
+        handle: MutableHandleObject,
+    ) -> Result<Vec<u8>, Error> {
+        // Step 1.
+        // FIXME: aes_gcm uses a fixed tag length
+        let tag_length = match params.tag_length {
+            // If the tagLength member of normalizedAlgorithm is not present:
+            None => {
+                // Let tagLength be 128.
+                128
+            },
+            // If the tagLength member of normalizedAlgorithm is one of 32, 64, 96, 104, 112, 120 or 128:
+            Some(length) if matches!(length, 32 | 64 | 96 | 104 | 112 | 120 | 128) => {
+                // Let tagLength be equal to the tagLength member of normalizedAlgorithm
+                length as usize
+            },
+            // Otherwise:
+            _ => {
+                // throw an OperationError.
+                return Err(Error::Operation);
+            },
+        };
+
+        // Step 2. If ciphertext has a length less than tagLength bits, then throw an OperationError.
+        if ciphertext.len() < tag_length / 8 {
+            return Err(Error::Operation);
+        }
+
+        // Step 3. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
+        // then throw an OperationError.
+        if params.iv.len() > u64::MAX as usize {
+            return Err(Error::Operation);
+        }
+
+        // Step 4. If the additionalData member of normalizedAlgorithm is present and has a length greater than 2^64 - 1
+        // bytes, then throw an OperationError.
+        if params
+            .additional_data
+            .as_ref()
+            .is_some_and(|data| data.len() > u64::MAX as usize)
+        {
+            return Err(Error::Operation);
+        }
+
+        // Step 5. Let tag be the last tagLength bits of ciphertext.
+        // Step 6. Let actualCiphertext be the result of removing the last tagLength bits from ciphertext.
+        // NOTE: aes_gcm splits the ciphertext for us
+
+        // Step 7. Let additionalData be the contents of the additionalData member of normalizedAlgorithm if present or
+        // the empty octet string otherwise.
+        let additional_data = params
+            .additional_data
+            .as_ref()
+            .map(|data| data.as_slice())
+            .unwrap_or_default();
+
+        // Step 8.  Perform the Authenticated Decryption Function described in Section 7.2 of [NIST-SP800-38D] using AES
+        // as the block cipher, the contents of the iv member of normalizedAlgorithm as the IV input parameter, the
+        // contents of additionalData as the A input parameter, tagLength as the t pre-requisite, the contents of
+        // actualCiphertext as the input ciphertext, C and the contents of tag as the authentication tag, T.
+        let mut plaintext = ciphertext.to_vec();
+        let key_length = key.handle().as_bytes().len();
+        let iv_length = params.iv.len();
+        let key_bytes = key.handle().as_bytes();
+        let result = match (key_length, iv_length) {
+            (16, 12) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes128Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            (20, 12) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes192Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            (32, 12) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes256Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            (16, 32) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes128Gcm256Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            (20, 32) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes192Gcm256Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            (32, 32) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes256Gcm256Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            _ => {
+                log::warn!("Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV");
+                return Err(Error::NotSupported);
+            },
+        };
+
+        // If the result of the algorithm is the indication of inauthenticity, "FAIL":
+        if result.is_err() {
+            // throw an OperationError
+            return Err(Error::Operation);
+        }
+        // Otherwise:
+        // Let plaintext be the output P of the Authenticated Decryption Function.
+
+        // Step 9. Return the result of creating an ArrayBuffer containing plaintext.
+        create_buffer_source::<ArrayBufferU8>(cx, &plaintext, handle)
+            .expect("failed to create buffer source for decrypted plaintext");
+
+        Ok(plaintext)
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
@@ -2751,7 +2879,7 @@ impl EncryptionAlgorithm {
         match self {
             Self::AesCbc(params) => subtle.decrypt_aes_cbc(params, key, data, cx, result),
             Self::AesCtr(params) => subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result),
-            Self::AesGcm(params) => todo!(),
+            Self::AesGcm(params) => subtle.decrypt_aes_gcm(params, key, data, cx, result),
         }
     }
 }
