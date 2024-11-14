@@ -1,0 +1,54 @@
+---
+source: components/script/xpath/parser.rs
+description: "processing-instruction('test')[2]"
+expression: output
+snapshot_kind: text
+---
+Path(
+    PathExpr {
+        is_absolute: false,
+        is_descendant: false,
+        steps: [
+            Axis(
+                AxisStep {
+                    axis: Child,
+                    node_test: Kind(
+                        PI(
+                            Some(
+                                "test",
+                            ),
+                        ),
+                    ),
+                    predicates: PredicateListExpr {
+                        predicates: [
+                            PredicateExpr {
+                                expr: Path(
+                                    PathExpr {
+                                        is_absolute: false,
+                                        is_descendant: false,
+                                        steps: [
+                                            Filter(
+                                                FilterExpr {
+                                                    primary: Literal(
+                                                        Numeric(
+                                                            Integer(
+                                                                2,
+                                                            ),
+                                                        ),
+                                                    ),
+                                                    predicates: PredicateListExpr {
+                                                        predicates: [],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            },
+                        ],
+                    },
+                },
+            ),
+        ],
+    },
+)

@@ -71,6 +71,7 @@ use uuid::Uuid;
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
+use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -95,6 +96,7 @@ use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
+use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -180,6 +182,7 @@ use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
+use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
@@ -680,6 +683,12 @@ impl Document {
     #[inline]
     pub fn is_html_document(&self) -> bool {
         self.is_html_document
+    }
+
+    pub fn is_xhtml_document(&self) -> bool {
+        self.content_type.type_() == mime::APPLICATION &&
+            self.content_type.subtype().as_str() == "xhtml" &&
+            self.content_type.suffix() == Some(mime::XML)
     }
 
     pub fn set_https_state(&self, https_state: HttpsState) {
@@ -4519,11 +4528,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             local_name.make_ascii_lowercase();
         }
 
-        let is_xhtml = self.content_type.type_() == mime::APPLICATION &&
-            self.content_type.subtype().as_str() == "xhtml" &&
-            self.content_type.suffix() == Some(mime::XML);
-
-        let ns = if self.is_html_document || is_xhtml {
+        let ns = if self.is_html_document || self.is_xhtml_document() {
             ns!(html)
         } else {
             ns!()
@@ -5612,6 +5617,49 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-visibilitystate>
     fn VisibilityState(&self) -> DocumentVisibilityState {
         self.visibility_state.get()
+    }
+
+    fn CreateExpression(
+        &self,
+        expression: DOMString,
+        resolver: Option<Rc<XPathNSResolver>>,
+    ) -> DomRoot<super::types::XPathExpression> {
+        let global = self.global();
+        let window = global.as_window();
+        let evaluator = XPathEvaluator::new(window, None, CanGc::note());
+        XPathEvaluatorMethods::<crate::DomTypeHolder>::CreateExpression(
+            &*evaluator,
+            expression,
+            resolver,
+        )
+    }
+
+    fn CreateNSResolver(&self, node_resolver: &Node) -> DomRoot<Node> {
+        let global = self.global();
+        let window = global.as_window();
+        let evaluator = XPathEvaluator::new(window, None, CanGc::note());
+        XPathEvaluatorMethods::<crate::DomTypeHolder>::CreateNSResolver(&*evaluator, node_resolver)
+    }
+
+    fn Evaluate(
+        &self,
+        expression: DOMString,
+        context_node: &Node,
+        resolver: Option<Rc<XPathNSResolver>>,
+        type_: u16,
+        result: Option<&super::types::XPathResult>,
+    ) -> Fallible<DomRoot<super::types::XPathResult>> {
+        let global = self.global();
+        let window = global.as_window();
+        let evaluator = XPathEvaluator::new(window, None, CanGc::note());
+        XPathEvaluatorMethods::<crate::DomTypeHolder>::Evaluate(
+            &*evaluator,
+            expression,
+            context_node,
+            resolver,
+            type_,
+            result,
+        )
     }
 }
 

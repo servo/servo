@@ -1,0 +1,50 @@
+---
+source: components/script/xpath/parser.rs
+description: "node()[1]"
+expression: output
+snapshot_kind: text
+---
+Path(
+    PathExpr {
+        is_absolute: false,
+        is_descendant: false,
+        steps: [
+            Axis(
+                AxisStep {
+                    axis: Child,
+                    node_test: Kind(
+                        Node,
+                    ),
+                    predicates: PredicateListExpr {
+                        predicates: [
+                            PredicateExpr {
+                                expr: Path(
+                                    PathExpr {
+                                        is_absolute: false,
+                                        is_descendant: false,
+                                        steps: [
+                                            Filter(
+                                                FilterExpr {
+                                                    primary: Literal(
+                                                        Numeric(
+                                                            Integer(
+                                                                1,
+                                                            ),
+                                                        ),
+                                                    ),
+                                                    predicates: PredicateListExpr {
+                                                        predicates: [],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            },
+                        ],
+                    },
+                },
+            ),
+        ],
+    },
+)

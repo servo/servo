@@ -1,0 +1,83 @@
+---
+source: components/script/xpath/parser.rs
+description: "text()[contains(., 'test')]"
+expression: output
+snapshot_kind: text
+---
+Path(
+    PathExpr {
+        is_absolute: false,
+        is_descendant: false,
+        steps: [
+            Axis(
+                AxisStep {
+                    axis: Child,
+                    node_test: Kind(
+                        Text,
+                    ),
+                    predicates: PredicateListExpr {
+                        predicates: [
+                            PredicateExpr {
+                                expr: Path(
+                                    PathExpr {
+                                        is_absolute: false,
+                                        is_descendant: false,
+                                        steps: [
+                                            Filter(
+                                                FilterExpr {
+                                                    primary: Function(
+                                                        Contains(
+                                                            Path(
+                                                                PathExpr {
+                                                                    is_absolute: false,
+                                                                    is_descendant: false,
+                                                                    steps: [
+                                                                        Filter(
+                                                                            FilterExpr {
+                                                                                primary: ContextItem,
+                                                                                predicates: PredicateListExpr {
+                                                                                    predicates: [],
+                                                                                },
+                                                                            },
+                                                                        ),
+                                                                    ],
+                                                                },
+                                                            ),
+                                                            Path(
+                                                                PathExpr {
+                                                                    is_absolute: false,
+                                                                    is_descendant: false,
+                                                                    steps: [
+                                                                        Filter(
+                                                                            FilterExpr {
+                                                                                primary: Literal(
+                                                                                    String(
+                                                                                        "test",
+                                                                                    ),
+                                                                                ),
+                                                                                predicates: PredicateListExpr {
+                                                                                    predicates: [],
+                                                                                },
+                                                                            },
+                                                                        ),
+                                                                    ],
+                                                                },
+                                                            ),
+                                                        ),
+                                                    ),
+                                                    predicates: PredicateListExpr {
+                                                        predicates: [],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            },
+                        ],
+                    },
+                },
+            ),
+        ],
+    },
+)

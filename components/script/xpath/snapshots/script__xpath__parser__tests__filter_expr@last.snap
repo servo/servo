@@ -1,0 +1,24 @@
+---
+source: components/script/xpath/parser.rs
+description: last()
+expression: output
+snapshot_kind: text
+---
+Path(
+    PathExpr {
+        is_absolute: false,
+        is_descendant: false,
+        steps: [
+            Filter(
+                FilterExpr {
+                    primary: Function(
+                        Last,
+                    ),
+                    predicates: PredicateListExpr {
+                        predicates: [],
+                    },
+                },
+            ),
+        ],
+    },
+)

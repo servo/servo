@@ -1,0 +1,94 @@
+---
+source: components/script/xpath/parser.rs
+description: "//processing-instruction('test')[string-length(.) > 0]"
+expression: output
+snapshot_kind: text
+---
+Path(
+    PathExpr {
+        is_absolute: true,
+        is_descendant: true,
+        steps: [
+            Axis(
+                AxisStep {
+                    axis: Child,
+                    node_test: Kind(
+                        PI(
+                            Some(
+                                "test",
+                            ),
+                        ),
+                    ),
+                    predicates: PredicateListExpr {
+                        predicates: [
+                            PredicateExpr {
+                                expr: Relational(
+                                    Path(
+                                        PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: [
+                                                Filter(
+                                                    FilterExpr {
+                                                        primary: Function(
+                                                            StringLength(
+                                                                Some(
+                                                                    Path(
+                                                                        PathExpr {
+                                                                            is_absolute: false,
+                                                                            is_descendant: false,
+                                                                            steps: [
+                                                                                Filter(
+                                                                                    FilterExpr {
+                                                                                        primary: ContextItem,
+                                                                                        predicates: PredicateListExpr {
+                                                                                            predicates: [],
+                                                                                        },
+                                                                                    },
+                                                                                ),
+                                                                            ],
+                                                                        },
+                                                                    ),
+                                                                ),
+                                                            ),
+                                                        ),
+                                                        predicates: PredicateListExpr {
+                                                            predicates: [],
+                                                        },
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    Gt,
+                                    Path(
+                                        PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: [
+                                                Filter(
+                                                    FilterExpr {
+                                                        primary: Literal(
+                                                            Numeric(
+                                                                Integer(
+                                                                    0,
+                                                                ),
+                                                            ),
+                                                        ),
+                                                        predicates: PredicateListExpr {
+                                                            predicates: [],
+                                                        },
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                },
+            ),
+        ],
+    },
+)
