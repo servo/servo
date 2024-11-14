@@ -417,6 +417,12 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
     #[allow(unsafe_code)]
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
+        // Let stream be this.[[stream]].
+        // Note: the spec does not assert that there is a stream.
+        let Some(stream) = self.stream.get() else {
+            return;
+        };
+
         // if queue contains bytes, perform chunk steps.
         if !self.queue.borrow().is_empty() {
             let chunk = self.dequeue_value();
@@ -427,12 +433,9 @@ impl ReadableStreamDefaultController {
                 self.clear_algorithms();
 
                 // Perform ! ReadableStreamClose(stream).
-                self.stream
-                    .get()
-                    .expect("Controller must have a stream when pull steps are called into.")
-                    .close();
+                stream.close();
             }
-
+/// Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
             self.call_pull_if_needed(CanGc::note());
 
             let cx = GlobalScope::get_cx();
@@ -450,12 +453,10 @@ impl ReadableStreamDefaultController {
             read_request.chunk_steps(result);
         }
 
-        // else, append read request to reader.
-        self.stream
-            .get()
-            .expect("Controller must have a stream when pull steps are called into.")
-            .add_read_request(read_request);
+        // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
+        stream.add_read_request(read_request);
 
+        // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
         self.call_pull_if_needed(CanGc::note());
     }
 
