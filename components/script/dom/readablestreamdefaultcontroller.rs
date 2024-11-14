@@ -435,7 +435,7 @@ impl ReadableStreamDefaultController {
                 // Perform ! ReadableStreamClose(stream).
                 stream.close();
             }
-
+/// Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
             self.call_pull_if_needed(CanGc::note());
 
             let cx = GlobalScope::get_cx();
