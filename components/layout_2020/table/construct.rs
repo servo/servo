@@ -463,16 +463,19 @@ impl TableBuilder {
         }
     }
 
-    fn current_y(&self) -> usize {
-        self.table.slots.len() - 1
+    fn current_y(&self) -> Option<usize> {
+        self.table.slots.len().checked_sub(1)
     }
 
-    fn current_x(&self) -> usize {
-        self.table.slots[self.current_y()].len()
+    fn current_x(&self) -> Option<usize> {
+        Some(self.table.slots[self.current_y()?].len())
     }
 
-    fn current_coords(&self) -> TableSlotCoordinates {
-        TableSlotCoordinates::new(self.current_x(), self.current_y())
+    fn current_coords(&self) -> Option<TableSlotCoordinates> {
+        Some(TableSlotCoordinates::new(
+            self.current_x()?,
+            self.current_y()?,
+        ))
     }
 
     pub fn start_row(&mut self) {
@@ -487,7 +490,9 @@ impl TableBuilder {
 
         // Truncate entries that are zero at the end of [`Self::incoming_rowspans`]. This
         // prevents padding the table with empty cells when it isn't necessary.
-        let current_x = self.current_x();
+        let current_x = self
+            .current_x()
+            .expect("Should have rows before calling `end_row`");
         for i in (current_x..self.incoming_rowspans.len()).rev() {
             if self.incoming_rowspans[i] == 0 {
                 self.incoming_rowspans.pop();
@@ -509,8 +514,10 @@ impl TableBuilder {
     /// finished processing the cells in a row, and after calling truncating cells with
     /// remaining rowspan from the end of `incoming_rowspans`.
     fn create_slots_for_cells_above_with_rowspan(&mut self, stop_at_cell_opportunity: bool) {
-        let mut current_x = self.current_x();
-        while let Some(span) = self.incoming_rowspans.get_mut(current_x) {
+        let mut current_coords = self
+            .current_coords()
+            .expect("Should have rows before calling `create_slots_for_cells_above_with_rowspan`");
+        while let Some(span) = self.incoming_rowspans.get_mut(current_coords.x) {
             // This column has no incoming rowspanned cells and `stop_at_zero` is true, so
             // we should stop to process new cells defined in the current row.
             if *span == 0 && stop_at_cell_opportunity {
@@ -520,7 +527,7 @@ impl TableBuilder {
             let new_cell = if *span != 0 {
                 *span -= 1;
                 self.table
-                    .create_spanned_slot_based_on_cell_above(self.current_coords())
+                    .create_spanned_slot_based_on_cell_above(current_coords)
                     .expect(
                         "Nonzero incoming rowspan cannot occur without a cell spanning this slot",
                     )
@@ -529,8 +536,9 @@ impl TableBuilder {
             };
 
             self.table.push_new_slot_to_last_row(new_cell);
-            current_x = self.current_x();
+            current_coords.x += 1;
         }
+        debug_assert_eq!(Some(current_coords), self.current_coords());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows>
@@ -539,27 +547,30 @@ impl TableBuilder {
     pub fn add_cell(&mut self, cell: TableSlotCell) {
         // Make sure the incoming_rowspans table is large enough
         // because we will be writing to it.
-        let current_x = self.current_x();
+        let current_coords = self
+            .current_coords()
+            .expect("Should have rows before calling `add_cell`");
         let colspan = cell.colspan;
         let rowspan = cell.rowspan;
 
-        if self.incoming_rowspans.len() < current_x + colspan {
-            self.incoming_rowspans.resize(current_x + colspan, 0isize);
+        if self.incoming_rowspans.len() < current_coords.x + colspan {
+            self.incoming_rowspans
+                .resize(current_coords.x + colspan, 0isize);
         }
 
         debug_assert_eq!(
-            self.incoming_rowspans[current_x], 0,
+            self.incoming_rowspans[current_coords.x], 0,
             "Added a cell in a position that also had an incoming rowspan!"
         );
 
         // If `rowspan` is zero, this is automatically negative and will stay negative.
         let outgoing_rowspan = rowspan as isize - 1;
         self.table.push_new_slot_to_last_row(TableSlot::Cell(cell));
-        self.incoming_rowspans[current_x] = outgoing_rowspan;
+        self.incoming_rowspans[current_coords.x] = outgoing_rowspan;
 
         // Draw colspanned cells
         for colspan_offset in 1..colspan {
-            let current_x_plus_colspan_offset = current_x + colspan_offset;
+            let current_x_plus_colspan_offset = current_coords.x + colspan_offset;
             let new_offset = TableSlotOffset::new(colspan_offset, 0);
             let incoming_rowspan = &mut self.incoming_rowspans[current_x_plus_colspan_offset];
             let new_slot = if *incoming_rowspan == 0 {
@@ -584,7 +595,7 @@ impl TableBuilder {
 
                 // This code creates a new slot in the case that there is a table model error.
                 let coords_of_spanned_cell =
-                    TableSlotCoordinates::new(current_x_plus_colspan_offset, self.current_y());
+                    TableSlotCoordinates::new(current_x_plus_colspan_offset, current_coords.y);
                 match self
                     .table
                     .create_spanned_slot_based_on_cell_above(coords_of_spanned_cell)
@@ -600,8 +611,11 @@ impl TableBuilder {
         }
 
         debug_assert_eq!(
-            current_x + colspan,
-            self.current_x(),
+            Some(TableSlotCoordinates::new(
+                current_coords.x + colspan,
+                current_coords.y
+            )),
+            self.current_coords(),
             "Must have produced `colspan` slot entries!"
         );
         self.create_slots_for_cells_above_with_rowspan(true);
