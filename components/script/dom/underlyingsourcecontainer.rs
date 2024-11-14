@@ -102,10 +102,9 @@ impl UnderlyingSourceContainer {
                     source.to_jsobject(*cx, this_object.handle_mut());
                 }
                 let this_handle = this_object.handle();
-                let promise = pull
+                return pull
                     .Call_(&this_handle, controller, ExceptionHandling::Report)
-                    .expect("Pull algorithm call failed");
-                return Some(promise);
+                    .ok();
             }
         }
         // Note: other source type have no pull steps for now.
@@ -138,9 +137,10 @@ impl UnderlyingSourceContainer {
                 }
                 let this_handle = this_object.handle();
                 rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-                let result = start
-                    .Call_(&this_handle, controller, ExceptionHandling::Report)
-                    .expect("Start algorithm call failed");
+                let Ok(result) = start.Call_(&this_handle, controller, ExceptionHandling::Report)
+                else {
+                    return None;
+                };
                 let is_promise = unsafe {
                     result_object.set(result.to_object());
                     IsPromiseObject(result_object.handle().into_handle())
