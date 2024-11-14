@@ -1342,6 +1342,7 @@ enum ImportKeyAlgorithm {
     AesCbc,
     AesCtr,
     AesKw,
+    AesGcm,
     Hmac(SubtleHmacImportParams),
     Pbkdf2,
     Hkdf,
@@ -1411,7 +1412,7 @@ fn normalize_algorithm_for_get_key_length(
 
             let name = algorithm.name.str();
             let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
-                name.eq_ignore_ascii_case(ALG_AES_CTR)
+                name.eq_ignore_ascii_case(ALG_AES_CTR) || name.eq_ignore_ascii_case(ALG_AES_GCM)
             {
                 let params = value_from_js_object!(AesDerivedKeyParams, cx, value);
                 GetKeyLengthAlgorithm::Aes(params.length)
@@ -1484,6 +1485,7 @@ fn normalize_algorithm_for_import_key(
         ALG_AES_CBC => ImportKeyAlgorithm::AesCbc,
         ALG_AES_CTR => ImportKeyAlgorithm::AesCtr,
         ALG_AES_KW => ImportKeyAlgorithm::AesKw,
+        ALG_AES_GCM => ImportKeyAlgorithm::AesGcm,
         ALG_PBKDF2 => ImportKeyAlgorithm::Pbkdf2,
         ALG_HKDF => ImportKeyAlgorithm::Hkdf,
         _ => return Err(Error::NotSupported),
@@ -1771,7 +1773,7 @@ impl SubtleCrypto {
         plaintext: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
-    ) -> Result<(), Error> {
+    ) -> Result<Vec<u8>, Error> {
         use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
         use cipher::consts::{U12, U32};
 
@@ -1888,7 +1890,7 @@ impl SubtleCrypto {
         create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
             .expect("failed to create buffer source for exported key.");
 
-        Ok(())
+        Ok(ciphertext)
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
@@ -2689,6 +2691,9 @@ impl ImportKeyAlgorithm {
             },
             Self::AesKw => {
                 subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_KW)
+            },
+            Self::AesGcm => {
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_GCM)
             },
             Self::Hmac(params) => {
                 subtle.import_key_hmac(params, format, secret, extractable, key_usages)
