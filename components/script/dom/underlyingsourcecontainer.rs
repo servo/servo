@@ -142,8 +142,12 @@ impl UnderlyingSourceContainer {
                     return None;
                 };
                 let is_promise = unsafe {
-                    result_object.set(result.to_object());
-                    IsPromiseObject(result_object.handle().into_handle())
+                    if result.is_object() {
+                        result_object.set(result.to_object());
+                        IsPromiseObject(result_object.handle().into_handle())
+                    } else {
+                        false
+                    }
                 };
                 // Let startPromise be a promise resolved with startResult.
                 // from #set-up-readable-stream-default-controller.
