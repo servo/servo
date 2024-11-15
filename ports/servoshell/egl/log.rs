@@ -33,14 +33,13 @@ pub(crate) fn redirect_stdout_and_stderr() -> Result<(), LogRedirectError> {
 
     // The first step is to redirect stdout and stderr to the logs.
     // We redirect stdout and stderr to a custom descriptor.
-    let (readerfd, writerfd) =
-        nix::unistd::pipe().map_err(|e| LogRedirectError::CreatePipeFailed(e))?;
+    let (readerfd, writerfd) = nix::unistd::pipe().map_err(LogRedirectError::CreatePipeFailed)?;
     // Leaks the writer fd. We want to log for the whole program lifetime.
     let raw_writerfd = writerfd.into_raw_fd();
     let _fd = nix::unistd::dup2(raw_writerfd, RawFd::from(1))
-        .map_err(|e| LogRedirectError::RedirectToPipeFailed(e))?;
+        .map_err(LogRedirectError::RedirectToPipeFailed)?;
     let _fd = nix::unistd::dup2(raw_writerfd, RawFd::from(2))
-        .map_err(|e| LogRedirectError::RedirectToPipeFailed(e))?;
+        .map_err(LogRedirectError::RedirectToPipeFailed)?;
 
     // Then we spawn a thread whose only job is to read from the other side of the
     // pipe and redirect to the logs.
