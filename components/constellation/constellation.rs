@@ -4257,7 +4257,7 @@ where
             Some(ctx) => ctx.pipeline_id,
             None => {
                 return warn!(
-                    "{}: Got key event for nonexistent browsing context",
+                    "{}: Got composition event for nonexistent browsing context",
                     focused_browsing_context_id,
                 );
             },
@@ -4266,7 +4266,7 @@ where
         let result = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.event_loop.send(msg),
             None => {
-                return debug!("{}: Got key event after closure", pipeline_id);
+                return debug!("{}: Got composition event after closure", pipeline_id);
             },
         };
         if let Err(e) = result {
