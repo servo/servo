@@ -7,8 +7,8 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::jsval::UndefinedValue;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -125,8 +125,7 @@ impl Callback for StartAlgorithmRejectionHandler {
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
 pub struct ValueWithSize {
-    // TODO: check how to properly do this one.
-    value: Heap<*mut JSObject>,
+    value: Heap<JSVal>,
     size: f64,
 }
 
@@ -523,12 +522,11 @@ impl ReadableStreamDefaultController {
 
         // We create the value-with-size created inside
         // EnqueueValueWithSize here.
-        rooted!(in(*cx) let object = chunk.to_object());
         let value_with_size = ValueWithSize {
             value: Heap::default(),
             size,
         };
-        value_with_size.value.set(*object);
+        value_with_size.value.set(chunk.get());
 
         {
             // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
