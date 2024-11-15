@@ -320,6 +320,8 @@ impl ReadableStreamDefaultController {
     }
 
     pub fn set_stream(&self, stream: &ReadableStream) {
+        // Stream is set in its default readable state.
+        assert!(stream.is_readable());
         self.stream.set(Some(stream))
     }
 
@@ -653,7 +655,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
-    pub fn error(&self, e: SafeHandleValue) {
+    fn error(&self, e: SafeHandleValue) {
         let Some(stream) = self.stream.get() else {
             return;
         };
