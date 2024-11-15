@@ -147,7 +147,7 @@ impl SystemFontService {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn run(&mut self) {
         loop {
@@ -187,7 +187,7 @@ impl SystemFontService {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn fetch_new_keys(&mut self) {
         if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
@@ -207,7 +207,7 @@ impl SystemFontService {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn get_font_templates(
         &mut self,
@@ -223,7 +223,7 @@ impl SystemFontService {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
@@ -237,7 +237,7 @@ impl SystemFontService {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn find_font_templates(
         &mut self,
@@ -264,7 +264,7 @@ impl SystemFontService {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn get_font_instance(
         &mut self,

@@ -226,7 +226,11 @@ where
 {
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip(embedder, window), fields(servo_profiling = true))
+        tracing::instrument(
+            skip(embedder, window),
+            fields(servo_profiling = true),
+            level = "trace",
+        )
     )]
     #[allow(clippy::new_ret_no_self)]
     pub fn new(

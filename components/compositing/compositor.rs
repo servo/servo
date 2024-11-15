@@ -665,7 +665,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// instance in the parent process.
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_cross_process_message(&mut self, msg: CrossProcessCompositorMessage) {
         match msg {
@@ -2027,7 +2027,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn composite_specific_target(
         &mut self,
@@ -2271,7 +2271,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn present(&mut self) {
         #[cfg(feature = "tracing")]
@@ -2340,7 +2340,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
@@ -2370,7 +2370,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn perform_updates(&mut self) -> bool {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
