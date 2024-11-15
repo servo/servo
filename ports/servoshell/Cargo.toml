@@ -60,6 +60,7 @@ webxr = ["dep:webxr", "libservo/webxr"]
 libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
+keyboard-types = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
@@ -80,7 +81,6 @@ libloading = "0.8"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
-keyboard-types = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
 env_filter = "0.1.2"
