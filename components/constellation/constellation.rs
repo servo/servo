@@ -1532,13 +1532,11 @@ where
             },
             FromCompositorMsg::ReadyToPresent(webview_ids) => {
                 #[cfg(feature = "tracing")]
-                let span = tracing::span!(
-                    tracing::Level::TRACE,
+                let _span = tracing::trace_span!(
                     "FromCompositorMsg::ReadyToPresent",
-                    servo_profiling = true
-                );
-                #[cfg(feature = "tracing")]
-                let _enter = span.enter();
+                    servo_profiling = true,
+                )
+                .entered();
                 self.embedder_proxy
                     .send((None, EmbedderMsg::ReadyToPresent(webview_ids)));
             },

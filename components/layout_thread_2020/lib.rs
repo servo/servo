@@ -822,13 +822,8 @@ impl LayoutThread {
 
         if token.should_traverse() {
             #[cfg(feature = "tracing")]
-            let span = tracing::span!(
-                tracing::Level::TRACE,
-                "driver::traverse_dom",
-                servo_profiling = true
-            );
-            #[cfg(feature = "tracing")]
-            let _enter = span.enter();
+            let _span =
+                tracing::trace_span!("driver::traverse_dom", servo_profiling = true).entered();
             let dirty_root: ServoLayoutNode =
                 driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 
