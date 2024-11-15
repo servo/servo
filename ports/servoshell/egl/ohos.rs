@@ -180,14 +180,14 @@ impl ServoAction {
             ImeSendEnter => servo
                 .key_down(Key::Enter)
                 .and_then(|()| servo.key_up(Key::Enter)),
+
             Initialize(_init_opts) => {
                 panic!("Received Initialize event, even though servo is already initialized")
             },
-
             Vsync => servo
                 .process_event(EmbedderEvent::Vsync)
                 .and_then(|()| servo.perform_updates())
-                .and_then(|()| Ok(servo.present_if_needed())),
+                .map(|()| servo.present_if_needed()),
         };
         if let Err(e) = res {
             error!("Failed to do {self:?} with error {e}");
@@ -400,7 +400,7 @@ fn initialize_logging_once() {
             let current_thread = thread::current();
             let name = current_thread.name().unwrap_or("<unnamed>");
             if let Some(location) = info.location() {
-                let _ = error!(
+                error!(
                     "{} (thread {}, at {}:{})",
                     msg,
                     name,
@@ -408,10 +408,10 @@ fn initialize_logging_once() {
                     location.line()
                 );
             } else {
-                let _ = error!("{} (thread {})", msg, name);
+                error!("{} (thread {})", msg, name);
             }
 
-            let _ = crate::backtrace::print_ohos();
+            crate::backtrace::print_ohos();
         }));
 
         // We only redirect stdout and stderr for non-production builds, since it is

@@ -156,7 +156,7 @@ impl ServoGlue {
     /// to act on its pending events.
     pub fn perform_updates(&mut self) -> Result<(), &'static str> {
         debug!("perform_updates");
-        let events = mem::replace(&mut self.events, Vec::new());
+        let events = mem::take(&mut self.events);
         self.servo.handle_events(events);
         let r = self.handle_servo_events();
         debug!("done perform_updates");
@@ -275,7 +275,7 @@ impl ServoGlue {
         let event = EmbedderEvent::Touch(
             TouchEventType::Down,
             TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
+            Point2D::new(x, y),
         );
         self.process_event(event)
     }
@@ -285,18 +285,15 @@ impl ServoGlue {
         let event = EmbedderEvent::Touch(
             TouchEventType::Move,
             TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
+            Point2D::new(x, y),
         );
         self.process_event(event)
     }
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = EmbedderEvent::Touch(
-            TouchEventType::Up,
-            TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
-        );
+        let event =
+            EmbedderEvent::Touch(TouchEventType::Up, TouchId(pointer_id), Point2D::new(x, y));
         self.process_event(event)
     }
 
@@ -305,7 +302,7 @@ impl ServoGlue {
         let event = EmbedderEvent::Touch(
             TouchEventType::Cancel,
             TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
+            Point2D::new(x, y),
         );
         self.process_event(event)
     }
