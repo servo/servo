@@ -782,7 +782,7 @@ impl HostTrait for HostCallbacks {
 
     fn on_ime_hide(&self) {
         debug!("IME hide!");
-        let mut ime_proxy = self.ime_proxy.replace(None);
+        let mut ime_proxy = self.ime_proxy.take();
         if let Some(ime) = ime_proxy {
             match ime.hide_keyboard() {
                 Ok(()) => debug!("IME hide keyboard - success"),
