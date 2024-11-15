@@ -223,7 +223,7 @@ unsafe extern "C" fn on_vsync_cb(
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
 #[no_mangle]
-pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
+extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
 
     let xc_wrapper = XComponentWrapper(xcomponent);
@@ -285,24 +285,15 @@ pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, wi
 }
 
 // Todo: Probably we need to block here, until the main thread has processed the change.
-pub extern "C" fn on_surface_changed_cb(
-    _component: *mut OH_NativeXComponent,
-    _window: *mut c_void,
-) {
+extern "C" fn on_surface_changed_cb(_component: *mut OH_NativeXComponent, _window: *mut c_void) {
     error!("on_surface_changed_cb is currently not implemented!");
 }
 
-pub extern "C" fn on_surface_destroyed_cb(
-    _component: *mut OH_NativeXComponent,
-    _window: *mut c_void,
-) {
+extern "C" fn on_surface_destroyed_cb(_component: *mut OH_NativeXComponent, _window: *mut c_void) {
     error!("on_surface_destroyed_cb is currently not implemented");
 }
 
-pub extern "C" fn on_dispatch_touch_event_cb(
-    component: *mut OH_NativeXComponent,
-    window: *mut c_void,
-) {
+extern "C" fn on_dispatch_touch_event_cb(component: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("DispatchTouchEvent");
     let mut touch_event: MaybeUninit<OH_NativeXComponent_TouchEvent> = MaybeUninit::uninit();
     let res =
@@ -335,7 +326,7 @@ pub extern "C" fn on_dispatch_touch_event_cb(
     }
 }
 
-pub extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut c_void) {
+extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut c_void) {
     info!("DispatchKeyEvent");
     let mut event: *mut OH_NativeXComponent_KeyEvent = core::ptr::null_mut();
     let res = unsafe { OH_NativeXComponent_GetKeyEvent(xc, &mut event as *mut *mut _) };
