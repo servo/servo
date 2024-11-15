@@ -48,7 +48,7 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;
 use net_traits::response::HttpsState;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
-use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time, time_profile};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
@@ -2652,7 +2652,7 @@ impl GlobalScope {
             iframe: profile_time::TimerMetadataFrameType::RootWindow,
             incremental: profile_time::TimerMetadataReflowType::FirstReflow,
         };
-        profile_time::profile(
+        time_profile!(
             profile_time::ProfilerCategory::ScriptEvaluate,
             Some(metadata),
             self.time_profiler_chan().clone(),

@@ -12,6 +12,9 @@ path = "lib.rs"
 test = true
 doctest = false
 
+[features]
+tracing = ["dep:tracing"]
+
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
@@ -48,6 +51,7 @@ size_of_test = { workspace = true }
 smallvec = { workspace = true, features = ["union"] }
 style = { workspace = true }
 style_traits = { workspace = true }
+tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
