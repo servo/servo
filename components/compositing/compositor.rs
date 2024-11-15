@@ -27,7 +27,8 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, error, info, trace, warn};
 use pixels::{CorsStatus, Image, PixelFormat};
-use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
+use profile_traits::time::{self as profile_time, ProfilerCategory};
+use profile_traits::time_profile;
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
     AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
@@ -2098,7 +2099,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.assert_gl_framebuffer_complete();
         }
 
-        profile(
+        time_profile!(
             ProfilerCategory::Compositing,
             None,
             self.time_profiler_chan.clone(),
@@ -2214,7 +2215,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 })
             },
             CompositeTarget::PngFile(path) => {
-                profile(
+                time_profile!(
                     ProfilerCategory::ImageSaving,
                     None,
                     self.time_profiler_chan.clone(),

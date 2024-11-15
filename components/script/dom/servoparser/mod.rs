@@ -27,8 +27,9 @@ use net_traits::{
     ResourceTimingType,
 };
 use profile_traits::time::{
-    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+    ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
+use profile_traits::time_profile;
 use script_traits::DocumentActivity;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -521,17 +522,32 @@ impl ServoParser {
             iframe: TimerMetadataFrameType::RootWindow,
             incremental: TimerMetadataReflowType::FirstReflow,
         };
-        let profiler_category = self.tokenizer.profiler_category();
-        profile(
-            profiler_category,
-            Some(metadata),
-            self.document
-                .window()
-                .upcast::<GlobalScope>()
-                .time_profiler_chan()
-                .clone(),
-            || self.do_parse_sync(can_gc),
-        )
+        let profiler_chan = self
+            .document
+            .window()
+            .upcast::<GlobalScope>()
+            .time_profiler_chan()
+            .clone();
+        match self.tokenizer {
+            Tokenizer::Html(_) => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(metadata),
+                profiler_chan,
+                || self.do_parse_sync(can_gc),
+            ),
+            Tokenizer::AsyncHtml(_) => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(metadata),
+                profiler_chan,
+                || self.do_parse_sync(can_gc),
+            ),
+            Tokenizer::Xml(_) => time_profile!(
+                ProfilerCategory::ScriptParseXML,
+                Some(metadata),
+                profiler_chan,
+                || self.do_parse_sync(can_gc),
+            ),
+        }
     }
 
     fn do_parse_sync(&self, can_gc: CanGc) {
@@ -718,14 +734,6 @@ impl Tokenizer {
             Tokenizer::Html(ref tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::Xml(_) => unimplemented!(),
-        }
-    }
-
-    fn profiler_category(&self) -> ProfilerCategory {
-        match *self {
-            Tokenizer::Html(_) => ProfilerCategory::ScriptParseHTML,
-            Tokenizer::AsyncHtml(_) => ProfilerCategory::ScriptParseHTML,
-            Tokenizer::Xml(_) => ProfilerCategory::ScriptParseXML,
         }
     }
 }

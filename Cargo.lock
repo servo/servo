@@ -3832,6 +3832,7 @@ dependencies = [
  "smallvec",
  "style",
  "style_traits",
+ "tracing",
  "unicode-bidi",
  "unicode-script",
  "webrender_api",
@@ -3919,6 +3920,7 @@ dependencies = [
  "style",
  "style_traits",
  "time 0.3.36",
+ "tracing",
  "url",
  "webrender_api",
  "webrender_traits",
@@ -5564,6 +5566,7 @@ dependencies = [
  "servo_config",
  "signpost",
  "time 0.3.36",
+ "tracing",
 ]
 
 [[package]]
@@ -6074,6 +6077,7 @@ dependencies = [
  "tempfile",
  "tendril",
  "time 0.3.36",
+ "tracing",
  "unicode-bidi",
  "unicode-segmentation",
  "url",

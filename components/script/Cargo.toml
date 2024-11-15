@@ -16,6 +16,7 @@ path = "lib.rs"
 debugmozjs = ['js/debugmozjs']
 jitspew = ['js/jitspew']
 profilemozjs = ['js/profilemozjs']
+tracing = ["dep:tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
@@ -111,6 +112,7 @@ swapper = "0.1"
 tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 time_03 = { workspace = true }
+tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }
