@@ -1334,7 +1334,7 @@ where
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
             },
-            FromCompositorMsg::CompositionEvent(ime_event) => {
+            FromCompositorMsg::IMECompositionEvent(ime_event) => {
                 self.handle_ime_msg(ime_event);
             },
             FromCompositorMsg::IMEDismissed => {

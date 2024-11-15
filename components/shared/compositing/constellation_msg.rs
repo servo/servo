@@ -35,7 +35,7 @@ pub enum ConstellationMsg {
     /// Inform the constellation of a key event.
     Keyboard(KeyboardEvent),
     /// Inform the constellation of a composition event (IME).
-    CompositionEvent(CompositionEvent),
+    IMECompositionEvent(CompositionEvent),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
@@ -105,7 +105,7 @@ impl ConstellationMsg {
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
             Keyboard(..) => "Keyboard",
-            CompositionEvent(..) => "CompositionEvent",
+            IMECompositionEvent(..) => "IMECompositionEvent",
             AllowNavigationResponse(..) => "AllowNavigationResponse",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
