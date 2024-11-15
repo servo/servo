@@ -30,7 +30,6 @@ use ohos_sys::xcomponent::{
 use servo::compositing::windowing::EmbedderEvent;
 use servo::embedder_traits;
 use servo::embedder_traits::{InputMethodType, PromptResult};
-use servo::euclid::Point2D;
 use servo::style::Zero;
 use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
@@ -82,7 +81,7 @@ unsafe impl Send for XComponentWrapper {}
 unsafe impl Send for WindowWrapper {}
 
 #[derive(Clone, Copy, Debug)]
-enum TouchEventType {
+pub(super) enum TouchEventType {
     Down,
     Up,
     Move,
@@ -91,7 +90,7 @@ enum TouchEventType {
 }
 
 #[derive(Debug)]
-enum ServoAction {
+pub(super) enum ServoAction {
     WakeUp,
     LoadUrl(String),
     GoBack,
@@ -206,11 +205,9 @@ unsafe extern "C" fn on_vsync_cb(
     data: *mut ::core::ffi::c_void,
 ) {
     trace!("Vsync callback at time {timestamp}");
-    // SAFETY: We require the function registering us as a callback
-    let (native_vsync, data) = unsafe {
-        let native = ohos_vsync::NativeVsync::from_raw(data.cast());
-        (native, 0)
-    };
+    // SAFETY: We require the function registering us as a callback provides a valid
+    //  `OH_NativeVSync` object. We do not use `data` after this point.
+    let native_vsync = unsafe { ohos_vsync::NativeVsync::from_raw(data.cast()) };
     call(ServoAction::Vsync).unwrap();
     // Todo: Do we have a callback for when the frame finished rendering?
     unsafe {
@@ -507,7 +504,7 @@ pub fn go_forward() {
 #[napi(js_name = "registerURLcallback")]
 pub fn register_url_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
     debug!("register_url_callback called!");
-    let mut tsfn_builder = callback.build_threadsafe_function();
+    let tsfn_builder = callback.build_threadsafe_function();
     let function = tsfn_builder
         .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
         .build()?;
@@ -522,7 +519,7 @@ pub fn register_url_callback(callback: Function<String, ()>) -> napi_ohos::Resul
 #[napi]
 pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
     debug!("register_prompt_toast_callback called!");
-    let mut tsfn_builder = callback.build_threadsafe_function();
+    let tsfn_builder = callback.build_threadsafe_function();
     let function = tsfn_builder.max_queue_size::<PROMPT_QUEUE_SIZE>().build()?;
 
     PROMPT_TOAST

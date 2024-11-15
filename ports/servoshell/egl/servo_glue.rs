@@ -26,7 +26,6 @@ use servo::script_traits::{
 };
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use servo::{gl, Servo, TopLevelBrowsingContextId};
@@ -501,7 +500,8 @@ impl ServoGlue {
                     let trusted = origin == PromptOrigin::Trusted;
                     let res = match definition {
                         PromptDefinition::Alert(message, sender) => {
-                            sender.send(cb.prompt_alert(message, trusted))
+                            cb.prompt_alert(message, trusted);
+                            sender.send(())
                         },
                         PromptDefinition::OkCancel(message, sender) => {
                             sender.send(cb.prompt_ok_cancel(message, trusted))
