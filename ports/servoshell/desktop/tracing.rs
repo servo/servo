@@ -229,6 +229,7 @@ mod to_servo {
                 Self::ToggleSamplingProfiler(..) => target!("ToggleSamplingProfiler"),
                 Self::MediaSessionAction(..) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(..) => target!("SetWebViewThrottled"),
+                Self::IMEComposition(..) => target!("IMEComposition"),
                 Self::IMEDismissed => target!("IMEDismissed"),
                 Self::InvalidateNativeSurface => target!("InvalidateNativeSurface"),
                 Self::ReplaceNativeSurface(..) => target!("ReplaceNativeSurface"),

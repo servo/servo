@@ -8,7 +8,8 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 
 use ipc_channel::ipc::IpcSender;
-use log::{debug, info, warn};
+use keyboard_types::{CompositionEvent, CompositionState};
+use log::{debug, error, info, warn};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
@@ -155,7 +156,7 @@ impl ServoGlue {
     /// to act on its pending events.
     pub fn perform_updates(&mut self) -> Result<(), &'static str> {
         debug!("perform_updates");
-        let events = mem::replace(&mut self.events, Vec::new());
+        let events = mem::take(&mut self.events);
         self.servo.handle_events(events);
         let r = self.handle_servo_events();
         debug!("done perform_updates");
@@ -274,7 +275,7 @@ impl ServoGlue {
         let event = EmbedderEvent::Touch(
             TouchEventType::Down,
             TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
+            Point2D::new(x, y),
         );
         self.process_event(event)
     }
@@ -284,18 +285,15 @@ impl ServoGlue {
         let event = EmbedderEvent::Touch(
             TouchEventType::Move,
             TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
+            Point2D::new(x, y),
         );
         self.process_event(event)
     }
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&mut self, x: f32, y: f32, pointer_id: i32) -> Result<(), &'static str> {
-        let event = EmbedderEvent::Touch(
-            TouchEventType::Up,
-            TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
-        );
+        let event =
+            EmbedderEvent::Touch(TouchEventType::Up, TouchId(pointer_id), Point2D::new(x, y));
         self.process_event(event)
     }
 
@@ -304,7 +302,7 @@ impl ServoGlue {
         let event = EmbedderEvent::Touch(
             TouchEventType::Cancel,
             TouchId(pointer_id),
-            Point2D::new(x as f32, y as f32),
+            Point2D::new(x, y),
         );
         self.process_event(event)
     }
@@ -372,6 +370,13 @@ impl ServoGlue {
             ..KeyboardEvent::default()
         };
         self.process_event(EmbedderEvent::Keyboard(key_event))
+    }
+
+    pub fn ime_insert_text(&mut self, text: String) -> Result<(), &'static str> {
+        self.process_event(EmbedderEvent::IMEComposition(CompositionEvent {
+            state: CompositionState::End,
+            data: text,
+        }))
     }
 
     pub fn pause_compositor(&mut self) -> Result<(), &'static str> {
@@ -619,11 +624,13 @@ impl ServoGlue {
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     self.need_present = true;
                 },
+                EmbedderMsg::Keyboard(..) => {
+                    error!("Received unexpected keyboard event");
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
                 EmbedderMsg::ResizeTo(..) |
-                EmbedderMsg::Keyboard(..) |
                 EmbedderMsg::SetCursor(..) |
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |

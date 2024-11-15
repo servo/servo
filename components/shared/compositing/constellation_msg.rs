@@ -10,7 +10,7 @@ use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebView
 use base::Epoch;
 use embedder_traits::Cursor;
 use ipc_channel::ipc::IpcSender;
-use keyboard_types::KeyboardEvent;
+use keyboard_types::{CompositionEvent, KeyboardEvent};
 use script_traits::{
     AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
     TraversalDirection, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
@@ -34,6 +34,8 @@ pub enum ConstellationMsg {
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
     Keyboard(KeyboardEvent),
+    /// Inform the constellation of a composition event (IME).
+    IMECompositionEvent(CompositionEvent),
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
@@ -103,6 +105,7 @@ impl ConstellationMsg {
             GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
             IsReadyToSaveImage(..) => "IsReadyToSaveImage",
             Keyboard(..) => "Keyboard",
+            IMECompositionEvent(..) => "IMECompositionEvent",
             AllowNavigationResponse(..) => "AllowNavigationResponse",
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",

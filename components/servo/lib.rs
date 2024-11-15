@@ -727,6 +727,16 @@ where
                 }
             },
 
+            EmbedderEvent::IMEComposition(ime_event) => {
+                let msg = ConstellationMsg::IMECompositionEvent(ime_event);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending composition event to constellation failed ({:?}).",
+                        e
+                    );
+                }
+            },
+
             EmbedderEvent::IMEDismissed => {
                 let msg = ConstellationMsg::IMEDismissed;
                 if let Err(e) = self.constellation_chan.send(msg) {

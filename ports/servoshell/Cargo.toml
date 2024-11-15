@@ -60,6 +60,7 @@ webxr = ["dep:webxr", "libservo/webxr"]
 libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
+keyboard-types = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
@@ -91,6 +92,9 @@ napi-derive-ohos = "1.0.1"
 napi-ohos = "1.0.1"
 ohos-sys = { version = "0.4.0", features = ["xcomponent"] }
 ohos-vsync = "0.1.2"
+ohos-ime = { version = "0.2" }
+ohos-ime-sys = "0.1.1"
+xcomponent-sys = { version = "0.1.1", features = ["api-12", "keyboard-types"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 nix = { workspace = true, features = ["fs"] }
@@ -112,7 +116,6 @@ gleam = { workspace = true }
 glow = "0.14.2"
 headers = { workspace = true }
 http = { workspace = true }
-keyboard-types = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
 raw-window-handle = "0.6"

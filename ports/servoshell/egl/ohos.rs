@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(non_snake_case)]
 
+use std::cell::RefCell;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
 use std::sync::mpsc::{Receiver, Sender};
@@ -11,21 +12,30 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
+use keyboard_types::Key;
 use log::{debug, error, info, trace, warn, LevelFilter};
 use napi_derive_ohos::{module_exports, napi};
 use napi_ohos::bindgen_prelude::Function;
 use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_ohos::{Env, JsObject, JsString, NapiRaw};
+use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
+use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use ohos_sys::xcomponent::{
-    OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetTouchEvent,
-    OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_TouchEvent,
+    OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
+    OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetTouchEvent,
+    OH_NativeXComponent_KeyEvent, OH_NativeXComponent_RegisterCallback,
+    OH_NativeXComponent_RegisterKeyEventCallback, OH_NativeXComponent_TouchEvent,
     OH_NativeXComponent_TouchEventType,
 };
 use servo::compositing::windowing::EmbedderEvent;
-use servo::embedder_traits::PromptResult;
+use servo::embedder_traits;
+use servo::embedder_traits::{InputMethodType, PromptResult};
 use servo::euclid::Point2D;
 use servo::style::Zero;
 use simpleservo::EventLoopWaker;
+use xcomponent_sys::{
+    OH_NativeXComponent_GetKeyEventCode, OH_NativeXComponent_KeyAction, OH_NativeXComponent_KeyCode,
+};
 
 use super::gl_glue;
 use super::host_trait::HostTrait;
@@ -92,6 +102,12 @@ enum ServoAction {
         y: f32,
         pointer_id: i32,
     },
+    KeyUp(Key),
+    KeyDown(Key),
+    InsertText(String),
+    ImeDeleteForward(usize),
+    ImeDeleteBackward(usize),
+    ImeSendEnter,
     Initialize(Box<InitOpts>),
     Vsync,
 }
@@ -130,6 +146,7 @@ impl ServoAction {
         }
     }
 
+    // todo: consider making this take `self`, so we don't need to needlessly clone.
     fn do_action(&self, servo: &mut ServoGlue) {
         use ServoAction::*;
         let res = match self {
@@ -143,14 +160,34 @@ impl ServoAction {
                 y,
                 pointer_id,
             } => Self::dispatch_touch_event(servo, *kind, *x, *y, *pointer_id),
+            KeyUp(k) => servo.key_up(k.clone()),
+            KeyDown(k) => servo.key_down(k.clone()),
+            InsertText(text) => servo.ime_insert_text(text.clone()),
+            ImeDeleteForward(len) => {
+                for _ in 0..*len {
+                    let _ = servo.key_down(Key::Delete);
+                    let _ = servo.key_up(Key::Delete);
+                }
+                Ok(())
+            },
+            ImeDeleteBackward(len) => {
+                for _ in 0..*len {
+                    let _ = servo.key_down(Key::Backspace);
+                    let _ = servo.key_up(Key::Backspace);
+                }
+                Ok(())
+            },
+            ImeSendEnter => servo
+                .key_down(Key::Enter)
+                .and_then(|()| servo.key_up(Key::Enter)),
+
             Initialize(_init_opts) => {
                 panic!("Received Initialize event, even though servo is already initialized")
             },
-
             Vsync => servo
                 .process_event(EmbedderEvent::Vsync)
                 .and_then(|()| servo.perform_updates())
-                .and_then(|()| Ok(servo.present_if_needed())),
+                .map(|()| servo.present_if_needed()),
         };
         if let Err(e) = res {
             error!("Failed to do {self:?} with error {e}");
@@ -186,7 +223,7 @@ unsafe extern "C" fn on_vsync_cb(
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
 #[no_mangle]
-pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
+extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
 
     let xc_wrapper = XComponentWrapper(xcomponent);
@@ -248,24 +285,15 @@ pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, wi
 }
 
 // Todo: Probably we need to block here, until the main thread has processed the change.
-pub extern "C" fn on_surface_changed_cb(
-    _component: *mut OH_NativeXComponent,
-    _window: *mut c_void,
-) {
+extern "C" fn on_surface_changed_cb(_component: *mut OH_NativeXComponent, _window: *mut c_void) {
     error!("on_surface_changed_cb is currently not implemented!");
 }
 
-pub extern "C" fn on_surface_destroyed_cb(
-    _component: *mut OH_NativeXComponent,
-    _window: *mut c_void,
-) {
+extern "C" fn on_surface_destroyed_cb(_component: *mut OH_NativeXComponent, _window: *mut c_void) {
     error!("on_surface_destroyed_cb is currently not implemented");
 }
 
-pub extern "C" fn on_dispatch_touch_event_cb(
-    component: *mut OH_NativeXComponent,
-    window: *mut c_void,
-) {
+extern "C" fn on_dispatch_touch_event_cb(component: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("DispatchTouchEvent");
     let mut touch_event: MaybeUninit<OH_NativeXComponent_TouchEvent> = MaybeUninit::uninit();
     let res =
@@ -298,6 +326,39 @@ pub extern "C" fn on_dispatch_touch_event_cb(
     }
 }
 
+extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut c_void) {
+    info!("DispatchKeyEvent");
+    let mut event: *mut OH_NativeXComponent_KeyEvent = core::ptr::null_mut();
+    let res = unsafe { OH_NativeXComponent_GetKeyEvent(xc, &mut event as *mut *mut _) };
+    assert_eq!(res, 0);
+
+    let mut action = OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_UNKNOWN;
+    let res = unsafe { OH_NativeXComponent_GetKeyEventAction(event, &mut action as *mut _) };
+    assert_eq!(res, 0);
+
+    let mut keycode = OH_NativeXComponent_KeyCode::KEY_UNKNOWN;
+    let res = unsafe { OH_NativeXComponent_GetKeyEventCode(event, &mut keycode as *mut _) };
+    assert_eq!(res, 0);
+
+    // Simplest possible impl, just for testing purposes
+    let code: keyboard_types::Code = keycode.into();
+    // There currently doesn't seem to be an API to query keymap / keyboard layout, so
+    // we don't even bother implementing modifier support for now, since we expect to be using the
+    // IME most of the time anyway. We can revisit this when someone has an OH device with a
+    // physical keyboard.
+    let char = code.to_string();
+    let key = Key::Character(char);
+    match action {
+        OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_UP => {
+            call(ServoAction::KeyUp(key)).expect("Call failed")
+        },
+        OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_DOWN => {
+            call(ServoAction::KeyDown(key)).expect("Call failed")
+        },
+        _ => error!("Unknown key action {:?}", action),
+    }
+}
+
 fn initialize_logging_once() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
@@ -316,6 +377,7 @@ fn initialize_logging_once() {
             "compositing::compositor",
             "compositing::touch",
             "constellation::constellation",
+            "ohos_ime",
         ];
         for &module in &filters {
             builder.filter_module(module, log::LevelFilter::Debug);
@@ -338,7 +400,7 @@ fn initialize_logging_once() {
             let current_thread = thread::current();
             let name = current_thread.name().unwrap_or("<unnamed>");
             if let Some(location) = info.location() {
-                let _ = error!(
+                error!(
                     "{} (thread {}, at {}:{})",
                     msg,
                     name,
@@ -346,10 +408,10 @@ fn initialize_logging_once() {
                     location.line()
                 );
             } else {
-                let _ = error!("{} (thread {})", msg, name);
+                error!("{} (thread {})", msg, name);
             }
 
-            let _ = crate::backtrace::print_ohos();
+            crate::backtrace::print_ohos();
         }));
 
         // We only redirect stdout and stderr for non-production builds, since it is
@@ -386,7 +448,16 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &JsObject) -> napi_ohos:
     if res != 0 {
         error!("Failed to register callbacks");
     } else {
-        info!("Registerd callbacks successfully");
+        info!("Registered callbacks successfully");
+    }
+
+    let res = unsafe {
+        OH_NativeXComponent_RegisterKeyEventCallback(nativeXComponent, Some(on_dispatch_key_event))
+    };
+    if res != 0 {
+        error!("Failed to register key event callbacks");
+    } else {
+        debug!("Registered key event callbacks successfully");
     }
     Ok(())
 }
@@ -491,6 +562,54 @@ pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
     Ok(())
 }
 
+struct OhosImeOptions {
+    input_type: ohos_ime_sys::types::InputMethod_TextInputType,
+    enterkey_type: InputMethod_EnterKeyType,
+}
+
+/// TODO: This needs some more consideration and perhaps both more information from
+/// servos side as well as clarification on the meaning of some of the openharmony variants.
+/// For now for example we just ignore the `multiline` parameter in all the cases where it
+/// seems like it wouldn't make sense, but this needs a closer look.
+fn convert_ime_options(input_method_type: InputMethodType, multiline: bool) -> OhosImeOptions {
+    use ohos_ime_sys::types::InputMethod_TextInputType as IME_TextInputType;
+    // There are a couple of cases when the mapping is not quite clear to me,
+    // so we clearly mark them with `input_fallback` and come back to this later.
+    let input_fallback = IME_TextInputType::IME_TEXT_INPUT_TYPE_TEXT;
+    let input_type = match input_method_type {
+        InputMethodType::Color => input_fallback,
+        InputMethodType::Date => input_fallback,
+        InputMethodType::DatetimeLocal => IME_TextInputType::IME_TEXT_INPUT_TYPE_DATETIME,
+        InputMethodType::Email => IME_TextInputType::IME_TEXT_INPUT_TYPE_EMAIL_ADDRESS,
+        InputMethodType::Month => input_fallback,
+        InputMethodType::Number => IME_TextInputType::IME_TEXT_INPUT_TYPE_NUMBER,
+        // There is no type "password", but "new password" seems closest.
+        InputMethodType::Password => IME_TextInputType::IME_TEXT_INPUT_TYPE_NEW_PASSWORD,
+        InputMethodType::Search => IME_TextInputType::IME_TEXT_INPUT_TYPE_TEXT,
+        InputMethodType::Tel => IME_TextInputType::IME_TEXT_INPUT_TYPE_PHONE,
+        InputMethodType::Text => {
+            if multiline {
+                IME_TextInputType::IME_TEXT_INPUT_TYPE_MULTILINE
+            } else {
+                IME_TextInputType::IME_TEXT_INPUT_TYPE_TEXT
+            }
+        },
+        InputMethodType::Time => input_fallback,
+        InputMethodType::Url => IME_TextInputType::IME_TEXT_INPUT_TYPE_URL,
+        InputMethodType::Week => input_fallback,
+    };
+    let enterkey_type = match (input_method_type, multiline) {
+        (InputMethodType::Text, true) => InputMethod_EnterKeyType::IME_ENTER_KEY_NEWLINE,
+        (InputMethodType::Text, false) => InputMethod_EnterKeyType::IME_ENTER_KEY_DONE,
+        (InputMethodType::Search, false) => InputMethod_EnterKeyType::IME_ENTER_KEY_SEARCH,
+        _ => InputMethod_EnterKeyType::IME_ENTER_KEY_UNSPECIFIED,
+    };
+    OhosImeOptions {
+        input_type,
+        enterkey_type,
+    }
+}
+
 #[derive(Clone)]
 pub struct WakeupCallback {
     chan: Sender<ServoAction>,
@@ -515,11 +634,38 @@ impl EventLoopWaker for WakeupCallback {
     }
 }
 
-struct HostCallbacks {}
+struct HostCallbacks {
+    ime_proxy: RefCell<Option<ohos_ime::ImeProxy>>,
+}
 
 impl HostCallbacks {
     pub fn new() -> Self {
-        HostCallbacks {}
+        HostCallbacks {
+            ime_proxy: RefCell::new(None),
+        }
+    }
+}
+
+struct ServoIme {
+    text_config: ohos_ime::TextConfig,
+}
+impl Ime for ServoIme {
+    fn insert_text(&self, text: String) {
+        call(ServoAction::InsertText(text)).unwrap()
+    }
+    fn delete_forward(&self, len: usize) {
+        call(ServoAction::ImeDeleteForward(len)).unwrap()
+    }
+    fn delete_backward(&self, len: usize) {
+        call(ServoAction::ImeDeleteBackward(len)).unwrap()
+    }
+
+    fn get_text_config(&self) -> &ohos_ime::TextConfig {
+        &self.text_config
+    }
+
+    fn send_enter_key(&self, _enter_key: InputMethod_EnterKeyType) {
+        call(ServoAction::ImeSendEnter).unwrap()
     }
 }
 
@@ -595,18 +741,47 @@ impl HostTrait for HostCallbacks {
 
     fn on_shutdown_complete(&self) {}
 
+    /// Shows the Inputmethod
+    ///
+    /// Most basic implementation for now, which just ignores all the input parameters
+    /// and shows the soft keyboard with default settings.
     fn on_ime_show(
         &self,
-        input_type: servo::embedder_traits::InputMethodType,
-        text: Option<(String, i32)>,
+        input_type: embedder_traits::InputMethodType,
+        _text: Option<(String, i32)>,
         multiline: bool,
-        bounds: servo::webrender_api::units::DeviceIntRect,
+        _bounds: servo::webrender_api::units::DeviceIntRect,
     ) {
-        warn!("on_title_changed not implemented")
+        debug!("IME show!");
+        let mut ime_proxy = self.ime_proxy.borrow_mut();
+        let ime = ime_proxy.get_or_insert_with(|| {
+            let attach_options = AttachOptions::new(true);
+            let editor = RawTextEditorProxy::new();
+            let configbuilder = ohos_ime::TextConfigBuilder::new();
+            let options = convert_ime_options(input_type, multiline);
+            let text_config = configbuilder
+                .input_type(options.input_type)
+                .enterkey_type(options.enterkey_type)
+                .build();
+            ImeProxy::new(editor, attach_options, Box::new(ServoIme { text_config }))
+        });
+        match ime.show_keyboard() {
+            Ok(()) => debug!("IME show keyboard - success"),
+            Err(_e) => error!("IME show keyboard error"),
+        }
     }
 
     fn on_ime_hide(&self) {
-        warn!("on_title_changed not implemented")
+        debug!("IME hide!");
+        let mut ime_proxy = self.ime_proxy.take();
+        if let Some(ime) = ime_proxy {
+            match ime.hide_keyboard() {
+                Ok(()) => debug!("IME hide keyboard - success"),
+                Err(_e) => error!("IME hide keyboard error"),
+            }
+        } else {
+            warn!("IME hide called, but no active IME found!")
+        }
     }
 
     fn get_clipboard_contents(&self) -> Option<String> {

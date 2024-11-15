@@ -66,6 +66,7 @@ mod from_compositor {
                 },
                 Self::IsReadyToSaveImage(..) => target!("IsReadyToSaveImage"),
                 Self::Keyboard(..) => target!("Keyboard"),
+                Self::IMECompositionEvent(..) => target!("IMECompositionEvent"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),

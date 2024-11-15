@@ -275,16 +275,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 meta = json.load(meta_file)
             ohos_api_version = int(meta['apiVersion'])
             ohos_sdk_version = parse_version(meta['version'])
-            if ohos_sdk_version < parse_version('4.0'):
-                print("Warning: mach build currently assumes at least the OpenHarmony 4.0 SDK is used.")
+            if ohos_sdk_version < parse_version('5.0') or ohos_api_version < 12:
+                raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0 (API-12) or newer.")
             print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
-            os_type = platform.system().lower()
-            if os_type == "windows" and ohos_sdk_version < parse_version('5.0'):
-                # The OpenHarmony SDK for Windows hosts currently before OH 5.0 did not contain a
-                # libclang shared library, which is required by `bindgen`.
-                raise Exception("Building servo for OpenHarmony on windows requires SDK version 5.0 or newer.")
-
-        except Exception as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"Failed to read metadata information from {package_info}")
             print(f"Exception: {e}")
 
