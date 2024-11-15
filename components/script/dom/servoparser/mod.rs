@@ -27,8 +27,9 @@ use net_traits::{
     ResourceTimingType,
 };
 use profile_traits::time::{
-    profile, ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+    ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
+use profile_traits::time_profile;
 use script_traits::DocumentActivity;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -540,17 +541,42 @@ impl ServoParser {
             iframe: TimerMetadataFrameType::RootWindow,
             incremental: TimerMetadataReflowType::FirstReflow,
         };
-        let profiler_category = self.tokenizer.borrow().profiler_category();
-        profile(
-            profiler_category,
-            Some(metadata),
-            self.document
-                .window()
-                .upcast::<GlobalScope>()
-                .time_profiler_chan()
-                .clone(),
-            || self.do_parse_sync(),
-        )
+        let profiler_chan = self
+            .document
+            .window()
+            .upcast::<GlobalScope>()
+            .time_profiler_chan()
+            .clone();
+        enum TokenizerKind {
+            Html,
+            AsyncHtml,
+            Xml,
+        }
+        let kind = match *self.tokenizer.borrow() {
+            Tokenizer::Html(_) => TokenizerKind::Html,
+            Tokenizer::AsyncHtml(_) => TokenizerKind::AsyncHtml,
+            Tokenizer::Xml(_) => TokenizerKind::Xml,
+        };
+        match kind {
+            TokenizerKind::Html => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(metadata),
+                profiler_chan,
+                || self.do_parse_sync(),
+            ),
+            TokenizerKind::AsyncHtml => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(metadata),
+                profiler_chan,
+                || self.do_parse_sync(),
+            ),
+            TokenizerKind::Xml => time_profile!(
+                ProfilerCategory::ScriptParseXML,
+                Some(metadata),
+                profiler_chan,
+                || self.do_parse_sync(),
+            ),
+        }
     }
 
     fn do_parse_sync(&self) {
@@ -729,14 +755,6 @@ impl Tokenizer {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::Xml(_) => unimplemented!(),
-        }
-    }
-
-    fn profiler_category(&self) -> ProfilerCategory {
-        match *self {
-            Tokenizer::Html(_) => ProfilerCategory::ScriptParseHTML,
-            Tokenizer::AsyncHtml(_) => ProfilerCategory::ScriptParseHTML,
-            Tokenizer::Xml(_) => ProfilerCategory::ScriptParseXML,
         }
     }
 }

@@ -11,3 +11,17 @@
 pub mod ipc;
 pub mod mem;
 pub mod time;
+
+/// Measure the given callback with the time profiler and (if enabled) tracing.
+///
+/// `$category` must be const, because we use it to derive the span name.
+#[macro_export]
+macro_rules! time_profile {
+    ($category:expr, $meta:expr, $profiler_chan:expr, $($callback:tt)+) => {{
+        #[cfg(feature = "tracing")]
+        let span = tracing::info_span!($category.variant_name(), servo_profiling = true);
+        #[cfg(not(feature = "tracing"))]
+        let span = ();
+        $crate::time::profile($category, $meta, $profiler_chan, span, $($callback)+)
+    }};
+}

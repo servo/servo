@@ -7,8 +7,8 @@ use std::io::Error;
 use ipc_channel::ipc;
 use serde::{Deserialize, Serialize};
 
-use crate::time;
 use crate::time::{ProfilerCategory, ProfilerChan};
+use crate::time_profile;
 
 pub struct IpcReceiver<T>
 where
@@ -23,7 +23,7 @@ where
     T: for<'de> Deserialize<'de> + Serialize,
 {
     pub fn recv(&self) -> Result<T, ipc::IpcError> {
-        time::profile(
+        time_profile!(
             ProfilerCategory::IpcReceiver,
             None,
             self.time_profile_chan.clone(),
@@ -61,7 +61,7 @@ pub struct IpcBytesReceiver {
 
 impl IpcBytesReceiver {
     pub fn recv(&self) -> Result<Vec<u8>, ipc::IpcError> {
-        time::profile(
+        time_profile!(
             ProfilerCategory::IpcBytesReceiver,
             None,
             self.time_profile_chan.clone(),

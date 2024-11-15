@@ -44,10 +44,10 @@ use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use net_traits::ResourceThreads;
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
-use profile_traits::path;
 use profile_traits::time::{
-    self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+    self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
+use profile_traits::{path, time_profile};
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse,
@@ -501,7 +501,7 @@ impl Layout for LayoutThread {
 
     fn reflow(&mut self, script_reflow: ScriptReflow) {
         let mut result = ScriptReflowResult::new(script_reflow);
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutPerform,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),

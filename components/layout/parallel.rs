@@ -11,7 +11,8 @@
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::{mem, ptr};
 
-use profile_traits::time::{self, profile, TimerMetadata};
+use profile_traits::time::{self, TimerMetadata};
+use profile_traits::time_profile;
 use servo_config::opts;
 use smallvec::SmallVec;
 
@@ -229,7 +230,7 @@ pub fn reflow(
 
     queue.install(move || {
         rayon::scope_fifo(move |scope| {
-            profile(
+            time_profile!(
                 time::ProfilerCategory::LayoutParallelWarmup,
                 profiler_metadata,
                 time_profiler_chan,

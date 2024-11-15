@@ -57,10 +57,10 @@ use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use net_traits::ResourceThreads;
 use parking_lot::RwLock;
 use profile_traits::mem::{Report, ReportKind};
-use profile_traits::path;
 use profile_traits::time::{
-    self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+    self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
+use profile_traits::{path, time_profile};
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
@@ -542,7 +542,7 @@ impl Layout for LayoutThread {
 
     fn reflow(&mut self, script_reflow: script_layout_interface::ScriptReflow) {
         let mut result = ScriptReflowResult::new(script_reflow);
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutPerform,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
@@ -848,7 +848,7 @@ impl LayoutThread {
     ) {
         let writing_mode = layout_root.base().writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutDispListBuild,
             metadata.clone(),
             sender.clone(),
@@ -1116,7 +1116,7 @@ impl LayoutThread {
 
         if token.should_traverse() {
             // Recalculate CSS styles and rebuild flows and fragments.
-            profile(
+            time_profile!(
                 profile_time::ProfilerCategory::LayoutStyleRecalc,
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
@@ -1261,7 +1261,7 @@ impl LayoutThread {
             FlowRef::deref_mut(root_flow),
         );
 
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutRestyleDamagePropagation,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
@@ -1283,7 +1283,7 @@ impl LayoutThread {
         }
 
         // Resolve generated content.
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutGeneratedContent,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
@@ -1291,7 +1291,7 @@ impl LayoutThread {
         );
 
         // Guess float placement.
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutFloatPlacementSpeculation,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
@@ -1305,7 +1305,7 @@ impl LayoutThread {
             .restyle_damage
             .intersects(ServoRestyleDamage::REFLOW | ServoRestyleDamage::REFLOW_OUT_OF_FLOW)
         {
-            profile(
+            time_profile!(
                 profile_time::ProfilerCategory::LayoutMain,
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
@@ -1329,7 +1329,7 @@ impl LayoutThread {
             );
         }
 
-        profile(
+        time_profile!(
             profile_time::ProfilerCategory::LayoutStoreOverflow,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),

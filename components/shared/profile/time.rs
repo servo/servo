@@ -118,6 +118,71 @@ pub enum ProfilerCategory {
     IpcBytesReceiver = 0x84,
 }
 
+impl ProfilerCategory {
+    pub const fn variant_name(&self) -> &'static str {
+        match self {
+            ProfilerCategory::Compositing => "Compositing",
+            ProfilerCategory::LayoutPerform => "LayoutPerform",
+            ProfilerCategory::LayoutStyleRecalc => "LayoutStyleRecalc",
+            ProfilerCategory::LayoutTextShaping => "LayoutTextShaping",
+            ProfilerCategory::LayoutRestyleDamagePropagation => "LayoutRestyleDamagePropagation",
+            ProfilerCategory::LayoutNonIncrementalReset => "LayoutNonIncrementalReset",
+            ProfilerCategory::LayoutSelectorMatch => "LayoutSelectorMatch",
+            ProfilerCategory::LayoutTreeBuilder => "LayoutTreeBuilder",
+            ProfilerCategory::LayoutDamagePropagate => "LayoutDamagePropagate",
+            ProfilerCategory::LayoutGeneratedContent => "LayoutGeneratedContent",
+            ProfilerCategory::LayoutDisplayListSorting => "LayoutDisplayListSorting",
+            ProfilerCategory::LayoutFloatPlacementSpeculation => "LayoutFloatPlacementSpeculation",
+            ProfilerCategory::LayoutMain => "LayoutMain",
+            ProfilerCategory::LayoutStoreOverflow => "LayoutStoreOverflow",
+            ProfilerCategory::LayoutParallelWarmup => "LayoutParallelWarmup",
+            ProfilerCategory::LayoutDispListBuild => "LayoutDispListBuild",
+            ProfilerCategory::NetHTTPRequestResponse => "NetHTTPRequestResponse",
+            ProfilerCategory::PaintingPerTile => "PaintingPerTile",
+            ProfilerCategory::PaintingPrepBuff => "PaintingPrepBuff",
+            ProfilerCategory::Painting => "Painting",
+            ProfilerCategory::ImageDecoding => "ImageDecoding",
+            ProfilerCategory::ImageSaving => "ImageSaving",
+            ProfilerCategory::ScriptAttachLayout => "ScriptAttachLayout",
+            ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
+            ProfilerCategory::ScriptDevtoolsMsg => "ScriptDevtoolsMsg",
+            ProfilerCategory::ScriptDocumentEvent => "ScriptDocumentEvent",
+            ProfilerCategory::ScriptDomEvent => "ScriptDomEvent",
+            ProfilerCategory::ScriptEvaluate => "ScriptEvaluate",
+            ProfilerCategory::ScriptEvent => "ScriptEvent",
+            ProfilerCategory::ScriptFileRead => "ScriptFileRead",
+            ProfilerCategory::ScriptImageCacheMsg => "ScriptImageCacheMsg",
+            ProfilerCategory::ScriptInputEvent => "ScriptInputEvent",
+            ProfilerCategory::ScriptNetworkEvent => "ScriptNetworkEvent",
+            ProfilerCategory::ScriptParseHTML => "ScriptParseHTML",
+            ProfilerCategory::ScriptPlannedNavigation => "ScriptPlannedNavigation",
+            ProfilerCategory::ScriptResize => "ScriptResize",
+            ProfilerCategory::ScriptSetScrollState => "ScriptSetScrollState",
+            ProfilerCategory::ScriptSetViewport => "ScriptSetViewport",
+            ProfilerCategory::ScriptTimerEvent => "ScriptTimerEvent",
+            ProfilerCategory::ScriptStylesheetLoad => "ScriptStylesheetLoad",
+            ProfilerCategory::ScriptUpdateReplacedElement => "ScriptUpdateReplacedElement",
+            ProfilerCategory::ScriptWebSocketEvent => "ScriptWebSocketEvent",
+            ProfilerCategory::ScriptWorkerEvent => "ScriptWorkerEvent",
+            ProfilerCategory::ScriptServiceWorkerEvent => "ScriptServiceWorkerEvent",
+            ProfilerCategory::ScriptParseXML => "ScriptParseXML",
+            ProfilerCategory::ScriptEnterFullscreen => "ScriptEnterFullscreen",
+            ProfilerCategory::ScriptExitFullscreen => "ScriptExitFullscreen",
+            ProfilerCategory::ScriptWebVREvent => "ScriptWebVREvent",
+            ProfilerCategory::ScriptWorkletEvent => "ScriptWorkletEvent",
+            ProfilerCategory::ScriptPerformanceEvent => "ScriptPerformanceEvent",
+            ProfilerCategory::ScriptHistoryEvent => "ScriptHistoryEvent",
+            ProfilerCategory::ScriptPortMessage => "ScriptPortMessage",
+            ProfilerCategory::ScriptWebGPUMsg => "ScriptWebGPUMsg",
+            ProfilerCategory::TimeToFirstPaint => "TimeToFirstPaint",
+            ProfilerCategory::TimeToFirstContentfulPaint => "TimeToFirstContentfulPaint",
+            ProfilerCategory::TimeToInteractive => "TimeToInteractive",
+            ProfilerCategory::IpcReceiver => "IpcReceiver",
+            ProfilerCategory::IpcBytesReceiver => "IpcBytesReceiver",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum TimerMetadataFrameType {
     RootWindow,
@@ -130,10 +195,17 @@ pub enum TimerMetadataReflowType {
     FirstReflow,
 }
 
+#[cfg(feature = "tracing")]
+pub type Span = tracing::Span;
+#[cfg(not(feature = "tracing"))]
+pub type Span = ();
+
 pub fn profile<T, F>(
     category: ProfilerCategory,
     meta: Option<TimerMetadata>,
     profiler_chan: ProfilerChan,
+    #[cfg(feature = "tracing")] span: Span,
+    #[cfg(not(feature = "tracing"))] _span: Span,
     callback: F,
 ) -> T
 where
@@ -143,7 +215,11 @@ where
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
     let start_time = CrossProcessInstant::now();
-    let val = callback();
+    let val = {
+        #[cfg(feature = "tracing")]
+        let _enter = span.enter();
+        callback()
+    };
     let end_time = CrossProcessInstant::now();
 
     if opts::get().debug.signpost {
