@@ -1126,10 +1126,7 @@ fn normalize_algorithm_for_get_key_length(
     match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
-            else {
-                return Err(Error::Syntax);
-            };
+            let algorithm = value_from_js_object!(Algorithm, cx, value);
 
             let name = algorithm.name.str();
             let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) ||
@@ -1162,10 +1159,7 @@ fn normalize_algorithm_for_digest(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
-            else {
-                return Err(Error::Syntax);
-            };
+            let algorithm = value_from_js_object!(Algorithm, cx, value);
 
             algorithm.name.str().to_uppercase()
         },
@@ -1191,10 +1185,7 @@ fn normalize_algorithm_for_import_key(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
-            else {
-                return Err(Error::Syntax);
-            };
+            let algorithm = value_from_js_object!(Algorithm, cx, value);
 
             let name = algorithm.name.str().to_uppercase();
             if name == ALG_HMAC {
@@ -1230,9 +1221,7 @@ fn normalize_algorithm_for_derive_bits(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
-        return Err(Error::Syntax);
-    };
+    let algorithm = value_from_js_object!(Algorithm, cx, value);
 
     let normalized_algorithm = if algorithm.name.str().eq_ignore_ascii_case(ALG_PBKDF2) {
         let params = value_from_js_object!(Pbkdf2Params, cx, value);
@@ -1260,9 +1249,7 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
-        return Err(Error::Syntax);
-    };
+    let algorithm = value_from_js_object!(Algorithm, cx, value);
 
     let name = algorithm.name.str();
     let normalized_algorithm = if name.eq_ignore_ascii_case(ALG_AES_CBC) {
@@ -1287,10 +1274,7 @@ fn normalize_algorithm_for_sign_or_verify(
     let name = match algorithm {
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
-            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
-            else {
-                return Err(Error::Syntax);
-            };
+            let algorithm = value_from_js_object!(Algorithm, cx, value);
 
             algorithm.name.str().to_uppercase()
         },
@@ -1316,9 +1300,7 @@ fn normalize_algorithm_for_generate_key(
     };
 
     rooted!(in(*cx) let value = ObjectValue(obj.get()));
-    let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
-        return Err(Error::Syntax);
-    };
+    let algorithm = value_from_js_object!(Algorithm, cx, value);
 
     let name = algorithm.name.str();
     let normalized_algorithm =
