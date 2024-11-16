@@ -865,6 +865,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-wrapKey>
     fn WrapKey(
         &self,
         cx: JSContext,
@@ -986,6 +987,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-unwrapKey>
     fn UnwrapKey(
         &self,
         cx: JSContext,
