@@ -853,7 +853,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     _ => solve_size(Size::FitContent, stretch_size),
                 }
                 .to_definite()
-                .unwrap();
+                .unwrap_or_default();
                 free_space -= used_size;
                 let (margin_start, margin_end) =
                     match (self.computed_margin_start, self.computed_margin_end) {
