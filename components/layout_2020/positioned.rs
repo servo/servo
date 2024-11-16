@@ -846,9 +846,14 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 let stretch_size = free_space -
                     self.computed_margin_start.auto_is(Au::zero) -
                     self.computed_margin_end.auto_is(Au::zero);
-                let used_size = solve_size(Size::Stretch, stretch_size)
-                    .to_definite()
-                    .unwrap();
+                let used_size = match self.alignment.flags() {
+                    AlignFlags::STRETCH | AlignFlags::NORMAL => {
+                        solve_size(Size::Stretch, stretch_size)
+                    },
+                    _ => solve_size(Size::FitContent, stretch_size),
+                }
+                .to_definite()
+                .unwrap();
                 free_space -= used_size;
                 let (margin_start, margin_end) =
                     match (self.computed_margin_start, self.computed_margin_end) {
