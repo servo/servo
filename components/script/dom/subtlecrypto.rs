@@ -898,8 +898,9 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let alg_name = key.algorithm();
                 let wrapping_alg_name = wrapping_key.algorithm();
                 let valid_wrap_usage = wrapping_key.usages().contains(&KeyUsage::WrapKey);
+                let names_match = normalized_algorithm.name() == wrapping_alg_name.as_str();
 
-                if !valid_wrap_usage || normalized_algorithm.name() != wrapping_alg_name.as_str() || !key.Extractable() {
+                if !valid_wrap_usage || !names_match || !key.Extractable() {
                     promise.reject_error(Error::InvalidAccess);
                     return;
                 }
@@ -967,7 +968,9 @@ impl SubtleCryptoMethods for SubtleCrypto {
                             promise.reject_error(Error::Data);
                             return;
                         };
-                        subtle.encrypt_decrypt_aes_ctr(&params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut())
+                        subtle.encrypt_decrypt_aes_ctr(
+                            &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut()
+                        )
                     },
                     _ => Err(Error::NotSupported),
                 };
@@ -1046,14 +1049,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                             promise.reject_error(Error::Data);
                             return;
                         };
-                        subtle.decrypt_aes_cbc(&params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut())
+                        subtle.decrypt_aes_cbc(
+                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
+                        )
                     },
                     ALG_AES_CTR => {
                         let KeyWrapAlgorithm::AesCtr(params) = normalized_algorithm else {
                             promise.reject_error(Error::Data);
                             return;
                         };
-                        subtle.encrypt_decrypt_aes_ctr(&params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut())
+                        subtle.encrypt_decrypt_aes_ctr(
+                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
+                        )
                     },
                     _ => Err(Error::NotSupported),
                 };
