@@ -47,7 +47,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
-#[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ReadableStreamState {
     #[default]
     Readable,
@@ -124,12 +124,22 @@ impl ReadableStream {
             stored_error: Heap::default(),
             disturbed: Default::default(),
             reader,
-            state: Cell::new(ReadableStreamState::Readable),
+            state: Cell::new(Default::default()),
         }
     }
 
     fn new(global: &GlobalScope, controller: Controller) -> DomRoot<ReadableStream> {
-        reflect_dom_object(Box::new(ReadableStream::new_inherited(controller)), global)
+        let stream =
+            reflect_dom_object(Box::new(ReadableStream::new_inherited(controller)), global);
+        match &stream.controller {
+            ControllerType::Default(controller) => {
+                controller.set_stream(&stream);
+            },
+            ControllerType::Byte(controller) => {
+                controller.set_stream(&stream);
+            },
+        };
+        stream
     }
 
     /// Used from RustCodegen.py
@@ -175,20 +185,17 @@ impl ReadableStream {
             extract_size_algorithm(&QueuingStrategy::empty()),
             can_gc,
         );
-        let stream = ReadableStream::new(
+        ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller.clone()),
-        );
-        controller.set_stream(&stream);
-
-        stream
+        )
     }
 
     /// Call into the release steps of the controller,
     pub fn perform_release_steps(&self) {
         match self.controller {
             ControllerType::Default(ref controller) => controller.perform_release_steps(),
-            _ => todo!(),
+            ControllerType::Byte(_) => todo!(),
         }
     }
 
@@ -198,7 +205,7 @@ impl ReadableStream {
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         match self.controller {
             ControllerType::Default(ref controller) => controller.perform_pull_steps(read_request),
-            _ => todo!(),
+            ControllerType::Byte(_) => todo!(),
         }
     }
 
@@ -217,7 +224,9 @@ impl ReadableStream {
                 // Append readRequest to stream.[[reader]].[[readRequests]].
                 reader.add_read_request(read_request);
             },
-            _ => unreachable!("Adding a read request can only be done on a default reader."),
+            ReaderType::BYOB(_) => {
+                unreachable!("Adding a read request can only be done on a default reader.")
+            },
         }
     }
 
@@ -307,7 +316,7 @@ impl ReadableStream {
     pub fn in_memory(&self) -> bool {
         match self.controller {
             ControllerType::Default(ref controller) => controller.in_memory(),
-            _ => unreachable!(
+            ControllerType::Byte(_) => unreachable!(
                 "Checking if source is in memory for a stream with a non-default controller"
             ),
         }
@@ -318,7 +327,9 @@ impl ReadableStream {
     pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         match self.controller {
             ControllerType::Default(ref controller) => controller.get_in_memory_bytes(),
-            _ => unreachable!("Getting in-memory bytes for a stream with a non-default controller"),
+            ControllerType::Byte(_) => {
+                unreachable!("Getting in-memory bytes for a stream with a non-default controller")
+            },
         }
     }
 
@@ -351,7 +362,9 @@ impl ReadableStream {
                 };
                 reader.Read(can_gc)
             },
-            _ => unreachable!("Native reading of a chunk can only be done with a default reader."),
+            ReaderType::BYOB(_) => {
+                unreachable!("Native reading of a chunk can only be done with a default reader.")
+            },
         }
     }
 
@@ -367,7 +380,9 @@ impl ReadableStream {
                 };
                 reader.release();
             },
-            _ => unreachable!("Native stop reading can only be done with a default reader."),
+            ReaderType::BYOB(_) => {
+                unreachable!("Native stop reading can only be done with a default reader.")
+            },
         }
     }
 
@@ -416,7 +431,7 @@ impl ReadableStream {
                     .expect("Stream must have a reader when get num read requests is called into.");
                 reader.get_num_read_requests()
             },
-            _ => unreachable!(
+            ReaderType::BYOB(_) => unreachable!(
                 "Stream must have a default reader when get num read requests is called into."
             ),
         }
@@ -448,7 +463,7 @@ impl ReadableStream {
                     request.chunk_steps(result);
                 }
             },
-            _ => unreachable!(
+            ReaderType::BYOB(_) => unreachable!(
                 "Stream must have a default reader when fulfill read requests is called into."
             ),
         }
@@ -506,7 +521,9 @@ impl ReadableStream {
             ReaderType::Default(ref reader) => {
                 reader.set(new_reader);
             },
-            _ => unreachable!("Setting a reader can only be done on a default reader."),
+            ReaderType::BYOB(_) => {
+                unreachable!("Setting a reader can only be done on a default reader.")
+            },
         }
     }
 }
