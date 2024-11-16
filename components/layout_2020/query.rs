@@ -37,6 +37,7 @@ use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag};
+use crate::geom::{PhysicalRect, PhysicalVec};
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -335,10 +336,11 @@ fn process_offset_parent_query_inner(
     struct NodeOffsetBoxInfo {
         border_box: Rect<Au>,
         offset_parent_node_address: Option<OpaqueNode>,
+        is_static_body_element: bool,
     }
 
     // https://www.w3.org/TR/2016/WD-cssom-view-1-20160317/#extensions-to-the-htmlelement-interface
-    let mut parent_node_addresses = Vec::new();
+    let mut parent_node_addresses: Vec<Option<(OpaqueNode, bool)>> = Vec::new();
     let tag_to_find = Tag::new(node);
     let node_offset_box = fragment_tree.find(|fragment, level, containing_block| {
         let base = fragment.base()?;
@@ -385,7 +387,7 @@ fn process_offset_parent_query_inner(
                 border_box.origin = Point2D::zero();
             }
 
-            let offset_parent_node_address = if is_fixed {
+            let offset_parent_node = if is_fixed {
                 None
             } else {
                 // Find the nearest ancestor element eligible as `offsetParent`.
@@ -398,15 +400,20 @@ fn process_offset_parent_query_inner(
 
             Some(NodeOffsetBoxInfo {
                 border_box,
-                offset_parent_node_address,
+                offset_parent_node_address: offset_parent_node.map(|node| node.0),
+                is_static_body_element: offset_parent_node.is_some_and(|node| node.1),
             })
         } else {
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => {
                     let is_eligible_parent = is_eligible_parent(fragment);
+                    let is_static_body_element = is_body_element &&
+                        fragment.style.get_box().position == Position::Static;
                     match base.tag {
-                        Some(tag) if is_eligible_parent && !tag.is_pseudo() => Some(tag.node),
+                        Some(tag) if is_eligible_parent && !tag.is_pseudo() => {
+                            Some((tag.node, is_static_body_element))
+                        },
                         _ => None,
                     }
                 },
@@ -432,9 +439,36 @@ fn process_offset_parent_query_inner(
     // zero and terminate this algorithm." (others)
     let node_offset_box = node_offset_box?;
 
-    let offset_parent_padding_box_corner = node_offset_box
-        .offset_parent_node_address
-        .map(|offset_parent_node_address| {
+    let offset_parent_padding_box_corner = if let Some(offset_parent_node_address) =
+        node_offset_box.offset_parent_node_address
+    {
+        // The spec (https://www.w3.org/TR/cssom-view-1/#extensions-to-the-htmlelement-interface)
+        // says that offsetTop/offsetLeft are always relative to the padding box of the offsetParent.
+        // However, in practice this is not true in major browsers in the case that the offsetParent is the body
+        // element and the body element is position:static. In that case offsetLeft/offsetTop are computed
+        // relative to the root node's border box.
+        if node_offset_box.is_static_body_element {
+            fn extract_box_fragment(
+                fragment: &Fragment,
+                containing_block: &PhysicalRect<Au>,
+            ) -> PhysicalVec<Au> {
+                let (Fragment::Box(fragment) | Fragment::Float(fragment)) = fragment else {
+                    unreachable!();
+                };
+                // Again, take the *first* associated CSS layout box.
+                fragment.border_rect().origin.to_vector() + containing_block.origin.to_vector()
+            }
+
+            let containing_block = &fragment_tree.initial_containing_block;
+            let fragment = &(*fragment_tree.root_fragments[0].borrow());
+            if let Fragment::AbsoluteOrFixedPositioned(shared_fragment) = fragment {
+                let shared_fragment = &*shared_fragment.borrow();
+                let fragment = &*shared_fragment.fragment.as_ref().unwrap().borrow();
+                extract_box_fragment(fragment, containing_block)
+            } else {
+                extract_box_fragment(fragment, containing_block)
+            }
+        } else {
             // Find the top and left padding edges of "the first CSS layout box
             // associated with the `offsetParent` of the element".
             //
@@ -447,27 +481,27 @@ fn process_offset_parent_query_inner(
                         Fragment::Box(fragment) | Fragment::Float(fragment) => {
                             if fragment.base.tag == Some(offset_parent_node_tag) {
                                 // Again, take the *first* associated CSS layout box.
-                                let padding_box_corner =
-                                    fragment.padding_rect().origin.to_vector() +
-                                        containing_block.origin.to_vector();
-                                let padding_box_corner = padding_box_corner.to_untyped();
+                                let padding_box_corner = fragment.padding_rect().origin.to_vector()
+                                    + containing_block.origin.to_vector();
                                 Some(padding_box_corner)
                             } else {
                                 None
                             }
                         },
-                        Fragment::AbsoluteOrFixedPositioned(_) |
-                        Fragment::Text(_) |
-                        Fragment::Image(_) |
-                        Fragment::IFrame(_) |
-                        Fragment::Positioning(_) => None,
+                        Fragment::AbsoluteOrFixedPositioned(_)
+                        | Fragment::Text(_)
+                        | Fragment::Image(_)
+                        | Fragment::IFrame(_)
+                        | Fragment::Positioning(_) => None,
                     }
                 })
                 .unwrap()
-        })
+        }
+    } else {
         // "If the offsetParent of the element is null," subtract zero in the
         // following step.
-        .unwrap_or(Vector2D::zero());
+        Vector2D::zero()
+    };
 
     Some(OffsetParentResponse {
         node_address: node_offset_box.offset_parent_node_address.map(Into::into),
@@ -480,7 +514,7 @@ fn process_offset_parent_query_inner(
         // versa for the top border edge)
         rect: node_offset_box
             .border_box
-            .translate(-offset_parent_padding_box_corner),
+            .translate(-offset_parent_padding_box_corner.to_untyped()),
     })
 }
 
