@@ -8,13 +8,21 @@ use js::rust::HandleValue as SafeHandleValue;
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
 #[dom_struct]
 pub struct ReadableByteStreamController {
     reflector_: Reflector,
+    stream: MutNullableDom<ReadableStream>,
+}
+
+impl ReadableByteStreamController {
+    pub fn set_stream(&self, stream: &ReadableStream) {
+        self.stream.set(Some(stream))
+    }
 }
 
 impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
