@@ -1395,6 +1395,7 @@ enum KeyGenerationAlgorithm {
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"wrapKey"` or `"unwrapKey"`
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+#[allow(clippy::enum_variant_names)]
 enum KeyWrapAlgorithm {
     AesKw,
     AesCbc(SubtleAesCbcParams),
