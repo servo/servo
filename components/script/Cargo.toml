@@ -28,6 +28,7 @@ serde_json = { workspace = true }
 
 [dependencies]
 aes = { workspace = true }
+aes-kw = { workspace = true }
 accountable-refcell = { workspace = true, optional = true }
 app_units = { workspace = true }
 arrayvec = { workspace = true }
@@ -95,6 +96,7 @@ script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }

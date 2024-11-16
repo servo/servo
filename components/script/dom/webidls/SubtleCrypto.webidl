@@ -55,17 +55,17 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
   Promise<any> exportKey(KeyFormat format, CryptoKey key);
 
-  // Promise<any> wrapKey(KeyFormat format,
-  //                      CryptoKey key,
-  //                      CryptoKey wrappingKey,
-  //                      AlgorithmIdentifier wrapAlgorithm);
-  // Promise<CryptoKey> unwrapKey(KeyFormat format,
-  //                        BufferSource wrappedKey,
-  //                        CryptoKey unwrappingKey,
-  //                        AlgorithmIdentifier unwrapAlgorithm,
-  //                        AlgorithmIdentifier unwrappedKeyAlgorithm,
-  //                        boolean extractable,
-  //                        sequence<KeyUsage> keyUsages );
+  Promise<any> wrapKey(KeyFormat format,
+                       CryptoKey key,
+                       CryptoKey wrappingKey,
+                       AlgorithmIdentifier wrapAlgorithm);
+  Promise<CryptoKey> unwrapKey(KeyFormat format,
+                         BufferSource wrappedKey,
+                         CryptoKey unwrappingKey,
+                         AlgorithmIdentifier unwrapAlgorithm,
+                         AlgorithmIdentifier unwrappedKeyAlgorithm,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
 };
 
 // AES shared
