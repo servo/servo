@@ -10,8 +10,8 @@ use aes::cipher::block_padding::Pkcs7;
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
-use aes_kw::{KekAes128, KekAes192, KekAes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
+use aes_kw::{KekAes128, KekAes192, KekAes256};
 use base64::prelude::*;
 use cipher::consts::{U12, U32};
 use dom_struct::dom_struct;
@@ -1879,7 +1879,9 @@ impl SubtleCrypto {
                     .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
             },
             _ => {
-                log::warn!("Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV");
+                log::warn!(
+                    "Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV"
+                );
                 return Err(Error::NotSupported);
             },
         };
@@ -2002,7 +2004,9 @@ impl SubtleCrypto {
                     .decrypt_in_place(nonce, additional_data, &mut plaintext)
             },
             _ => {
-                log::warn!("Missing AES-GCM encryption implementation with {key_length}-byte key and {iv_length}-byte IV");
+                log::warn!(
+                    "Missing AES-GCM decryption implementation with {key_length}-byte key and {iv_length}-byte IV"
+                );
                 return Err(Error::NotSupported);
             },
         };
