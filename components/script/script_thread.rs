@@ -69,7 +69,7 @@ use net_traits::request::{
 };
 use net_traits::storage_thread::StorageType;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError, ReferrerPolicy,
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
@@ -3843,7 +3843,7 @@ impl ScriptThread {
             .headers
             .as_deref()
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
-            .map(ReferrerPolicy::from);
+            .into();
 
         document.set_referrer_policy(referrer_policy);
         document.set_ready_state(DocumentReadyState::Loading, can_gc);

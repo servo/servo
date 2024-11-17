@@ -313,7 +313,7 @@ pub fn determine_requests_referrer(
     current_url: ServoUrl,
 ) -> Option<ServoUrl> {
     match referrer_policy {
-        ReferrerPolicy::NoReferrer => None,
+        ReferrerPolicy::EmptyString | ReferrerPolicy::NoReferrer => None,
         ReferrerPolicy::Origin => strip_url_for_use_as_referrer(referrer_source, true),
         ReferrerPolicy::UnsafeUrl => strip_url_for_use_as_referrer(referrer_source, false),
         ReferrerPolicy::StrictOrigin => strict_origin(referrer_source, current_url),
@@ -831,7 +831,9 @@ pub async fn http_fetch(
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
 
-    // Step 5
+    // TODO: Step 5: cross-origin resource policy check
+
+    // Step 6
     if response
         .actual_response()
         .status
@@ -986,12 +988,12 @@ pub async fn http_redirect_fetch(
             ResourceTimeValue::RedirectStart,
         )); // updates start_time only if redirect_start is nonzero (implying TAO)
 
-    // Step 5
+    // Step 7: If request’s redirect count is 20, then return a network error.
     if request.redirect_count >= 20 {
         return Response::network_error(NetworkError::Internal("Too many redirects".into()));
     }
 
-    // Step 6
+    // Step 8: Increase request’s redirect count by 1.
     request.redirect_count += 1;
 
     // Step 7
@@ -1002,6 +1004,7 @@ pub async fn http_redirect_fetch(
             request.current_url()
         ),
     };
+
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
@@ -1010,24 +1013,25 @@ pub async fn http_redirect_fetch(
         ));
     }
 
-    // Step 8
+    // Step 9
+    if cors_flag && location_url.origin() != request.current_url().origin() {
+        request.origin = Origin::Origin(ImmutableOrigin::new_opaque());
+    }
+
+    // Step 10
     if cors_flag && has_credentials {
         return Response::network_error(NetworkError::Internal("Credentials check failed".into()));
     }
 
-    // Step 9
+    // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
+    // body’s source is null, then return a network error.
     if response.actual_response().status != StatusCode::SEE_OTHER &&
         request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
 
-    // Step 10
-    if cors_flag && location_url.origin() != request.current_url().origin() {
-        request.origin = Origin::Origin(ImmutableOrigin::new_opaque());
-    }
-
-    // Step 11
+    // Step 12
     if response
         .actual_response()
         .status
@@ -1040,10 +1044,10 @@ pub async fn http_redirect_fetch(
                     request.method != Method::GET)
         })
     {
-        // Step 11.1
+        // Step 12.1
         request.method = Method::GET;
         request.body = None;
-        // Step 11.2
+        // Step 12.2
         for name in &[
             CONTENT_ENCODING,
             CONTENT_LANGUAGE,
@@ -1075,13 +1079,7 @@ pub async fn http_redirect_fetch(
     request.url_list.push(location_url);
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
-    if let Some(referrer_policy) = response
-        .actual_response()
-        .headers
-        .typed_get::<headers::ReferrerPolicy>()
-    {
-        request.referrer_policy = Some(referrer_policy.into());
-    }
+    set_requests_referrer_policy_on_redirect(request, &response.actual_response());
 
     // Step 20: Let recursive be true.
     // Step 21: If request’s redirect mode is "manual", then...
@@ -2364,15 +2362,13 @@ fn append_a_request_origin_header(request: &mut Request) {
         // Step 4.1 If request’s mode is not "cors", then switch on request’s referrer policy:
         if request.mode != RequestMode::CorsMode {
             match request.referrer_policy {
-                Some(ReferrerPolicy::NoReferrer) => {
+                ReferrerPolicy::NoReferrer => {
                     // Set serializedOrigin to `null`.
                     serialized_origin = headers::Origin::NULL;
                 },
-                Some(
-                    ReferrerPolicy::NoReferrerWhenDowngrade |
-                    ReferrerPolicy::StrictOrigin |
-                    ReferrerPolicy::StrictOriginWhenCrossOrigin,
-                ) => {
+                ReferrerPolicy::NoReferrerWhenDowngrade |
+                ReferrerPolicy::StrictOrigin |
+                ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
                     if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
@@ -2381,7 +2377,7 @@ fn append_a_request_origin_header(request: &mut Request) {
                         }
                     }
                 },
-                Some(ReferrerPolicy::SameOrigin) => {
+                ReferrerPolicy::SameOrigin => {
                     // If request’s origin is not same origin with request’s current URL’s origin,
                     // then set serializedOrigin to `null`.
                     if *request_origin != request.current_url().origin() {
@@ -2506,4 +2502,19 @@ fn set_the_sec_fetch_user_header(r: &mut Request) {
 
     // Step 5. Set a structured field value `Sec-Fetch-User`/header in r’s header list.
     r.headers.typed_insert(header);
+}
+
+/// <https://w3c.github.io/webappsec-referrer-policy/#set-requests-referrer-policy-on-redirect>
+fn set_requests_referrer_policy_on_redirect(request: &mut Request, response: &Response) {
+    // Step 1: Let policy be the result of executing § 8.1 Parse a referrer policy from a
+    // Referrer-Policy header on actualResponse.
+    let referrer_policy: ReferrerPolicy = response
+        .headers
+        .typed_get::<headers::ReferrerPolicy>()
+        .into();
+
+    // Step 2: If policy is not the empty string, then set request’s referrer policy to policy.
+    if referrer_policy != ReferrerPolicy::EmptyString {
+        request.referrer_policy = referrer_policy;
+    }
 }

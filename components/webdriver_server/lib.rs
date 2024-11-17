@@ -30,6 +30,7 @@ use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use log::{debug, info};
 use net_traits::request::Referrer;
+use net_traits::ReferrerPolicy;
 use pixels::PixelFormat;
 use script_traits::webdriver_msg::{
     LoadStatus, WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
@@ -656,7 +657,7 @@ impl Handler {
             url,
             None,
             Referrer::NoReferrer,
-            None,
+            ReferrerPolicy::EmptyString,
             None,
         );
         let cmd_msg = WebDriverCommandMsg::LoadUrl(

@@ -336,7 +336,7 @@ pub(crate) fn image_fetch_request(
     referrer: Referrer,
     pipeline_id: PipelineId,
     cors_setting: Option<CorsSettings>,
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: ReferrerPolicy,
     from_picture_or_srcset: FromPictureOrSrcSet,
 ) -> RequestBuilder {
     let mut request =
@@ -1523,12 +1523,13 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
         // so it should remain unchanged.
         DOMString::new()
     } else {
-        match determine_policy_for_token(token) {
-            Some(policy) => DOMString::from_string(policy.to_string()),
-            // If the policy is set to an incorrect value, then it should be
-            // treated as an invalid value default (empty string).
-            None => DOMString::new(),
+        let policy = determine_policy_for_token(token);
+
+        if policy == ReferrerPolicy::EmptyString {
+            return DOMString::new();
         }
+
+        DOMString::from_string(policy.to_string())
     }
 }
 

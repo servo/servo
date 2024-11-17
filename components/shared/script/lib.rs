@@ -155,7 +155,7 @@ pub struct LoadData {
     /// The referrer.
     pub referrer: Referrer,
     /// The referrer policy.
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
 
     /// The source to use instead of a network response for a srcdoc document.
     pub srcdoc: String,
@@ -183,7 +183,7 @@ impl LoadData {
         url: ServoUrl,
         creator_pipeline_id: Option<PipelineId>,
         referrer: Referrer,
-        referrer_policy: Option<ReferrerPolicy>,
+        referrer_policy: ReferrerPolicy,
         inherited_secure_context: Option<bool>,
     ) -> LoadData {
         LoadData {
@@ -846,7 +846,7 @@ pub struct WorkerScriptLoadOrigin {
     /// referrer url
     pub referrer_url: Option<ServoUrl>,
     /// the referrer policy which is used
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
     /// the pipeline id of the entity requesting the load
     pub pipeline_id: PipelineId,
 }

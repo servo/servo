@@ -1192,14 +1192,15 @@ impl FetchResponseListener for ModuleContext {
 
             // Step 13.4: Let referrerPolicy be the result of parsing the `Referrer-Policy` header
             // given response.
+            let referrer_policy = meta
+                .headers
+                .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
+                .into();
+
             // Step 13.5: If referrerPolicy is not the empty string, set options's referrer policy
             // to referrerPolicy.
-            if let Some(referrer_policy) = meta.headers.and_then(|headers| {
-                headers
-                    .typed_get::<ReferrerPolicyHeader>()
-                    .map(ReferrerPolicy::from)
-            }) {
-                self.options.referrer_policy = Some(referrer_policy);
+            if referrer_policy != ReferrerPolicy::EmptyString {
+                self.options.referrer_policy = referrer_policy;
             }
 
             // Step 10.
@@ -1377,7 +1378,7 @@ pub struct ScriptFetchOptions {
     #[no_trace]
     pub parser_metadata: ParserMetadata,
     #[no_trace]
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
 }
 
 impl ScriptFetchOptions {
@@ -1389,7 +1390,7 @@ impl ScriptFetchOptions {
             referrer: global.get_referrer(),
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
         }
     }
 

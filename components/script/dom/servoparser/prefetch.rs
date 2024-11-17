@@ -76,7 +76,7 @@ struct PrefetchSink {
     #[no_trace]
     referrer: Referrer,
     #[no_trace]
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: ReferrerPolicy,
     #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: Cell<bool>,
@@ -203,10 +203,10 @@ impl PrefetchSink {
         ServoUrl::parse_with_base(Some(base), &attr.value).ok()
     }
 
-    fn get_referrer_policy(&self, tag: &Tag, name: LocalName) -> Option<ReferrerPolicy> {
+    fn get_referrer_policy(&self, tag: &Tag, name: LocalName) -> ReferrerPolicy {
         self.get_attr(tag, name)
-            .and_then(|attr| determine_policy_for_token(&attr.value))
-            .or(self.referrer_policy)
+            .map(|attr| determine_policy_for_token(&attr.value))
+            .unwrap_or(self.referrer_policy)
     }
 
     fn get_cors_settings(&self, tag: &Tag, name: LocalName) -> Option<CorsSettings> {

@@ -3837,14 +3837,14 @@ impl Document {
         }
     }
 
-    pub fn set_referrer_policy(&self, policy: Option<ReferrerPolicy>) {
+    pub fn set_referrer_policy(&self, policy: ReferrerPolicy) {
         self.policy_container
             .borrow_mut()
             .set_referrer_policy(policy);
     }
 
-    pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        Some(self.policy_container.borrow().referrer_policy)
+    pub fn get_referrer_policy(&self) -> ReferrerPolicy {
+        self.policy_container.borrow().get_referrer_policy()
     }
 
     pub fn set_target_element(&self, node: Option<&Element>, can_gc: CanGc) {
@@ -5611,18 +5611,17 @@ fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token>
-pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
+pub fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
     match_ignore_ascii_case! { token,
-        "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
-        "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
-        "origin" => Some(ReferrerPolicy::Origin),
-        "same-origin" => Some(ReferrerPolicy::SameOrigin),
-        "strict-origin" => Some(ReferrerPolicy::StrictOrigin),
-        "default" | "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
-        "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
-        "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
-        "" => Some(ReferrerPolicy::default()),
-        _ => None,
+        "never" | "no-referrer" => ReferrerPolicy::NoReferrer,
+        "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
+        "origin" => ReferrerPolicy::Origin,
+        "same-origin" => ReferrerPolicy::SameOrigin,
+        "strict-origin" => ReferrerPolicy::StrictOrigin,
+        "default" | "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
+        "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
+        "always" | "unsafe-url" => ReferrerPolicy::UnsafeUrl,
+        _ => ReferrerPolicy::EmptyString,
     }
 }
 

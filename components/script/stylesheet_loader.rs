@@ -52,9 +52,8 @@ pub trait StylesheetOwner {
     /// trigger a document-load-blocking load).
     fn parser_inserted(&self) -> bool;
 
-    /// Which referrer policy should loads triggered by this owner follow, or
-    /// `None` for the default.
-    fn referrer_policy(&self) -> Option<ReferrerPolicy>;
+    /// Which referrer policy should loads triggered by this owner follow
+    fn referrer_policy(&self) -> ReferrerPolicy;
 
     /// Notes that a new load is pending to finish.
     fn increment_pending_loads_count(&self);
@@ -335,9 +334,7 @@ impl<'a> StylesheetLoader<'a> {
             .upcast::<Element>()
             .as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
-        let referrer_policy = owner
-            .referrer_policy()
-            .or_else(|| document.get_referrer_policy());
+        let referrer_policy = owner.referrer_policy();
         owner.increment_pending_loads_count();
         if owner.parser_inserted() {
             document.increment_script_blocking_stylesheet_count();
@@ -366,7 +363,7 @@ pub(crate) fn stylesheet_fetch_request(
     origin: ImmutableOrigin,
     pipeline_id: PipelineId,
     referrer: Referrer,
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: ReferrerPolicy,
     integrity_metadata: String,
 ) -> RequestBuilder {
     create_a_potential_cors_request(url, Destination::Style, cors_setting, None, referrer)

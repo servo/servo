@@ -267,7 +267,7 @@ impl RequestMethods for Request {
             // Step 13.4
             request.referrer = global.get_referrer();
             // Step 13.5
-            request.referrer_policy = None;
+            request.referrer_policy = MsgReferrerPolicy::EmptyString;
         }
 
         // Step 14
@@ -303,7 +303,7 @@ impl RequestMethods for Request {
         // Step 15
         if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
             let init_referrer_policy = (*init_referrerpolicy).into();
-            request.referrer_policy = Some(init_referrer_policy);
+            request.referrer_policy = init_referrer_policy;
         }
 
         // Step 16
@@ -564,11 +564,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
-        self.request
-            .borrow()
-            .referrer_policy
-            .map(|m| m.into())
-            .unwrap_or(ReferrerPolicy::_empty)
+        self.request.borrow().referrer_policy.into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-mode
@@ -825,6 +821,7 @@ impl From<ReferrerPolicy> for MsgReferrerPolicy {
 impl From<MsgReferrerPolicy> for ReferrerPolicy {
     fn from(policy: MsgReferrerPolicy) -> Self {
         match policy {
+            MsgReferrerPolicy::EmptyString => ReferrerPolicy::_empty,
             MsgReferrerPolicy::NoReferrer => ReferrerPolicy::No_referrer,
             MsgReferrerPolicy::NoReferrerWhenDowngrade => {
                 ReferrerPolicy::No_referrer_when_downgrade

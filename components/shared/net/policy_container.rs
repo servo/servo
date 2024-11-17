@@ -32,7 +32,7 @@ pub struct PolicyContainer {
     /// <https://html.spec.whatwg.org/multipage/#policy-container-csp-list>
     pub csp_list: Option<CspList>,
     /// <https://html.spec.whatwg.org/multipage/#policy-container-referrer-policy>
-    pub referrer_policy: ReferrerPolicy,
+    referrer_policy: ReferrerPolicy,
     // https://html.spec.whatwg.org/multipage/#policy-container-embedder-policy
     // TODO: Embedder Policy
 }
@@ -42,7 +42,16 @@ impl PolicyContainer {
         self.csp_list = csp_list;
     }
 
-    pub fn set_referrer_policy(&mut self, referrer_policy: Option<ReferrerPolicy>) {
-        self.referrer_policy = referrer_policy.unwrap_or_default();
+    pub fn set_referrer_policy(&mut self, referrer_policy: ReferrerPolicy) {
+        self.referrer_policy = referrer_policy;
+    }
+
+    pub fn get_referrer_policy(&self) -> ReferrerPolicy {
+        // https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-empty-string
+        if self.referrer_policy == ReferrerPolicy::EmptyString {
+            return ReferrerPolicy::default();
+        }
+
+        self.referrer_policy
     }
 }

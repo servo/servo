@@ -168,7 +168,7 @@ pub struct XMLHttpRequest {
     #[no_trace]
     referrer: Referrer,
     #[no_trace]
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: ReferrerPolicy,
     canceller: DomRefCell<FetchCanceller>,
 }
 

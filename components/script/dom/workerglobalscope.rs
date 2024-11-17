@@ -277,8 +277,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 .parser_metadata(ParserMetadata::NotParserInserted)
                 .use_url_credentials(true)
                 .origin(global_scope.origin().immutable().clone())
-                .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()))
-                .referrer_policy(None);
+                .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(
                 request,

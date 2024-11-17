@@ -2426,7 +2426,7 @@ impl GlobalScope {
     }
 
     /// Get the Referrer Policy for this global scope.
-    pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
+    pub fn get_referrer_policy(&self) -> ReferrerPolicy {
         if let Some(window) = self.downcast::<Window>() {
             let document = window.Document();
 
@@ -2435,7 +2435,7 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             let policy_container = worker.policy_container().to_owned();
 
-            return Some(policy_container.referrer_policy);
+            return policy_container.get_referrer_policy();
         }
         unreachable!();
     }
