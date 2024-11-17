@@ -919,7 +919,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
         };
 
         let mut value_after_safety = self.alignment.value();
-        if self.alignment.flags() == AlignFlags::SAFE &&
+        if self.alignment.flags() != AlignFlags::UNSAFE &&
             margin_box_axis.length > alignment_container.length
         {
             value_after_safety = AlignFlags::START;
