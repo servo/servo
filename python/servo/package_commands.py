@@ -224,6 +224,12 @@ class PackageCommands(CommandBase):
                           "path to hvigorw or set the HVIGOR_PATH environment variable to the npm"
                           "installation containing `node_modules` directory with hvigor modules.")
                     sys.exit(1)
+                except subprocess.CalledProcessError as e:
+                    print(f"hvigor exited with the following error: {e}")
+                    print(f"stdout: `{e.stdout}`")
+                    print(f"stderr: `{e.stderr}`")
+                    sys.exit(1)
+
             else:
                 env["NODE_PATH"] = env["HVIGOR_PATH"] + "/node_modules"
                 hvigor_script = f"{env['HVIGOR_PATH']}/node_modules/@ohos/hvigor/bin/hvigor.js"
