@@ -47,6 +47,9 @@
   #h:visited {
     color: inherit;
   }
+  #link_div {
+    color: LinkText;
+  }
 </style>
 <body>
   This is regular body text. It should be CanvasText in forced colors mode.
@@ -93,9 +96,26 @@
     CanvasText.
   </mark>
   <br>
-  <a href="" id="g">Should be VisitedText, and not orange.
-    <a href="" id="h">Should be VisitedText, and not orange.</a>
-    <a href="" id="i">Should be VisitedText, and not orange.</a>
+  <div id="link_div"></div>
+  <a href="" id="g">
+    Should be use VisitedText, and not orange. However, `getComputedStyle()` will
+    return LinkText for privacy reasons.
+    <a href="" id="h">
+      This won't pick up color from nested parent as it gets reparented to the
+      body. It should use the parent's color i.e. CanvasText, and not orange,
+      because forced-color-adjust is preserve-parent-color and we are inheriting
+      from its parent. However, `getComputedStyle()` returns the unvisited link
+      color for privacy reasons, so we should expect this to be the UA's default
+      link color.
+    </a>
+    <a href="" id="i">
+      This won't pick up color from nested parent as the it gets reparented to the
+      body. It should use the visited link color as though we were not in forced
+      colors because although forced-color-adjust is preserve-parent-color, the
+      color value is neither currentColor nor inherited. However,
+      `getComputedStyle()` returns the unvisited link color for privacy reasons,
+      so we should expect this to be the UA's default link color.
+    </a>
   </a>
 </body>
 
@@ -115,11 +135,11 @@
 
     assert_equals(getComputedStyle(f).color, getComputedStyle(body).color);
 
-    assert_equals(getComputedStyle(g).color, "rgb(0, 0, 238)");
+    assert_equals(getComputedStyle(g).color, getComputedStyle(link_div).color);
 
-    assert_equals(getComputedStyle(h).color, getComputedStyle(g).color);
+    assert_equals(getComputedStyle(h).color, "rgb(0, 0, 238)");
 
-    assert_equals(getComputedStyle(i).color, getComputedStyle(g).color);
+    assert_equals(getComputedStyle(i).color, "rgb(0, 0, 238)");
 
     assert_equals(getComputedStyle(a).backgroundColor, "rgb(255, 255, 0)");
 

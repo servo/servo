@@ -98,7 +98,7 @@ class TestEnvironment:
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_test, debug_info, options, ssl_config, env_extras,
                  enable_webtransport=False, mojojs_path=None, inject_script=None,
-                 suppress_handler_traceback=None):
+                 suppress_handler_traceback=None, ws_extra=None):
 
         self.test_paths = test_paths
         self.server = None
@@ -124,6 +124,7 @@ class TestEnvironment:
         self.mojojs_path = mojojs_path
         self.inject_script = inject_script
         self.suppress_handler_traceback = suppress_handler_traceback
+        self.ws_extra = ws_extra
 
     def __enter__(self):
         server_log_handler = self._stack.enter_context(self.server_logging_ctx)
@@ -177,7 +178,7 @@ class TestEnvironment:
     def build_config(self):
         override_path = os.path.join(serve_path(self.test_paths), "config.json")
 
-        config = serve.ConfigBuilder(self.server_logger)
+        config = serve.ConfigBuilder(self.server_logger, ws_extra=self.ws_extra)
 
         ports = {
             "http": [8000, 8001],

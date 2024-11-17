@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>performance.bind()</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<div id="log"></div>
+<script>
+
+test_loaf_script(t => {
+    const wrapped = performance.bind(function internal_func() {
+        busy_wait();
+    });
+    t.step_timeout(() => wrapped());
+}, "internal_func", "user-entry-point", "A user-defined entry point should appear in the list of scripts");
+
+test_loaf_script(t => {
+    const wrapped = performance.bind(function internal_func(arg) {
+        assert_equals(arg, 123);
+        assert_equals(this, globalThis);
+        busy_wait();
+    });
+    t.step_timeout(() => wrapped(123));
+}, "internal_func", "user-entry-point", "A user-defined entry point should forward args");
+
+test_loaf_script(t => {
+    const wrapped = performance.bind(function internal_func(arg) {
+        assert_equals(arg, 123);
+        assert_equals(this, t);
+        busy_wait();
+    }, t);
+    t.step_timeout(() => wrapped(123));
+}, "internal_func", "user-entry-point", "A user-defined entry point should bind thisArg");
+
+test_loaf_script(t => {
+    const wrapped = performance.bind(function internal_func(arg1, arg2) {
+        assert_equals(arg1, "bound");
+        assert_equals(arg2, 123);
+        assert_equals(this, t);
+        busy_wait();
+    }, t, "bound");
+    t.step_timeout(() => wrapped(123));
+}, "internal_func", "user-entry-point", "A user-defined entry point should bind additional args");
+</script>
+</body>

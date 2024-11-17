@@ -391,7 +391,7 @@ const eluTests = [
 
 if (navigator.ml) {
   eluTests.forEach((test) => {
-    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

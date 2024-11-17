@@ -208,6 +208,14 @@
 
     window.test_driver_internal.in_automation = true;
 
+    window.test_driver_internal.bidi.bluetooth.simulate_adapter = function (params) {
+        return create_action("bidi.bluetooth.simulate_adapter", {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
     window.test_driver_internal.bidi.log.entry_added.subscribe =
         function (params) {
             return subscribe({
@@ -223,6 +231,14 @@
         event_target.addEventListener("log.entryAdded", on_event);
         return () => event_target.removeEventListener("log.entryAdded",
             on_event);
+    };
+
+    window.test_driver_internal.bidi.permissions.set_permission = function (params) {
+        return create_action("bidi.permissions.set_permission", {
+            // Default to the current window's origin.
+            origin: window.location.origin,
+            ...params
+        });
     };
 
     window.test_driver_internal.set_test_context = function(context) {

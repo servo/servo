@@ -37,8 +37,10 @@ from .protocol import (BaseProtocolPart,
                        RPHRegistrationsProtocolPart,
                        FedCMProtocolPart,
                        VirtualSensorProtocolPart,
+                       BidiBluetoothProtocolPart,
                        BidiBrowsingContextProtocolPart,
                        BidiEventsProtocolPart,
+                       BidiPermissionsProtocolPart,
                        BidiScriptProtocolPart,
                        DevicePostureProtocolPart,
                        StorageProtocolPart,
@@ -112,6 +114,21 @@ addEventListener("__test_restart", e => {e.preventDefault(); callback(true)})"""
                 self.logger.error(message)
                 break
         return False
+
+
+class WebDriverBidiBluetoothProtocolPart(BidiBluetoothProtocolPart):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.webdriver = None
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    async def simulate_adapter(self,
+          context: str,
+          state: str) -> None:
+        await self.webdriver.bidi_session.bluetooth.simulate_adapter(
+            context=context, state=state)
 
 
 class WebDriverBidiBrowsingContextProtocolPart(BidiBrowsingContextProtocolPart):
@@ -216,6 +233,19 @@ class WebDriverBidiScriptProtocolPart(BidiScriptProtocolPart):
             arguments=arguments,
             target=target,
             await_promise=True)
+
+
+class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.webdriver = None
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    async def set_permission(self, descriptor, state, origin):
+        return await self.webdriver.bidi_session.permissions.set_permission(
+            descriptor=descriptor, state=state, origin=origin)
 
 
 class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
@@ -678,8 +708,10 @@ class WebDriverProtocol(Protocol):
 
 class WebDriverBidiProtocol(WebDriverProtocol):
     enable_bidi = True
-    implements = [WebDriverBidiBrowsingContextProtocolPart,
+    implements = [WebDriverBidiBluetoothProtocolPart,
+                  WebDriverBidiBrowsingContextProtocolPart,
                   WebDriverBidiEventsProtocolPart,
+                  WebDriverBidiPermissionsProtocolPart,
                   WebDriverBidiScriptProtocolPart,
                   *(part for part in WebDriverProtocol.implements)
                   ]

@@ -84,7 +84,7 @@ const scatterElementsTests = [
 if (navigator.ml) {
   scatterElementsTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getScatterElementsPrecisionTolerance, test);
+        buildAndExecuteGraph, getScatterElementsPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

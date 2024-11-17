@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dialog-light-dismiss">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../popovers/resources/popover-utils.js"></script>
+
+<div id=unrelated>Unrelated</div>
+<dialog id=dialogA closedby=any>Dialog 1
+  <div id=popoverA popover>Popover 1
+    <dialog id=dialogB closedby=any>Dialog 2
+      <div id=popoverB popover>Popover 2</div>
+    </dialog>
+  </div>
+</dialog>
+
+<style>
+  #dialogA { top: 100px; bottom: auto; padding:0; }
+  #popoverA { top: 150px; bottom: auto; padding:0; }
+  #dialogB { top: 200px; bottom: auto; padding:0; }
+  #popoverB { top: 250px; bottom: auto; padding:0; }
+</style>
+
+<script>
+function openDialog(dialog,modal) {
+  assert_false(dialog.open);
+  if (modal) {
+    dialog.showModal();
+  } else {
+    dialog.show();
+  }
+  assert_true(dialog.open);
+  assert_equals(dialog.matches(':modal'),modal);
+}
+function assertStates(dialogAExpected,popoverAExpected,
+    dialogBExpected,popoverBExpected) {
+  assert_equals(dialogA.open,dialogAExpected,
+    `First dialog should be ${dialogAExpected ? 'open' : 'closed'}`);
+  assert_equals(popoverA.matches(':popover-open'),popoverAExpected,
+    `First popover should be ${popoverAExpected ? 'open' : 'closed'}`);
+  assert_equals(dialogB.open,dialogBExpected,
+    `Second dialog should be ${dialogBExpected ? 'open' : 'closed'}`);
+  assert_equals(popoverB.matches(':popover-open'),popoverBExpected,
+    `Second popover should be ${popoverBExpected ? 'open' : 'closed'}`);
+}
+function openDialogPopoverStack(t,modalA,modalB) {
+  t.add_cleanup(() => {
+    dialogA.close();
+    popoverA.hidePopover();
+    dialogB.close();
+    popoverB.hidePopover();
+  });
+  openDialog(dialogA,modalA);
+  popoverA.showPopover();
+  openDialog(dialogB,modalB);
+  popoverB.showPopover();
+  assertStates(true,true,true,true);
+}
+
+[false,true].forEach(modalA => {
+  [false,true].forEach(modalB => {
+    const modalAString = modalA ? 'modal dialogA' : 'modeless dialogA';
+    const modalBString = modalB ? 'modal dialogB' : 'modeless dialogB';
+    promise_test(async (t) => {
+      openDialogPopoverStack(t,modalA,modalB);
+      await clickOn(unrelated);
+      // Clicking outside all is actually a click on a dialog backdrop.
+      // If dialogB is modal, it'll be dialogB, which is nested inside popoverA.
+      assertStates(false,modalB,false,false);
+    },`clicking outside all with ${modalAString} and ${modalBString}`);
+
+    promise_test(async (t) => {
+      openDialogPopoverStack(t,modalA,modalB);
+      await clickOn(popoverB);
+      // Clicking popoverB will keep both popovers plus the intervening dialogB
+      // open, because they're a stack.
+      assertStates(false,true,true,true);
+    },`clicking popoverB with ${modalAString} and ${modalBString}`);
+
+    promise_test(async (t) => {
+      openDialogPopoverStack(t,modalA,modalB);
+      await clickOn(dialogB);
+      // dialogB is nested inside popoverA.
+      assertStates(false,true,true,false);
+    },`clicking dialogB with ${modalAString} and ${modalBString}`);
+
+    promise_test(async (t) => {
+      openDialogPopoverStack(t,modalA,modalB);
+      await clickOn(popoverA);
+      // If dialogB is modal, then clicking popoverA is actually a backdrop
+      // click on dialogB, which will close it. PopoverA stays open because
+      // dialogB is nested inside popoverA.
+      assertStates(false,true,!modalB,false);
+    },`clicking popoverA with ${modalAString} and ${modalBString}`);
+
+    promise_test(async (t) => {
+      openDialogPopoverStack(t,modalA,modalB);
+      await clickOn(dialogB);
+      // Again, this is a backdrop click on dialogB.
+      assertStates(false,true,true,false);
+    },`clicking dialogA with ${modalAString} and ${modalBString}`);
+  });
+});
+</script>

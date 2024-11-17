@@ -99,6 +99,8 @@
   test_cq_rule_valid('(width: 100px), (height: 100px)');
   test_cq_rule_valid('(width),(height)  , (inline-size > 20px)');
   test_cq_rule_valid('(width), name (height)');
+  test_cq_rule_valid('--foo');
+  test_cq_rule_valid('container');
 
   test_cq_rule_invalid('');
   test_cq_rule_invalid('(width),');

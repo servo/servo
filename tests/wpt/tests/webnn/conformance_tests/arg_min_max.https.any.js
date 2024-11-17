@@ -602,7 +602,7 @@ const argMinMaxTests = [
 if (navigator.ml) {
   argMinMaxTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getArgMinMaxPrecisionTolerance, test);
+        buildAndExecuteGraph, getArgMinMaxPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

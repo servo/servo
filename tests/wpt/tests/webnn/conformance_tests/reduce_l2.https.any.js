@@ -620,7 +620,7 @@ const reduceL2Tests = [
 if (navigator.ml) {
   reduceL2Tests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getReductionOperatorsPrecisionTolerance, test);
+        buildAndExecuteGraph, getReductionOperatorsPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

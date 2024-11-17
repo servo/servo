@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<title>@container: size query with var()</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @property --registered {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0;
+  }
+  @property --registered-keyword {
+    syntax: "none|fail";
+    inherits: false;
+    initial-value: none;
+  }
+  @property --registered-number {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+  #container {
+    width: 400px;
+    container-type: inline-size;
+    --unregistered: 200px;
+    --unregistered-keyword: fail;
+    --unregistered-number: 200;
+    --registered: 200px;
+    --registered-keyword: fail;
+    --registered-number: 0;
+  }
+  #target {
+    --match-unknown: no;
+    --match-unknown-fallback: no;
+    --match-unregistered: no;
+    --match-unregistered-keyword: no;
+    --match-unregistered-number: no;
+    --match-registered: no;
+    --match-registered-keyword: no;
+    --match-registered-number: no;
+  }
+  @container (width > var(--unknown)) {
+    #target { --match-unknown: yes; }
+  }
+  @container (width > var(--unknown, 100px)) {
+    #target { --match-unknown-fallback: yes; }
+  }
+  @container (width > var(--unregistered)) {
+    #target { --match-unregistered: yes; }
+  }
+  @container (width > var(--unregistered-keyword)) {
+    #target { --match-unregistered-keyword: yes; }
+  }
+  @container (width > var(--unregistered-number)) {
+    #target { --match-unregistered-number: yes; }
+  }
+  @container (width > var(--registered)) {
+    #target { --match-registered: yes; }
+  }
+  @container (width > var(--registered-keyword)) {
+    #target { --match-registered-keyword: yes; }
+  }
+  @container (width > var(--registered-number)) {
+    #target { --match-registered-number: yes; }
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  setup(() => assert_implements_size_container_queries());
+
+  for (let match of [["--match-unknown", "no"],
+                     ["--match-unknown-fallback", "yes"],
+                     ["--match-unregistered", "yes"],
+                     ["--match-unregistered-keyword", "no"],
+                     ["--match-unregistered-number", "no"],
+                     ["--match-registered", "yes"],
+                     ["--match-registered-keyword", "no"],
+                     ["--match-registered-number", "no"]]) {
+    test(() => {
+      assert_equals(getComputedStyle(target).getPropertyValue(match[0]), match[1]);
+    }, `Matching ${match[0]}`);
+  }
+</script>

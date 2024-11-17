@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interactive-elements.html#dialog-light-dismiss">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../popovers/resources/popover-utils.js"></script>
+
+<div id=unrelated>Unrelated</div>
+<dialog id=dialog_outer>Dialog outer
+  <div id=popover_inner popover>Popover inner</div>
+</dialog>
+<div id=popover_outer popover>Popover outer
+  <dialog id=dialog_inner>Dialog inner</dialog>
+</div>
+
+<style>
+  dialog { top: 50px; bottom: auto; padding:0; }
+  [popover] { top: 100px; bottom: auto; padding:0; }
+</style>
+
+<script>
+function resetDialogOuterTest(dialog,popover) {
+  popover.hidePopover();
+  dialog.close();
+  dialog.showModal();
+  popover.showPopover();
+  assert_true(dialog.open && popover.matches(':popover-open'),'setup');
+}
+async function runDialogOuterTest(t,dialog,popover) {
+  t.add_cleanup(() => {
+    dialog.removeAttribute('closedby');
+    popover.hidePopover();
+    dialog.close();
+  });
+  resetDialogOuterTest(dialog,popover);
+  await clickOn(popover);
+  assert_true(popover.matches(':popover-open'),
+    'clicking on popover should always leave everything open');
+  assert_true(dialog.open,'dialog should stay open');
+  resetDialogOuterTest(dialog,popover);
+  await clickOn(dialog);
+  assert_false(popover.matches(':popover-open'),'popover should close');
+  assert_true(dialog.open,'dialog should stay open');
+  resetDialogOuterTest(dialog,popover);
+  await clickOn(unrelated);
+  assert_false(popover.matches(':popover-open'),'popover should always close');
+  assert_equals(dialog.open,dialog.closedBy !== 'any',
+    'dialog should close if closedby=any');
+  resetDialogOuterTest(dialog,popover);
+  const ESC = '\uE00C';
+  await new test_driver.send_keys(document.documentElement,ESC);
+  assert_false(popover.matches(':popover-open'),
+    'popover should close after first ESC');
+  assert_true(dialog.open,'dialog should stay open for first ESC');
+  await new test_driver.send_keys(document.documentElement,ESC);
+  assert_equals(dialog.open,dialog.closedBy === 'none',
+    'dialog should close on second ESC, if closedby is not none');
+}
+promise_test(async (t) => {
+  dialog_outer.setAttribute('closedby','any');
+  await runDialogOuterTest(t,dialog_outer,popover_inner);
+},'Dialog closedby=any parent, popover child');
+promise_test(async (t) => {
+  dialog_outer.setAttribute('closedby','closerequest');
+  await runDialogOuterTest(t,dialog_outer,popover_inner);
+},'Dialog closedby=closerequest parent, popover child');
+promise_test(async (t) => {
+  dialog_outer.setAttribute('closedby','none');
+  await runDialogOuterTest(t,dialog_outer,popover_inner);
+},'Dialog closedby=none parent, popover child');
+
+
+function resetPopoverOuterTest(dialog,popover) {
+  dialog.close();
+  popover.hidePopover();
+  popover.showPopover();
+  dialog.showModal();
+  assert_true(dialog.open && popover.matches(':popover-open'),'setup');
+}
+async function runPopoverOuterTest(t,dialog,popover) {
+  t.add_cleanup(() => {
+    dialog.removeAttribute('closedby');
+    dialog.close();
+    popover.hidePopover();
+  });
+  resetPopoverOuterTest(dialog,popover);
+  await clickOn(dialog);
+  assert_true(dialog.open,'clicking on dialog should always leave everything open');
+  assert_true(popover.matches(':popover-open'),'popover should stay open');
+  resetPopoverOuterTest(dialog,popover);
+  await clickOn(popover);
+  assert_equals(dialog.open,dialog.closedBy !== 'any',
+    'dialog should close if closedby=any');
+  // Note that "clicking on" popover really means clicking on dialog's
+  // ::backdrop, and the dialog is a child of the popover. So by popover's light
+  // dismiss logic, it will *not* close. That's semi-expected here, but not in
+  // the next case.
+  assert_true(popover.matches(':popover-open'),'popover should stay open');
+  resetPopoverOuterTest(dialog,popover);
+  await clickOn(unrelated);
+  assert_equals(dialog.open,dialog.closedBy !== 'any',
+    'dialog should close if closedby=any');
+  // See note above.
+  assert_true(popover.matches(':popover-open'),'popover should stay open');
+  if (!dialog.open) {
+    // If we light dismissed the dialog, check that the popover responds to a
+    // second click.
+    await clickOn(unrelated);
+    assert_false(popover.matches(':popover-open'),'popover should stay open');
+  }
+  resetPopoverOuterTest(dialog,popover);
+  const ESC = '\uE00C';
+  await new test_driver.send_keys(document.documentElement,ESC);
+  assert_equals(dialog.open,dialog.closedBy === 'none',
+  'dialog should close after first ESC, if closedby!=none');
+  assert_true(popover.matches(':popover-open'),
+  'popover should stay open for first ESC');
+  await new test_driver.send_keys(document.documentElement,ESC);
+  assert_equals(popover.matches(':popover-open'),dialog.closedBy === 'none',
+  'popover should close on second ESC, unless inner dialog prevents with closedby==none');
+}
+promise_test(async (t) => {
+  dialog_inner.setAttribute('closedby','any');
+  await runPopoverOuterTest(t,dialog_inner,popover_outer);
+},'Popover parent, dialog closedby=any child');
+promise_test(async (t) => {
+  dialog_inner.setAttribute('closedby','closerequest');
+  await runPopoverOuterTest(t,dialog_inner,popover_outer);
+},'Popover parent, dialog closedby=closerequest child');
+promise_test(async (t) => {
+  dialog_inner.setAttribute('closedby','none');
+  await runPopoverOuterTest(t,dialog_inner,popover_outer);
+},'Popover parent, dialog closedby=none child');
+</script>

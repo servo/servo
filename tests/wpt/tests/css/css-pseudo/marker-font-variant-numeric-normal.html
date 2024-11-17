@@ -54,6 +54,10 @@ li:nth-child(9) { --marker: "9. " }
 ::marker {
   font-variant-numeric: normal;
 }
+
+/* Sume browsers support ::marker but not ::before::marker or ::after::marker.
+   Therefore, this is only enforced if the browser supports the selector,
+   otherwise, the reference will expect the default `tabular-nums` */
 ::before::marker, ::after::marker {
   font-variant-numeric: normal;
 }

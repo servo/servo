@@ -532,7 +532,7 @@ const mulTests = [
 if (navigator.ml) {
   mulTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getMulPrecisionTolerance, test);
+        buildAndExecuteGraph, getMulPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Same-Document Referrer from Refresh</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=266554">
+<link rel="help" href="https://github.com/whatwg/html/issues/6451">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-fragid-step">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#pragma-directives:navigate">
+<link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const fragment = "#section";
+  const refreshFrom = new URL("resources/refresh-with-section.sub.html", location).href + "?" + new URLSearchParams({url: fragment});
+
+  const frame = document.createElement("iframe");
+  const { promise: frameLoaded, resolve: resolveFrameLoaded } = Promise.withResolvers();
+  const { promise: messageHandled, resolve: resolveMessageHandled } = Promise.withResolvers();
+
+  let loadCount = 0;
+  frame.addEventListener("load", t.step_func(() => {
+    loadCount++;
+    try {
+      if (loadCount === 1) {
+        assert_equals(frame.contentWindow.location.href, refreshFrom, "original page loads");
+        assert_equals(frame.contentWindow.referrer.textContent, location.href, "referrer header is parent frame");
+        assert_equals(frame.contentDocument.referrer, location.href, "document referrer is parent frame");
+      }
+    } finally {
+      if (loadCount === 1) {
+        resolveFrameLoaded();
+      }
+    }
+  }));
+
+  addEventListener("message", t.step_func(msg => {
+    const {referrer, documentReferrer, url} = msg.data;
+    try {
+      assert_equals(url, refreshFrom + fragment, "refresh page has expected URL");
+      assert_equals(referrer, location.href, "referrer header is unchanged");
+      assert_equals(documentReferrer, location.href, "document referrer is unchanged");
+    } finally {
+      resolveMessageHandled();
+    }
+  }));
+
+  frame.src = refreshFrom;
+  document.body.appendChild(frame);
+  await frameLoaded;
+  await messageHandled;
+});
+</script>
+</body>

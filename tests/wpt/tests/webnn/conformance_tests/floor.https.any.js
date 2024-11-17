@@ -252,7 +252,7 @@ const floorTests = [
 if (navigator.ml) {
   floorTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getFloorPrecisionTolerance, test);
+        buildAndExecuteGraph, getFloorPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

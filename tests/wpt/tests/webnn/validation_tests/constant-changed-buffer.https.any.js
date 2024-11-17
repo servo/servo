@@ -19,14 +19,18 @@ promise_test(async t => {
 
   const b = builder.input('b', {dataType: 'float32', shape: [2]});
   const c = builder.add(a, b);
-  const graph = await builder.build({c});
 
-  const bBuffer = new Float32Array([5, 7]);
-  const cBuffer = new Float32Array(2);
-  const result = await context.compute(graph, {'b': bBuffer}, {'c': cBuffer});
+  const [graph, bTensor, cTensor] = await Promise.all([
+    builder.build({c}),
+    context.createTensor({dataType: 'float32', shape: [2], writable: true}),
+    context.createTensor({dataType: 'float32', shape: [2], readable: true})
+  ]);
 
-  const expectedResult = new Float32Array([7, 10]);
-  assert_array_equals(result.outputs.c, expectedResult);
+  context.writeTensor(bTensor, new Float32Array([5, 7]));
+
+  context.dispatch(graph, {'b': bTensor}, {'c': cTensor});
+  const result = new Float32Array(await context.readTensor(cTensor));
+  assert_array_equals(result, new Float32Array([7, 10]));
 }, 'Constant data is unaffected by detaching the buffer');
 
 promise_test(async t => {
@@ -41,14 +45,18 @@ promise_test(async t => {
 
   const b = builder.input('b', {dataType: 'float32', shape: [2]});
   const c = builder.add(a, b);
-  const graph = await builder.build({c});
 
-  const bBuffer = new Float32Array([5, 7]);
-  const cBuffer = new Float32Array(2);
-  const result = await context.compute(graph, {'b': bBuffer}, {'c': cBuffer});
+  const [graph, bTensor, cTensor] = await Promise.all([
+    builder.build({c}),
+    context.createTensor({dataType: 'float32', shape: [2], writable: true}),
+    context.createTensor({dataType: 'float32', shape: [2], readable: true})
+  ]);
 
-  const expectedResult = new Float32Array([7, 10]);
-  assert_array_equals(result.outputs.c, expectedResult);
+  context.writeTensor(bTensor, new Float32Array([5, 7]));
+
+  context.dispatch(graph, {'b': bTensor}, {'c': cTensor});
+  const result = new Float32Array(await context.readTensor(cTensor));
+  assert_array_equals(result, new Float32Array([7, 10]));
 }, 'Constant data is unaffected by changes to the buffer contents');
 
 promise_test(async t => {

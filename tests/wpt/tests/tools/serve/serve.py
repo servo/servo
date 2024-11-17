@@ -604,6 +604,7 @@ class RoutesBuilder:
             ("GET", "/.well-known/interest-group/permissions/", handlers.PythonScriptHandler),
             ("*", "/.well-known/interest-group/real-time-report", handlers.PythonScriptHandler),
             ("*", "/.well-known/private-aggregation/*", handlers.PythonScriptHandler),
+            ("GET", "/.well-known/shared-storage/trusted-origins", handlers.PythonScriptHandler),
             ("*", "/.well-known/web-identity", handlers.PythonScriptHandler),
             ("*", "*.py", handlers.PythonScriptHandler),
             ("GET", "*", handlers.FileHandler)
@@ -885,7 +886,8 @@ def start_http2_server(logger, host, port, paths, routes, bind_address, config, 
 
 
 class WebSocketDaemon:
-    def __init__(self, host, port, doc_root, handlers_root, bind_address, ssl_config):
+    def __init__(self, host, port, doc_root, handlers_root, bind_address, ssl_config,
+                 extra_handler_paths=None):
         logger = logging.getLogger()
         self.host = host
         cmd_args = ["-p", port,
@@ -903,6 +905,9 @@ class WebSocketDaemon:
         opts.cgi_directories = []
         opts.is_executable_method = None
         self.server = pywebsocket.WebSocketServer(opts)
+        if extra_handler_paths:
+            for path in extra_handler_paths:
+                self.server.websocket_server_options.dispatcher._source_handler_files_in_dir(path, path, False, None)
         ports = [item[0].getsockname()[1] for item in self.server._sockets]
         if not ports:
             # TODO: Fix the logging configuration in WebSockets processes
@@ -946,7 +951,8 @@ def start_ws_server(logger, host, port, paths, routes, bind_address, config, **k
                                repo_root,
                                config.paths["ws_doc_root"],
                                bind_address,
-                               ssl_config=None)
+                               ssl_config=None,
+                               extra_handler_paths=config.paths["ws_extra"])
     except Exception as error:
         logger.critical(f"start_ws_server: Caught exception from WebSocketDomain: {error}")
         startup_failed(logger)
@@ -959,7 +965,8 @@ def start_wss_server(logger, host, port, paths, routes, bind_address, config, **
                                repo_root,
                                config.paths["ws_doc_root"],
                                bind_address,
-                               config.ssl_config)
+                               config.ssl_config,
+                               extra_handler_paths=config.paths["ws_extra"])
     except Exception as error:
         logger.critical(f"start_wss_server: Caught exception from WebSocketDomain: {error}")
         startup_failed(logger)
@@ -1032,6 +1039,7 @@ class ConfigBuilder(config.ConfigBuilder):
         },
         "doc_root": repo_root,
         "ws_doc_root": os.path.join(repo_root, "websockets", "handlers"),
+        "ws_extra": None,
         "server_host": None,
         "ports": {
             "http": [8000, "auto"],
@@ -1100,6 +1108,7 @@ class ConfigBuilder(config.ConfigBuilder):
     def _get_paths(self, data):
         rv = super()._get_paths(data)
         rv["ws_doc_root"] = data["ws_doc_root"]
+        rv["ws_extra"] = data["ws_extra"]
         return rv
 
 
@@ -1155,6 +1164,8 @@ def get_parser():
                         help="Path to document root. Overrides config.")
     parser.add_argument("--ws_doc_root", action="store", dest="ws_doc_root",
                         help="Path to WebSockets document root. Overrides config.")
+    parser.add_argument("--ws_extra", action="append", dest="ws_extra", default=[],
+                        help="Path to extra directory containing ws handlers. Overrides config.")
     parser.add_argument("--inject-script", default=None,
                         help="Path to script file to inject, useful for testing polyfills.")
     parser.add_argument("--alias_file", action="store", dest="alias_file",

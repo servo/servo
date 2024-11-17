@@ -290,7 +290,7 @@ const sinTests = [
 if (navigator.ml) {
   sinTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getSinPrecisionTolerance, test);
+        buildAndExecuteGraph, getSinPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

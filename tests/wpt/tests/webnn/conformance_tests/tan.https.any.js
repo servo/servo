@@ -290,7 +290,7 @@ const tanTests = [
 if (navigator.ml) {
   tanTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getTanPrecisionTolerance, test);
+        buildAndExecuteGraph, getTanPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

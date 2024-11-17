@@ -4,7 +4,7 @@ from configparser import ConfigParser
 import os
 import sys
 from collections import OrderedDict
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping, Optional, List
 
 here = os.path.dirname(__file__)
 
@@ -14,12 +14,19 @@ class ConfigDict(Dict[str, str]):
         self.base_path = base_path
         dict.__init__(self, *args, **kwargs)
 
+    def _normalize_path(self, path: str) -> str:
+        os.path.expanduser(path)
+        return os.path.abspath(os.path.join(self.base_path, path))
+
     def get_path(self, key: str, default:Optional[str] = None) -> Optional[str]:
         if key not in self:
             return default
-        path = self[key]
-        os.path.expanduser(path)
-        return os.path.abspath(os.path.join(self.base_path, path))
+        return self._normalize_path(self[key])
+
+    def get_paths(self, key: str, default:Optional[List[str]] = None) -> Optional[List[str]]:
+        if key not in self:
+            return default
+        return [self._normalize_path(item.strip()) for item in self[key].split(";")]
 
 
 def read(config_path: str) -> Mapping[str, ConfigDict]:

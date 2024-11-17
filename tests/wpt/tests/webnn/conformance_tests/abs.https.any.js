@@ -313,7 +313,7 @@ const absTests = [
 if (navigator.ml) {
   absTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getAbsPrecisionTolerance, test);
+        buildAndExecuteGraph, getAbsPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -41,6 +41,44 @@ promise_test(async t => {
 
 
 promise_test(async t => {
+  let fmt = 'I420';
+  const i420_planes = [0xAA, 0xBB, 0xCC];
+  let data = new Uint8Array(i420_planes);
+  let init = {
+    format: fmt,
+    timestamp: 1234,
+    codedWidth: 1,
+    codedHeight: 1,
+    visibleRect: {x: 0, y: 0, width: 1, height: 1},
+    transfer: [data.buffer]
+  };
+
+  let frame = new VideoFrame(data, init);
+  assert_equals(data.length, 0, 'data.length after detach');
+
+  const options = {
+    rect: {x: 0, y: 0, width: init.codedWidth, height: init.codedHeight}
+  };
+  let size = frame.allocationSize(options);
+  let output_data = new Uint8Array(size);
+  let layout = await frame.copyTo(output_data, options);
+  let expected_data = new Uint8Array(i420_planes);
+  assert_equals(expected_data.length, size, 'expected_data size');
+  assert_equals(layout[0].stride, 1, 'layout[0].stride');
+  assert_equals(layout[0].offset, 0, 'layout[0].offset');
+  assert_equals(layout[1].stride, 1, 'layout[1].stride');
+  assert_equals(layout[1].offset, 1, 'layout[1].offset');
+  assert_equals(layout[2].stride, 1, 'layout[2].stride');
+  assert_equals(layout[2].offset, 2, 'layout[2].offset');
+  assert_equals(expected_data.length, size, 'expected_data size');
+  for (let i = 0; i < size; i++) {
+    assert_equals(expected_data[i], output_data[i], `expected_data[${i}]`);
+  }
+
+  frame.close();
+}, 'Test transfering buffers to VideoFrame with uneven samples');
+
+promise_test(async t => {
   const rgb_plane = [
     0xBA, 0xDF, 0x00, 0xD0, 0xBA, 0xDF, 0x01, 0xD0, 0xBA, 0xDF, 0x02, 0xD0,
     0xBA, 0xDF, 0x03, 0xD0

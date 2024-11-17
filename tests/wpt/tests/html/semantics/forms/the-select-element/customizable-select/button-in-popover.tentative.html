@@ -22,10 +22,9 @@ select, select::picker(select) {
 <script>
 promise_test(async () => {
   const select = document.querySelector('select');
-  const invokerButton = document.getElementById('invoker');
   const popoverButton = document.getElementById('popover');
 
-  await test_driver.click(invokerButton);
+  await test_driver.click(select);
   assert_true(select.matches(':open'),
     'Select should open after clicking the invoker button.');
 

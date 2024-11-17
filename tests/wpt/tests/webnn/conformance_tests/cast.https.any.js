@@ -1495,7 +1495,7 @@ const castTests = [
 if (navigator.ml) {
   castTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getCastPrecisionTolerance, test);
+        buildAndExecuteGraph, getCastPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

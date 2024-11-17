@@ -19,6 +19,7 @@ async def test_release_char_sequence_sends_keyup_events_in_reverse(
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )
+
     # Reset so we only see the release events
     await bidi_session.script.evaluate(
         expression="resetEvents()",

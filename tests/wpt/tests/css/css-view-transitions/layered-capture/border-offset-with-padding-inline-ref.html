@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<title>Borders should not affect snapshot position</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<style>
+    * {
+        box-sizing: content-box;
+    }
+    html {
+        view-transition-name: none;
+    }
+    body {
+        margin: 0;
+    }
+
+    div {
+        position: absolute;
+    }
+
+    .inline {
+        view-transition-name: parent;
+        border: 10px solid black;
+        background: green;
+        padding: 12px;
+        position: relative;
+        left: 100px;
+        top: 40px;
+    }
+</style>
+<body>
+    <span class="inline">
+        ABC
+    </span>
+</body>

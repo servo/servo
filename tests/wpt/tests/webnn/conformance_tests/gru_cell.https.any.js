@@ -309,7 +309,7 @@ const gruCellTests = [
 if (navigator.ml) {
   gruCellTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getGruCellPrecisionTolerance, test);
+        buildAndExecuteGraph, getGruCellPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

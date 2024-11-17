@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+</head>
+
+<body>
+</body>
+
+<script>
+'use strict';
+
+test(t => {
+  document.body.innerHTML = `
+    <div id=old_parent>
+      <span id=start>RangeStartTarget</span>
+      <span id=middle>Middle</span>
+      <span id=end>RangeEndTarget</span>
+    </div>`;
+
+  const range = new Range();
+  range.setStart(start, 0);
+  range.setEnd(end, 0);
+
+  assert_true(range.intersectsNode(middle), "Intersection before move");
+  // Moves `start` span to the very bottom of the container.
+  old_parent.moveBefore(start, null);
+
+  // In an ordinary removal, when a node whose descendant is the start (or end)
+  // of a live range is removed, the range's start is set to the removed node's
+  // parent. This does not happen during a `moveBefore()`.
+  assert_equals(range.startContainer, start, "startContainer does not update after move");
+  assert_equals(range.endContainer, end, "endContainer does not update after move");
+  assert_false(range.intersectsNode(middle), "range no longer intersects " +
+      "middle node after move");
+}, "moveBefore does not cause range startContainer to snap up to parent when " +
+   "startContainer is moved");
+
+test(t => {
+  document.body.innerHTML = `
+    <div id=old_parent>
+      <div id=movable_div>
+        <span id=start>RangeStartTarget</span>
+        <span id=middle>Middle</span>
+      </div>
+      <span id=end>RangeEndTarget</span>
+    </div>
+    <div id=new_parent></div>`;
+
+  const range = new Range();
+  range.setStart(start, 0);
+  range.setEnd(end, 0);
+
+  assert_true(range.intersectsNode(middle), "Intersection before move");
+  new_parent.moveBefore(movable_div, null);
+
+  assert_not_equals(range.startContainer, old_parent, "startContainer does " +
+      "not snap up to moved ancestor node's parent");
+  assert_equals(range.startContainer, start, "startContainer does not update after move");
+  assert_equals(range.endContainer, end, "endContainer does not update after move");
+  assert_false(range.intersectsNode(middle), "range no longer intersects " +
+      "middle node after move");
+}, "moveBefore does not cause range startContainer to snap up to parent, when " +
+   "startContainer ancestor is moved");
+
+test(t => {
+  document.body.innerHTML = `
+    <div id=old_parent>
+      <span id=start>RangeStartTarget</span>
+      <div id=movable_div>
+        <span id=end>RangeEndTarget</span>
+      </div>
+    </div>
+    <div id=new_parent>
+      <span id=middle>Middle</span>
+    </div>`;
+
+  const range = new Range();
+  range.setStart(start, 0);
+  range.setEnd(end, 0);
+
+  assert_false(range.intersectsNode(middle), "No intersection before move");
+  new_parent.moveBefore(movable_div, null);
+
+  assert_not_equals(range.endContainer, old_parent, "endContainer does not " +
+      "snap up to moved ancestor node's parent");
+  assert_equals(range.startContainer, start, "startContainer does not update after move");
+  assert_equals(range.endContainer, end, "endContainer does not update after move");
+  assert_true(range.intersectsNode(middle), "range intersects middle node after move");
+}, "moveBefore does not cause range endContainer to snap up to parent, when " +
+   "endContainer ancestor is moved");
+</script>
+</html>

@@ -99,7 +99,7 @@ const tileTests = [
 if (navigator.ml) {
   tileTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getTilePrecisionTolerance, test);
+        buildAndExecuteGraph, getTilePrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

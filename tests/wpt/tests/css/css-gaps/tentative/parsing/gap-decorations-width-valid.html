@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: parsing column-rule-width with valid values</title>
+<link rel="help" href="https://kbabbitt.github.io/css-gap-decorations/#column-row-rule-width">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="column-rule-width supports the full grammar '[ <line-width-list> | <auto-line-width-list> ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// <repeat-line-width>  = repeat( [ <integer [1,∞]> ] , [ <line-width> ]+ )
+test_valid_value("column-rule-width", "repeat(4, thin)");
+test_valid_value("column-rule-width", "repeat(3, thin medium thick)");
+test_valid_value("column-rule-width", "repeat(1, 10px thin medium thick)");
+
+// <line-width-or-repeat> = [ <line-width> | <repeat-line-width> ]
+test_valid_value("column-rule-width", "10px");
+test_valid_value("column-rule-width", "repeat(4, medium)");
+
+// <line-width-list> = [ <line-width-or-repeat> ]+
+test_valid_value("column-rule-width", "10px 15px");
+test_valid_value("column-rule-width", "10px 15px 20px 25px 30px");
+test_valid_value("column-rule-width", "repeat(3, 10px) repeat(4, 15px)");
+test_valid_value("column-rule-width", "10px repeat(3, 20px) 30px repeat(4, thin medium thick)");
+test_valid_value("column-rule-width", "repeat(4, 10px 20px 30px) repeat(5, 40px) 50px");
+
+// <auto-repeat-line-width> = repeat( auto , [ <line-width> ]+ )
+test_valid_value("column-rule-width", "repeat(auto, thin)");
+test_valid_value("column-rule-width", "repeat(auto, 10px 20px 30px)");
+
+// <auto-line-width-list>    = [ <line-width-or-repeat> ]*
+//                              <auto-repeat-line-width>
+//                              [ <line-width-or-repeat> ]*
+test_valid_value("column-rule-width", "repeat(auto, 10px 20px) 30px");
+test_valid_value("column-rule-width", "repeat(4, 10px 20px 30px) repeat(auto, 40px)");
+test_valid_value("column-rule-width", "10px repeat(auto, 20px 30px) repeat(4, thin 50px 60px)");
+</script>
+</body>
+</html>

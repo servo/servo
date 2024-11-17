@@ -330,7 +330,6 @@ partial dictionary AuthenticationExtensionsClientInputs {
 
 dictionary CredentialPropertiesOutput {
     boolean rk;
-    DOMString authenticatorDisplayName;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {

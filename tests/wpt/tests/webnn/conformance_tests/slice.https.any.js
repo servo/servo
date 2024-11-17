@@ -352,7 +352,7 @@ const sliceTests = [
 if (navigator.ml) {
   sliceTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getSlicePrecisionTolerance, test);
+        buildAndExecuteGraph, getSlicePrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

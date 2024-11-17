@@ -1,6 +1,6 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
-// META: script=resources/helpers.js
+// META: script=/notifications/resources/helpers.js
 
 // NOTE:
 // We are not testing success cases here as doing so will try creating external network
@@ -15,10 +15,9 @@ promise_setup(async () => {
 
   // Get the permission because Firefox checks it before key validation.
   // (The permission test is done in permission.https.html.)
-  await test_driver.set_permission({ name: "notifications" }, "granted");
+  await trySettingPermission("granted");
   // Get the active service worker because Chrome checks it before key validation
-  registration = await registerSw("noop-sw.js");
-  await navigator.serviceWorker.ready;
+  registration = await getActiveServiceWorker("noop-sw.js");
 });
 
 promise_test(async (t) => {

@@ -22,7 +22,7 @@ const getConcatPrecisionTolerance = (graphResources) => {
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
 };
 
-const buildGraphAndComputeWithConcat =
+const buildAndExecuteGraphWithConcat =
     async (context, builder, graphResources) => {
   const graphInputs = graphResources.inputs;
   const operator = graphResources.operators[0];
@@ -59,14 +59,10 @@ const buildGraphAndComputeWithConcat =
   // Compile the constructed graph.
   const graph = await builder.build(namedOutputOperand);
 
-  const inputs = {};
-  prepareInputsForGraph(inputs, graphInputs);
-
-  const outputs = {};
-  prepareOutputsForGraph(outputs, graphResources.expectedOutputs);
-
   // Execute the compiled graph.
-  const result = await context.compute(graph, inputs, outputs);
+  const result = await computeGraph(
+      context, graph, graphInputs, graphResources.expectedOutputs);
+
   return {result, namedOutputOperand};
 };
 
@@ -2432,7 +2428,7 @@ const concatTests = [
 if (navigator.ml) {
   concatTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndComputeWithConcat, getConcatPrecisionTolerance, test);
+        buildAndExecuteGraphWithConcat, getConcatPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -290,7 +290,7 @@ const reciprocalTests = [
 if (navigator.ml) {
   reciprocalTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getReciprocalPrecisionTolerance, test);
+        buildAndExecuteGraph, getReciprocalPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

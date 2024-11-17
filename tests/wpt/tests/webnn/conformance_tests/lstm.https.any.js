@@ -818,7 +818,7 @@ const lstmTests = [
 if (navigator.ml) {
   lstmTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getLstmPrecisionTolerance, test);
+        buildAndExecuteGraph, getLstmPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -25,7 +25,18 @@ http://www.w3.org/wiki/PointerEvents/TestAssertions
             add_completion_callback(showPointerTypes);
             var detected_pointertypes = {};
 
+            function loadFrame() {
+                return new Promise(resolve => {
+                    const innerframe = document.getElementById("innerframe");
+                    innerframe.onload = resolve;
+                    innerframe.src =
+                        "resources/pointerevent_pointerId_scope-iframe.html";
+                });
+            }
+
             async function run() {
+                await loadFrame();
+
                 var target0 = document.getElementById("target0");
                 var innerframe = document.getElementById("innerframe");
                 var target1 = innerframe.contentWindow.document.getElementsByTagName("div")[0];
@@ -89,7 +100,13 @@ http://www.w3.org/wiki/PointerEvents/TestAssertions
         </ol>
         <div id="target0" class="touchActionNone">
         </div>
-        <iframe src="resources/pointerevent_pointerId_scope-iframe.html" id="innerframe"></iframe>
+        <!-- Document onload does not guarantee that child iframes have loaded.
+             Force synchronization by deferring setting the iframe's source
+             until a promise is set up to capture its load event. The root
+             document will load first, then the iframe.  This ordering ensures
+             deterministic behavior.
+          -->
+        <iframe id="innerframe"></iframe>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
             <p>Refresh the page to run the tests again with a different pointer type.</p>

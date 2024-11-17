@@ -93,7 +93,7 @@ const scatterNDTests = [
 if (navigator.ml) {
   scatterNDTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getScatterNDPrecisionTolerance, test);
+        buildAndExecuteGraph, getScatterNDPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

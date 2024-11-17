@@ -48,7 +48,6 @@
     <x-anchor-2 id="x-anchor-2"></x-anchor-2>
     <div id="popover-2" popover anchor="x-anchor-2">Popover content</div>
   </div>
-
   <script>
     const customAnchor = document.querySelector('x-anchor-2');
     customAnchor.attachShadow({ mode: 'open', referenceTarget: 'anchor' });
@@ -67,6 +66,28 @@ background-color: yellow;
 <div></div>
 <div id="anchor"></div>`;
   </script>
+
+  <div>
+    <x-anchor id="x-anchor-3">
+      <template shadowrootmode="open" shadowrootreferencetarget="anchor">
+        <style>
+          div {
+            width: 100px;
+            height: 100px;
+          }
+
+          #anchor {
+            background-color: yellow;
+          }
+        </style>
+
+        <div></div>
+        <div id="anchor"></div>
+      </template>
+    </x-anchor>
+    <div id="popover-3" popover>Popover content</div>
+  </div>
+
   <script>
     function testPopoverAnchor(id, name) {
       test(function () {
@@ -80,6 +101,8 @@ background-color: yellow;
     }
     testPopoverAnchor('popover-1', "ShadowRoot ReferenceTarget works with anchor attribute.");
     testPopoverAnchor('popover-2', "ShadowRoot ReferenceTarget works with anchor attribute via options.");
+    document.getElementById('popover-3').anchorElement = document.getElementById('x-anchor-3');
+    testPopoverAnchor('popover-3', "ShadowRoot ReferenceTarget works with .anchorElement property.");
   </script>
 </body>
 

@@ -118,11 +118,13 @@ tests_arr.forEach(function(test_obj) {
       iframe.src = "support/" + filename + "?input=" + encodeURIComponent(test_obj.input);
       document.body.appendChild(iframe);
       var loadCount = 0;
+      var expectedReferrer = location.href;
       iframe.onload = t.step_func(function() {
         loadCount++;
-        var got = iframe.contentDocument.body.textContent.trim();
+        var content = iframe.contentDocument.body.textContent.trim();
         if (test_obj.expected.length === 0) {
-          assert_equals(got, filename);
+          assert_equals(content, filename, "page has expected content");
+          assert_equals(iframe.contentDocument.referrer, expectedReferrer, "referrer is parent frame");
           if (loadCount === 1) {
             t.step_timeout(function() {
               t.done();
@@ -130,15 +132,16 @@ tests_arr.forEach(function(test_obj) {
           } else {
             assert_unreached('Got > 1 load events');
           }
-        } else {
-          if (loadCount === 2) {
-            if(test_obj.expected[1] === "__filename__") {
-              assert_equals(got, filename);
-            } else {
-              assert_equals(got, test_obj.expected[1]);
-            }
-            t.done();
+        } else if (loadCount === 2) {
+          if(test_obj.expected[1] === "__filename__") {
+            assert_equals(content, filename, "page has expected content");
+          } else {
+            assert_equals(content, test_obj.expected[1], "page has expected content");
           }
+          assert_equals(iframe.contentDocument.referrer, expectedReferrer, "referrer is previous page");
+          t.done();
+        } else if (loadCount === 1) {
+          expectedReferrer = iframe.src;
         }
       });
     }, type + ": " + format_value(test_obj.input));

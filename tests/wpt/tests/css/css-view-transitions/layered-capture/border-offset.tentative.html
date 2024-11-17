@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html class=reftest-wait>
 <title>Borders should not affect snapshot position</title>
-<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="match" href="border-offset-ref.tentative.html">
 <script src="/common/reftest-wait.js"></script>
@@ -25,7 +24,7 @@
 
     .parent {
         view-transition-name: parent;
-        border: 3px solid black;
+        border: 10px solid black;
         background: green;
     }
 

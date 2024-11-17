@@ -536,7 +536,7 @@ const dequantizeLinearTests = [
 if (navigator.ml) {
   dequantizeLinearTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getDequantizeLinearPrecisionTolerance, test);
+        buildAndExecuteGraph, getDequantizeLinearPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

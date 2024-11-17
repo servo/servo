@@ -4,4 +4,11 @@
 // Source: Paint Timing (https://w3c.github.io/paint-timing/)
 
 [Exposed=Window]
+interface mixin PaintTimingMixin {
+    readonly attribute DOMHighResTimeStamp paintTime;
+    readonly attribute DOMHighResTimeStamp? presentationTime;
+};
+
+[Exposed=Window]
 interface PerformancePaintTiming : PerformanceEntry {};
+PerformancePaintTiming includes PaintTimingMixin;
