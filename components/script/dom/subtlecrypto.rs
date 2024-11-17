@@ -27,8 +27,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm,
-    AlgorithmIdentifier, HkdfParams, HmacImportParams, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm,
-    KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
+    AlgorithmIdentifier, HkdfParams, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
+    JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -986,6 +986,24 @@ impl SubtleHmacImportParams {
     }
 }
 
+struct SubtleHmacKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
+    hash: DigestAlgorithm,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
+    length: Option<u32>,
+}
+
+impl SubtleHmacKeyGenParams {
+    fn new(cx: JSContext, params: RootedTraceableBox<HmacKeyGenParams>) -> Fallible<Self> {
+        let hash = normalize_algorithm_for_digest(cx, &params.hash)?;
+        let params = Self {
+            hash,
+            length: params.length,
+        };
+        Ok(params)
+    }
+}
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
 #[derive(Clone, Debug)]
 pub struct SubtleHkdfParams {
@@ -1106,6 +1124,7 @@ enum SignatureAlgorithm {
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
 enum KeyGenerationAlgorithm {
     Aes(SubtleAesKeyGenParams),
+    Hmac(SubtleHmacKeyGenParams),
 }
 
 macro_rules! value_from_js_object {
@@ -1307,6 +1326,10 @@ fn normalize_algorithm_for_generate_key(
         if name.eq_ignore_ascii_case(ALG_AES_CBC) || name.eq_ignore_ascii_case(ALG_AES_CTR) {
             let params = value_from_js_object!(AesKeyGenParams, cx, value);
             KeyGenerationAlgorithm::Aes(params.into())
+        } else if name.eq_ignore_ascii_case(ALG_HMAC) {
+            let params = value_from_js_object!(HmacKeyGenParams, cx, value);
+            let subtle_params = SubtleHmacKeyGenParams::new(cx, params)?;
+            KeyGenerationAlgorithm::Hmac(subtle_params)
         } else {
             return Err(Error::NotSupported);
         };
@@ -1491,6 +1514,84 @@ impl SubtleCrypto {
         );
 
         Ok(crypto_key)
+    }
+
+    /// <https://w3c.github.io/webcrypto/#hmac-operations>
+    #[allow(unsafe_code)]
+    fn generate_key_hmac(
+        &self,
+        usages: Vec<KeyUsage>,
+        params: &SubtleHmacKeyGenParams,
+        extractable: bool,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
+        if usages
+            .iter()
+            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+        {
+            return Err(Error::Syntax);
+        }
+
+        // Step 2.
+        let length = match params.length {
+            // If the length member of normalizedAlgorithm is not present:
+            None => {
+                // Let length be the block size in bits of the hash function identified by the
+                // hash member of normalizedAlgorithm.
+                params.hash.block_size_in_bits() as u32
+            },
+            // Otherwise, if the length member of normalizedAlgorithm is non-zero:
+            Some(length) if length != 0 => {
+                // Let length be equal to the length member of normalizedAlgorithm.
+                length
+            },
+            // Otherwise:
+            _ => {
+                // throw an OperationError.
+                return Err(Error::Operation);
+            },
+        };
+
+        // Step 3. Generate a key of length length bits.
+        let mut key_data = vec![0; length as usize];
+        self.rng.borrow_mut().fill_bytes(&mut key_data);
+
+        // Step 4. If the key generation step fails, then throw an OperationError.
+        // NOTE: Our key generation is infallible.
+
+        // Step 5. Let key be a new CryptoKey object representing the generated key.
+        // Step 6. Let algorithm be a new HmacKeyAlgorithm.
+        // Step 7. Set the name attribute of algorithm to "HMAC".
+        // Step 8. Let hash be a new KeyAlgorithm.
+        // Step 9. Set the name attribute of hash to equal the name member of the hash member of normalizedAlgorithm.
+        // Step 10. Set the hash attribute of algorithm to hash.
+        // Step 11. Set the [[type]] internal slot of key to "secret".
+        // Step 12. Set the [[algorithm]] internal slot of key to algorithm.
+        // Step 13. Set the [[extractable]] internal slot of key to be extractable.
+        // Step 14. Set the [[usages]] internal slot of key to be usages.
+        let name = DOMString::from(ALG_HMAC);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
+        HmacKeyAlgorithm::from_length_and_hash(
+            length,
+            params.hash,
+            algorithm_object.handle_mut(),
+            cx,
+        );
+
+        let key = CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages,
+            Handle::Hmac(key_data),
+        );
+
+        // Step 15. Return key.
+        Ok(key)
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
@@ -2005,6 +2106,15 @@ impl DigestAlgorithm {
         };
         Ok(digest::digest(algorithm, data))
     }
+
+    fn block_size_in_bits(&self) -> usize {
+        match self {
+            Self::Sha1 => 160,
+            Self::Sha256 => 256,
+            Self::Sha384 => 384,
+            Self::Sha512 => 512,
+        }
+    }
 }
 
 impl ImportKeyAlgorithm {
@@ -2125,6 +2235,7 @@ impl KeyGenerationAlgorithm {
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
             Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable),
+            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable),
         }
     }
 }
