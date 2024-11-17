@@ -528,7 +528,7 @@ const subTests = [
 if (navigator.ml) {
   subTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getSubPrecisionTolerance, test);
+        buildAndExecuteGraph, getSubPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

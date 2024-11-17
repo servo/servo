@@ -74,13 +74,8 @@ for (const id of ['fallbackbutton', 'custombutton']) {
 
   promise_test(async () => {
     await test_driver.click(label);
-    if (button) {
-      assert_equals(document.activeElement, button,
-        'select child button should be the active element after clicking the label.');
-    } else {
-      assert_equals(document.activeElement, select,
-        'select should be the active element after clicking the label.');
-    }
+    assert_equals(document.activeElement, select,
+      'select should be the active element after clicking the label.');
     assert_false(select.matches(':open'),
       'select picker should be closed after clicking the label.');
   }, `${id}: Clicking the label should focus the select button without opening the picker.`);

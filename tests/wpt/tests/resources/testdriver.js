@@ -54,49 +54,135 @@
          */
         bidi: {
             /**
+             * @typedef {(String|WindowProxy)} Context A browsing context. Can
+             * be specified by its ID (a string) or using a `WindowProxy`
+             * object.
+             */
+            /**
+             * `bluetooth <https://webbluetoothcg.github.io/web-bluetooth>`_ module.
+             */
+            bluetooth: {
+                /**
+                 * Creates a simulated bluetooth adapter with the given params. Matches the
+                 * `bluetooth.simulateAdapter <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateAdapter-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulate_adapter({
+                 *     state: "powered-on"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.state The state of the simulated bluetooth adapter.
+                 * Matches the
+                 * `bluetooth.SimulateAdapterParameters:state <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateAdapter-command>`_
+                 * value.
+                 * @param {Context} [params.context] The optional context parameter specifies in
+                 * which browsing context the simulated bluetooth adapter should be set. If not
+                 * provided, the current browsing context is used.
+                 * @returns {Promise} fulfilled after the simulated bluetooth adapter is created
+                 * and set, or rejected if the operation fails.
+                 */
+                simulate_adapter: function (params) {
+                    return window.test_driver_internal.bidi.bluetooth.simulate_adapter(params);
+                }
+            },
+            /**
              * `log <https://w3c.github.io/webdriver-bidi/#module-log>`_ module.
              */
             log: {
-                /**
-                 * `log.entryAdded <https://w3c.github.io/webdriver-bidi/#event-log-entryAdded>`_ event.
-                 */
                 entry_added: {
                     /**
-                     * Subscribe to the `log.entryAdded` event. This does not
-                     * add actual listeners. To listen to the event, use the
-                     * `on` or `once` methods.
-                     * @param {{contexts?: null | (string | Window)[]}} params - Parameters for the subscription.
-                     * * `contexts`: an array of window proxies or browsing
-                     * context ids to listen to the event. If not provided, the
-                     * event subscription is done for the current window's
-                     * browsing context. `null` for the global subscription.
-                     * @return {Promise<void>}
+                     * @typedef {object} LogEntryAdded `log.entryAdded <https://w3c.github.io/webdriver-bidi/#event-log-entryAdded>`_ event.
+                     */
+
+                    /**
+                     * Subscribes to the event. Events will be emitted only if
+                     * there is a subscription for the event. This method does
+                     * not add actual listeners. To listen to the event, use the
+                     * `on` or `once` methods. The buffered events will be
+                     * emitted before the command promise is resolved.
+                     *
+                     * @param {object} [params] Parameters for the subscription.
+                     * @param {null|Array.<(Context)>} [params.contexts] The
+                     * optional contexts parameter specifies which browsing
+                     * contexts to subscribe to the event on. It should be
+                     * either an array of Context objects, or null. If null, the
+                     * event will be subscribed to globally. If omitted, the
+                     * event will be subscribed to on the current browsing
+                     * context.
+                     * @returns {Promise<void>} Resolves when the subscription
+                     * is successfully done.
                      */
                     subscribe: async function (params = {}) {
                         return window.test_driver_internal.bidi.log.entry_added.subscribe(params);
                     },
                     /**
-                     * Add an event listener for the `log.entryAdded
-                     * <https://w3c.github.io/webdriver-bidi/#event-log-entryAdded>`_ event. Make sure `subscribe` is
-                     * called before using this method.
+                     * Adds an event listener for the event.
                      *
-                     * @param callback {function(event): void} - The callback
-                     * to be called when the event is fired.
-                     * @returns {function(): void} - A function to call to
-                     * remove the event listener.
+                     * @param {function(LogEntryAdded): void} callback The
+                     * callback to be called when the event is emitted. The
+                     * callback is called with the event object as a parameter.
+                     * @returns {function(): void} A function that removes the
+                     * added event listener when called.
                      */
                     on: function (callback) {
                         return window.test_driver_internal.bidi.log.entry_added.on(callback);
                     },
+                    /**
+                     * Adds an event listener for the event that is only called
+                     * once and removed afterward.
+                     *
+                     * @return {Promise<LogEntryAdded>} The promise which is resolved
+                     * with the event object when the event is emitted.
+                     */
                     once: function () {
                         return new Promise(resolve => {
                             const remove_handler = window.test_driver_internal.bidi.log.entry_added.on(
-                                data => {
-                                    resolve(data);
+                                event => {
+                                    resolve(event);
                                     remove_handler();
                                 });
                         });
                     },
+                }
+            },
+            /**
+             * `permissions <https://www.w3.org/TR/permissions/>`_ module.
+             */
+            permissions: {
+                /**
+                 * Sets the state of a permission
+                 *
+                 * This function causes permission requests and queries for the status
+                 * of a certain permission type (e.g. "push", or "background-fetch") to
+                 * always return ``state`` for the specific origin.
+                 *
+                 * Matches the `permissions.setPermission <https://w3c.github.io/permissions/#webdriver-bidi-command-permissions-setPermission>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.permissions.set_permission({
+                 *     {name: "geolocation"},
+                 *     state: "granted",
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {PermissionDescriptor} params.descriptor - a `PermissionDescriptor
+                 *                               <https://w3c.github.io/permissions/#dom-permissiondescriptor>`_
+                 *                               or derived object.
+                 * @param {PermissionState} params.state - a `PermissionState
+                 *                          <https://w3c.github.io/permissions/#dom-permissionstate>`_
+                 *                          value.
+                 * @param {string} [params.origin] - an optional `origin` string to set the
+                 *                 permission for. If omitted, the permission is set for the
+                 *                 current window's origin.
+                 * @returns {Promise} fulfilled after the permission is set, or rejected if setting
+                 *                    the permission fails.
+                 */
+                set_permission: function (params) {
+                    return window.test_driver_internal.bidi.permissions.set_permission(
+                        params);
                 }
             }
         },
@@ -1229,6 +1315,12 @@
         in_automation: false,
 
         bidi: {
+            bluetooth: {
+                simulate_adapter: function () {
+                    throw new Error(
+                        "bidi.bluetooth.simulate_adapter is not implemented by testdriver-vendor.js");
+                }
+            },
             log: {
                 entry_added: {
                     async subscribe() {
@@ -1239,6 +1331,12 @@
                         throw new Error(
                             "bidi.log.entry_added.on is not implemented by testdriver-vendor.js");
                     }
+                }
+            },
+            permissions: {
+                async set_permission() {
+                    throw new Error(
+                        "bidi.permissions.set_permission() is not implemented by testdriver-vendor.js");
                 }
             }
         },

@@ -552,7 +552,7 @@ const layerNormTests = [
 if (navigator.ml) {
   layerNormTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getLayerNormPrecisionTolerance, test);
+        buildAndExecuteGraph, getLayerNormPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

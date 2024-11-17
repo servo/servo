@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.permissions.set_permission method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    const descriptor = {name: "geolocation"};
+
+    promise_test(async (t) => {
+        await test_driver.bidi.permissions.set_permission({
+            descriptor,
+            state: "granted",
+        });
+
+        permission = await navigator.permissions.query(descriptor);
+
+        assert_equals(permission.state, "granted");
+    }, "Grant Permission");
+
+    promise_test(async (t) => {
+        await test_driver.bidi.permissions.set_permission({
+            descriptor,
+            state: "denied",
+        });
+        permission = await navigator.permissions.query(descriptor);
+        assert_equals(permission.state, "denied");
+    }, "Deny Permission");
+
+    promise_test(async (t) => {
+        // Set permissions for the current origin.
+        await test_driver.bidi.permissions.set_permission({
+            descriptor,
+            state: "granted",
+            origin: window.location.origin
+        });
+
+        // Set permissions for another origin.
+        await test_driver.bidi.permissions.set_permission({
+            descriptor,
+            state: "denied",
+            origin: "https://some-other-non-exiting-origin.com"
+        });
+
+        permission = await navigator.permissions.query(descriptor);
+        assert_equals(permission.state, "granted");
+    }, "Grant Permissions for different origins");
+</script>

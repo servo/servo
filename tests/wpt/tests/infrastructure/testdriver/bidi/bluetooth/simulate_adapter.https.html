@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.bluetooth.simulate_adapter method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    promise_test(async (t) => {
+        await test_driver.bidi.bluetooth.simulate_adapter({
+            state: "absent"
+        });
+
+        assert_equals(false, await navigator.bluetooth.getAvailability(),
+            "Assert bluetooth is not available");
+    }, "simulate bluetooth adapter 'absent'");
+
+    promise_test(async (t) => {
+        await test_driver.bidi.bluetooth.simulate_adapter({
+            state: "powered-off"
+        });
+
+        assert_equals(true, await navigator.bluetooth.getAvailability(),
+            "Assert bluetooth available");
+    }, "simulate bluetooth adapter 'powered-off'");
+
+    promise_test(async (t) => {
+        await test_driver.bidi.bluetooth.simulate_adapter({
+            state: "powered-on"
+        });
+
+        assert_equals(true, await navigator.bluetooth.getAvailability(),
+            "Assert bluetooth available");
+    }, "simulate bluetooth adapter 'powered-on'");
+</script>

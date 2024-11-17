@@ -1,11 +1,7 @@
-import asyncio
-import time
-
 import pytest
 import webdriver.bidi.error as error
 from webdriver.bidi.modules.input import Actions, get_element_origin
 
-from tests.support.keys import Keys
 from . import get_element_rect
 from .. import get_events
 

@@ -13,7 +13,6 @@
 <body>
 
 <!-- 1. Declaratively defined custom label -->
-
 <x-label1 id="x-label1">
   <template shadowrootmode="closed" shadowrootreferencetarget="label1">
     <span>FAIL IF INCLUDED</span>
@@ -23,7 +22,6 @@
 <input class="ex" aria-labelledby="x-label1" data-expectedlabel="Label 1">
 
 <!-- 2. Imperatively defined custom element -->
-
 <script>
   customElements.define(
     "x-label2",
@@ -45,6 +43,18 @@
 </script>
 <x-label2 id="x-label2">Label 2</x-label2>
 <input class="ex" aria-labelledby="x-label2" data-expectedlabel="Label 2">
+
+<!-- 3. Setting .ariaLabelledByElements to target a declaratively defined custom label -->
+<x-label3 id="x-label3">
+  <template shadowrootmode="closed" shadowrootreferencetarget="label3">
+    <span>FAIL IF INCLUDED</span>
+    <label id="label3">Label 3</label>
+  </template>
+</x-label3>
+<input id="input3" class="ex" data-expectedlabel="Label 3">
+<script>
+  document.getElementById("input3").ariaLabelledByElements = [ document.getElementById("x-label3") ];
+</script>
 
 <script>
   AriaUtils.verifyLabelsBySelector('.ex');

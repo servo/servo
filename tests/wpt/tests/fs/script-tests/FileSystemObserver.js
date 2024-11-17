@@ -120,7 +120,7 @@ directory_test(async (t, root_dir) => {
       const records = await observer.getRecords();
       await assert_records_equal(
           watched_handle, records,
-          [disappearedEvent(file, path.relativePathComponents())]);
+          [disappearedEvent(path.relativePathComponents())]);
 
       observer.disconnect();
     }
@@ -263,7 +263,7 @@ directory_test(async (t, root_dir) => {
         const records = await observer.getRecords();
         await assert_records_equal(
             watched_handle, records,
-            [disappearedEvent(file, src.relativePathComponents())]);
+            [disappearedEvent(src.relativePathComponents())]);
       }
     }
   }

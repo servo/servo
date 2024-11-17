@@ -8,15 +8,10 @@
 <script src="/resources/testdriver-actions.js"></script>
 
 <style>
-#selecteditem {
-  color: SelectedItemText;
-  background-color: SelectedItem;
-}
 select, select::picker(select) {
   appearance: base-select;
 }
 </style>
-<div id=selecteditem>SelectedItem test colors</div>
 
 <select>
   <option class=one>one</option>
@@ -31,11 +26,6 @@ const optionTwo = document.querySelector('.two');
 const disabledOption = document.querySelector('.three');
 
 promise_test(async () => {
-  await new Promise(requestAnimationFrame);
-  const selectedItemTestElement = document.getElementById('selecteditem');
-  const selectedItemTextColor = getComputedStyle(selectedItemTestElement).color;
-  const selectedItemColor = getComputedStyle(selectedItemTestElement).backgroundColor;
-
   await test_driver.bless();
   select.showPicker();
   assert_true(select.matches(':open'),
@@ -45,27 +35,18 @@ promise_test(async () => {
     .pointerMove(1, 1, {origin: optionOne}))
     .send();
   await new Promise(requestAnimationFrame);
-
-  assert_equals(getComputedStyle(optionOne).color, selectedItemTextColor,
-    'The hovered option should have color:SelectedItemText.');
-  assert_equals(getComputedStyle(optionOne).backgroundColor, selectedItemColor,
-    'The hovered option should have background-color:SelectedItem.');
-  // SelectedItemTextColor might be the same as the default text color, so
-  // don't test that optionTwo's color isn't selectedItemTextColor.
-  assert_not_equals(getComputedStyle(optionTwo).backgroundColor, selectedItemColor,
-    'The not hovered option should not have background-color:SelectedItem.');
-
-  const disabledColor = getComputedStyle(disabledOption).color;
-  const disabledBackgroundColor = getComputedStyle(disabledOption).backgroundColor;
+  assert_equals(getComputedStyle(optionOne).color, 'rgb(0, 0, 0)',
+    'Option color while hovering.');
+  assert_equals(getComputedStyle(optionOne).backgroundColor, 'lab(0 0 0 / 0.2)',
+    'Option background-color while hovering.');
 
   await (new test_driver.Actions()
-    .pointerMove(1, 1, disabledOption))
+    .pointerMove(1, 1, {origin: disabledOption}))
     .send();
   await new Promise(requestAnimationFrame);
-
-  assert_equals(getComputedStyle(disabledOption).color, disabledColor,
-    'Disabled options should not change color when hovered.');
-  assert_equals(getComputedStyle(disabledOption).backgroundColor, disabledBackgroundColor,
-    'Disabled options should not change background-color when hovered.');
+  assert_equals(getComputedStyle(disabledOption).color, 'lab(0 0 0 / 0.5)',
+    'Disabled option color while hovering.');
+  assert_equals(getComputedStyle(disabledOption).backgroundColor, 'rgba(0, 0, 0, 0)',
+    'Disabled option background-color while hovering.');
 }, 'Hover styles should be present for appearance:base-select options.');
 </script>

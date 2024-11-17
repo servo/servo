@@ -1,6 +1,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=/service-workers/service-worker/resources/test-helpers.sub.js
+// META: script=resources/helpers.js
 
 // (Cannot use `global=serviceworker` because testdriver only supports window)
 
@@ -14,8 +15,8 @@ navigator.serviceWorker.addEventListener("message", async ev => {
   }
 });
 
-promise_setup(() => {
-  return test_driver.set_permission({ name: "notifications" }, "granted");
+promise_setup(async () => {
+  await trySettingPermission("granted");
 });
 
 service_worker_test("getnotifications-sw.js", "Service worker test setup");

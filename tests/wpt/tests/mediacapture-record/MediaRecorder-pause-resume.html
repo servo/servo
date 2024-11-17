@@ -13,6 +13,9 @@
     <meta name=variant content="?mimeType=video/mp4;codecs=vp9,mp4a.40.2">
     <meta name=variant content="?mimeType=video/mp4;codecs=av01,opus">
     <meta name=variant content="?mimeType=video/mp4;codecs=av01,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=hvc1,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=hvc1,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/x-matroska;codecs=hvc1,opus">
     <meta name=variant content="?mimeType=video/mp4">
     <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
     <script src="/resources/testharness.js"></script>
@@ -33,8 +36,7 @@
     const mimeType = params.get('mimeType');
     const tag = `mimeType "${mimeType}"`;
     promise_test(async t => {
-      const {stream: video, control} = createVideoStream(t);
-      control.addVideoFrame();
+      const { stream: video } = createFlowingVideoStream(t);
       if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
           promise_test(async t => {
               assert_throws_dom('NotSupportedError',
@@ -81,8 +83,7 @@
     }, `MediaRecorder handles pause() and resume() state and events, ${tag}`);
 
     promise_test(async t => {
-      const {stream: video, control} = createVideoStream(t);
-      control.addVideoFrame();
+      const { stream: video } = createFlowingVideoStream(t);
       if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
           promise_test(async t => {
               assert_throws_dom('NotSupportedError',

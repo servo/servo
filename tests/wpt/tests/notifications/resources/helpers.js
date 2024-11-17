@@ -30,7 +30,7 @@ async function trySettingPermission(perm) {
   // Notification.permission.
   const permission = Notification.permission === "default" ? "prompt" : Notification.permission;
   if (permission !== perm) {
-    throw new Error(`Should have the permission ${perm} to continue`);
+    throw new Error(`Should have the permission ${perm} to continue but found ${permission}`);
   }
 }
 

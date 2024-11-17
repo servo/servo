@@ -572,7 +572,7 @@ const reduceLogSumTests = [
 if (navigator.ml) {
   reduceLogSumTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getReductionOperatorsPrecisionTolerance, test);
+        buildAndExecuteGraph, getReductionOperatorsPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

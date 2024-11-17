@@ -466,37 +466,103 @@ const createOperand = (context, builder, operandName, resources) => {
   return operand;
 };
 
-const prepareInputsForGraph = (inputs, resources) => {
-  for (let operandName of Object.keys(resources)) {
-    const inputOperandResources = resources[operandName];
-    if (!inputOperandResources.constant) {
-      inputs[operandName] = getTypedArrayData(
-          inputOperandResources.descriptor.castedType ?
-              inputOperandResources.descriptor.castedType :
-              inputOperandResources.descriptor.dataType,
-          sizeOfShape(inputOperandResources.descriptor.shape),
-          inputOperandResources.data);
-    }
+/**
+ * Create inputs or outputs tensor.
+ * @param {MLContext} context - the context used to create inputs or outputs
+ *     tensor.
+ * @param {String} dataType - dataType of inputs / outputs operands
+ * @param {Array} shape - dimensions of inputs / outputs operands
+ * @param {Object} [data] - optional data for inputs tensor
+ * @returns {MLTensor}
+ */
+async function createTensorWithData(context, dataType, shape, data) {
+  const tensorDesc = {dataType, shape};
+  if (data) {
+    tensorDesc.writable = true;
+  } else {
+    tensorDesc.readable = true;
   }
-};
+  let tensor = await context.createTensor(tensorDesc);
+  if (data) {
+    context.writeTensor(tensor, data);
+  }
+  return tensor;
+}
 
-const prepareOutputsForGraph = (outputs, resources) => {
-  for (let operandName of Object.keys(resources)) {
-    const descriptor = resources[operandName].descriptor;
-    const dataType =
+async function prepareInputsForGraph(context, resources) {
+  const inputOperandNameArray = Object.keys(resources).filter(
+      operandName => !resources[operandName].constant);
+  const tensors = await Promise.all(inputOperandNameArray.map((operandName) => {
+    const inputOperandResources = resources[operandName];
+    const descriptor = inputOperandResources.descriptor;
+    const targetDataType =
         descriptor.castedType ? descriptor.castedType : descriptor.dataType;
-    if (dataType === 'int4' || dataType === 'uint4') {
-      outputs[operandName] = new TypedArrayDict[dataType](
-          Math.ceil(sizeOfShape(descriptor.shape) / 2));
-    } else {
-      outputs[operandName] =
-          new TypedArrayDict[dataType](sizeOfShape(descriptor.shape));
-    }
-  }
-};
+    const inputBuffer = getTypedArrayData(
+        targetDataType, sizeOfShape(descriptor.shape),
+        inputOperandResources.data);
+    return createTensorWithData(
+        context, targetDataType, descriptor.shape, inputBuffer);
+  }));
+
+  const inputs = {};
+  inputOperandNameArray.forEach((name, index) => inputs[name] = tensors[index]);
+  return inputs;
+}
+
+async function prepareOutputsForGraph(context, resources) {
+  const outputOperandNameArray = Object.keys(resources);
+  const tensors =
+      await Promise.all(outputOperandNameArray.map((operandName) => {
+        const descriptor = resources[operandName].descriptor;
+        const dataType =
+            descriptor.castedType ? descriptor.castedType : descriptor.dataType;
+        return createTensorWithData(context, dataType, descriptor.shape);
+      }));
+
+  const outputs = {};
+  outputOperandNameArray.forEach(
+      (name, index) => outputs[name] = tensors[index]);
+  return outputs;
+}
 
 /**
- * This function is to compile the constructed graph and compute.
+ * This function is to execute the compiled graph.
+ * @param {MLContext} context
+ * @param {MLGraph} graph
+ * @param {Map<String, {
+ *                       data: Array.<Number>|Number,
+ *                       descriptor: MLOperandDescriptor,
+ *                       constant?: Boolean
+ *                     }>} graphInputs
+ * @param {Map<String, {
+ *                      data: Array.<Number>|Number,
+ *                      descriptor: MLOperandDescriptor,
+ *                     }>} expectedOutputs
+ * @returns A result object.
+ */
+async function computeGraph(context, graph, graphInputs, expectedOutputs) {
+  const inputs = await prepareInputsForGraph(context, graphInputs);
+  const outputs = await prepareOutputsForGraph(context, expectedOutputs);
+
+  // Execute the compiled graph.
+  context.dispatch(graph, inputs, outputs);
+
+  const result = {};
+  const outputNameArray = Object.keys(expectedOutputs);
+  const outputBuffers = await Promise.all(Object.values(outputs).map(
+      (tensor) => {return context.readTensor(tensor)}));
+  outputNameArray.forEach((name, index) => {
+    const dataType = expectedOutputs[name].descriptor.castedType ?
+        expectedOutputs[name].descriptor.castedType :
+        expectedOutputs[name].descriptor.dataType;
+    result[name] = new TypedArrayDict[dataType](outputBuffers[index])
+  });
+
+  return result;
+}
+
+/**
+ * This function is to compile and execute the constructed graph.
  * @param {MLContext} context
  * @param {MLGraphBuilder} builder
  * @param {{
@@ -517,7 +583,7 @@ const prepareOutputsForGraph = (outputs, resources) => {
  *        }} graphResources - Resources used for building a graph
  * @returns A Promise of MLComputeResult.
  */
-const buildGraphAndCompute = async (context, builder, graphResources) => {
+const buildAndExecuteGraph = async (context, builder, graphResources) => {
   const outputOperands = [];
   const graphInputs = graphResources.inputs;
   const graphOperators = graphResources.operators;
@@ -609,14 +675,10 @@ const buildGraphAndCompute = async (context, builder, graphResources) => {
   // Compile the constructed graph.
   const graph = await builder.build(namedOutputOperand);
 
-  const inputs = {};
-  prepareInputsForGraph(inputs, graphInputs);
-
-  const outputs = {};
-  prepareOutputsForGraph(outputs, graphResources.expectedOutputs);
-
   // Execute the compiled graph.
-  const result = await context.compute(graph, inputs, outputs);
+  const result = await computeGraph(
+      context, graph, graphInputs, graphResources.expectedOutputs);
+
   return {result, intermediateOperands};
 };
 
@@ -763,7 +825,7 @@ const getReducedElementCount =
     }
 
 const webnn_conformance_test =
-    (buildGraphAndComputeFunc, toleranceFunc, testResources) => {
+    (buildAndExecuteGraphFunc, toleranceFunc, testResources) => {
       promise_test(async () => {
         let context;
         try {
@@ -773,10 +835,9 @@ const webnn_conformance_test =
               `Unable to create context for ${variant} variant. ${e}`);
         }
         const builder = new MLGraphBuilder(context);
-        const {result, intermediateOperands} = await buildGraphAndComputeFunc(
+        const {result, intermediateOperands} = await buildAndExecuteGraphFunc(
             context, builder, testResources.graph);
         assertResultsEquals(
-            toleranceFunc, result.outputs, testResources.graph,
-            intermediateOperands);
+            toleranceFunc, result, testResources.graph, intermediateOperands);
       }, testResources.name);
     };

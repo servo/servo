@@ -44,13 +44,21 @@ promise_test(async t => {
   const reshapeOutput = builder.reshape(conv2dOutput, newShape);
   assert_equals(reshapeOutput.dataType, avgPool2dInput.dataType);
   assert_array_equals(reshapeOutput.shape, newShape);
-  const graph = await builder.build({reshapeOutput});
-  const result = await context.compute(
-      graph, {
-        'avgPool2dInput':
-            new Float32Array(sizeOfShape(avgPool2dInputShape)).fill(0.1)
-      },
-      {'reshapeOutput': new Float32Array(1001)});
+
+  const [graph, inputTensor, outputTensor] = await Promise.all([
+    builder.build({reshapeOutput}),
+    context.createTensor(
+        {dataType: 'float32', shape: avgPool2dInputShape, writable: true}),
+    context.createTensor({dataType: 'float32', shape: newShape, readable: true})
+  ]);
+
+  context.writeTensor(
+      inputTensor,
+      new Float32Array(sizeOfShape(avgPool2dInputShape)).fill(0.1));
+
+  context.dispatch(
+      graph, {'avgPool2dInput': inputTensor}, {'reshapeOutput': outputTensor});
+  await context.readTensor(outputTensor);
 }, 'Test global average pool operator\'s output shape for ResNetV2 50 model.');
 
 // This is used to reproduce an issue(crbug.com/331841268) of reduceMean in
@@ -88,11 +96,19 @@ promise_test(async t => {
   const reshapeOutput = builder.reshape(conv2dOutput, newShape);
   assert_equals(reshapeOutput.dataType, reduceMeanInput.dataType);
   assert_array_equals(reshapeOutput.shape, newShape);
-  const graph = await builder.build({reshapeOutput});
-  const result = await context.compute(
-      graph, {
-        'reduceMeanInput':
-            new Float32Array(sizeOfShape(reduceMeanInputShape)).fill(0.1)
-      },
-      {'reshapeOutput': new Float32Array(1001)});
+
+  const [graph, inputTensor, outputTensor] = await Promise.all([
+    builder.build({reshapeOutput}),
+    context.createTensor(
+        {dataType: 'float32', shape: reduceMeanInputShape, writable: true}),
+    context.createTensor({dataType: 'float32', shape: newShape, readable: true})
+  ]);
+
+  context.writeTensor(
+      inputTensor,
+      new Float32Array(sizeOfShape(reduceMeanInputShape)).fill(0.1));
+
+  context.dispatch(
+      graph, {'reduceMeanInput': inputTensor}, {'reshapeOutput': outputTensor});
+  await context.readTensor(outputTensor);
 }, 'Test reduceMean operator\'s output shape for ResNetV2 50 model.');

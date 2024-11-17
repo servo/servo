@@ -1015,7 +1015,7 @@ const whereTests = [
 if (navigator.ml) {
   whereTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getWherePrecisionTolerance, test);
+        buildAndExecuteGraph, getWherePrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

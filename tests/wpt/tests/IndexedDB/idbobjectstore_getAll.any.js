@@ -1,30 +1,11 @@
 // META: title=IndexedDB: Test IDBObjectStore.getAll
+// META: global=window,worker
+// META: script=resources/nested-cloning-common.js
 // META: script=resources/support.js
+// META: script=resources/support-get-all.js
+// META: script=resources/support-promises.js
 
 'use strict';
-
-const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
-
-function getall_test(func, name) {
-  indexeddb_test(
-    (t, connection, tx) => {
-      let store = connection.createObjectStore('generated',
-        { autoIncrement: true, keyPath: 'id' });
-      alphabet.forEach(letter => {
-        store.put({ ch: letter });
-      });
-
-      store = connection.createObjectStore('out-of-line', null);
-      alphabet.forEach(letter => {
-        store.put(`value-${letter}`, letter);
-      });
-
-      store = connection.createObjectStore('empty', null);
-    },
-    func,
-    name
-  );
-}
 
 function createGetAllRequest(t, storeName, connection, keyRange, maxCount) {
   const transaction = connection.transaction(storeName, 'readonly');
@@ -34,7 +15,7 @@ function createGetAllRequest(t, storeName, connection, keyRange, maxCount) {
   return req;
 }
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection, 'c');
   req.onsuccess = t.step_func(evt => {
     assert_array_equals(evt.target.result, ['value-c']);
@@ -42,7 +23,7 @@ getall_test((t, connection) => {
   });
 }, 'Single item get');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'generated', connection, 3);
   req.onsuccess = t.step_func(evt => {
     const data = evt.target.result;
@@ -54,7 +35,7 @@ getall_test((t, connection) => {
   });
 }, 'Single item get (generated key)');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'empty', connection);
   req.onsuccess = t.step_func(evt => {
     assert_array_equals(evt.target.result, [],
@@ -63,7 +44,7 @@ getall_test((t, connection) => {
   });
 }, 'getAll on empty object store');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection);
   req.onsuccess = t.step_func(evt => {
     assert_array_equals(evt.target.result, alphabet.map(c => `value-${c}`));
@@ -71,7 +52,28 @@ getall_test((t, connection) => {
   });
 }, 'Get all values');
 
-getall_test((t, connection) => {
+object_store_get_all_test((test, connection) => {
+  const request = createGetAllRequest(test, 'large-values', connection);
+  request.onsuccess = test.step_func(event => {
+    const actualResults = event.target.result;
+    assert_true(Array.isArray(actualResults), 'The results must be an array');
+
+    const expectedRecords = expectedObjectStoreRecords['large-values'];
+    assert_equals(
+        actualResults.length, expectedRecords.length,
+        'The results array must contain the expected number of records');
+
+    // Verify each large value.
+    for (let i = 0; i < expectedRecords.length; i++) {
+      assert_large_array_equals(
+          actualResults[i], expectedRecords[i].value,
+          'The record must have the expected value');
+    }
+    test.done();
+  });
+}, 'Get all with large values');
+
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection, undefined,
     10);
   req.onsuccess = t.step_func(evt => {
@@ -80,7 +82,7 @@ getall_test((t, connection) => {
   });
 }, 'Test maxCount');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection,
     IDBKeyRange.bound('g', 'm'));
   req.onsuccess = t.step_func(evt => {
@@ -89,7 +91,7 @@ getall_test((t, connection) => {
   });
 }, 'Get bound range');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection,
     IDBKeyRange.bound('g', 'm'), 3);
   req.onsuccess = t.step_func(evt => {
@@ -98,7 +100,7 @@ getall_test((t, connection) => {
   });
 }, 'Get bound range with maxCount');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection,
     IDBKeyRange.bound('g', 'k', false, true));
   req.onsuccess = t.step_func(evt => {
@@ -107,7 +109,7 @@ getall_test((t, connection) => {
   });
 }, 'Get upper excluded');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection,
     IDBKeyRange.bound('g', 'k', true, false));
   req.onsuccess = t.step_func(evt => {
@@ -116,7 +118,7 @@ getall_test((t, connection) => {
   });
 }, 'Get lower excluded');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'generated', connection,
     IDBKeyRange.bound(4, 15), 3);
   req.onsuccess = t.step_func(evt => {
@@ -128,7 +130,7 @@ getall_test((t, connection) => {
   });
 }, 'Get bound range (generated) with maxCount');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection,
     "Doesn't exist");
   req.onsuccess = t.step_func(evt => {
@@ -139,7 +141,7 @@ getall_test((t, connection) => {
   req.onerror = t.unreached_func('getAll request should succeed');
 }, 'Non existent key');
 
-getall_test((t, connection) => {
+object_store_get_all_test((t, connection) => {
   const req = createGetAllRequest(t, 'out-of-line', connection, undefined, 0);
   req.onsuccess = t.step_func(evt => {
     assert_array_equals(evt.target.result, alphabet.map(c => `value-${c}`));
@@ -147,7 +149,41 @@ getall_test((t, connection) => {
   });
 }, 'zero maxCount');
 
-getall_test((t, connection) => {
+object_store_get_all_test((test, connection) => {
+  const request = createGetAllRequest(
+      test, 'out-of-line', connection, /*query=*/ undefined,
+      /*count=*/ 4294967295);
+  request.onsuccess = test.step_func(event => {
+    assert_array_equals(event.target.result, alphabet.map(c => `value-${c}`));
+    test.done();
+  });
+}, 'Max value count');
+
+object_store_get_all_test((test, connection) => {
+  const request = createGetAllRequest(
+      test, /*storeName=*/ 'out-of-line', connection,
+      IDBKeyRange.upperBound('0'));
+  request.onsuccess = test.step_func((event) => {
+    assert_array_equals(
+        event.target.result, /*expectedResults=*/[],
+        'getAll() with an empty query range must return an empty array');
+    test.done();
+  });
+}, 'Query with empty range where  first key < upperBound');
+
+object_store_get_all_test((test, connection) => {
+  const request = createGetAllRequest(
+      test, /*storeName=*/ 'out-of-line', connection,
+      IDBKeyRange.lowerBound('zz'));
+  request.onsuccess = test.step_func((event) => {
+    assert_array_equals(
+        event.target.result, /*expectedResults=*/[],
+        'getAll() with an empty query range must return an empty array');
+    test.done();
+  });
+}, 'Query with empty range where lowerBound < last key');
+
+object_store_get_all_test((t, connection) => {
   const transaction = connection.transaction('out-of-line', 'readonly');
   const store = transaction.objectStore('out-of-line');
   const req = store.getAll();

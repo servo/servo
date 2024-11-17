@@ -724,7 +724,7 @@ const expandTests = [
 if (navigator.ml) {
   expandTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getExpandPrecisionTolerance, test);
+        buildAndExecuteGraph, getExpandPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -200,60 +200,11 @@ indexeddb_test(
   document.title + " - fresh continue still async"
 );
 </script>
-
+<script src="nested-cloning-common.js"></script>
+<script src="support-get-all.js"></script>
+<script src="support-promises.js"></script>
 <!-- This block is from idbindex_getAll.htm -->
 <script>
-var alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
-var ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-
-function getall_test(func, name) {
-  indexeddb_test(
-    function(t, connection, tx) {
-      var store = connection.createObjectStore('generated',
-            {autoIncrement: true, keyPath: 'id'});
-      var index = store.createIndex('test_idx', 'upper');
-      alphabet.forEach(function(letter) {
-        store.put({ch: letter, upper: letter.toUpperCase()});
-      });
-
-      store = connection.createObjectStore('out-of-line', null);
-      index = store.createIndex('test_idx', 'upper');
-      alphabet.forEach(function(letter) {
-        store.put({ch: letter, upper: letter.toUpperCase()}, letter);
-      });
-
-      store = connection.createObjectStore('out-of-line-not-unique', null);
-      index = store.createIndex('test_idx', 'half');
-      alphabet.forEach(function(letter) {
-        if (letter <= 'm')
-          store.put({ch: letter, half: 'first'}, letter);
-        else
-          store.put({ch: letter, half: 'second'}, letter);
-      });
-
-      store = connection.createObjectStore('out-of-line-multi', null);
-      index = store.createIndex('test_idx', 'attribs', {multiEntry: true});
-      alphabet.forEach(function(letter) {
-        attrs = [];
-        if (['a', 'e', 'i', 'o', 'u'].indexOf(letter) != -1)
-          attrs.push('vowel');
-        else
-          attrs.push('consonant');
-        if (letter == 'a')
-          attrs.push('first');
-        if (letter == 'z')
-          attrs.push('last');
-        store.put({ch: letter, attribs: attrs}, letter);
-      });
-
-      store = connection.createObjectStore('empty', null);
-      index = store.createIndex('test_idx', 'upper');
-    },
-    func,
-    name
-  );
-}
-
 function createGetAllRequest(t, storeName, connection, range, maxCount) {
     var transaction = connection.transaction(storeName, 'readonly');
     var store = transaction.objectStore(storeName);
@@ -263,7 +214,7 @@ function createGetAllRequest(t, storeName, connection, range, maxCount) {
     return req;
 }
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection, 'C');
       req.onsuccess = t.step_func(function(evt) {
           var data = evt.target.result;
@@ -274,7 +225,7 @@ getall_test(function(t, connection) {
       });
     }, 'Single item get');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'empty', connection);
       req.onsuccess = t.step_func(function(evt) {
           assert_array_equals(evt.target.result, [],
@@ -283,7 +234,7 @@ getall_test(function(t, connection) {
       });
     }, 'Empty object store');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection);
       req.onsuccess = t.step_func(function(evt) {
           var data = evt.target.result;
@@ -294,7 +245,7 @@ getall_test(function(t, connection) {
       });
     }, 'Get all keys');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection, undefined,
                                     10);
       req.onsuccess = t.step_func(function(evt) {
@@ -306,7 +257,7 @@ getall_test(function(t, connection) {
       });
     }, 'maxCount=10');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection,
                                     IDBKeyRange.bound('G', 'M'));
       req.onsuccess = t.step_func(function(evt) {
@@ -317,7 +268,7 @@ getall_test(function(t, connection) {
       });
     }, 'Get bound range');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection,
                                     IDBKeyRange.bound('G', 'M'), 3);
       req.onsuccess = t.step_func(function(evt) {
@@ -329,7 +280,7 @@ getall_test(function(t, connection) {
       });
     }, 'Get bound range with maxCount');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection,
           IDBKeyRange.bound('G', 'K', false, true));
       req.onsuccess = t.step_func(function(evt) {
@@ -341,7 +292,7 @@ getall_test(function(t, connection) {
       });
     }, 'Get upper excluded');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection,
           IDBKeyRange.bound('G', 'K', true, false));
       req.onsuccess = t.step_func(function(evt) {
@@ -353,7 +304,7 @@ getall_test(function(t, connection) {
       });
     }, 'Get lower excluded');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'generated',
           connection, IDBKeyRange.bound(4, 15), 3);
       req.onsuccess = t.step_func(function(evt) {
@@ -364,7 +315,7 @@ getall_test(function(t, connection) {
       });
     }, 'Get bound range (generated) with maxCount');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line',
           connection, "Doesn't exist");
       req.onsuccess = t.step_func(function(evt) {
@@ -375,7 +326,7 @@ getall_test(function(t, connection) {
       });
     }, 'Non existent key');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line', connection,
           undefined, 0);
       req.onsuccess = t.step_func(function(evt) {
@@ -387,7 +338,7 @@ getall_test(function(t, connection) {
       });
     }, 'maxCount=0');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line-not-unique', connection,
                                     'first');
       req.onsuccess = t.step_func(function(evt) {
@@ -399,7 +350,7 @@ getall_test(function(t, connection) {
       });
     }, 'Retrieve multiEntry key');
 
-getall_test(function(t, connection) {
+index_get_all_test(function(t, connection) {
       var req = createGetAllRequest(t, 'out-of-line-multi', connection,
                                     'vowel');
       req.onsuccess = t.step_func(function(evt) {

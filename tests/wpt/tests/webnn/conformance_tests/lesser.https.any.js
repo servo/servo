@@ -530,7 +530,7 @@ const lesserTests = [
 if (navigator.ml) {
   lesserTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getLesserPrecisionTolerance, test);
+        buildAndExecuteGraph, getLesserPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

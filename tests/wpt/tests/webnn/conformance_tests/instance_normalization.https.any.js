@@ -357,7 +357,7 @@ const instanceNormTests = [
 if (navigator.ml) {
   instanceNormTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getInstanceNormPrecisionTolerance, test);
+        buildAndExecuteGraph, getInstanceNormPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

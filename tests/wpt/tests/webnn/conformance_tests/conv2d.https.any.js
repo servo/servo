@@ -1110,7 +1110,7 @@ const conv2dTests = [
 
 if (navigator.ml) {
   conv2dTests.forEach((test) => {
-    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
+    webnn_conformance_test(buildAndExecuteGraph, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

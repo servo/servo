@@ -730,7 +730,7 @@ const padTests = [
 if (navigator.ml) {
   padTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getPadPrecisionTolerance, test);
+        buildAndExecuteGraph, getPadPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

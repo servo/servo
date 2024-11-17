@@ -104,6 +104,10 @@
 
   // Other attributes can be assigned with TrustedTypes or strings or null values
   test(t => {
+    assert_element_accepts_trusted_type_explicit_set('a', 'rel', p.createScriptURL(INPUTS.SCRIPTURL), RESULTS.SCRIPTURL);
+  }, "a.rel accepts a Trusted Type");
+
+  test(t => {
     assert_element_accepts_non_trusted_type_explicit_set('a', 'rel', 'A string', 'A string');
   }, "a.rel accepts strings");
 

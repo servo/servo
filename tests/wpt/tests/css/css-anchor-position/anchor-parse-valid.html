@@ -70,7 +70,9 @@ for (let property of insetProperties) {
 }
 
 // Tests that anchor() can be used in a calc tree
-test_valid_value('top', 'calc((anchor(--foo top) + anchor(--bar bottom)) / 2)');
-test_valid_value('top', 'anchor(--foo top, calc(anchor(--bar bottom) * 0.5))');
+// Still follow the simplification process as outlined in https://drafts.csswg.org/css-values-4/#calc-simplification
+test_valid_value('top', 'calc((anchor(--foo top) + anchor(--bar bottom)) / 2)', 'calc(0.5 * (anchor(--foo top) + anchor(--bar bottom)))');
+test_valid_value('top', 'calc(0.5 * (anchor(--foo top) + anchor(--bar bottom)))');
+test_valid_value('top', 'anchor(--foo top, calc(0.5 * anchor(--bar bottom)))');
 test_valid_value('top', 'min(100px, 10%, anchor(--foo top), anchor(--bar bottom))');
 </script>

@@ -30,7 +30,6 @@
     <x-input1 id="x-input1-a"></x-input1>
   </div>
 </label>
-
 <script>
   const customInput1 = document.querySelector('#x-input1-a');
   customInput1.attachShadow({ mode: 'open', referenceTarget: 'input' });
@@ -46,7 +45,7 @@
       // The label should apply to the input element and not the host.
       assert_equals(await test_driver.get_computed_label(x_input), "");
       assert_equals(await test_driver.get_computed_label(input), label);
-    }, "Label applies to descendant custom element that uses shadowrootreferencetarget");
+    }, "Label applies to descendant custom element that uses shadowrootreferencetarget (" + label + ")");
   }
   testImplicitLabelAssociation('x-input1', 'Input 1');
   testImplicitLabelAssociation('x-input1-a', 'Input 1 via Options');
@@ -92,10 +91,10 @@
       assert_equals(await test_driver.get_computed_label(outer), "");
       assert_equals(await test_driver.get_computed_label(inner), "");
       assert_equals(await test_driver.get_computed_label(input), label);
-    }, "Label applies to multiple layers of descendant custom elements that use shadowrootreferencetarget");
+    }, "Label applies to multiple layers of descendant custom elements that use shadowrootreferencetarget (" + label + ")");
   }
-  testDeepImplicitLabelAssociation('x-outer2', 'Label 2');
-  testDeepImplicitLabelAssociation('x-outer2-a', 'Label 2 via Options');
+  testDeepImplicitLabelAssociation('x-outer2', 'Input 2');
+  testDeepImplicitLabelAssociation('x-outer2-a', 'Input 2 via Options');
 </script>
 
 </body>

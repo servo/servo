@@ -32,20 +32,20 @@ function testOneCase(shouldBeIndependent,popover2Opener,msg) {
 }
 
 testOneCase(true,() => popover2.showPopover(),'normal opening');
-testOneCase(true,() => popover2.showPopover({invoker: unrelated}),'showPopover(unrelated)');
-testOneCase(false,() => popover2.showPopover({invoker: popover}),'showPopover(popover)');
-testOneCase(false,() => popover2.showPopover({invoker: contained}),'showPopover(contained)');
+testOneCase(true,() => popover2.showPopover({source: unrelated}),'showPopover(unrelated)');
+testOneCase(false,() => popover2.showPopover({source: popover}),'showPopover(popover)');
+testOneCase(false,() => popover2.showPopover({source: contained}),'showPopover(contained)');
 
 testOneCase(true,() => popover2.togglePopover(true),'togglePopover(true)');
 testOneCase(true,() => popover2.togglePopover({force:true}),'togglePopover({force})');
-testOneCase(true,() => popover2.togglePopover({invoker:unrelated}),'togglePopover(unrelated)');
-testOneCase(false,() => popover2.togglePopover({invoker: popover}),'togglePopover(popover)');
-testOneCase(false,() => popover2.togglePopover({force:true, invoker: popover}),'togglePopover({force, popover})');
+testOneCase(true,() => popover2.togglePopover({source:unrelated}),'togglePopover(unrelated)');
+testOneCase(false,() => popover2.togglePopover({source: popover}),'togglePopover(popover)');
+testOneCase(false,() => popover2.togglePopover({force:true, source: popover}),'togglePopover({force, popover})');
 
 test(() => {
   assert_false(popover.matches(':popover-open'));
-  assert_throws_js(TypeError,() => popover2.showPopover({invoker: null}),'showPopover(null)');
-  assert_throws_js(TypeError,() => popover2.togglePopover({invoker:null}),'togglePopover(null)');
+  assert_throws_js(TypeError,() => popover2.showPopover({source: null}),'showPopover(null)');
+  assert_throws_js(TypeError,() => popover2.togglePopover({source:null}),'togglePopover(null)');
   assert_false(popover.matches(':popover-open'));
 },'null isn\'t a valid Element');
 </script>

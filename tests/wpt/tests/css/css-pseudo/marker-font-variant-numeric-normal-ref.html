@@ -25,8 +25,17 @@ span {
   width: 25px;
   height: 25px;
 }
+@supports not (selector(::before::marker) and selector(::after::marker)) {
+  /* Allow the test to pass on browsers that support ::marker but not nested
+     ::before::marker nor ::after::marker. On these browsers, the test isn't
+     able to set `font-variant-numeric: normal` on the nested pseudo-elements,
+     so expect `font-variant-numeric: tabular-nums` instead. */
+  .before, .after {
+    font-variant-numeric: tabular-nums;
+  }
+}
 </style>
-<ol>
+<ol class="decimal">
   <li>1. <span>X</span></li>
   <li>2. <span>X</span></li>
   <li>3. <span>X</span></li>
@@ -37,7 +46,7 @@ span {
   <li>8. <span>X</span></li>
   <li>9. <span>X</span></li>
 </ol>
-<ol>
+<ol class="string">
   <li>1. <span>X</span></li>
   <li>2. <span>X</span></li>
   <li>3. <span>X</span></li>
@@ -48,7 +57,7 @@ span {
   <li>8. <span>X</span></li>
   <li>9. <span>X</span></li>
 </ol>
-<ol>
+<ol class="marker">
   <li>1. <span>X</span></li>
   <li>2. <span>X</span></li>
   <li>3. <span>X</span></li>
@@ -59,7 +68,7 @@ span {
   <li>8. <span>X</span></li>
   <li>9. <span>X</span></li>
 </ol>
-<ol>
+<ol class="before">
   <li>1. <span>X</span></li>
   <li>2. <span>X</span></li>
   <li>3. <span>X</span></li>
@@ -70,7 +79,7 @@ span {
   <li>8. <span>X</span></li>
   <li>9. <span>X</span></li>
 </ol>
-<ol>
+<ol class="after">
   <li>1. <span>X</span></li>
   <li>2. <span>X</span></li>
   <li>3. <span>X</span></li>

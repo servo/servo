@@ -484,7 +484,7 @@ const transposeTests = [
 if (navigator.ml) {
   transposeTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getTransposePrecisionTolerance, test);
+        buildAndExecuteGraph, getTransposePrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -34,10 +34,6 @@
       button.focus();
       assert_not_equals(document.activeElement, button,
         'select button should not be focusable when select is disabled.');
-
-      await test_driver.click(button);
-      assert_false(select.matches(':open'),
-        'select should not be open after clicking button when disabled.');
     }
   }, `${id}: <select disabled> should prevent focus and activation with appearance:base-select.`);
 });

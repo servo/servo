@@ -1,4 +1,7 @@
 <!DOCTYPE HTML>
+<!-- This test makes hundreds of sequential testdriver calls,
+     which can take a long time in non-optimized builds. -->
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>

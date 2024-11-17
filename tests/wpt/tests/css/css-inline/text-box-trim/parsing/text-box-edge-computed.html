@@ -4,39 +4,16 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<script src="values.js"></script>
 <body>
 <div id="target"></div>
 <script>
-test_computed_value('text-box-edge', 'auto');
-test_computed_value('text-box-edge', 'text');
-test_computed_value('text-box-edge', 'cap');
-test_computed_value('text-box-edge', 'ex');
-test_computed_value('text-box-edge', 'ideographic');
-test_computed_value('text-box-edge', 'ideographic-ink');
-
-test_computed_value('text-box-edge', 'text text', 'text');
-test_computed_value('text-box-edge', 'text alphabetic');
-test_computed_value('text-box-edge', 'text ideographic');
-test_computed_value('text-box-edge', 'text ideographic-ink');
-
-test_computed_value('text-box-edge', 'cap text', 'cap');
-test_computed_value('text-box-edge', 'cap alphabetic');
-test_computed_value('text-box-edge', 'cap ideographic');
-test_computed_value('text-box-edge', 'cap ideographic-ink');
-
-test_computed_value('text-box-edge', 'ex text', 'ex');
-test_computed_value('text-box-edge', 'ex alphabetic');
-test_computed_value('text-box-edge', 'ex ideographic');
-test_computed_value('text-box-edge', 'ex ideographic-ink');
-
-test_computed_value('text-box-edge', 'ideographic text');
-test_computed_value('text-box-edge', 'ideographic alphabetic');
-test_computed_value('text-box-edge', 'ideographic ideographic', 'ideographic');
-test_computed_value('text-box-edge', 'ideographic ideographic-ink');
-
-test_computed_value('text-box-edge', 'ideographic-ink text');
-test_computed_value('text-box-edge', 'ideographic-ink alphabetic');
-test_computed_value('text-box-edge', 'ideographic-ink ideographic');
-test_computed_value('text-box-edge', 'ideographic-ink ideographic-ink', 'ideographic-ink');
+for (let value of text_box_edge_values) {
+  if (Array.isArray(value)) {
+    test_computed_value('text-box-edge', ...value);
+  } else {
+    test_computed_value('text-box-edge', value);
+  }
+}
 </script>
 </body>

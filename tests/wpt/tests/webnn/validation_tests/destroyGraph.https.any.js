@@ -35,50 +35,6 @@ promise_test(async t => {
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const operandType = {dataType: 'float32', shape: [1]};
-  const input_operand = builder.input('input', operandType);
-  const const_operand = builder.constant(operandType, Float32Array.from([2]));
-  const output_operand = builder.mul(input_operand, const_operand);
-  const graph = await builder.build({'output': output_operand});
-
-  graph.destroy();
-  let inputs = {'input': Float32Array.from([1])};
-  let outputs = {'output': new Float32Array(1)};
-  promise_rejects_dom(
-      t, 'InvalidStateError', context.compute(graph, inputs, outputs));
-}, 'Destroyed graph can not compute.');
-
-promise_test(async t => {
-  const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', shape: [1]};
-  const input_operand = builder.input('input', operandType);
-  const const_operand = builder.constant(operandType, Float32Array.from([2]));
-  const output_operand = builder.mul(input_operand, const_operand);
-  const graph = await builder.build({'output': output_operand});
-
-  let inputs = {'input': Float32Array.from([1])};
-  let outputs = {'output': new Float32Array(1)};
-  await context.compute(graph, inputs, outputs);
-  graph.destroy();
-}, 'Destroying graph after compute() with await is OK.');
-
-promise_test(async t => {
-  const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', shape: [1]};
-  const input_operand = builder.input('input', operandType);
-  const const_operand = builder.constant(operandType, Float32Array.from([2]));
-  const output_operand = builder.mul(input_operand, const_operand);
-  const graph = await builder.build({'output': output_operand});
-
-  let inputs = {'input': Float32Array.from([1])};
-  let outputs = {'output': new Float32Array(1)};
-  const promise = context.compute(graph, inputs, outputs);
-  graph.destroy();
-  promise_rejects_dom(t, 'InvalidStateError', promise);
-}, 'compute() rejects when graph is destroyed.');
-
-promise_test(async t => {
-  const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', shape: [1]};
   const lhsOperand = builder.input('lhs', operandType);
   const rhsOperand = builder.input('rhs', operandType);
   const graph =

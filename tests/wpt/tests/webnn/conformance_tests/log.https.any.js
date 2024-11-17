@@ -290,7 +290,7 @@ const logTests = [
 if (navigator.ml) {
   logTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getLogPrecisionTolerance, test);
+        buildAndExecuteGraph, getLogPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

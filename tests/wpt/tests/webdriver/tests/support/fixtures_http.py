@@ -1,7 +1,7 @@
 import base64
 
 import pytest
-from webdriver.error import NoSuchAlertException
+from webdriver.error import NoSuchAlertException, NoSuchWindowException
 
 from tests.support.image import png_dimensions, ImageDifference
 from tests.support.sync import Poll
@@ -153,6 +153,26 @@ def create_frame(session):
         return session.execute_script(append)
 
     return create_frame
+
+
+@pytest.fixture
+def http_new_tab(session):
+    """Create a new tab to run the test isolated."""
+    original_handle = session.window_handle
+    new_handle = session.new_window(type_hint="tab")
+
+    session.window_handle = new_handle
+
+    yield
+
+    try:
+        # Make sure to close the correct tab that we opened before.
+        session.window_handle = new_handle
+        session.window.close()
+    except NoSuchWindowException:
+        pass
+
+    session.window_handle = original_handle
 
 
 @pytest.fixture

@@ -290,7 +290,7 @@ const sqrtTests = [
 if (navigator.ml) {
   sqrtTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getSqrtPrecisionTolerance, test);
+        buildAndExecuteGraph, getSqrtPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

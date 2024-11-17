@@ -29,9 +29,9 @@
 
         const promise = request.getAvailability();
         assert_true(promise instanceof Promise, 'PresentationRequest.getAvailability() returns a Promise.');
-        const samePromise = request.getAvailability();
-        assert_true(samePromise instanceof Promise, 'PresentationRequest.getAvailabilty() returns a Promise.');
-        assert_equals(promise, samePromise, 'If the PresentationRequest object has an unsettled Promise, getAvailability returns that Promise.');
+        const newPromise = request.getAvailability();
+        assert_true(newPromise instanceof Promise, 'PresentationRequest.getAvailabilty() returns a Promise.');
+        assert_not_equals(promise, newPromise, 'PresentationRequest.getAvailability() should return a new Promise each time it is called.');
 
         return promise.then(a => {
           availability = a;
@@ -44,7 +44,7 @@
           assert_not_equals(availability, a, 'A presentation availability object is newly created if the presentation request has a newly added presentation URLs.');
 
           const newPromise = request.getAvailability();
-          assert_not_equals(promise, newPromise, 'If the Promise from a previous call to getAvailability has already been settled, getAvailability returns a new Promise.');
+          assert_not_equals(promise, newPromise, 'PresentationRequest.getAvailability() should return a new Promise each time it is called.');
 
           return newPromise.then(newAvailability => {
             assert_equals(availability, newAvailability, 'Promises from a PresentationRequest\'s getAvailability are resolved with the same PresentationAvailability object.');

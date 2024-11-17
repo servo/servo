@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/1087#issuecomment-2381094286">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+.spacer {
+  height: 10000px;
+}
+</style>
+
+<select id=topofdocument>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<div class=spacer></div>
+
+<select id=bottomofdocument>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+const ArrowUp = '\uE013';
+const ArrowDown = '\uE015';
+['topofdocument', 'bottomofdocument'].forEach(selectName => {
+  const select = document.getElementById(selectName);
+  promise_test(async () => {
+    select.scrollIntoView();
+    await test_driver.click(select);
+    assert_equals(document.activeElement, select.querySelector('option'),
+      'First option should be focused when opening the select.');
+
+    const scroll = window.scrollY;
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    assert_equals(window.scrollY, scroll,
+      'Document should not be scrolled when pressing ArrowUp on the first option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    assert_equals(window.scrollY, scroll,
+      'Document should not be scrolled when pressing ArrowDown on the last option.');
+  }, `${selectName}: Arrow keys on options should not scroll the document.`);
+});
+</script>

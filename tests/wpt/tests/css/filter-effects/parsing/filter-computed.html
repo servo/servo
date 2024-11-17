@@ -35,7 +35,9 @@ test_computed_value("filter", "drop-shadow(1px 2px)", "drop-shadow(rgb(0, 255, 0
 test_computed_value("filter", "drop-shadow(rgb(4, 5, 6) 1px 2px 0px)");
 
 test_computed_value("filter", "grayscale(50%)", "grayscale(0.5)");
+test_computed_value("filter", "grayscale(calc(50%))", "grayscale(0.5)");
 test_computed_value("filter", "grayscale(2)", "grayscale(1)");
+test_computed_value("filter", "grayscale(calc(2))", "grayscale(1)");
 test_computed_value("filter", "grayscale()", "grayscale(1)");
 
 test_computed_value("filter", "hue-rotate(90deg)");

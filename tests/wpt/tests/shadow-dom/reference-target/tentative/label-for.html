@@ -11,7 +11,6 @@
 </head>
 
 <body>
-<!-- 1. Label for attribute targets a custom element using shadowrootreferencetarget -->
 
 <label for="x-input1">Input 1</label>
 <x-input1 id="x-input1">
@@ -19,7 +18,6 @@
     <input id="input1">
   </template>
 </x-input1>
-
 <script>
   promise_test(async t => {
     const x_input = document.getElementById('x-input1');
@@ -31,8 +29,6 @@
   }, "Label for attribute targets a custom element using shadowrootreferencetarget");
 </script>
 
-<!-- 2. Label for attribute targets a custom element using shadowrootreferencetarget inside multiple layers of shadow roots -->
-
 <label for="x-outer2">Input 2</label>
 <x-outer2 id="x-outer2">
   <template shadowrootmode="open" shadowrootreferencetarget="x-inner2">
@@ -43,7 +39,6 @@
     </x-inner2>
   </template>
 </x-outer2>
-
 <script>
   promise_test(async t => {
     const outer = document.getElementById('x-outer2');
@@ -56,9 +51,6 @@
     assert_equals(await test_driver.get_computed_label(input), "Input 2");
   }, "Label for attribute targets a custom element using shadowrootreferencetarget inside multiple layers of shadow roots");
 </script>
-
-
-<!-- 3. Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots -->
 
 <label for="x-outer3">A</label>
 <x-outer3 id="x-outer3">
@@ -75,7 +67,6 @@
   </template>
 </x-outer3>
 <label for="x-outer3">F</label>
-
 <script>
     promise_test(async t => {
       const outer = document.getElementById('x-outer3');
@@ -84,7 +75,26 @@
       const computed_label = await test_driver.get_computed_label(input);
       assert_equals(computed_label, "A B C D E F");
     }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots");
-  </script>
+</script>
+
+<label id="label-input4">Input 4</label>
+<x-input1 id="x-input4">
+  <template shadowrootmode="open" shadowrootreferencetarget="input4">
+    <input id="input4">
+  </template>
+</x-input1>
+<script>
+  promise_test(async t => {
+    const label = document.getElementById('label-input4');
+    label.htmlFor = "x-input4";
+    const x_input = document.getElementById('x-input4');
+    const input = x_input.shadowRoot.getElementById('input4');
+
+    // The label should apply to the input element and not the host.
+    assert_equals(await test_driver.get_computed_label(x_input), "");
+    assert_equals(await test_driver.get_computed_label(input), "Input 4");
+  }, "Setting .htmlFor property to target a custom element using shadowrootreferencetarget");
+</script>
 
 </body>
 

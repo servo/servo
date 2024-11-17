@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: promise resolver during scheduled render</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function infinite_render() {
+    requestAnimationFrame(infinite_render);
+}
+
+function generate_loaf_and_wait_for_entry() {
+    return new Promise(resolve => {
+        const reference_time = performance.now();
+        new PerformanceObserver((entries, observer) => {
+            const entry = entries.getEntries().find(e =>
+                (e.startTime < reference_time)
+                    && (e.startTime + e.duration > reference_time));
+            if (entry) {
+                observer.disconnect();
+                resolve(entry);
+            }
+        }).observe({type: "long-animation-frame"});
+        while (performance.now() < reference_time + 100) {
+        }
+    });
+}
+
+promise_test(async t => {
+    infinite_render();
+    const response = await fetch("/common/dummy.xml");
+    await response.text();
+    const entry = await generate_loaf_and_wait_for_entry();
+    assert_equals(entry.scripts.length, 1);
+});
+</script>
+<body>
+</body>

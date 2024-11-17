@@ -528,7 +528,7 @@ const maxTests = [
 if (navigator.ml) {
   maxTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getMaxPrecisionTolerance, test);
+        buildAndExecuteGraph, getMaxPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

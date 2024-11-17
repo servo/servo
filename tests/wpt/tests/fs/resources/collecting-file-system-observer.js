@@ -119,10 +119,17 @@ async function assert_records_equal(root, actual, expected) {
           'A record\'s relativePathMovedFrom was set when it shouldn\'t be');
     }
 
-    assert_true(
-        await actual_record.changedHandle.isSameEntry(
-            expected_record.changedHandle),
-        'A record\'s changedHandle didn\'t match the expected changedHandle');
+    if (expected_record.changedHandle) {
+      assert_true(
+          await actual_record.changedHandle.isSameEntry(
+              expected_record.changedHandle),
+          'A record\'s changedHandle didn\'t match the expected changedHandle');
+    } else {
+      assert_equals(
+          actual_record.changedHandle, null,
+          'A record\'s changedHandle was set when it shouldn\'t be');
+    }
+
     assert_true(
         await actual_record.root.isSameEntry(root),
         'A record\'s root didn\'t match the expected root');
@@ -137,8 +144,8 @@ function appearedEvent(changedHandle, relativePathComponents) {
   return {type: 'appeared', changedHandle, relativePathComponents};
 }
 
-function disappearedEvent(changedHandle, relativePathComponents) {
-  return {type: 'disappeared', changedHandle, relativePathComponents};
+function disappearedEvent(relativePathComponents) {
+  return {type: 'disappeared', changedHandle: null, relativePathComponents};
 }
 
 function movedEvent(

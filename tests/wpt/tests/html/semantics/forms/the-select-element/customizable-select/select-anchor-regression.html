@@ -39,7 +39,7 @@
 
 <script>
 promise_test(async () => {
-  await test_driver.click(document.querySelector('button'));
+  await test_driver.click(document.querySelector('select'));
   await new Promise(requestAnimationFrame);
 }, 'This test passes if it does not crash.');
 </script>

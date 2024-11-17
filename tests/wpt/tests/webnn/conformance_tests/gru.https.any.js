@@ -760,7 +760,7 @@ const gruTests = [
 if (navigator.ml) {
   gruTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getGruPrecisionTolerance, test);
+        buildAndExecuteGraph, getGruPrecisionTolerance, test);
   });
 
 } else {

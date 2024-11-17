@@ -37,4 +37,9 @@ test_invalid_value('text-box-edge', 'auto auto');
 test_invalid_value('text-box-edge', 'auto text');
 test_invalid_value('text-box-edge', 'text auto');
 test_invalid_value('text-box-edge', 'text text text');
+
+// These `over` values can't omit the `under` value.
+// https://github.com/w3c/csswg-drafts/issues/10703
+test_invalid_value('text-box-edge', 'cap');
+test_invalid_value('text-box-edge', 'ex');
 </script>

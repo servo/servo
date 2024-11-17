@@ -2299,7 +2299,7 @@ const poolingOperatorsTests = [
 if (navigator.ml) {
   poolingOperatorsTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getPoolingOperatorsPrecisionTolerance, test);
+        buildAndExecuteGraph, getPoolingOperatorsPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

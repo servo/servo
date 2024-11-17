@@ -2,13 +2,12 @@
 <meta charset="utf-8">
 <link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="../support/get-char-advances.js"></script>
+<link rel="match" href="text-autospace-first-line-001-ref.html">
 <style>
 .test {
   font-family: Ahem;
   font-size: 40px;
+  text-autospace: normal;
 }
 .first-line::first-line {
   font-size: 200%;
@@ -17,9 +16,3 @@
 <div id="container">
   <div id="test1" class="test first-line">国国XX国<br>国国XX国</div>
 </div>
-<script>
-test(() => {
-  const advances = getCharAdvances(test1);
-  assert_array_equals(advances, [80, 90, 80, 90, 80, 40, 45, 40, 45, 40]);
-})
-</script>

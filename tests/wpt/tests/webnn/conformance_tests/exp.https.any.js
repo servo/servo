@@ -290,7 +290,7 @@ const expTests = [
 if (navigator.ml) {
   expTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getExpPrecisionTolerance, test);
+        buildAndExecuteGraph, getExpPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

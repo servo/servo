@@ -290,7 +290,7 @@ const cosTests = [
 if (navigator.ml) {
   cosTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getCosPrecisionTolerance, test);
+        buildAndExecuteGraph, getCosPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

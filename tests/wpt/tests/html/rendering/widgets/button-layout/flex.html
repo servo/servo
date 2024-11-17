@@ -22,6 +22,13 @@
   align-items: stretch;
   height: 3em;
 }
+
+#no-align-items {
+  border: none;
+  padding: 0;
+  display: flex;
+  height: 3em;
+}
 </style>
 <button id=inline-flex><div>1</div><div>2</div><div>3</div><div>4</div></button>
 <button id=flex><div>1</div><div>2</div><div>3</div><div>4</div></button>
@@ -30,6 +37,7 @@
 <div><button id="flexstart"><span id="flexstart-item">abc</span></button></div>
 
 <div><button id="stretch"><span id="stretch-item">abc</span></button></div>
+<div><button id="no-align-items"><span id="no-align-items-item">abc</span></button></div>
 <script>
 const ref = document.getElementById('ref');
 const expectedWidth = ref.clientWidth;
@@ -58,4 +66,10 @@ test(() => {
   assert_equals(document.getElementById('stretch').offsetHeight,
     document.getElementById('stretch-item').offsetHeight);
 }, 'align-items:stretch should work');
+
+// crbug.com/40681980
+test(() => {
+  assert_equals(document.getElementById('no-align-items').offsetHeight,
+    document.getElementById('no-align-items-item').offsetHeight);
+}, 'No align-items should work as stretch');
 </script>

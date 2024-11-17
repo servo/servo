@@ -74,6 +74,7 @@ interface Fence {
     undefined reportEvent(optional ReportEventType event = {});
     undefined setReportEventDataForAutomaticBeacons(optional FenceEvent event = {});
     sequence<FencedFrameConfig> getNestedConfigs();
+    Promise<undefined> disableUntrustedNetwork();
     undefined notifyEvent(Event event);
 };
 

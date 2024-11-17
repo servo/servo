@@ -268,7 +268,7 @@ const tanhTests = [
 if (navigator.ml) {
   tanhTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getTanhPrecisionTolerance, test);
+        buildAndExecuteGraph, getTanhPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

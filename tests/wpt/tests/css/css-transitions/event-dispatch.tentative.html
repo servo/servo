@@ -432,4 +432,81 @@ promise_test(async t => {
   await waitForAnimationFrames(2);
 }, 'Cancel the transition after it finishes');
 
+promise_test(async t => {
+  const { transition, watcher, div } = setupTransition(t, 'margin-left 100s');
+
+  transition.currentTime = 50 * MS_PER_SEC;
+  await watcher.wait_for(['transitionrun', 'transitionstart']);
+
+  // Replace the running transition.
+  div.style.marginLeft = '200px';
+
+  // transitioncancel event should be fired before transitionrun because we
+  // expect to cancel the running transition first.
+  await watcher.wait_for(
+    ['transitioncancel', 'transitionrun', 'transitionstart']
+  );
+
+  // Then wait a couple of frames and check that no event was dispatched
+  await waitForAnimationFrames(2);
+}, 'Replacing a running transition should get transitioncancel earlier than ' +
+   'transitionrun and transitionstart');
+
+promise_test(async t => {
+  const div =
+    addDiv(t, { style: 'transition: margin-left 100s, margin-top 100s' });
+  const watcher = new EventWatcher(t, div, [ 'transitionrun',
+                                             'transitioncancel' ],
+                                   transitionEventsTimeout);
+  getComputedStyle(div).marginLeft;
+
+  div.style.marginLeft = '100px';
+  div.style.marginTop = '100px';
+  const transitions = div.getAnimations();
+  transitions[0].currentTime = 50 * MS_PER_SEC;
+  transitions[1].currentTime = 50 * MS_PER_SEC;
+
+  await watcher.wait_for(['transitionrun', 'transitionrun']);
+
+  // Replace both running transitions.
+  div.style.marginLeft = '200px';
+  div.style.marginTop = '200px';
+
+  await watcher.wait_for([
+    // Cancel events show first because their transition generations are
+    // smaller than the new ones.
+    'transitioncancel', 'transitioncancel',
+    'transitionrun', 'transitionrun'
+  ]);
+
+  // Then wait a couple of frames and check that no event was dispatched
+  await waitForAnimationFrames(2);
+}, 'Replacing two running transitions on the same target should get two ' +
+   'transitioncancel events earlier than two transitionrun events, per ' +
+   'transition generation');
+
+promise_test(async t => {
+  const { transition, watcher, div } = setupTransition(t, 'margin-left 100s');
+
+  transition.currentTime = 50 * MS_PER_SEC;
+  await watcher.wait_for(['transitionrun', 'transitionstart']);
+
+  // We need to wait for a while to reproduce the potential bug in Gecko.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
+
+  // Replace the running transition.
+  div.style.marginLeft = '200px';
+  getComputedStyle(div).marginLeft;
+
+  // transitioncancel event should be fired before transitionrun because we
+  // expect to cancel the running transition first.
+  await watcher.wait_for(
+    ['transitioncancel', 'transitionrun', 'transitionstart']
+  );
+
+  // Then wait a couple of frames and check that no event was dispatched
+  await waitForAnimationFrames(2);
+}, 'Replacing a running transition and forcing to flush the style together ' +
+   'should get the correct event order');
+
 </script>

@@ -528,7 +528,7 @@ const divTests = [
 if (navigator.ml) {
   divTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getDivPrecisionTolerance, test);
+        buildAndExecuteGraph, getDivPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

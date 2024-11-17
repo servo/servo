@@ -172,7 +172,7 @@ const gatherElementsTests = [
 if (navigator.ml) {
   gatherElementsTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getGatherElementsPrecisionTolerance, test);
+        buildAndExecuteGraph, getGatherElementsPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

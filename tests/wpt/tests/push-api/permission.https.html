@@ -1,14 +1,44 @@
 <!doctype html>
 <meta charset=utf-8>
 <title>Test push is a powerful feature via Permissions API</title>
-<script src=/resources/testharness.js></script>
-<script src=/resources/testharnessreport.js></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/notifications/resources/helpers.js"></script>
 
 <script>
-promise_test(async (test) => {
+let registration;
+
+promise_setup(async () => {
+  registration = await getActiveServiceWorker("noop-sw.js");
+});
+
+promise_test(async (t) => {
+  await trySettingPermission("prompt")
   const status = await navigator.permissions.query({ name: "push" });
   assert_true(status instanceof PermissionStatus);
   assert_equals(status.name, "push", `permission's name must be "push"`);
   assert_equals(status.state, "prompt", `permission's state must be "prompt" by default`);
 }, `Query "push" powerful feature`);
+
+promise_test(async (t) => {
+  await trySettingPermission("granted")
+  const subscription = await registration.pushManager.subscribe();
+  t.add_cleanup(() => subscription.unsubscribe());
+
+  assert_true(subscription instanceof PushSubscription);
+  assert_equals(typeof subscription.endpoint, "string", "endpoint string exists");
+  assert_equals(new URL(subscription.endpoint).protocol, "https:", "endpoint is a valid https URL")
+
+  assert_true(subscription.getKey("p256dh") instanceof ArrayBuffer, "p256dh key exists");
+  assert_true(subscription.getKey("p256dh").byteLength > 0, "p256dh key is not empty");
+  assert_true(subscription.getKey("auth") instanceof ArrayBuffer, "auth key exists");
+  assert_true(subscription.getKey("auth").byteLength > 0, "auth key is not empty");
+}, "Granting permission should allow subscription");
+
+promise_test(async (t) => {
+  await trySettingPermission("denied")
+  await promise_rejects_dom(t, "NotAllowedError", registration.pushManager.subscribe());
+}, "Denying permission should disallow subscription");
 </script>

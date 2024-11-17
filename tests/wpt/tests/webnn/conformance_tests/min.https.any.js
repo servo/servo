@@ -528,7 +528,7 @@ const minTests = [
 if (navigator.ml) {
   minTests.forEach((test) => {
     webnn_conformance_test(
-        buildGraphAndCompute, getMinPrecisionTolerance, test);
+        buildAndExecuteGraph, getMinPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
