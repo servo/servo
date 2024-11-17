@@ -2818,7 +2818,11 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
             ctor = descriptor.interface.ctor()
             if nonConstMembers or (ctor and not ctor.isHTMLConstructor()) or descriptor.interface.legacyFactoryFunctions:
                 traits += [f"crate::dom::bindings::codegen::Bindings::{toBindingModuleFileFromDescriptor(descriptor)}::{toBindingNamespace(iface_name)}::{iface_name}Methods<Self>"]
-            elements += [CGGeneric(f"    type {firstCap(iface_name)}: {' + '.join(traits)};\n")]
+            elements += [
+                CGGeneric("    #[crown::unrooted_must_root_lint::must_root]\n"),
+                CGGeneric("    #[crown::unrooted_must_root_lint::allow_unrooted_in_rc]\n" if firstCap(iface_name) == "Promise" else ""),
+                CGGeneric(f"    type {firstCap(iface_name)}: {' + '.join(traits)};\n")
+            ]
     elements += [CGGeneric("}\n")]
     return CGList(elements)
 
@@ -2926,7 +2930,7 @@ class CGAbstractMethod(CGThing):
     def _decorators(self):
         decorators = []
         if self.alwaysInline:
-            decorators.append('#[inline]')
+            decorators.append('#[inline]\n')
 
         decorators.extend(self.extra_decorators)
 

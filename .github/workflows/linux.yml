@@ -152,7 +152,7 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --locked --${{ inputs.profile }}
+          python3 ./mach build --use-crown --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}
