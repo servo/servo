@@ -28,7 +28,7 @@ PyGithub == 1.58.1
 six == 1.16
 
 # For sending build notifications.
-notify-py == 0.3.42
+notify-py == 0.3.43
 
 # For wpt scripts and their tests.
 flask
