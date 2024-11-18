@@ -953,27 +953,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-                let result = match wrapping_alg_name.as_str() {
-                    ALG_AES_KW => {
+                let result = match normalized_algorithm {
+                    KeyWrapAlgorithm::AesKw => {
                         subtle.wrap_key_aes_kw(&wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut())
-                    }
-                    ALG_AES_CBC => {
-                        let KeyWrapAlgorithm::AesCbc(params) = normalized_algorithm else {
-                            promise.reject_error(Error::Data);
-                            return;
-                        };
+                    },
+                    KeyWrapAlgorithm::AesCbc(params) => {
                         subtle.encrypt_aes_cbc(&params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut())
                     },
-                    ALG_AES_CTR => {
-                        let KeyWrapAlgorithm::AesCtr(params) = normalized_algorithm else {
-                            promise.reject_error(Error::Data);
-                            return;
-                        };
+                    KeyWrapAlgorithm::AesCtr(params) => {
                         subtle.encrypt_decrypt_aes_ctr(
                             &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut()
                         )
                     },
-                    _ => Err(Error::NotSupported),
                 };
 
                 match result {
@@ -1042,29 +1033,20 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-                let result = match alg_name.as_str() {
-                    ALG_AES_KW => {
+                let result = match normalized_algorithm {
+                    KeyWrapAlgorithm::AesKw => {
                         subtle.unwrap_key_aes_kw(&unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut())
-                    }
-                    ALG_AES_CBC => {
-                        let KeyWrapAlgorithm::AesCbc(params) = normalized_algorithm else {
-                            promise.reject_error(Error::Data);
-                            return;
-                        };
+                    },
+                    KeyWrapAlgorithm::AesCbc(params) => {
                         subtle.decrypt_aes_cbc(
                             &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
                         )
                     },
-                    ALG_AES_CTR => {
-                        let KeyWrapAlgorithm::AesCtr(params) = normalized_algorithm else {
-                            promise.reject_error(Error::Data);
-                            return;
-                        };
+                    KeyWrapAlgorithm::AesCtr(params) => {
                         subtle.encrypt_decrypt_aes_ctr(
                             &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
                         )
                     },
-                    _ => Err(Error::NotSupported),
                 };
 
                 let bytes = match result {
@@ -1076,47 +1058,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 };
 
                 let import_key_bytes = match format {
-                    KeyFormat::Raw | KeyFormat::Spki | KeyFormat::Pkcs8 => &bytes,
+                    KeyFormat::Raw | KeyFormat::Spki | KeyFormat::Pkcs8 => bytes,
                     KeyFormat::Jwk => {
-                        let jwk_string = String::from_utf8_lossy(&bytes.to_vec()).to_string();
-                        let Ok(value) = serde_json::from_str(&jwk_string) else {
-                            promise.reject_error(Error::Syntax);
-                            return;
-                        };
-                        let serde_json::Value::Object(obj) = value else {
-                            promise.reject_error(Error::Syntax);
-                            return;
-                        };
-                        let Some(ext_string) = obj.get("ext") else {
-                            promise.reject_error(Error::Syntax);
-                            return;
-                        };
-                        let serde_json::Value::Bool(ext) = ext_string else {
-                            promise.reject_error(Error::Syntax);
-                            return;
-                        };
-                        if !ext && extractable {
-                            promise.reject_error(Error::Data);
-                            return;
-                        }
-                        let Some(key_string) = obj.get("k") else {
-                            promise.reject_error(Error::Syntax);
-                            return;
-                        };
-                        let serde_json::Value::String(k_string) = key_string else {
-                            promise.reject_error(Error::Syntax);
-                            return;
-                        };
-                        &match base64::engine::general_purpose::STANDARD_NO_PAD.decode(k_string.as_bytes()) {
-                            Ok(data) => data,
-                            Err(_) => {
-                                promise.reject_error(Error::Syntax);
+                        match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable) {
+                            Ok(bytes) => bytes,
+                            Err(e) => {
+                                promise.reject_error(e);
                                 return;
-                            },
+                            }
                         }
-                    }
+                    },
                 };
-                match normalized_key_algorithm.import_key(&subtle, format, import_key_bytes, extractable, key_usages) {
+                match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes, extractable, key_usages) {
                     Ok(imported_key) => promise.resolve_native(&imported_key),
                     Err(e) => promise.reject_error(e),
                 }
@@ -1202,6 +1155,7 @@ impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams>
+#[derive(Clone)]
 struct SubtleHmacImportParams {
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
     hash: DigestAlgorithm,
@@ -1354,6 +1308,7 @@ enum DigestAlgorithm {
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"importKey"`
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+#[derive(Clone)]
 enum ImportKeyAlgorithm {
     AesCbc,
     AesCtr,
@@ -2731,4 +2686,52 @@ impl KeyWrapAlgorithm {
             Self::AesCtr(key_gen_params) => &key_gen_params.name,
         }
     }
+}
+
+/// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
+fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result<Vec<u8>, Error> {
+    let jwk_string = String::from_utf8_lossy(&bytes.to_vec()).to_string();
+    let value = serde_json::from_str(&jwk_string)
+        .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
+    let serde_json::Value::Object(obj) = value else {
+        return Err(Error::Data);
+    };
+
+    let kty = get_jwk_string(&obj, "kty")?;
+    let ext = get_jwk_bool(&obj, "ext")?;
+    if !ext && extractable {
+        return Err(Error::Data);
+    }
+
+    match alg {
+        ImportKeyAlgorithm::AesCbc | ImportKeyAlgorithm::AesCtr | ImportKeyAlgorithm::AesKw => {
+            if kty != "oct" {
+                return Err(Error::Data);
+            }
+            let k = get_jwk_string(&obj, "k")?;
+
+            base64::engine::general_purpose::STANDARD_NO_PAD
+                .decode(k.as_bytes())
+                .map_err(|_| Error::Data)
+        },
+        _ => Err(Error::NotSupported)
+    }
+}
+
+fn get_jwk_string(value: &serde_json::Map<String, serde_json::Value>, key: &str) -> Result<String, Error> {
+    let s = value
+        .get(key)
+        .ok_or(Error::Data)?
+        .as_str()
+        .ok_or(Error::Data)?;
+    Ok(s.to_string())
+}
+
+fn get_jwk_bool(value: &serde_json::Map<String, serde_json::Value>, key: &str) -> Result<bool, Error> {
+    let b = value
+        .get(key)
+        .ok_or(Error::Data)?
+        .as_bool()
+        .ok_or(Error::Data)?;
+    Ok(b.clone())
 }
