@@ -847,7 +847,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     self.computed_margin_start.auto_is(Au::zero) -
                     self.computed_margin_end.auto_is(Au::zero);
                 let initial_behavior = match self.alignment.value() {
-                    AlignFlags::STRETCH | AlignFlags::NORMAL => Size::Stretch,
+                    AlignFlags::STRETCH | AlignFlags::NORMAL | AlignFlags::AUTO => Size::Stretch,
                     _ => Size::FitContent,
                 };
                 let size = solve_size(initial_behavior, stretch_size);
