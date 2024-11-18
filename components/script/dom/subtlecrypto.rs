@@ -2714,11 +2714,14 @@ fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result
                 .decode(k.as_bytes())
                 .map_err(|_| Error::Data)
         },
-        _ => Err(Error::NotSupported)
+        _ => Err(Error::NotSupported),
     }
 }
 
-fn get_jwk_string(value: &serde_json::Map<String, serde_json::Value>, key: &str) -> Result<String, Error> {
+fn get_jwk_string(
+    value: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<String, Error> {
     let s = value
         .get(key)
         .ok_or(Error::Data)?
@@ -2727,7 +2730,10 @@ fn get_jwk_string(value: &serde_json::Map<String, serde_json::Value>, key: &str)
     Ok(s.to_string())
 }
 
-fn get_jwk_bool(value: &serde_json::Map<String, serde_json::Value>, key: &str) -> Result<bool, Error> {
+fn get_jwk_bool(
+    value: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Result<bool, Error> {
     let b = value
         .get(key)
         .ok_or(Error::Data)?
