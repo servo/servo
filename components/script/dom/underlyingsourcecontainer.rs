@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{IsPromiseObject, JSObject, JS_NewObject};
+use js::jsval::JSVal;
 use js::rust::IntoHandle;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -137,10 +138,19 @@ impl UnderlyingSourceContainer {
                 }
                 let this_handle = this_object.handle();
                 rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-                let Ok(result) = start.Call_(&this_handle, controller, ExceptionHandling::Report)
-                else {
+                rooted!(in(*cx) let mut result: JSVal);
+
+                if start
+                    .Call_(
+                        &this_handle,
+                        controller,
+                        result.handle_mut(),
+                        ExceptionHandling::Report,
+                    )
+                    .is_err()
+                {
                     return None;
-                };
+                }
                 let is_promise = unsafe {
                     if result.is_object() {
                         result_object.set(result.to_object());
@@ -156,7 +166,7 @@ impl UnderlyingSourceContainer {
                     promise
                 } else {
                     let promise = Promise::new(&self.global(), can_gc);
-                    promise.resolve_native(&result);
+                    promise.resolve_native(&result.get());
                     promise
                 };
                 return Some(promise);
