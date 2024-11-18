@@ -125,7 +125,7 @@ impl AllPendingLoads {
     }
 
     fn remove(&mut self, key: &LoadKey) -> Option<PendingLoad> {
-        self.loads.remove(key).map(|pending_load| {
+        self.loads.remove(key).inspect(|pending_load| {
             self.url_to_load_key
                 .remove(&(
                     pending_load.url.clone(),
@@ -133,7 +133,6 @@ impl AllPendingLoads {
                     pending_load.cors_setting,
                 ))
                 .unwrap();
-            pending_load
         })
     }
 

@@ -244,9 +244,8 @@ impl StorageManager {
         let old_value = data
             .get_mut(&origin)
             .and_then(|&mut (ref mut total, ref mut entry)| {
-                entry.remove(&name).map(|old| {
+                entry.remove(&name).inspect(|old| {
                     *total -= name.as_bytes().len() + old.as_bytes().len();
-                    old
                 })
             });
         sender.send(old_value).unwrap();

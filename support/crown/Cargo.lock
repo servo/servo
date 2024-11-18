@@ -25,9 +25,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "compiletest_rs"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71fcc3c0c91b59c137b3cf8073cbc2f72a49b3d5505660ec88f94da3ed4bb1de"
+checksum = "f150fe9105fcd2a57cad53f0c079a24de65195903ef670990f5909f695eac04c"
 dependencies = [
  "diff",
  "filetime",

@@ -35,6 +35,8 @@ fn run_mode(mode: &'static str, bless: bool) {
     // Does not work reliably: https://github.com/servo/servo/pull/30508#issuecomment-1834542203
     //config.link_deps();
     config.strict_headers = true;
+    // See https://github.com/Manishearth/compiletest-rs/issues/295
+    config.compile_test_exit_code = Some(101);
 
     compiletest::run_tests(&config);
 }
