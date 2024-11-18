@@ -4,10 +4,6 @@
 
 use cfg_if::cfg_if;
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-#[macro_use]
-extern crate sig;
-
 #[cfg(test)]
 mod test;
 
