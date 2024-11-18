@@ -44,8 +44,6 @@ jobs:
         with:
           crate: cargo-deny
           locked: true
-          # 0.16.2 requires Rust 1.81 or newer.
-          version: '0.16.1'
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies

@@ -873,11 +873,7 @@ fn run_form_data_algorithm(
     mime: &[u8],
     can_gc: CanGc,
 ) -> Fallible<FetchedData> {
-    let mime_str = if let Ok(s) = str::from_utf8(mime) {
-        s
-    } else {
-        ""
-    };
+    let mime_str = str::from_utf8(mime).unwrap_or_default();
     let mime: Mime = mime_str
         .parse()
         .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
