@@ -1368,6 +1368,7 @@ enum DeriveBitsAlgorithm {
 /// A normalized algorithm returned by [`normalize_algorithm`] with operation `"encrypt"` or `"decrypt"`
 ///
 /// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+#[allow(clippy::enum_variant_names)]
 enum EncryptionAlgorithm {
     AesCbc(SubtleAesCbcParams),
     AesCtr(SubtleAesCtrParams),
@@ -1827,11 +1828,7 @@ impl SubtleCrypto {
 
         // Step 5. Let additionalData be the contents of the additionalData member of normalizedAlgorithm if present
         // or the empty octet string otherwise.
-        let additional_data = params
-            .additional_data
-            .as_ref()
-            .map(|data| data.as_slice())
-            .unwrap_or_default();
+        let additional_data = params.additional_data.as_deref().unwrap_or_default();
 
         // Step 6. Let C and T be the outputs that result from performing the Authenticated Encryption Function
         // described in Section 7.1 of [NIST-SP800-38D] using AES as the block cipher, the contents of the iv member
@@ -1952,11 +1949,7 @@ impl SubtleCrypto {
 
         // Step 7. Let additionalData be the contents of the additionalData member of normalizedAlgorithm if present or
         // the empty octet string otherwise.
-        let additional_data = params
-            .additional_data
-            .as_ref()
-            .map(|data| data.as_slice())
-            .unwrap_or_default();
+        let additional_data = params.additional_data.as_deref().unwrap_or_default();
 
         // Step 8.  Perform the Authenticated Decryption Function described in Section 7.2 of [NIST-SP800-38D] using AES
         // as the block cipher, the contents of the iv member of normalizedAlgorithm as the IV input parameter, the
