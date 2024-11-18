@@ -538,7 +538,9 @@ impl ReplacedContent {
             .non_auto()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
-        // <https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes>
+        // First, compute the inline size. Intrinsic values depend on the block sizing properties
+        // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
+        // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
         let inline_content_size = LazyCell::new(|| {
             let get_block_size = || {
                 let block_stretch_size = block_stretch_size.unwrap_or_else(get_block_fallback_size);
@@ -563,20 +565,29 @@ impl ReplacedContent {
             )
             .into()
         });
+        let preferred_inline =
+            box_size
+                .inline
+                .resolve(Size::FitContent, inline_stretch_size, &inline_content_size);
+        let min_inline = min_box_size
+            .inline
+            .resolve_non_initial(inline_stretch_size, &inline_content_size)
+            .unwrap_or_default();
+        let max_inline = max_box_size
+            .inline
+            .resolve_non_initial(inline_stretch_size, &inline_content_size);
+        let inline_size = preferred_inline.clamp_between_extremums(min_inline, max_inline);
+
+        // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                SizeConstraint::new(
-                    box_size
-                        .inline
-                        .maybe_resolve_extrinsic(Some(inline_stretch_size)),
-                    min_box_size
-                        .inline
-                        .resolve_non_initial(inline_stretch_size, &inline_content_size)
-                        .unwrap_or_default(),
-                    max_box_size
-                        .inline
-                        .resolve_non_initial(inline_stretch_size, &inline_content_size),
-                )
+                if box_size.inline.is_initial() {
+                    // TODO: do we really need to special-case `auto`?
+                    // https://github.com/w3c/csswg-drafts/issues/11236
+                    SizeConstraint::MinMax(min_inline, max_inline)
+                } else {
+                    SizeConstraint::Definite(inline_size)
+                }
             };
             self.content_size(
                 Direction::Block,
@@ -588,34 +599,22 @@ impl ReplacedContent {
         });
         let block_stretch_size =
             block_stretch_size.unwrap_or_else(|| block_content_size.max_content);
-
-        // <https://drafts.csswg.org/css-sizing-3/#sizing-properties>
-        let preferred_inline =
-            box_size
-                .inline
-                .resolve(Size::FitContent, inline_stretch_size, &inline_content_size);
         let preferred_block =
             box_size
                 .block
                 .resolve(Size::FitContent, block_stretch_size, &block_content_size);
-        let min_inline = min_box_size
-            .inline
-            .resolve_non_initial(inline_stretch_size, &inline_content_size)
-            .unwrap_or_default();
         let min_block = min_box_size
             .block
             .resolve_non_initial(block_stretch_size, &block_content_size)
             .unwrap_or_default();
-        let max_inline = max_box_size
-            .inline
-            .resolve_non_initial(inline_stretch_size, &inline_content_size);
         let max_block = max_box_size
             .block
             .resolve_non_initial(block_stretch_size, &block_content_size);
+        let block_size = preferred_block.clamp_between_extremums(min_block, max_block);
 
         LogicalVec2 {
-            inline: preferred_inline.clamp_between_extremums(min_inline, max_inline),
-            block: preferred_block.clamp_between_extremums(min_block, max_block),
+            inline: inline_size,
+            block: block_size,
         }
     }
 }
