@@ -104,6 +104,12 @@ dictionary HmacKeyAlgorithm : KeyAlgorithm {
   required unsigned long length;
 };
 
+// https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams
+dictionary HmacKeyGenParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+  [EnforceRange] unsigned long length;
+};
+
 // https://w3c.github.io/webcrypto/#hkdf-params
 dictionary HkdfParams : Algorithm {
   required HashAlgorithmIdentifier hash;
