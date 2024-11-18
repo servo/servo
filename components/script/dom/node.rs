@@ -996,15 +996,9 @@ impl Node {
                 let mut descendants = self.traverse_preorder(ShadowIncluding::No);
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
-                Ok(descendants
-                    .filter_map(DomRoot::downcast)
-                    .find(|element| {
-                        matches_selector_list(
-                            &selectors,
-                            &SelectorWrapper::Borrowed(element),
-                            &mut ctx,
-                        )
-                    }))
+                Ok(descendants.filter_map(DomRoot::downcast).find(|element| {
+                    matches_selector_list(&selectors, &SelectorWrapper::Borrowed(element), &mut ctx)
+                }))
             },
         }
     }

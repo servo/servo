@@ -85,7 +85,9 @@ fn is_unrooted_ty<'tcx>(
                     match inner.kind() {
                         ty::Adt(did, _) => !has_attr(did.did(), sym.allow_unrooted_in_rc),
                         ty::Alias(
-                            ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
+                            ty::AliasTyKind::Projection |
+                            ty::AliasTyKind::Inherent |
+                            ty::AliasTyKind::Weak,
                             ty,
                         ) => !has_attr(ty.def_id, sym.allow_unrooted_in_rc),
                         _ => true,
@@ -298,7 +300,9 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     ) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _) | visit::FnKind::Method(n, _) => {
-                n.as_str() == "new" || n.as_str().starts_with("new_") || n.as_str() == "default" ||
+                n.as_str() == "new" ||
+                    n.as_str().starts_with("new_") ||
+                    n.as_str() == "default" ||
                     n.as_str() == "Wrap"
             },
             visit::FnKind::Closure => return,

@@ -146,8 +146,8 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
-    ThreadSafeJSContext, JSReports
+    CanGc, CommonScriptMsg, JSContext, JSReports, Runtime, ScriptChan, ScriptPort,
+    ScriptThreadEventCategory, ThreadSafeJSContext,
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};

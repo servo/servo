@@ -23,7 +23,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpuconvert::{convert_load_op, convert_store_op, convert_image_copy_buffer, convert_image_copy_texture};
+use crate::dom::gpuconvert::{
+    convert_image_copy_buffer, convert_image_copy_texture, convert_load_op, convert_store_op,
+};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 

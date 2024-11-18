@@ -269,11 +269,22 @@ impl script_bindings::DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder 
         proto_id: crate::dom::bindings::codegen::PrototypeList::ID,
         ctor_name: &str,
         creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
-        constructor: impl FnOnce(SafeJSContext, &CallArgs, &<crate::DomTypeHolder as script_bindings::DomTypes>::GlobalScope, HandleObject) -> bool,
+        constructor: impl FnOnce(
+            SafeJSContext,
+            &CallArgs,
+            &<crate::DomTypeHolder as script_bindings::DomTypes>::GlobalScope,
+            HandleObject,
+        ) -> bool,
     ) -> bool {
         unsafe {
             crate::dom::bindings::constructor::call_default_constructor(
-                 cx, args, global, proto_id, ctor_name, creator, constructor,
+                cx,
+                args,
+                global,
+                proto_id,
+                ctor_name,
+                creator,
+                constructor,
             )
         }
     }
@@ -286,7 +297,9 @@ impl script_bindings::DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder 
         }
     }
 
-    fn ensure_safe_to_run_script_or_layout(window: &<crate::DomTypeHolder as script_bindings::DomTypes>::Window) {
+    fn ensure_safe_to_run_script_or_layout(
+        window: &<crate::DomTypeHolder as script_bindings::DomTypes>::Window,
+    ) {
         window.Document().ensure_safe_to_run_script_or_layout();
     }
 }

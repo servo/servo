@@ -24,7 +24,12 @@ pub use script_bindings::error::*;
 
 use crate::script_runtime::CanGc;
 
-pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc) {
+pub unsafe fn report_pending_exception(
+    cx: *mut JSContext,
+    dispatch_event: bool,
+    realm: InRealm,
+    can_gc: CanGc,
+) {
     script_bindings::error::report_pending_exception::<crate::DomTypeHolder>(
         cx,
         dispatch_event,
@@ -43,7 +48,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
-use crate::script_runtime::{JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// Set a pending exception for the given `result` on `cx`.
 pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Error) {

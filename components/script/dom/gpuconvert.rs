@@ -35,7 +35,9 @@ pub fn convert_image_copy_buffer(ic_buffer: &GPUImageCopyBuffer) -> wgpu_com::Im
     }
 }
 
-pub fn convert_image_copy_texture(ic_texture: &GPUImageCopyTexture) -> Result<wgpu_com::ImageCopyTexture, Error> {
+pub fn convert_image_copy_texture(
+    ic_texture: &GPUImageCopyTexture,
+) -> Result<wgpu_com::ImageCopyTexture, Error> {
     Ok(wgpu_com::ImageCopyTexture {
         texture: ic_texture.texture.id().0,
         mip_level: ic_texture.mipLevel,
@@ -53,7 +55,9 @@ pub fn convert_image_copy_texture(ic_texture: &GPUImageCopyTexture) -> Result<wg
     })
 }
 
-pub fn convert_programmable_stage<'a>(stage: &GPUProgrammableStage) -> ProgrammableStageDescriptor<'a> {
+pub fn convert_programmable_stage<'a>(
+    stage: &GPUProgrammableStage,
+) -> ProgrammableStageDescriptor<'a> {
     ProgrammableStageDescriptor {
         module: stage.module.id().0,
         entry_point: stage
@@ -77,13 +81,11 @@ pub fn convert_bind_group_entry<'a>(entry: &GPUBindGroupEntry) -> BindGroupEntry
         resource: match entry.resource {
             GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
             GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
-            GPUBindingResource::GPUBufferBinding(ref b) => {
-                BindingResource::Buffer(BufferBinding {
-                    buffer_id: b.buffer.id().0,
-                    offset: b.offset,
-                    size: b.size.and_then(wgt::BufferSize::new),
-                })
-            },
+            GPUBindingResource::GPUBufferBinding(ref b) => BindingResource::Buffer(BufferBinding {
+                buffer_id: b.buffer.id().0,
+                offset: b.offset,
+                size: b.size.and_then(wgt::BufferSize::new),
+            }),
         },
     }
 }

@@ -59,7 +59,8 @@ use webgpu::wgc::resource::TextureDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 use webgpu::ErrorFilter;
 use webxr_api::{
-    EntityType, EnvironmentBlendMode, Handedness, LayerInit, SessionMode, TargetRayMode, MockButtonType,
+    EntityType, EnvironmentBlendMode, Handedness, LayerInit, MockButtonType, SessionMode,
+    TargetRayMode,
 };
 use xml5ever::tokenizer::XmlTokenizer;
 use xml5ever::tree_builder::{Tracer as XmlTracer, TreeSink as XmlTreeSink, XmlTreeBuilder};
@@ -101,21 +102,17 @@ use crate::codegen::Bindings::RequestBinding::{
 use crate::codegen::Bindings::SecurityPolicyViolationEventBinding::SecurityPolicyViolationEventDisposition;
 use crate::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
 use crate::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use crate::codegen::Bindings::WebGPUBinding::{
-    GPUProgrammableStage, GPUTextureDimension,
-};
 use crate::codegen::Bindings::WebGPUBinding::GPUFeatureNameValues::pairs;
 use crate::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
-    GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
-    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
-    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase,
-    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUSamplerBindingType,
-    GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp, GPUTextureAspect, GPUTextureFormat,
-    GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
-};
-use crate::codegen::Bindings::WebGPUBinding::{
-    GPUCanvasConfiguration, GPUErrorFilter, GPUFeatureName, GPUTextureDescriptor,
+    GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType,
+    GPUCanvasConfiguration, GPUColor, GPUCompareFunction, GPUCullMode, GPUErrorFilter, GPUExtent3D,
+    GPUFeatureName, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture,
+    GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D,
+    GPUPrimitiveState, GPUPrimitiveTopology, GPUProgrammableStage, GPUSamplerBindingType,
+    GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp, GPUTextureAspect,
+    GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat, GPUTextureSampleType,
+    GPUTextureViewDimension, GPUVertexFormat,
 };
 use crate::codegen::Bindings::XRInputSourceBinding::{XRHandedness, XRTargetRayMode};
 use crate::codegen::Bindings::XRSessionBinding::XREnvironmentBlendMode;

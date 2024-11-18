@@ -10,9 +10,9 @@ use js::rust::Runtime;
 
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
-use crate::{DomHelpers, DomTypes};
 //use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
+use crate::{DomHelpers, DomTypes};
 
 thread_local!(pub static STACK: RefCell<Vec<StackEntry>> = const { RefCell::new(Vec::new()) });
 
@@ -85,7 +85,10 @@ impl<D: DomTypes> Drop for AutoEntryScript<D> {
 
         // Step 5
         if !thread::panicking() && incumbent_global::<D>().is_none() {
-            <D as crate::DomHelpers<D>>::perform_a_microtask_checkpoint(&self.global, CanGc::note());
+            <D as crate::DomHelpers<D>>::perform_a_microtask_checkpoint(
+                &self.global,
+                CanGc::note(),
+            );
         }
     }
 }
