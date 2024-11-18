@@ -19,7 +19,7 @@ interface OffscreenCanvas : EventTarget {
   attribute [EnforceRange] unsigned long long width;
   attribute [EnforceRange] unsigned long long height;
 
-  OffscreenRenderingContext? getContext(DOMString contextId, optional any options = null);
+  [Throws] OffscreenRenderingContext? getContext(DOMString contextId, optional any options = null);
   //ImageBitmap transferToImageBitmap();
   //Promise<Blob> convertToBlob(optional ImageEncodeOptions options);
 };

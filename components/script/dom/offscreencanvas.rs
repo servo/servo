@@ -15,7 +15,7 @@ use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     OffscreenCanvasMethods, OffscreenRenderingContext,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -157,18 +157,27 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
         _cx: JSContext,
         id: DOMString,
         _options: HandleValue,
-    ) -> Option<OffscreenRenderingContext> {
+    ) -> Fallible<Option<OffscreenRenderingContext>> {
+        if id.is_empty() {
+            return Err(Error::Type(String::from(
+                "Context identifier cannot be an empty string",
+            )));
+        }
+
         match &*id {
-            "2d" => self
+            "2d" => Ok(self
                 .get_or_init_2d_context()
-                .map(OffscreenRenderingContext::OffscreenCanvasRenderingContext2D),
+                .map(OffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
             /*"webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options)
                 .map(OffscreenRenderingContext::WebGLRenderingContext),
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options)
                 .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
-            _ => None,
+            "2D" => Err(Error::Type(String::from(
+                "Context name \"2D\" is unrecognised; matching is case sensitive",
+            ))),
+            _ => Err(Error::Type(String::from("Unrecognized context identifier"))),
         }
     }
 
