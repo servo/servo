@@ -592,9 +592,12 @@ impl ReadableStreamMethods for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new(&self.reflector_.global(), can_gc);
-        if !self.is_locked() {
+        if self.is_locked() {
+            // If ! IsReadableStreamLocked(this) is true,
+            // return a promise rejected with a TypeError exception.
             promise.reject_error(Error::Type("stream is not locked".to_owned()));
         } else {
+            // Return ! ReadableStreamCancel(this, reason).
             self.cancel(&promise, reason);
         }
         promise
