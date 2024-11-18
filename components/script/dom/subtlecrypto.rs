@@ -2690,7 +2690,7 @@ impl KeyWrapAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
 fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result<Vec<u8>, Error> {
-    let jwk_string = String::from_utf8_lossy(&bytes.to_vec()).to_string();
+    let jwk_string = String::from_utf8_lossy(bytes).to_string();
     let value = serde_json::from_str(&jwk_string)
         .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
     let serde_json::Value::Object(obj) = value else {
@@ -2733,5 +2733,5 @@ fn get_jwk_bool(value: &serde_json::Map<String, serde_json::Value>, key: &str) -
         .ok_or(Error::Data)?
         .as_bool()
         .ok_or(Error::Data)?;
-    Ok(b.clone())
+    Ok(b)
 }
