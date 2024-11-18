@@ -1787,15 +1787,13 @@ impl SubtleCrypto {
         handle: MutableHandleObject,
     ) -> Result<Vec<u8>, Error> {
         // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an OperationError.
-        if plaintext.len() > (2 << 39) - 256 {
+        if plaintext.len() as u64 > (2 << 39) - 256 {
             return Err(Error::Operation);
         }
 
         // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
         // then throw an OperationError.
-        if params.iv.len() > u64::MAX as usize {
-            return Err(Error::Operation);
-        }
+        // NOTE: servo does not currently support 128-bit platforms, so this can never happen
 
         // Step 3. If the additionalData member of normalizedAlgorithm is present and has a length greater than 2^64 - 1
         // bytes, then throw an OperationError.
@@ -1929,19 +1927,11 @@ impl SubtleCrypto {
 
         // Step 3. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
         // then throw an OperationError.
-        if params.iv.len() > u64::MAX as usize {
-            return Err(Error::Operation);
-        }
+        // NOTE: servo does not currently support 128-bit platforms, so this can never happen
 
         // Step 4. If the additionalData member of normalizedAlgorithm is present and has a length greater than 2^64 - 1
         // bytes, then throw an OperationError.
-        if params
-            .additional_data
-            .as_ref()
-            .is_some_and(|data| data.len() > u64::MAX as usize)
-        {
-            return Err(Error::Operation);
-        }
+        // NOTE: servo does not currently support 128-bit platforms, so this can never happen
 
         // Step 5. Let tag be the last tagLength bits of ciphertext.
         // Step 6. Let actualCiphertext be the result of removing the last tagLength bits from ciphertext.
