@@ -71,6 +71,9 @@ class JobConfig(object):
 
         self.wpt_layout |= other.wpt_layout
         self.unit_tests |= other.unit_tests
+        # to join "Linux" and "Linux WPT" into "Linux WPT"
+        if len(other.name) > len(self.name):
+            self.name = other.name
         return True
 
 
@@ -139,7 +142,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-wpt", "macos", "windows", "android", "ohos", "lint"])
+                words.extend(["linux", "linux-wpt", "macos", "windows", "android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
@@ -189,7 +192,7 @@ class TestParser(unittest.TestCase):
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
                                   "profile": "release",
-                                  "unit_tests": False,
+                                  "unit_tests": True,
                                   "wpt_args": ""
                               },
                               {
@@ -248,8 +251,13 @@ class TestParser(unittest.TestCase):
 
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=False)
-        self.assertTrue(a.merge(b), "Should not merge jobs that have different unit test configurations.")
+        self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        a = handle_preset("linux")
+        b = handle_preset("linux-wpt")
+        self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
+        self.assertEqual(a, JobConfig("Linux WPT", Workflow.LINUX, unit_tests=True, wpt_layout=Layout.layout2020))
 
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)
@@ -267,7 +275,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos lint").to_json()),
+        self.assertDictEqual(json.loads(Config("full").to_json()),
                              json.loads(Config("").to_json()))
 
 
