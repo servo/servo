@@ -1079,7 +1079,7 @@ pub async fn http_redirect_fetch(
     request.url_list.push(location_url);
 
     // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
-    set_requests_referrer_policy_on_redirect(request, &response.actual_response());
+    set_requests_referrer_policy_on_redirect(request, response.actual_response());
 
     // Step 20: Let recursive be true.
     // Step 21: If request’s redirect mode is "manual", then...
