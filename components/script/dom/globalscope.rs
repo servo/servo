@@ -52,7 +52,7 @@ use net_traits::{
     fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
     ReferrerPolicy, ResourceThreads,
 };
-use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time, time_profile};
+use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
@@ -2677,98 +2677,82 @@ impl GlobalScope {
         script_base_url: ServoUrl,
         can_gc: CanGc,
     ) -> bool {
-        let metadata = profile_time::TimerMetadata {
-            url: if filename.is_empty() {
-                self.get_url().as_str().into()
-            } else {
-                filename.into()
-            },
-            iframe: profile_time::TimerMetadataFrameType::RootWindow,
-            incremental: profile_time::TimerMetadataReflowType::FirstReflow,
-        };
-        time_profile!(
-            profile_time::ProfilerCategory::ScriptEvaluate,
-            Some(metadata),
-            self.time_profiler_chan().clone(),
-            || {
-                let cx = GlobalScope::get_cx();
+        let cx = GlobalScope::get_cx();
 
-                let ar = enter_realm(self);
+        let ar = enter_realm(self);
 
-                let _aes = AutoEntryScript::new(self);
+        let _aes = AutoEntryScript::new(self);
 
-                unsafe {
-                    rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-                    match code {
-                        SourceCode::Text(text_code) => {
-                            let options = CompileOptionsWrapper::new(*cx, filename, line_number);
+        unsafe {
+            rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+            match code {
+                SourceCode::Text(text_code) => {
+                    let options = CompileOptionsWrapper::new(*cx, filename, line_number);
 
-                            debug!("compiling dom string");
-                            compiled_script.set(Compile1(
-                                *cx,
-                                options.ptr,
-                                &mut transform_str_to_source_text(text_code),
-                            ));
+                    debug!("compiling dom string");
+                    compiled_script.set(Compile1(
+                        *cx,
+                        options.ptr,
+                        &mut transform_str_to_source_text(text_code),
+                    ));
 
-                            if compiled_script.is_null() {
-                                debug!("error compiling Dom string");
-                                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
-                                return false;
-                            }
-                        },
-                        SourceCode::Compiled(pre_compiled_script) => {
-                            let options = InstantiateOptions {
-                                skipFilenameValidation: false,
-                                hideScriptFromDebugger: false,
-                                deferDebugMetadata: false,
-                            };
-                            let script = InstantiateGlobalStencil(
-                                *cx,
-                                &options,
-                                *pre_compiled_script.source_code,
-                                ptr::null_mut(),
-                            );
-                            compiled_script.set(script);
-                        },
-                    };
-
-                    assert!(!compiled_script.is_null());
-
-                    rooted!(in(*cx) let mut script_private = UndefinedValue());
-                    JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
-
-                    // When `ScriptPrivate` for the compiled script is undefined,
-                    // we need to set it so that it can be used in dynamic import context.
-                    if script_private.is_undefined() {
-                        debug!("Set script private for {}", script_base_url);
-
-                        let module_script_data = Rc::new(ModuleScript::new(
-                            script_base_url,
-                            fetch_options,
-                            // We can't initialize an module owner here because
-                            // the executing context of script might be different
-                            // from the dynamic import script's executing context.
-                            None,
-                        ));
-
-                        SetScriptPrivate(
-                            *compiled_script,
-                            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
-                        );
-                    }
-
-                    let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
-
-                    if !result {
-                        debug!("error evaluating Dom string");
+                    if compiled_script.is_null() {
+                        debug!("error compiling Dom string");
                         report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
+                        return false;
                     }
+                },
+                SourceCode::Compiled(pre_compiled_script) => {
+                    let options = InstantiateOptions {
+                        skipFilenameValidation: false,
+                        hideScriptFromDebugger: false,
+                        deferDebugMetadata: false,
+                    };
+                    let script = InstantiateGlobalStencil(
+                        *cx,
+                        &options,
+                        *pre_compiled_script.source_code,
+                        ptr::null_mut(),
+                    );
+                    compiled_script.set(script);
+                },
+            };
 
-                    maybe_resume_unwind();
-                    result
-                }
-            },
-        )
+            assert!(!compiled_script.is_null());
+
+            rooted!(in(*cx) let mut script_private = UndefinedValue());
+            JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
+
+            // When `ScriptPrivate` for the compiled script is undefined,
+            // we need to set it so that it can be used in dynamic import context.
+            if script_private.is_undefined() {
+                debug!("Set script private for {}", script_base_url);
+
+                let module_script_data = Rc::new(ModuleScript::new(
+                    script_base_url,
+                    fetch_options,
+                    // We can't initialize an module owner here because
+                    // the executing context of script might be different
+                    // from the dynamic import script's executing context.
+                    None,
+                ));
+
+                SetScriptPrivate(
+                    *compiled_script,
+                    &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+                );
+            }
+
+            let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
+
+            if !result {
+                debug!("error evaluating Dom string");
+                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
+            }
+
+            maybe_resume_unwind();
+            result
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>

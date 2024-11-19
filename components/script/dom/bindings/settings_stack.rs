@@ -42,6 +42,8 @@ pub fn is_execution_stack_empty() -> bool {
 /// RAII struct that pushes and pops entries from the script settings stack.
 pub struct AutoEntryScript {
     global: DomRoot<GlobalScope>,
+    #[cfg(feature = "tracing")]
+    span: tracing::span::EnteredSpan,
 }
 
 impl AutoEntryScript {
@@ -56,6 +58,8 @@ impl AutoEntryScript {
             });
             AutoEntryScript {
                 global: DomRoot::from_ref(global),
+                #[cfg(feature = "tracing")]
+                span: tracing::info_span!("ScriptEvaluate", servo_profiling = true).entered(),
             }
         })
     }
