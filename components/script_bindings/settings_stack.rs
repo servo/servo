@@ -10,11 +10,8 @@ use js::rust::Runtime;
 
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
-//use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::{DomHelpers, DomTypes};
-
-thread_local!(pub static STACK: RefCell<Vec<StackEntry>> = const { RefCell::new(Vec::new()) });
 
 #[derive(Debug, Eq, JSTraceable, PartialEq)]
 pub enum StackEntryKind {
@@ -23,28 +20,10 @@ pub enum StackEntryKind {
 }
 
 #[allow(crown::unrooted_must_root)]
-//#[derive(JSTraceable)]
-pub struct StackEntry {
-    //global: Dom<D::GlobalScope>,
-    pub global: *const std::ffi::c_void,
+#[derive(JSTraceable)]
+pub struct StackEntry<D: DomTypes> {
+    pub global: Dom<D::GlobalScope>,
     pub kind: StackEntryKind,
-}
-
-unsafe impl JSTraceable for StackEntry {
-    unsafe fn trace(&self, tracer: *mut JSTracer) {
-        //XXXjdm todo
-    }
-}
-
-/// Traces the script settings stack.
-pub unsafe fn trace(tracer: *mut JSTracer) {
-    STACK.with(|stack| {
-        stack.borrow().trace(tracer);
-    })
-}
-
-pub fn is_execution_stack_empty() -> bool {
-    STACK.with(|stack| stack.borrow().is_empty())
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.
@@ -55,11 +34,12 @@ pub struct AutoEntryScript<D: DomTypes> {
 impl<D: DomTypes> AutoEntryScript<D> {
     /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-script>
     pub fn new(global: &D::GlobalScope) -> Self {
-        STACK.with(|stack| {
+        let settings_stack = <D as crate::DomHelpers<D>>::settings_stack();
+        settings_stack.with(|stack| {
             trace!("Prepare to run script with {:p}", global);
             let mut stack = stack.borrow_mut();
             stack.push(StackEntry {
-                global: global as *const _ as *const std::ffi::c_void, //Dom::from_ref(global),
+                global: Dom::from_ref(global),
                 kind: StackEntryKind::Entry,
             });
             AutoEntryScript {
@@ -72,15 +52,16 @@ impl<D: DomTypes> AutoEntryScript<D> {
 impl<D: DomTypes> Drop for AutoEntryScript<D> {
     /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
     fn drop(&mut self) {
-        STACK.with(|stack| {
+        let settings_stack = <D as crate::DomHelpers<D>>::settings_stack();
+        settings_stack.with(|stack| {
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
             assert_eq!(
-                entry.global as *const D::GlobalScope, &*self.global as *const D::GlobalScope,
+                &*entry.global as *const D::GlobalScope, &*self.global as *const D::GlobalScope,
                 "Dropped AutoEntryScript out of order."
             );
             assert_eq!(entry.kind, StackEntryKind::Entry);
-            trace!("Clean up after running script with {:p}", entry.global);
+            trace!("Clean up after running script with {:p}", &*entry.global);
         });
 
         // Step 5
@@ -108,13 +89,13 @@ impl<D: DomTypes> AutoIncumbentScript<D> {
             assert!(!cx.is_null());
             HideScriptedCaller(cx);
         }
-        STACK.with(|stack| {
+        let settings_stack = <D as crate::DomHelpers<D>>::settings_stack();
+        settings_stack.with(|stack| {
             trace!("Prepare to run a callback with {:p}", global);
             // Step 1.
             let mut stack = stack.borrow_mut();
             stack.push(StackEntry {
-                global: global as *const _ as *const std::ffi::c_void,
-                //global: Dom::from_ref(global),
+                global: Dom::from_ref(global),
                 kind: StackEntryKind::Incumbent,
             });
             AutoIncumbentScript {
@@ -128,19 +109,18 @@ impl<D: DomTypes> AutoIncumbentScript<D> {
 impl<D: DomTypes> Drop for AutoIncumbentScript<D> {
     /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-a-callback>
     fn drop(&mut self) {
-        STACK.with(|stack| {
+        let settings_stack = <D as crate::DomHelpers<D>>::settings_stack();
+        settings_stack.with(|stack| {
             // Step 4.
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
             // Step 3.
             assert_eq!(
-                entry.global as usize, self.global,
+                &*entry.global as *const D::GlobalScope as usize, self.global,
                 "Dropped AutoIncumbentScript out of order."
             );
             assert_eq!(entry.kind, StackEntryKind::Incumbent);
-            trace!("Clean up after running a callback with {:p}", unsafe {
-                &*entry.global
-            });
+            trace!("Clean up after running a callback with {:p}", &*entry.global);
         });
         unsafe {
             // Step 1-2.
@@ -171,10 +151,11 @@ pub fn incumbent_global<D: DomTypes>() -> Option<DomRoot<D::GlobalScope>> {
     }
 
     // Step 2: nothing from the JS engine. Let's use whatever's on the explicit stack.
-    STACK.with(|stack| {
+    let settings_stack = <D as crate::DomHelpers<D>>::settings_stack();
+    settings_stack.with(|stack| {
         stack
             .borrow()
             .last()
-            .map(|entry| DomRoot::from_ref(unsafe { &*(entry.global as *const D::GlobalScope) }))
+            .map(|entry| DomRoot::from_ref(&*entry.global))
     })
 }

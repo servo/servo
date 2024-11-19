@@ -4,11 +4,12 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use std::cell::Ref;
+use std::cell::{Ref, RefCell};
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr::NonNull;
 use std::{ptr, slice, str};
+use std::thread::LocalKey;
 
 use js::conversions::ToJSValConvertible;
 use js::glue::{
@@ -49,6 +50,7 @@ use crate::dom::bindings::error::{throw_dom_exception, throw_invalid_this};
 use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::proxyhandler::report_cross_origin_denial;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::settings_stack::{self, StackEntry};
 use crate::dom::bindings::trace::trace_object;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -301,5 +303,9 @@ impl script_bindings::DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder 
         window: &<crate::DomTypeHolder as script_bindings::DomTypes>::Window,
     ) {
         window.Document().ensure_safe_to_run_script_or_layout();
+    }
+
+    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<crate::DomTypeHolder>>>> {
+        &settings_stack::STACK
     }
 }

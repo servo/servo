@@ -14,6 +14,18 @@ use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
+thread_local!(pub static STACK: RefCell<Vec<StackEntry<crate::DomTypeHolder>>> = const { RefCell::new(Vec::new()) });
+
+pub unsafe fn trace(tracer: *mut JSTracer) {
+    STACK.with(|stack| {
+        stack.borrow().trace(tracer);
+    })
+}
+
+pub fn is_execution_stack_empty() -> bool {
+    STACK.with(|stack| stack.borrow().is_empty())
+}
+
 /// Returns the ["entry"] global object.
 ///
 /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
@@ -25,7 +37,7 @@ pub fn entry_global() -> DomRoot<GlobalScope> {
                 .iter()
                 .rev()
                 .find(|entry| entry.kind == StackEntryKind::Entry)
-                .map(|entry| DomRoot::from_ref(unsafe { &*(entry.global as *const GlobalScope) }))
+                .map(|entry| DomRoot::from_ref(&*entry.global))
         })
         .unwrap()
 }

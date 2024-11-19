@@ -4,11 +4,12 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use std::cell::Ref;
+use std::cell::{RefCell, Ref};
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr::NonNull;
 use std::{ptr, slice, str};
+use std::thread::LocalKey;
 
 use js::conversions::ToJSValConvertible;
 use js::glue::{
@@ -45,6 +46,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{throw_invalid_this, Fallible};
 use crate::dom::bindings::inheritance::TopTypeId;
+use crate::dom::bindings::settings_stack::StackEntry;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
 //use crate::dom::windowproxy::WindowProxyHandler;
@@ -743,4 +745,6 @@ pub trait DomHelpers<D: DomTypes> {
     fn is_secure_context(cx: SafeJSContext) -> bool;
 
     fn ensure_safe_to_run_script_or_layout(window: &D::Window);
+
+    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
 }
