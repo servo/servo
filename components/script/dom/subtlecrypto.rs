@@ -13,7 +13,7 @@ use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
 use base64::prelude::*;
-use cipher::consts::{U12, U32};
+use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSObject, JS_NewObject};
@@ -112,6 +112,7 @@ type Aes192Ctr = ctr::Ctr64BE<Aes192>;
 type Aes256Ctr = ctr::Ctr64BE<Aes256>;
 
 type Aes128Gcm96Iv = AesGcm<Aes128, U12>;
+type Aes128Gcm128Iv = AesGcm<Aes128, U16>;
 type Aes192Gcm96Iv = AesGcm<Aes192, U12>;
 type Aes256Gcm96Iv = AesGcm<Aes256, U12>;
 type Aes128Gcm256Iv = AesGcm<Aes128, U32>;
@@ -1843,6 +1844,12 @@ impl SubtleCrypto {
                     .expect("key length did not match")
                     .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
             },
+            (16, 16) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes128Gcm128Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
+            },
             (20, 12) => {
                 let nonce = GenericArray::from_slice(&params.iv);
                 <Aes192Gcm96Iv>::new_from_slice(key_bytes)
@@ -1953,6 +1960,12 @@ impl SubtleCrypto {
             (16, 12) => {
                 let nonce = GenericArray::from_slice(&params.iv);
                 <Aes128Gcm96Iv>::new_from_slice(key_bytes)
+                    .expect("key length did not match")
+                    .decrypt_in_place(nonce, additional_data, &mut plaintext)
+            },
+            (16, 16) => {
+                let nonce = GenericArray::from_slice(&params.iv);
+                <Aes128Gcm128Iv>::new_from_slice(key_bytes)
                     .expect("key length did not match")
                     .decrypt_in_place(nonce, additional_data, &mut plaintext)
             },
