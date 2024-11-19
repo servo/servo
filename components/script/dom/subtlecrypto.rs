@@ -849,7 +849,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     return;
                 }
                 let exported_key = match alg_name.as_str() {
-                    ALG_AES_CBC | ALG_AES_CTR | ALG_AES_KW => subtle.export_key_aes(format, &key),
+                    ALG_AES_CBC | ALG_AES_CTR | ALG_AES_KW | ALG_AES_GCM => subtle.export_key_aes(format, &key),
                     _ => Err(Error::NotSupported),
                 };
                 match exported_key {
@@ -976,6 +976,11 @@ impl SubtleCryptoMethods for SubtleCrypto {
                             &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut()
                         )
                     },
+                    KeyWrapAlgorithm::AesGcm(params) => {
+                        subtle.encrypt_aes_gcm(
+                            &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut()
+                        )
+                    },
                 };
 
                 match result {
@@ -1055,6 +1060,11 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     },
                     KeyWrapAlgorithm::AesCtr(params) => {
                         subtle.encrypt_decrypt_aes_ctr(
+                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
+                        )
+                    },
+                    KeyWrapAlgorithm::AesGcm(params) => {
+                        subtle.decrypt_aes_gcm(
                             &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
                         )
                     },
@@ -1399,6 +1409,7 @@ enum KeyWrapAlgorithm {
     AesKw,
     AesCbc(SubtleAesCbcParams),
     AesCtr(SubtleAesCtrParams),
+    AesGcm(SubtleAesGcmParams),
 }
 
 macro_rules! value_from_js_object {
@@ -1650,6 +1661,13 @@ fn normalize_algorithm_for_key_wrap(
             };
             rooted!(in(*cx) let value = ObjectValue(obj.get()));
             KeyWrapAlgorithm::AesCtr(value_from_js_object!(AesCtrParams, cx, value).into())
+        },
+        ALG_AES_GCM => {
+            let AlgorithmIdentifier::Object(obj) = algorithm else {
+                return Err(Error::Syntax);
+            };
+            rooted!(in(*cx) let value = ObjectValue(obj.get()));
+            KeyWrapAlgorithm::AesGcm(value_from_js_object!(AesGcmParams, cx, value).into())
         },
         _ => return Err(Error::NotSupported),
     };
@@ -2596,6 +2614,7 @@ fn data_to_jwk_params(alg: &str, size: &str, key: &[u8]) -> (DOMString, DOMStrin
         ALG_AES_CBC => DOMString::from(format!("A{}CBC", size)),
         ALG_AES_CTR => DOMString::from(format!("A{}CTR", size)),
         ALG_AES_KW => DOMString::from(format!("A{}KW", size)),
+        ALG_AES_GCM => DOMString::from(format!("A{}GCM", size)),
         _ => unreachable!(),
     };
     let data = base64::engine::general_purpose::STANDARD_NO_PAD.encode(key);
@@ -2975,6 +2994,7 @@ impl KeyWrapAlgorithm {
             Self::AesKw => ALG_AES_KW,
             Self::AesCbc(key_gen_params) => &key_gen_params.name,
             Self::AesCtr(key_gen_params) => &key_gen_params.name,
+            Self::AesGcm(_) => ALG_AES_GCM,
         }
     }
 }
@@ -2995,7 +3015,10 @@ fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result
     }
 
     match alg {
-        ImportKeyAlgorithm::AesCbc | ImportKeyAlgorithm::AesCtr | ImportKeyAlgorithm::AesKw => {
+        ImportKeyAlgorithm::AesCbc |
+        ImportKeyAlgorithm::AesCtr |
+        ImportKeyAlgorithm::AesKw |
+        ImportKeyAlgorithm::AesGcm => {
             if kty != "oct" {
                 return Err(Error::Data);
             }
