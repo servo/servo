@@ -105,8 +105,10 @@ pub struct CustomResponseMediator {
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request
-#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ReferrerPolicy {
+    /// ""
+    EmptyString,
     /// "no-referrer"
     NoReferrer,
     /// "no-referrer-when-downgrade"
@@ -129,6 +131,7 @@ pub enum ReferrerPolicy {
 impl Display for ReferrerPolicy {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match self {
+            ReferrerPolicy::EmptyString => "",
             ReferrerPolicy::NoReferrer => "no-referrer",
             ReferrerPolicy::NoReferrerWhenDowngrade => "no-referrer-when-downgrade",
             ReferrerPolicy::Origin => "origin",
@@ -142,9 +145,9 @@ impl Display for ReferrerPolicy {
     }
 }
 
-impl From<ReferrerPolicyHeader> for ReferrerPolicy {
-    fn from(policy: ReferrerPolicyHeader) -> Self {
-        match policy {
+impl From<Option<ReferrerPolicyHeader>> for ReferrerPolicy {
+    fn from(header: Option<ReferrerPolicyHeader>) -> Self {
+        header.map_or(ReferrerPolicy::EmptyString, |policy| match policy {
             ReferrerPolicyHeader::NO_REFERRER => ReferrerPolicy::NoReferrer,
             ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE => {
                 ReferrerPolicy::NoReferrerWhenDowngrade
@@ -157,7 +160,7 @@ impl From<ReferrerPolicyHeader> for ReferrerPolicy {
             ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN => {
                 ReferrerPolicy::StrictOriginWhenCrossOrigin
             },
-        }
+        })
     }
 }
 
@@ -173,7 +176,7 @@ impl From<ReferrerPolicy> for ReferrerPolicyHeader {
             ReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN,
             ReferrerPolicy::UnsafeUrl => ReferrerPolicyHeader::UNSAFE_URL,
             ReferrerPolicy::StrictOrigin => ReferrerPolicyHeader::STRICT_ORIGIN,
-            ReferrerPolicy::StrictOriginWhenCrossOrigin => {
+            ReferrerPolicy::EmptyString | ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                 ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN
             },
         }
@@ -789,7 +792,7 @@ pub struct Metadata {
     pub referrer: Option<ServoUrl>,
 
     /// Referrer Policy of the Request used to obtain Response
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
     /// Performance information for navigation events
     pub timing: Option<ResourceFetchTiming>,
     /// True if the request comes from a redirection
@@ -808,7 +811,7 @@ impl Metadata {
             status: HttpStatus::default(),
             https_state: HttpsState::None,
             referrer: None,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
             timing: None,
             redirected: false,
         }
@@ -833,18 +836,21 @@ impl Metadata {
     }
 
     /// Set the referrer policy associated with the loaded resource.
-    pub fn set_referrer_policy(&mut self, referrer_policy: Option<ReferrerPolicy>) {
+    pub fn set_referrer_policy(&mut self, referrer_policy: ReferrerPolicy) {
+        if referrer_policy == ReferrerPolicy::EmptyString {
+            return;
+        }
+
         if self.headers.is_none() {
             self.headers = Some(Serde(HeaderMap::new()));
         }
 
         self.referrer_policy = referrer_policy;
-        if let Some(referrer_policy) = referrer_policy {
-            self.headers
-                .as_mut()
-                .unwrap()
-                .typed_insert::<ReferrerPolicyHeader>(referrer_policy.into());
-        }
+
+        self.headers
+            .as_mut()
+            .unwrap()
+            .typed_insert::<ReferrerPolicyHeader>(referrer_policy.into());
     }
 }
 

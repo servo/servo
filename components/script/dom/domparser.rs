@@ -86,7 +86,6 @@ impl DOMParserMethods for DOMParser {
                     loader,
                     None,
                     None,
-                    None,
                     Default::default(),
                     can_gc,
                 );
@@ -106,7 +105,6 @@ impl DOMParserMethods for DOMParser {
                     DocumentActivity::Inactive,
                     DocumentSource::FromParser,
                     loader,
-                    None,
                     None,
                     None,
                     Default::default(),

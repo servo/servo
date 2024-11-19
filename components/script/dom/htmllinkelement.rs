@@ -76,7 +76,7 @@ struct LinkProcessingOptions {
     integrity: String,
     link_type: String,
     cross_origin: Option<CorsSettings>,
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: ReferrerPolicy,
     policy_container: PolicyContainer,
     source_set: Option<()>,
     base_url: ServoUrl,
@@ -502,12 +502,12 @@ impl StylesheetOwner for HTMLLinkElement {
         self.parser_inserted.get()
     }
 
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+    fn referrer_policy(&self) -> ReferrerPolicy {
         if self.RelList().Contains("noreferrer".into()) {
-            return Some(ReferrerPolicy::NoReferrer);
+            return ReferrerPolicy::NoReferrer;
         }
 
-        None
+        ReferrerPolicy::EmptyString
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {

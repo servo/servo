@@ -265,7 +265,7 @@ pub struct RequestBuilder {
     pub policy_container: RequestPolicyContainer,
     // XXXManishearth these should be part of the client object
     pub referrer: Referrer,
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
@@ -299,7 +299,7 @@ impl RequestBuilder {
             origin: ImmutableOrigin::new_opaque(),
             policy_container: RequestPolicyContainer::default(),
             referrer,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
@@ -372,7 +372,7 @@ impl RequestBuilder {
         self
     }
 
-    pub fn referrer_policy(mut self, referrer_policy: Option<ReferrerPolicy>) -> RequestBuilder {
+    pub fn referrer_policy(mut self, referrer_policy: ReferrerPolicy) -> RequestBuilder {
         self.referrer_policy = referrer_policy;
         self
     }
@@ -494,7 +494,7 @@ pub struct Request {
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
     /// <https://fetch.spec.whatwg.org/#concept-request-referrer-policy>
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
     /// <https://fetch.spec.whatwg.org/#synchronous-flag>
     pub synchronous: bool,
@@ -553,7 +553,7 @@ impl Request {
             destination: Destination::None,
             origin: origin.unwrap_or(Origin::Client),
             referrer,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
             synchronous: false,
             mode: RequestMode::NoCors,

@@ -104,7 +104,7 @@ pub struct Response {
     pub cache_state: CacheState,
     pub https_state: HttpsState,
     pub referrer: Option<ServoUrl>,
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
     /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
     pub cors_exposed_header_name_list: Vec<String>,
     /// [Location URL](https://fetch.spec.whatwg.org/#concept-response-location-url)
@@ -135,7 +135,7 @@ impl Response {
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             referrer: None,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
             cors_exposed_header_name_list: vec![],
             location_url: None,
             internal_response: None,
@@ -166,7 +166,7 @@ impl Response {
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             referrer: None,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
             cors_exposed_header_name_list: vec![],
             location_url: None,
             internal_response: None,

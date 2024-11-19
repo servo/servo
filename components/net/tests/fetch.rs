@@ -322,7 +322,7 @@ fn test_cors_preflight_fetch() {
 
     let target_url = url.clone().join("a.html").unwrap();
     let mut request = RequestBuilder::new(url, Referrer::ReferrerUrl(target_url)).build();
-    request.referrer_policy = Some(ReferrerPolicy::Origin);
+    request.referrer_policy = ReferrerPolicy::Origin;
     request.use_cors_preflight = true;
     request.mode = RequestMode::CorsMode;
     let fetch_response = fetch(&mut request, None);

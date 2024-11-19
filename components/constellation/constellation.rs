@@ -131,7 +131,7 @@ use media::{GLPlayerThreads, WindowGLContext};
 use net_traits::pub_domains::reg_host;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
+use net_traits::{self, FetchResponseMsg, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
@@ -1413,7 +1413,7 @@ where
                     url,
                     None,
                     Referrer::NoReferrer,
-                    None,
+                    ReferrerPolicy::EmptyString,
                     None,
                 );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -3033,7 +3033,7 @@ where
             url,
             None,
             Referrer::NoReferrer,
-            None,
+            ReferrerPolicy::EmptyString,
             None,
         );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
