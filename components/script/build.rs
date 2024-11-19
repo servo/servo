@@ -50,8 +50,13 @@ fn main() {
     let mut phf = File::create(phf).unwrap();
     writeln!(
         &mut phf,
-        "use crate::script_runtime::JSContext;\nuse crate::dom::bindings::codegen;\nuse js::rust::HandleObject;\nuse phf;",
-    ).unwrap();
+        "{}\n{}\n{}\n{}",
+        "use crate::script_runtime::JSContext;",
+        "use crate::dom::bindings::codegen;",
+        "use js::rust::HandleObject;",
+        "use phf;",
+    )
+    .unwrap();
     writeln!(
         &mut phf,
         "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};",

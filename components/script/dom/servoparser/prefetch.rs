@@ -82,7 +82,7 @@ struct PrefetchSink {
 }
 
 /// The prefetch tokenizer produces trivial results
-#[derive(JSTraceable, Clone, Copy)]
+#[derive(Clone, Copy, JSTraceable)]
 struct PrefetchHandle;
 
 impl TokenSink for PrefetchSink {

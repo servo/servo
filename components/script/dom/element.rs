@@ -3699,7 +3699,7 @@ impl VirtualMethods for Element {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(Clone, PartialEq)]
 pub enum SelectorWrapper<'a> {
     Borrowed(&'a DomRoot<Element>),
     Owned(DomRoot<Element>),

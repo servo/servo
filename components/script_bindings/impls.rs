@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 use std::hash::Hash;
@@ -1078,127 +1082,6 @@ impl From<FakeXRButtonType> for MockButtonType {
         }
     }
 }
-
-/*impl<T: SelectorsElement + crate::DomObject + Into<DomRoot<T>>> SelectorsElement for DomRoot<T> {
-    type Impl = T::Impl;
-
-    fn opaque(&self) -> ::selectors::OpaqueElement {
-        T::opaque(&*self)
-    }
-
-    fn parent_element(&self) -> Option<DomRoot<T>> {
-        T::parent_element(&*self).map(Into::into)
-    }
-
-    fn parent_node_is_shadow_root(&self) -> bool {
-        T::parent_node_is_shadow_root(&*self)
-    }
-
-    fn containing_shadow_host(&self) -> Option<DomRoot<T>> {
-        T::containing_shadow_host(&*self).map(Into::into)
-    }
-
-    fn is_pseudo_element(&self) -> bool {
-        T::is_pseudo_element(&*self)
-    }
-
-    fn match_pseudo_element(
-        &self,
-        pseudo: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::PseudoElement,
-        context: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        T::match_pseudo_element(&*self, pseudo, context)
-    }
-
-    fn prev_sibling_element(&self) -> Option<DomRoot<T>> {
-        T::prev_sibling_element(&*self).map(Into::into)
-    }
-
-    fn next_sibling_element(&self) -> Option<DomRoot<T>> {
-        T::next_sibling_element(&*self).map(Into::into)
-    }
-
-    fn first_element_child(&self) -> Option<DomRoot<T>> {
-        T::first_element_child(&*self).map(Into::into)
-    }
-
-    fn attr_matches(
-        &self,
-        ns: &NamespaceConstraint<&<<T as selectors::Element>::Impl as selectors::SelectorImpl>::NamespaceUrl>,
-        local_name: &<<T as SelectorsElement>::Impl as selectors::SelectorImpl>::LocalName,
-        operation: &AttrSelectorOperation<&<<T as selectors::Element>::Impl as selectors::SelectorImpl>::AttrValue>,
-    ) -> bool {
-        T::attr_matches(&*self, ns, local_name, operation)
-    }
-
-    fn is_root(&self) -> bool {
-        T::is_root(&*self)
-    }
-
-    fn is_empty(&self) -> bool {
-        T::is_empty(&*self)
-    }
-
-    fn has_local_name(&self, local_name: &<<T as SelectorsElement>::Impl as selectors::SelectorImpl>::BorrowedLocalName) -> bool {
-        T::has_local_name(&*self, local_name)
-    }
-
-    fn has_namespace(&self, ns: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::BorrowedNamespaceUrl) -> bool {
-        T::has_namespace(&*self, ns)
-    }
-
-    fn is_same_type(&self, other: &Self) -> bool {
-        T::is_same_type(&*self, &*other)
-    }
-
-    fn match_non_ts_pseudo_class(
-        &self,
-        pseudo_class: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::NonTSPseudoClass,
-        ctx: &mut MatchingContext<Self::Impl>,
-    ) -> bool {
-        T::match_non_ts_pseudo_class(&*self, pseudo_class, ctx)
-    }
-
-    fn is_link(&self) -> bool {
-        T::is_link(&*self)
-    }
-
-    fn has_id(&self, id: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::Identifier, case_sensitivity: CaseSensitivity) -> bool {
-        T::has_id(&*self, id, case_sensitivity)
-    }
-
-    fn is_part(&self, name: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::Identifier) -> bool {
-        T::is_part(&*self, name)
-    }
-
-    fn imported_part(&self, ident: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::Identifier) -> Option<<<T as selectors::Element>::Impl as selectors::SelectorImpl>::Identifier> {
-        T::imported_part(&*self, ident)
-    }
-
-    fn has_class(&self, name: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::Identifier, case_sensitivity: CaseSensitivity) -> bool {
-        T::has_class(&*self, name, case_sensitivity)
-    }
-
-    fn is_html_element_in_html_document(&self) -> bool {
-        T::is_html_element_in_html_document(&*self)
-    }
-
-    fn is_html_slot_element(&self) -> bool {
-        T::is_html_slot_element(&*self)
-    }
-
-    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
-        T::apply_selector_flags(&*self, flags)
-    }
-
-    fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
-        T::add_element_unique_hashes(&*self, filter)
-    }
-
-    fn has_custom_state(&self, name: &<<T as selectors::Element>::Impl as selectors::SelectorImpl>::Identifier) -> bool {
-        T::has_custom_state(&*self, name)
-    }
-}*/
 
 impl<T: fmt::Debug + crate::DomObject> fmt::Debug for DomRoot<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

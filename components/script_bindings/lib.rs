@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 #![feature(register_tool)]
 // Register the linter `crown`, which is the Servo-specific linter for the script
 // crate. Issue a warning if `crown` is not being used to compile, but not when
@@ -99,7 +103,7 @@ pub mod utils;
 pub mod weakref;
 
 pub mod script_runtime {
-    #[derive(Copy, Clone)]
+    #[derive(Clone, Copy)]
     #[repr(transparent)]
     pub struct JSContext(*mut js::jsapi::JSContext);
     impl JSContext {

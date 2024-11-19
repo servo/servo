@@ -82,8 +82,6 @@ impl<
 
 pub(crate) struct NoTrace<T>(T);
 
-//impl <D: DomTypes + 'static, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobal<D>> DomGlobal<D> for IterablefqIterator<D, T> {}
-
 impl<
         D: DomTypes + 'static,
         T: DomObjectIteratorWrap<D>

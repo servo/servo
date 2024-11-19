@@ -55,8 +55,6 @@ mod layout_image;
 
 pub mod layout_dom;
 #[warn(deprecated)]
-mod mem;
-#[warn(deprecated)]
 mod microtask;
 #[warn(deprecated)]
 mod network_listener;
