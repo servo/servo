@@ -32,9 +32,8 @@ pub fn get_default_url(
     let mut new_url = None;
     let cmdline_url = url_opt.map(|s| s.to_string()).and_then(|url_string| {
         parse_url_or_filename(cwd.as_ref(), &url_string)
-            .map_err(|error| {
+            .inspect_err(|&error| {
                 warn!("URL parsing failed ({:?}).", error);
-                error
             })
             .ok()
     });
