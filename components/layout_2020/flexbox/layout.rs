@@ -205,7 +205,8 @@ impl FlexContainer {
         tracing::instrument(
             name = "FlexContainer::inline_content_sizes",
             skip_all,
-            fields(servo_profiling = true)
+            fields(servo_profiling = true),
+            level = "trace",
         )
     )]
     pub fn inline_content_sizes(
@@ -358,7 +359,8 @@ impl FlexContainer {
         tracing::instrument(
             name = "FlexContainer::layout",
             skip_all,
-            fields(servo_profiling = true)
+            fields(servo_profiling = true),
+            level = "trace",
         )
     )]
     pub(crate) fn layout(

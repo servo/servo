@@ -225,7 +225,11 @@ where
 {
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip(embedder, window), fields(servo_profiling = true))
+        tracing::instrument(
+            skip(embedder, window),
+            fields(servo_profiling = true),
+            level = "trace",
+        )
     )]
     pub fn new(
         mut embedder: Box<dyn EmbedderMethods>,
