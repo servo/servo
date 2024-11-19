@@ -91,7 +91,10 @@ pub enum ProfilerCategory {
     ScriptImageCacheMsg = 0x68,
     ScriptInputEvent = 0x69,
     ScriptNetworkEvent = 0x6a,
+
+    /// The script thread is parsing HTML, rather than doing other work like evaluating scripts or doing layout.
     ScriptParseHTML = 0x6b,
+
     ScriptPlannedNavigation = 0x6c,
     ScriptResize = 0x6d,
     ScriptSetScrollState = 0x6e,
@@ -102,7 +105,10 @@ pub enum ProfilerCategory {
     ScriptWebSocketEvent = 0x73,
     ScriptWorkerEvent = 0x74,
     ScriptServiceWorkerEvent = 0x75,
+
+    /// The script thread is parsing XML, rather than doing other work like evaluating scripts or doing layout.
     ScriptParseXML = 0x76,
+
     ScriptEnterFullscreen = 0x77,
     ScriptExitFullscreen = 0x78,
     ScriptWebVREvent = 0x79,
