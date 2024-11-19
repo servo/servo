@@ -154,8 +154,26 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
         Err(msg) => {
-            debug!("{}", msg);
-            None
+            if msg == "JXL" {
+                let decoder = jxl_oxide::integration::JxlDecoder::new(buffer).ok()?;
+                if let Ok(image) = image::DynamicImage::from_decoder(decoder) {
+                    let mut rgba = image.into_rgba8();
+                    rgba8_byte_swap_colors_inplace(&mut rgba);
+                    Some(Image {
+                        width: rgba.width(),
+                        height: rgba.height(),
+                        format: PixelFormat::BGRA8,
+                        bytes: IpcSharedMemory::from_bytes(&rgba),
+                        id: None,
+                        cors_status,
+                    })
+                } else {
+                    None
+                }
+            } else {
+                debug!("{}", msg);
+                None
+            }
         },
         Ok(_) => match image::load_from_memory(buffer) {
             Ok(image) => {
@@ -172,21 +190,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
             },
             Err(e) => {
                 debug!("Image decoding error: {:?}", e);
-                let decoder = jxl_oxide::integration::JxlDecoder::new(buffer).ok()?;
-                if let Ok(image) = image::DynamicImage::from_decoder(decoder) {
-                    let mut rgba = image.into_rgba8();
-                    rgba8_byte_swap_colors_inplace(&mut rgba);
-                    Some(Image {
-                        width: rgba.width(),
-                        height: rgba.height(),
-                        format: PixelFormat::BGRA8,
-                        bytes: IpcSharedMemory::from_bytes(&rgba),
-                        id: None,
-                        cors_status,
-                    })
-                } else {
-                    None
-                }
+                None
             },
         },
     }
@@ -203,8 +207,7 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
     } else if is_webp(buffer) {
         Ok(ImageFormat::WebP)
     } else if is_jxl(buffer) {
-        //TODO: image-rs does not support jxl, has no associated imageformat, deal with this
-        Ok(ImageFormat::Tiff)
+        Err("Jxl")
     } else if is_bmp(buffer) {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {

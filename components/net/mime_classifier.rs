@@ -757,13 +757,12 @@ impl ByteMatcher {
         }
     }
 
-    //JXl images can be in either a container, or a straight codestream
+    //JXL images can be in either a container, or a straight codestream
     fn image_jpegxl_container() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x00\x0C\x4A\x58\x4C\x20\x0D\x0A\x76\x0A",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            //TODO: Mime crate seems to no longer be updated
-            content_type: mime::IMAGE_STAR,
+            content_type: "image/jxl".parse().unwrap(),
             leading_ignore: &[],
         }
     }
@@ -771,8 +770,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFF\x0A",
             mask: b"\xFF\xFF",
-            //TODO: Mime crate seems to no longer be updated
-            content_type: mime::IMAGE_STAR,
+            content_type: "image/jxl".parse().unwrap(),
             leading_ignore: &[],
         }
     }
