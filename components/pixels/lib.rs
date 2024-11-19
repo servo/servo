@@ -154,7 +154,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
         Err(msg) => {
-            if msg == "JXL" {
+            if msg == "Jxl" {
                 let decoder = jxl_oxide::integration::JxlDecoder::new(buffer).ok()?;
                 if let Ok(image) = image::DynamicImage::from_decoder(decoder) {
                     let mut rgba = image.into_rgba8();
