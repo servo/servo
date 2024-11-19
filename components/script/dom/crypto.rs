@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::SubtleCrypto;
 use crate::script_runtime::JSContext;
@@ -72,7 +72,7 @@ impl CryptoMethods for Crypto {
     }
 
     // https://w3c.github.io/webcrypto/#Crypto-method-randomUUID
-    fn RandomUUID(&self) -> USVString {
+    fn RandomUUID(&self) -> DOMString {
         let uuid = Uuid::new_v4();
         uuid.hyphenated()
             .encode_lower(&mut Uuid::encode_buffer())
