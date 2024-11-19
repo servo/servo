@@ -1033,8 +1033,8 @@ fn get_layout_factory(legacy_layout: bool) -> Arc<dyn LayoutFactory> {
             }
         } else {
             if legacy_layout {
-                warn!("Runtime option `legacy_layout` was enabled, but the `layout_2013` \
-                feature was not enabled at compile time. Falling back to layout 2020! ");
+                panic!("Runtime option `legacy_layout` was enabled, but the `layout_2013` \
+                feature was not enabled at compile time! ");
            }
         }
     }
