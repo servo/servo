@@ -280,7 +280,7 @@ impl FontContext {
     /// cache thread and a `FontDescriptor` which contains the styling parameters.
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn create_font(
         &self,

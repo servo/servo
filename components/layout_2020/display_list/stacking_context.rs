@@ -106,7 +106,8 @@ impl DisplayList {
         tracing::instrument(
             name = "display_list::build_stacking_context_tree",
             skip_all,
-            fields(servo_profiling = true)
+            fields(servo_profiling = true),
+            level = "trace",
         )
     )]
     pub fn build_stacking_context_tree(
