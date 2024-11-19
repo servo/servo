@@ -60,7 +60,7 @@ impl TestBindingPairIterable {
     }
 }
 
-impl TestBindingPairIterableMethods for TestBindingPairIterable {
+impl TestBindingPairIterableMethods<crate::DomTypeHolder> for TestBindingPairIterable {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

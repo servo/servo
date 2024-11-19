@@ -143,7 +143,7 @@ impl TimeRanges {
     }
 }
 
-impl TimeRangesMethods for TimeRanges {
+impl TimeRangesMethods<crate::DomTypeHolder> for TimeRanges {
     // https://html.spec.whatwg.org/multipage/#dom-timeranges-length
     fn Length(&self) -> u32 {
         self.ranges.len()

@@ -80,7 +80,7 @@ impl MediaQueryListEvent {
     }
 }
 
-impl MediaQueryListEventMethods for MediaQueryListEvent {
+impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
     fn Constructor(
         window: &Window,

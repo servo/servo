@@ -67,7 +67,7 @@ impl TreeWalker {
     }
 }
 
-impl TreeWalkerMethods for TreeWalker {
+impl TreeWalkerMethods<crate::DomTypeHolder> for TreeWalker {
     // https://dom.spec.whatwg.org/#dom-treewalker-root
     fn Root(&self) -> DomRoot<Node> {
         DomRoot::from_ref(&*self.root_node)

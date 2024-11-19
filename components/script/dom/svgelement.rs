@@ -66,7 +66,7 @@ impl VirtualMethods for SVGElement {
     }
 }
 
-impl SVGElementMethods for SVGElement {
+impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {

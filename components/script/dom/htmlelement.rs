@@ -135,7 +135,7 @@ impl HTMLElement {
     }
 }
 
-impl HTMLElementMethods for HTMLElement {
+impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {

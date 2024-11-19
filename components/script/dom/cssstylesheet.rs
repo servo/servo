@@ -114,7 +114,7 @@ impl CSSStyleSheet {
     }
 }
 
-impl CSSStyleSheetMethods for CSSStyleSheet {
+impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
     fn GetCssRules(&self) -> Fallible<DomRoot<CSSRuleList>> {
         if !self.origin_clean.get() {

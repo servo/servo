@@ -68,7 +68,7 @@ impl HTMLOptionsCollection {
     }
 }
 
-impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
+impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollection {
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
     // HTMLOptionsCollection) implements NamedGetter.
     // https://github.com/servo/servo/issues/5875

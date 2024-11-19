@@ -10,7 +10,7 @@ use servo_media::audio::gain_node::GainNodeOptions;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsUnwrap};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -92,7 +92,7 @@ impl GainNode {
     }
 }
 
-impl GainNodeMethods for GainNode {
+impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
     // https://webaudio.github.io/web-audio-api/#dom-gainnode-gainnode
     fn Constructor(
         window: &Window,
@@ -107,13 +107,5 @@ impl GainNodeMethods for GainNode {
     // https://webaudio.github.io/web-audio-api/#dom-gainnode-gain
     fn Gain(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.gain)
-    }
-}
-
-impl<'a> From<&'a GainOptions> for GainNodeOptions {
-    fn from(options: &'a GainOptions) -> Self {
-        Self {
-            gain: *options.gain,
-        }
     }
 }

@@ -158,7 +158,7 @@ impl Gamepad {
     }
 }
 
-impl GamepadMethods for Gamepad {
+impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     // https://w3c.github.io/gamepad/#dom-gamepad-id
     fn Id(&self) -> DOMString {
         DOMString::from(self.id.clone())

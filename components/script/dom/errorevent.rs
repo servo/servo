@@ -102,7 +102,7 @@ impl ErrorEvent {
     }
 }
 
-impl ErrorEventMethods for ErrorEvent {
+impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
     // https://html.spec.whatwg.org/multipage/#errorevent
     fn Constructor(
         global: &GlobalScope,

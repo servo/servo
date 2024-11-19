@@ -28,7 +28,7 @@ impl MimeTypeArray {
     }
 }
 
-impl MimeTypeArrayMethods for MimeTypeArray {
+impl MimeTypeArrayMethods<crate::DomTypeHolder> for MimeTypeArray {
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-length
     fn Length(&self) -> u32 {
         0

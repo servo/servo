@@ -224,7 +224,7 @@ impl HTMLMetaElement {
     }
 }
 
-impl HTMLMetaElementMethods for HTMLMetaElement {
+impl HTMLMetaElementMethods<crate::DomTypeHolder> for HTMLMetaElement {
     // https://html.spec.whatwg.org/multipage/#dom-meta-name
     make_getter!(Name, "name");
 

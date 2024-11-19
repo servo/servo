@@ -110,7 +110,7 @@ impl AudioParam {
     }
 }
 
-impl AudioParamMethods for AudioParam {
+impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
     fn AutomationRate(&self) -> AutomationRate {
         self.automation_rate.get()
@@ -318,15 +318,5 @@ impl AudioParamMethods for AudioParam {
             UserAutomationEvent::CancelAndHoldAtTime(*cancel_time),
         ));
         Ok(DomRoot::from_ref(self))
-    }
-}
-
-// https://webaudio.github.io/web-audio-api/#enumdef-automationrate
-impl From<AutomationRate> for ParamRate {
-    fn from(rate: AutomationRate) -> Self {
-        match rate {
-            AutomationRate::A_rate => ParamRate::ARate,
-            AutomationRate::K_rate => ParamRate::KRate,
-        }
     }
 }

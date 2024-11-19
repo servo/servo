@@ -68,7 +68,7 @@ impl RTCDataChannelEvent {
     }
 }
 
-impl RTCDataChannelEventMethods for RTCDataChannelEvent {
+impl RTCDataChannelEventMethods<crate::DomTypeHolder> for RTCDataChannelEvent {
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelevent-constructor
     fn Constructor(
         window: &Window,

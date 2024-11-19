@@ -32,7 +32,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::canvasrenderingcontext2d::{
     CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
@@ -339,7 +339,7 @@ impl HTMLCanvasElement {
     }
 }
 
-impl HTMLCanvasElementMethods for HTMLCanvasElement {
+impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
@@ -469,19 +469,6 @@ impl VirtualMethods for HTMLCanvasElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(name, value),
-        }
-    }
-}
-
-impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
-    fn from(attrs: &'a WebGLContextAttributes) -> GLContextAttributes {
-        GLContextAttributes {
-            alpha: attrs.alpha,
-            depth: attrs.depth,
-            stencil: attrs.stencil,
-            antialias: attrs.antialias,
-            premultiplied_alpha: attrs.premultipliedAlpha,
-            preserve_drawing_buffer: attrs.preserveDrawingBuffer,
         }
     }
 }

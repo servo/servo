@@ -6,8 +6,10 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_media::audio::node::AudioNodeInit;
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::dom::audiobuffersourcenode::AudioBufferSourceNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsUnwrap, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
+use crate::dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -86,7 +88,7 @@ impl ChannelSplitterNode {
     }
 }
 
-impl ChannelSplitterNodeMethods for ChannelSplitterNode {
+impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-channelsplitternode-channelsplitternode>
     fn Constructor(
         window: &Window,

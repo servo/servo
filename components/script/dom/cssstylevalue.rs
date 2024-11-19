@@ -31,7 +31,7 @@ impl CSSStyleValue {
     }
 }
 
-impl CSSStyleValueMethods for CSSStyleValue {
+impl CSSStyleValueMethods<crate::DomTypeHolder> for CSSStyleValue {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#CSSStyleValue-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
         DOMString::from(&*self.value)

@@ -35,7 +35,7 @@ impl NamedNodeMap {
     }
 }
 
-impl NamedNodeMapMethods for NamedNodeMap {
+impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     // https://dom.spec.whatwg.org/#dom-namednodemap-length
     fn Length(&self) -> u32 {
         self.owner.attrs().len() as u32

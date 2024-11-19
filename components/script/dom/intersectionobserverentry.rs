@@ -44,7 +44,7 @@ impl IntersectionObserverEntry {
     }
 }
 
-impl IntersectionObserverEntryMethods for IntersectionObserverEntry {
+impl IntersectionObserverEntryMethods<crate::DomTypeHolder> for IntersectionObserverEntry {
     /// > The attribute must return a DOMHighResTimeStamp that corresponds to the time the
     /// > intersection was recorded, relative to the time origin of the global object
     /// > associated with the IntersectionObserver instance that generated the notification.

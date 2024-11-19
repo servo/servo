@@ -45,7 +45,7 @@ impl WebGLShaderPrecisionFormat {
     }
 }
 
-impl WebGLShaderPrecisionFormatMethods for WebGLShaderPrecisionFormat {
+impl WebGLShaderPrecisionFormatMethods<crate::DomTypeHolder> for WebGLShaderPrecisionFormat {
     // https://www.khronos.org/registry/webgl/specs/1.0/#5.12.1
     fn RangeMin(&self) -> i32 {
         self.range_min

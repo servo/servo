@@ -183,7 +183,7 @@ impl ElementInternals {
     }
 }
 
-impl ElementInternalsMethods for ElementInternals {
+impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-setformvalue>
     fn SetFormValue(
         &self,

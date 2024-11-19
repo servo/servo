@@ -72,29 +72,9 @@ impl GPUError {
     }
 }
 
-impl GPUErrorMethods for GPUError {
+impl GPUErrorMethods<crate::DomTypeHolder> for GPUError {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuerror-message>
     fn Message(&self) -> DOMString {
         self.message.clone()
-    }
-}
-
-impl From<ErrorFilter> for GPUErrorFilter {
-    fn from(filter: ErrorFilter) -> Self {
-        match filter {
-            ErrorFilter::Validation => GPUErrorFilter::Validation,
-            ErrorFilter::OutOfMemory => GPUErrorFilter::Out_of_memory,
-            ErrorFilter::Internal => GPUErrorFilter::Internal,
-        }
-    }
-}
-
-impl GPUErrorFilter {
-    pub fn as_webgpu(&self) -> ErrorFilter {
-        match self {
-            GPUErrorFilter::Validation => ErrorFilter::Validation,
-            GPUErrorFilter::Out_of_memory => ErrorFilter::OutOfMemory,
-            GPUErrorFilter::Internal => ErrorFilter::Internal,
-        }
     }
 }

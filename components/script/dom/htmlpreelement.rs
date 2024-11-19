@@ -66,7 +66,7 @@ impl VirtualMethods for HTMLPreElement {
     }
 }
 
-impl HTMLPreElementMethods for HTMLPreElement {
+impl HTMLPreElementMethods<crate::DomTypeHolder> for HTMLPreElement {
     // https://html.spec.whatwg.org/multipage/#dom-pre-width
     make_int_getter!(Width, "width", 0);
 

@@ -71,7 +71,7 @@ impl MediaStream {
     }
 }
 
-impl MediaStreamMethods for MediaStream {
+impl MediaStreamMethods<crate::DomTypeHolder> for MediaStream {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor(
         global: &Window,

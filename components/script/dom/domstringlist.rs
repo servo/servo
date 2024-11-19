@@ -32,7 +32,7 @@ impl DOMStringList {
 }
 
 // https://html.spec.whatwg.org/multipage/#domstringlist
-impl DOMStringListMethods for DOMStringList {
+impl DOMStringListMethods<crate::DomTypeHolder> for DOMStringList {
     // https://html.spec.whatwg.org/multipage/#dom-domstringlist-length
     fn Length(&self) -> u32 {
         self.strings.len() as u32

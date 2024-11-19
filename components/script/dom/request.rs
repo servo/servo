@@ -156,7 +156,7 @@ fn request_is_locked(input: &Request) -> bool {
     input.is_locked()
 }
 
-impl RequestMethods for Request {
+impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-request
     fn Constructor(
         global: &GlobalScope,
@@ -302,8 +302,7 @@ impl RequestMethods for Request {
 
         // Step 15
         if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
-            let init_referrer_policy = (*init_referrerpolicy).into();
-            request.referrer_policy = Some(init_referrer_policy);
+            request.referrer_policy = Some((*init_referrerpolicy).into());
         }
 
         // Step 16
@@ -321,14 +320,12 @@ impl RequestMethods for Request {
 
         // Step 19
         if let Some(init_credentials) = init.credentials.as_ref() {
-            let credentials = (*init_credentials).into();
-            request.credentials_mode = credentials;
+            request.credentials_mode = (*init_credentials).into();
         }
 
         // Step 20
         if let Some(init_cache) = init.cache.as_ref() {
-            let cache = (*init_cache).into();
-            request.cache_mode = cache;
+            request.cache_mode = (*init_cache).into();
         }
 
         // Step 21
@@ -342,8 +339,7 @@ impl RequestMethods for Request {
 
         // Step 22
         if let Some(init_redirect) = init.redirect.as_ref() {
-            let redirect = (*init_redirect).into();
-            request.redirect_mode = redirect;
+            request.redirect_mode = (*init_redirect).into();
         }
 
         // Step 23
@@ -670,206 +666,5 @@ impl BodyMixin for Request {
     fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
         let headers = self.Headers(can_gc);
         headers.extract_mime_type()
-    }
-}
-
-impl From<RequestCache> for NetTraitsRequestCache {
-    fn from(cache: RequestCache) -> Self {
-        match cache {
-            RequestCache::Default => NetTraitsRequestCache::Default,
-            RequestCache::No_store => NetTraitsRequestCache::NoStore,
-            RequestCache::Reload => NetTraitsRequestCache::Reload,
-            RequestCache::No_cache => NetTraitsRequestCache::NoCache,
-            RequestCache::Force_cache => NetTraitsRequestCache::ForceCache,
-            RequestCache::Only_if_cached => NetTraitsRequestCache::OnlyIfCached,
-        }
-    }
-}
-
-impl From<NetTraitsRequestCache> for RequestCache {
-    fn from(cache: NetTraitsRequestCache) -> Self {
-        match cache {
-            NetTraitsRequestCache::Default => RequestCache::Default,
-            NetTraitsRequestCache::NoStore => RequestCache::No_store,
-            NetTraitsRequestCache::Reload => RequestCache::Reload,
-            NetTraitsRequestCache::NoCache => RequestCache::No_cache,
-            NetTraitsRequestCache::ForceCache => RequestCache::Force_cache,
-            NetTraitsRequestCache::OnlyIfCached => RequestCache::Only_if_cached,
-        }
-    }
-}
-
-impl From<RequestCredentials> for NetTraitsRequestCredentials {
-    fn from(credentials: RequestCredentials) -> Self {
-        match credentials {
-            RequestCredentials::Omit => NetTraitsRequestCredentials::Omit,
-            RequestCredentials::Same_origin => NetTraitsRequestCredentials::CredentialsSameOrigin,
-            RequestCredentials::Include => NetTraitsRequestCredentials::Include,
-        }
-    }
-}
-
-impl From<NetTraitsRequestCredentials> for RequestCredentials {
-    fn from(credentials: NetTraitsRequestCredentials) -> Self {
-        match credentials {
-            NetTraitsRequestCredentials::Omit => RequestCredentials::Omit,
-            NetTraitsRequestCredentials::CredentialsSameOrigin => RequestCredentials::Same_origin,
-            NetTraitsRequestCredentials::Include => RequestCredentials::Include,
-        }
-    }
-}
-
-impl From<RequestDestination> for NetTraitsRequestDestination {
-    fn from(destination: RequestDestination) -> Self {
-        match destination {
-            RequestDestination::_empty => NetTraitsRequestDestination::None,
-            RequestDestination::Audio => NetTraitsRequestDestination::Audio,
-            RequestDestination::Document => NetTraitsRequestDestination::Document,
-            RequestDestination::Embed => NetTraitsRequestDestination::Embed,
-            RequestDestination::Font => NetTraitsRequestDestination::Font,
-            RequestDestination::Frame => NetTraitsRequestDestination::Frame,
-            RequestDestination::Iframe => NetTraitsRequestDestination::IFrame,
-            RequestDestination::Image => NetTraitsRequestDestination::Image,
-            RequestDestination::Manifest => NetTraitsRequestDestination::Manifest,
-            RequestDestination::Json => NetTraitsRequestDestination::Json,
-            RequestDestination::Object => NetTraitsRequestDestination::Object,
-            RequestDestination::Report => NetTraitsRequestDestination::Report,
-            RequestDestination::Script => NetTraitsRequestDestination::Script,
-            RequestDestination::Sharedworker => NetTraitsRequestDestination::SharedWorker,
-            RequestDestination::Style => NetTraitsRequestDestination::Style,
-            RequestDestination::Track => NetTraitsRequestDestination::Track,
-            RequestDestination::Video => NetTraitsRequestDestination::Video,
-            RequestDestination::Worker => NetTraitsRequestDestination::Worker,
-            RequestDestination::Xslt => NetTraitsRequestDestination::Xslt,
-        }
-    }
-}
-
-impl From<NetTraitsRequestDestination> for RequestDestination {
-    fn from(destination: NetTraitsRequestDestination) -> Self {
-        match destination {
-            NetTraitsRequestDestination::None => RequestDestination::_empty,
-            NetTraitsRequestDestination::Audio => RequestDestination::Audio,
-            NetTraitsRequestDestination::Document => RequestDestination::Document,
-            NetTraitsRequestDestination::Embed => RequestDestination::Embed,
-            NetTraitsRequestDestination::Font => RequestDestination::Font,
-            NetTraitsRequestDestination::Frame => RequestDestination::Frame,
-            NetTraitsRequestDestination::IFrame => RequestDestination::Iframe,
-            NetTraitsRequestDestination::Image => RequestDestination::Image,
-            NetTraitsRequestDestination::Manifest => RequestDestination::Manifest,
-            NetTraitsRequestDestination::Json => RequestDestination::Json,
-            NetTraitsRequestDestination::Object => RequestDestination::Object,
-            NetTraitsRequestDestination::Report => RequestDestination::Report,
-            NetTraitsRequestDestination::Script => RequestDestination::Script,
-            NetTraitsRequestDestination::ServiceWorker |
-            NetTraitsRequestDestination::AudioWorklet |
-            NetTraitsRequestDestination::PaintWorklet => {
-                panic!("ServiceWorker request destination should not be exposed to DOM")
-            },
-            NetTraitsRequestDestination::SharedWorker => RequestDestination::Sharedworker,
-            NetTraitsRequestDestination::Style => RequestDestination::Style,
-            NetTraitsRequestDestination::Track => RequestDestination::Track,
-            NetTraitsRequestDestination::Video => RequestDestination::Video,
-            NetTraitsRequestDestination::Worker => RequestDestination::Worker,
-            NetTraitsRequestDestination::Xslt => RequestDestination::Xslt,
-            NetTraitsRequestDestination::WebIdentity => RequestDestination::_empty,
-        }
-    }
-}
-
-impl From<RequestMode> for NetTraitsRequestMode {
-    fn from(mode: RequestMode) -> Self {
-        match mode {
-            RequestMode::Navigate => NetTraitsRequestMode::Navigate,
-            RequestMode::Same_origin => NetTraitsRequestMode::SameOrigin,
-            RequestMode::No_cors => NetTraitsRequestMode::NoCors,
-            RequestMode::Cors => NetTraitsRequestMode::CorsMode,
-        }
-    }
-}
-
-impl From<NetTraitsRequestMode> for RequestMode {
-    fn from(mode: NetTraitsRequestMode) -> Self {
-        match mode {
-            NetTraitsRequestMode::Navigate => RequestMode::Navigate,
-            NetTraitsRequestMode::SameOrigin => RequestMode::Same_origin,
-            NetTraitsRequestMode::NoCors => RequestMode::No_cors,
-            NetTraitsRequestMode::CorsMode => RequestMode::Cors,
-            NetTraitsRequestMode::WebSocket { .. } => {
-                unreachable!("Websocket request mode should never be exposed to Dom")
-            },
-        }
-    }
-}
-
-impl From<ReferrerPolicy> for MsgReferrerPolicy {
-    fn from(policy: ReferrerPolicy) -> Self {
-        match policy {
-            ReferrerPolicy::_empty => MsgReferrerPolicy::default(),
-            ReferrerPolicy::No_referrer => MsgReferrerPolicy::NoReferrer,
-            ReferrerPolicy::No_referrer_when_downgrade => {
-                MsgReferrerPolicy::NoReferrerWhenDowngrade
-            },
-            ReferrerPolicy::Origin => MsgReferrerPolicy::Origin,
-            ReferrerPolicy::Origin_when_cross_origin => MsgReferrerPolicy::OriginWhenCrossOrigin,
-            ReferrerPolicy::Unsafe_url => MsgReferrerPolicy::UnsafeUrl,
-            ReferrerPolicy::Same_origin => MsgReferrerPolicy::SameOrigin,
-            ReferrerPolicy::Strict_origin => MsgReferrerPolicy::StrictOrigin,
-            ReferrerPolicy::Strict_origin_when_cross_origin => {
-                MsgReferrerPolicy::StrictOriginWhenCrossOrigin
-            },
-        }
-    }
-}
-
-impl From<MsgReferrerPolicy> for ReferrerPolicy {
-    fn from(policy: MsgReferrerPolicy) -> Self {
-        match policy {
-            MsgReferrerPolicy::NoReferrer => ReferrerPolicy::No_referrer,
-            MsgReferrerPolicy::NoReferrerWhenDowngrade => {
-                ReferrerPolicy::No_referrer_when_downgrade
-            },
-            MsgReferrerPolicy::Origin => ReferrerPolicy::Origin,
-            MsgReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicy::Origin_when_cross_origin,
-            MsgReferrerPolicy::UnsafeUrl => ReferrerPolicy::Unsafe_url,
-            MsgReferrerPolicy::SameOrigin => ReferrerPolicy::Same_origin,
-            MsgReferrerPolicy::StrictOrigin => ReferrerPolicy::Strict_origin,
-            MsgReferrerPolicy::StrictOriginWhenCrossOrigin => {
-                ReferrerPolicy::Strict_origin_when_cross_origin
-            },
-        }
-    }
-}
-
-impl From<RequestRedirect> for NetTraitsRequestRedirect {
-    fn from(redirect: RequestRedirect) -> Self {
-        match redirect {
-            RequestRedirect::Follow => NetTraitsRequestRedirect::Follow,
-            RequestRedirect::Error => NetTraitsRequestRedirect::Error,
-            RequestRedirect::Manual => NetTraitsRequestRedirect::Manual,
-        }
-    }
-}
-
-impl From<NetTraitsRequestRedirect> for RequestRedirect {
-    fn from(redirect: NetTraitsRequestRedirect) -> Self {
-        match redirect {
-            NetTraitsRequestRedirect::Follow => RequestRedirect::Follow,
-            NetTraitsRequestRedirect::Error => RequestRedirect::Error,
-            NetTraitsRequestRedirect::Manual => RequestRedirect::Manual,
-        }
-    }
-}
-
-impl Clone for HeadersInit {
-    fn clone(&self) -> HeadersInit {
-        match self {
-            HeadersInit::ByteStringSequenceSequence(b) => {
-                HeadersInit::ByteStringSequenceSequence(b.clone())
-            },
-            HeadersInit::ByteStringByteStringRecord(m) => {
-                HeadersInit::ByteStringByteStringRecord(m.clone())
-            },
-        }
     }
 }

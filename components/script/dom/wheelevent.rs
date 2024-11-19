@@ -101,7 +101,7 @@ impl WheelEvent {
     }
 }
 
-impl WheelEventMethods for WheelEvent {
+impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
     // https://w3c.github.io/uievents/#dom-wheelevent-wheelevent
     fn Constructor(
         window: &Window,

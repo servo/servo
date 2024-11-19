@@ -136,7 +136,7 @@ impl Navigator {
     }
 }
 
-impl NavigatorMethods for Navigator {
+impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()

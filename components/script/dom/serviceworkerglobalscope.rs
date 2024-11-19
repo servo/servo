@@ -279,7 +279,12 @@ impl ServiceWorkerGlobalScope {
             control_receiver,
             closing,
         ));
-        unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            ServiceWorkerGlobalScopeBinding::GenericBindings::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
@@ -502,7 +507,7 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     !worker.is_closing()
 }
 
-impl ServiceWorkerGlobalScopeMethods for ServiceWorkerGlobalScope {
+impl ServiceWorkerGlobalScopeMethods<crate::DomTypeHolder> for ServiceWorkerGlobalScope {
     // https://w3c.github.io/ServiceWorker/#dom-serviceworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 

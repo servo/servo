@@ -164,7 +164,7 @@ pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl)
         .all(|(scope, matched)| scope == matched)
 }
 
-impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
+impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerRegistration {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute
     fn GetInstalling(&self) -> Option<DomRoot<ServiceWorker>> {
         self.installing

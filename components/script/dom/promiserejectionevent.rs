@@ -95,7 +95,7 @@ impl PromiseRejectionEvent {
     }
 }
 
-impl PromiseRejectionEventMethods for PromiseRejectionEvent {
+impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEvent {
     // https://html.spec.whatwg.org/multipage/#promiserejectionevent
     fn Constructor(
         global: &GlobalScope,

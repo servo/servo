@@ -125,7 +125,7 @@ impl VideoTrackList {
     }
 }
 
-impl VideoTrackListMethods for VideoTrackList {
+impl VideoTrackListMethods<crate::DomTypeHolder> for VideoTrackList {
     // https://html.spec.whatwg.org/multipage/#dom-videotracklist-length
     fn Length(&self) -> u32 {
         self.len() as u32

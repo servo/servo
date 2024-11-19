@@ -81,7 +81,7 @@ impl PopStateEvent {
     }
 }
 
-impl PopStateEventMethods for PopStateEvent {
+impl PopStateEventMethods<crate::DomTypeHolder> for PopStateEvent {
     // https://html.spec.whatwg.org/multipage/#popstateevent
     fn Constructor(
         window: &Window,

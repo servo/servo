@@ -15,7 +15,7 @@ pub struct Plugin {
     reflector_: Reflector,
 }
 
-impl PluginMethods for Plugin {
+impl PluginMethods<crate::DomTypeHolder> for Plugin {
     // https://html.spec.whatwg.org/multipage/#dom-plugin-name
     fn Name(&self) -> DOMString {
         unreachable!()

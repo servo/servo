@@ -123,7 +123,7 @@ impl AudioBufferSourceNode {
     }
 }
 
-impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
+impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode
     fn Constructor(
         window: &Window,
@@ -268,21 +268,5 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         self.source_node
             .upcast::<AudioScheduledSourceNode>()
             .Start(when)
-    }
-}
-
-impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
-    fn from(options: &'a AudioBufferSourceOptions) -> Self {
-        Self {
-            buffer: options
-                .buffer
-                .as_ref()
-                .and_then(|b| (*b.as_ref()?.get_channels()).clone()),
-            detune: *options.detune,
-            loop_enabled: options.loop_,
-            loop_end: Some(*options.loopEnd),
-            loop_start: Some(*options.loopStart),
-            playback_rate: *options.playbackRate,
-        }
     }
 }

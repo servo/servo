@@ -78,7 +78,7 @@ impl MediaStreamAudioSourceNode {
     }
 }
 
-impl MediaStreamAudioSourceNodeMethods for MediaStreamAudioSourceNode {
+impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiosourcenode-mediastreamaudiosourcenode>
     fn Constructor(
         window: &Window,

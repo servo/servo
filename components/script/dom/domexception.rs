@@ -157,7 +157,7 @@ impl DOMException {
     }
 }
 
-impl DOMExceptionMethods for DOMException {
+impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
     // https://webidl.spec.whatwg.org/#dom-domexception-domexception
     fn Constructor(
         global: &GlobalScope,

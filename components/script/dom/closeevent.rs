@@ -75,7 +75,7 @@ impl CloseEvent {
     }
 }
 
-impl CloseEventMethods for CloseEvent {
+impl CloseEventMethods<crate::DomTypeHolder> for CloseEvent {
     // https://websockets.spec.whatwg.org/#the-closeevent-interface
     fn Constructor(
         global: &GlobalScope,

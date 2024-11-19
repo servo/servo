@@ -222,7 +222,7 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 }
 
-impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
+impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     // TODO A few of these attributes have default values and additional
     // constraints
 

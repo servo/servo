@@ -29,7 +29,7 @@ impl TouchList {
     }
 }
 
-impl TouchListMethods for TouchList {
+impl TouchListMethods<crate::DomTypeHolder> for TouchList {
     /// <https://w3c.github.io/touch-events/#widl-TouchList-length>
     fn Length(&self) -> u32 {
         self.touches.len() as u32

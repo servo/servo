@@ -78,7 +78,7 @@ impl SpecificCSSRule for CSSMediaRule {
     }
 }
 
-impl CSSMediaRuleMethods for CSSMediaRule {
+impl CSSMediaRuleMethods<crate::DomTypeHolder> for CSSMediaRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media
     fn Media(&self) -> DomRoot<MediaList> {
         self.medialist()

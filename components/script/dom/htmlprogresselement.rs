@@ -55,7 +55,7 @@ impl HTMLProgressElement {
     }
 }
 
-impl HTMLProgressElementMethods for HTMLProgressElement {
+impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     make_labels_getter!(Labels, labels_node_list);
 

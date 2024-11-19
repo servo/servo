@@ -62,7 +62,7 @@ impl DocumentFragment {
     }
 }
 
-impl DocumentFragmentMethods for DocumentFragment {
+impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment
     fn Constructor(
         window: &Window,

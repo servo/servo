@@ -7,6 +7,7 @@
 use dom_struct::dom_struct;
 use indexmap::IndexMap;
 use js::rust::HandleObject;
+use script_bindings::maplike;
 
 use super::bindings::error::Error;
 use crate::dom::bindings::cell::DomRefCell;
@@ -17,7 +18,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::maplike;
 use crate::script_runtime::CanGc;
 
 /// maplike<DOMString, long>
@@ -46,7 +46,7 @@ impl TestBindingMaplike {
     }
 }
 
-impl TestBindingMaplikeMethods for TestBindingMaplike {
+impl TestBindingMaplikeMethods<crate::DomTypeHolder> for TestBindingMaplike {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

@@ -50,6 +50,7 @@ use js::rust::{
 use malloc_size_of::MallocSizeOfOps;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
+pub use script_bindings::script_runtime::CanGc;
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
@@ -877,11 +878,11 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
-#[derive(Clone, Copy)]
+/*#[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct JSContext(*mut RawJSContext);
+pub struct JSContext(*mut RawJSContext);*/
 
-#[allow(unsafe_code)]
+/*#[allow(unsafe_code)]
 impl JSContext {
     /// Create a new [`JSContext`] object from the given raw pointer.
     ///
@@ -890,13 +891,18 @@ impl JSContext {
     /// The `RawJSContext` argument must point to a valid `RawJSContext` in memory.
     pub(crate) unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
         JSContext(raw_js_context)
-    }
+    }*/
 
+pub(crate) trait JSReports {
+    fn get_reports(&self, path_seg: String) -> Vec<Report>;
+}
+
+impl JSReports for JSContext {
     #[allow(unsafe_code)]
-    pub(crate) fn get_reports(&self, path_seg: String) -> Vec<Report> {
+    fn get_reports(&self, path_seg: String) -> Vec<Report> {
         let stats = unsafe {
             let mut stats = ::std::mem::zeroed();
-            if !CollectServoSizes(self.0, &mut stats, Some(get_size)) {
+            if !CollectServoSizes(**self, &mut stats, Some(get_size)) {
                 return vec![];
             }
             stats
@@ -952,14 +958,16 @@ impl JSContext {
     }
 }
 
-#[allow(unsafe_code)]
+/*#[allow(unsafe_code)]
 impl Deref for JSContext {
     type Target = *mut RawJSContext;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
-}
+}*/
+
+pub use script_bindings::script_runtime::JSContext;
 
 pub struct StreamConsumer(*mut JSStreamConsumer);
 
@@ -1113,21 +1121,5 @@ impl Runnable {
         unsafe {
             DispatchableRun(cx, self.0, maybe_shutting_down);
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-/// A compile-time marker that there are operations that could trigger a JS garbage collection
-/// operation within the current stack frame. It is trivially copyable, so it should be passed
-/// as a function argument and reused when calling other functions whenever possible. Since it
-/// is only meaningful within the current stack frame, it is impossible to move it to a different
-/// thread or into a task that will execute asynchronously.
-pub struct CanGc(std::marker::PhantomData<*mut ()>);
-
-impl CanGc {
-    /// Create a new CanGc value, representing that a GC operation is possible within the
-    /// current stack frame.
-    pub fn note() -> CanGc {
-        CanGc(std::marker::PhantomData)
     }
 }

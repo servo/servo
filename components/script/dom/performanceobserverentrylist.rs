@@ -37,7 +37,7 @@ impl PerformanceObserverEntryList {
     }
 }
 
-impl PerformanceObserverEntryListMethods for PerformanceObserverEntryList {
+impl PerformanceObserverEntryListMethods<crate::DomTypeHolder> for PerformanceObserverEntryList {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver
     fn GetEntries(&self) -> Vec<DomRoot<PerformanceEntry>> {
         self.entries

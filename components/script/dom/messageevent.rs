@@ -240,7 +240,7 @@ impl MessageEvent {
     }
 }
 
-impl MessageEventMethods for MessageEvent {
+impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     /// <https://html.spec.whatwg.org/multipage/#messageevent>
     fn Constructor(
         global: &GlobalScope,

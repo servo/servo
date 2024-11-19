@@ -117,10 +117,7 @@ impl ExtendableMessageEvent {
 
         ev
     }
-}
 
-#[allow(non_snake_case)]
-impl ExtendableMessageEvent {
     pub fn dispatch_jsval(
         target: &EventTarget,
         scope: &GlobalScope,
@@ -161,7 +158,7 @@ impl ExtendableMessageEvent {
     }
 }
 
-impl ExtendableMessageEventMethods for ExtendableMessageEvent {
+impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-extendablemessageevent>
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,

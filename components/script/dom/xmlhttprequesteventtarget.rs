@@ -20,7 +20,7 @@ impl XMLHttpRequestEventTarget {
     }
 }
 
-impl XMLHttpRequestEventTargetMethods for XMLHttpRequestEventTarget {
+impl XMLHttpRequestEventTargetMethods<crate::DomTypeHolder> for XMLHttpRequestEventTarget {
     // https://xhr.spec.whatwg.org/#handler-xhr-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
 

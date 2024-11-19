@@ -134,7 +134,7 @@ impl XRHand {
     }
 }
 
-impl XRHandMethods for XRHand {
+impl XRHandMethods<crate::DomTypeHolder> for XRHand {
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
     fn Size(&self) -> u32 {
         XRHandJoint::Pinky_finger_tip as u32 + 1

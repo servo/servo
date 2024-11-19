@@ -66,7 +66,7 @@ impl DOMMatrix {
 }
 
 #[allow(non_snake_case)]
-impl DOMMatrixMethods for DOMMatrix {
+impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
     fn Constructor(
         global: &GlobalScope,

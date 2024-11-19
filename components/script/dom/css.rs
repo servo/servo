@@ -25,7 +25,7 @@ pub struct CSS {
     reflector_: Reflector,
 }
 
-impl CSSMethods for CSS {
+impl CSSMethods<crate::DomTypeHolder> for CSS {
     /// <https://drafts.csswg.org/cssom/#the-css.escape()-method>
     fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
         let mut escaped = String::new();

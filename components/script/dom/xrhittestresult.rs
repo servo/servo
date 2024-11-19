@@ -44,7 +44,7 @@ impl XRHitTestResult {
     }
 }
 
-impl XRHitTestResultMethods for XRHitTestResult {
+impl XRHitTestResultMethods<crate::DomTypeHolder> for XRHitTestResult {
     // https://immersive-web.github.io/hit-test/#dom-xrhittestresult-getpose
     fn GetPose(&self, base: &XRSpace, can_gc: CanGc) -> Option<DomRoot<XRPose>> {
         let base = self.frame.get_pose(base)?;

@@ -57,7 +57,7 @@ impl AudioScheduledSourceNode {
     }
 }
 
-impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
+impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-onended
     event_handler!(ended, GetOnended, SetOnended);
 

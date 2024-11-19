@@ -517,7 +517,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 }
 
-impl HTMLLinkElementMethods for HTMLLinkElement {
+impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-href
     make_url_getter!(Href, "href");
 

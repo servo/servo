@@ -49,7 +49,7 @@ impl HTMLUListElement {
     }
 }
 
-impl HTMLUListElementMethods for HTMLUListElement {
+impl HTMLUListElementMethods<crate::DomTypeHolder> for HTMLUListElement {
     // https://html.spec.whatwg.org/multipage/#dom-ul-compact
     make_bool_getter!(Compact, "compact");
 

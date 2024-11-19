@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
@@ -909,7 +909,7 @@ impl WebGL2RenderingContext {
     }
 }
 
-impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
+impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingContext {
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.base.Canvas()

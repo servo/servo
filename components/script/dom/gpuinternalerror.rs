@@ -40,7 +40,7 @@ impl GPUInternalError {
     }
 }
 
-impl GPUInternalErrorMethods for GPUInternalError {
+impl GPUInternalErrorMethods<crate::DomTypeHolder> for GPUInternalError {
     /// <https://gpuweb.github.io/gpuweb/#dom-GPUInternalError-GPUInternalError>
     fn Constructor(
         global: &GlobalScope,

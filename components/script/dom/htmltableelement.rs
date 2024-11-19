@@ -188,7 +188,7 @@ impl HTMLTableElement {
     }
 }
 
-impl HTMLTableElementMethods for HTMLTableElement {
+impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
         let filter = self.get_rows();

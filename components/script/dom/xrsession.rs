@@ -619,7 +619,7 @@ impl XRSession {
     }
 }
 
-impl XRSessionMethods for XRSession {
+impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     // https://immersive-web.github.io/webxr/#eventdef-xrsession-end
     event_handler!(end, GetOnend, SetOnend);
 
@@ -1098,14 +1098,4 @@ pub fn cast_transform<T, U, V, W>(
     transform: RigidTransform3D<f32, T, U>,
 ) -> RigidTransform3D<f32, V, W> {
     unsafe { mem::transmute(transform) }
-}
-
-impl From<EnvironmentBlendMode> for XREnvironmentBlendMode {
-    fn from(x: EnvironmentBlendMode) -> Self {
-        match x {
-            EnvironmentBlendMode::Opaque => XREnvironmentBlendMode::Opaque,
-            EnvironmentBlendMode::AlphaBlend => XREnvironmentBlendMode::Alpha_blend,
-            EnvironmentBlendMode::Additive => XREnvironmentBlendMode::Additive,
-        }
-    }
 }

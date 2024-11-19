@@ -14,6 +14,7 @@ use servo_media::audio::oscillator_node::{
 };
 use servo_media::audio::param::ParamType;
 
+use crate::dom::audionode::AudioNodeOptionsUnwrap;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -114,7 +115,7 @@ impl OscillatorNode {
     }
 }
 
-impl OscillatorNodeMethods for OscillatorNode {
+impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-oscillatornode
     fn Constructor(
         window: &Window,
@@ -153,28 +154,5 @@ impl OscillatorNodeMethods for OscillatorNode {
                 OscillatorNodeMessage::SetOscillatorType(type_.into()),
             ));
         Ok(())
-    }
-}
-
-impl<'a> From<&'a OscillatorOptions> for ServoMediaOscillatorOptions {
-    fn from(options: &'a OscillatorOptions) -> Self {
-        Self {
-            oscillator_type: options.type_.into(),
-            freq: *options.frequency,
-            detune: *options.detune,
-            periodic_wave_options: None, // XXX
-        }
-    }
-}
-
-impl From<OscillatorType> for ServoMediaOscillatorType {
-    fn from(oscillator_type: OscillatorType) -> Self {
-        match oscillator_type {
-            OscillatorType::Sine => ServoMediaOscillatorType::Sine,
-            OscillatorType::Square => ServoMediaOscillatorType::Square,
-            OscillatorType::Sawtooth => ServoMediaOscillatorType::Sawtooth,
-            OscillatorType::Triangle => ServoMediaOscillatorType::Triangle,
-            OscillatorType::Custom => ServoMediaOscillatorType::Custom,
-        }
     }
 }

@@ -33,7 +33,7 @@ impl WebGLObject {
     }
 }
 
-impl WebGLObjectMethods for WebGLObject {
+impl WebGLObjectMethods<crate::DomTypeHolder> for WebGLObject {
     /// <https://registry.khronos.org/webgl/specs/latest/1.0/#5.3>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

@@ -93,7 +93,7 @@ impl TrackEvent {
     }
 }
 
-impl TrackEventMethods for TrackEvent {
+impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
     // https://html.spec.whatwg.org/multipage/#trackevent
     fn Constructor(
         window: &Window,

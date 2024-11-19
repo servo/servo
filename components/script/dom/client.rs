@@ -56,7 +56,7 @@ impl Client {
     }
 }
 
-impl ClientMethods for Client {
+impl ClientMethods<crate::DomTypeHolder> for Client {
     // https://w3c.github.io/ServiceWorker/#client-url-attribute
     fn Url(&self) -> USVString {
         USVString(self.url.as_str().to_owned())

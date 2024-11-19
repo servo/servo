@@ -68,7 +68,7 @@ impl RTCTrackEvent {
     }
 }
 
-impl RTCTrackEventMethods for RTCTrackEvent {
+impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
     // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-constructor
     fn Constructor(
         window: &Window,

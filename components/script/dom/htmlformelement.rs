@@ -203,7 +203,7 @@ impl HTMLFormElement {
     }
 }
 
-impl HTMLFormElementMethods for HTMLFormElement {
+impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_getter!(AcceptCharset, "accept-charset");
 

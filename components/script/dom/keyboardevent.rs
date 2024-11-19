@@ -158,7 +158,7 @@ impl KeyboardEvent {
     }
 }
 
-impl KeyboardEventMethods for KeyboardEvent {
+impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-keyboardevent>
     fn Constructor(
         window: &Window,

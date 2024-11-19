@@ -109,7 +109,7 @@ impl TextTrackList {
     }
 }
 
-impl TextTrackListMethods for TextTrackList {
+impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
     // https://html.spec.whatwg.org/multipage/#dom-texttracklist-length
     fn Length(&self) -> u32 {
         self.dom_tracks.borrow().len() as u32

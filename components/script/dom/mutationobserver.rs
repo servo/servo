@@ -247,7 +247,7 @@ impl MutationObserver {
     }
 }
 
-impl MutationObserverMethods for MutationObserver {
+impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
     /// <https://dom.spec.whatwg.org/#dom-mutationobserver-mutationobserver>
     fn Constructor(
         global: &Window,

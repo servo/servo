@@ -77,7 +77,7 @@ impl HTMLTrackElement {
     }
 }
 
-impl HTMLTrackElementMethods for HTMLTrackElement {
+impl HTMLTrackElementMethods<crate::DomTypeHolder> for HTMLTrackElement {
     // https://html.spec.whatwg.org/multipage/#dom-track-kind
     fn Kind(&self) -> DOMString {
         let element = self.upcast::<Element>();

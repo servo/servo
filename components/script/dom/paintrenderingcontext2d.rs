@@ -85,7 +85,7 @@ impl PaintRenderingContext2D {
     }
 }
 
-impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
+impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
     fn Save(&self) {
         self.context.Save()

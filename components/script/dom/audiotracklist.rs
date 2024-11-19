@@ -117,7 +117,7 @@ impl AudioTrackList {
     }
 }
 
-impl AudioTrackListMethods for AudioTrackList {
+impl AudioTrackListMethods<crate::DomTypeHolder> for AudioTrackList {
     // https://html.spec.whatwg.org/multipage/#dom-audiotracklist-length
     fn Length(&self) -> u32 {
         self.len() as u32

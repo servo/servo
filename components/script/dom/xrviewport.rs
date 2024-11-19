@@ -31,7 +31,7 @@ impl XRViewport {
     }
 }
 
-impl XRViewportMethods for XRViewport {
+impl XRViewportMethods<crate::DomTypeHolder> for XRViewport {
     /// <https://immersive-web.github.io/webxr/#dom-xrviewport-x>
     fn X(&self) -> i32 {
         self.viewport.origin.x

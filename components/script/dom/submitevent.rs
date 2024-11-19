@@ -68,7 +68,7 @@ impl SubmitEvent {
     }
 }
 
-impl SubmitEventMethods for SubmitEvent {
+impl SubmitEventMethods<crate::DomTypeHolder> for SubmitEvent {
     /// <https://html.spec.whatwg.org/multipage/#submitevent>
     fn Constructor(
         window: &Window,

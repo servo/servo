@@ -7,6 +7,7 @@
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
+use script_bindings::setlike;
 
 use super::bindings::like::Setlike;
 use crate::dom::bindings::cell::DomRefCell;
@@ -17,7 +18,6 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
-use crate::setlike;
 
 // setlike<DOMString>
 #[dom_struct]
@@ -45,7 +45,7 @@ impl TestBindingSetlike {
     }
 }
 
-impl TestBindingSetlikeMethods for TestBindingSetlike {
+impl TestBindingSetlikeMethods<crate::DomTypeHolder> for TestBindingSetlike {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

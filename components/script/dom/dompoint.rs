@@ -20,7 +20,6 @@ pub struct DOMPoint {
     point: DOMPointReadOnly,
 }
 
-#[allow(non_snake_case)]
 impl DOMPoint {
     fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPoint {
         DOMPoint {
@@ -65,7 +64,7 @@ impl DOMPoint {
     }
 }
 
-impl DOMPointMethods for DOMPoint {
+impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
     // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-dompointreadonly
     fn Constructor(
         global: &GlobalScope,

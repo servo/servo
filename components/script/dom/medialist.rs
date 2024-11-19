@@ -58,7 +58,7 @@ impl MediaList {
     }
 }
 
-impl MediaListMethods for MediaList {
+impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
     fn MediaText(&self) -> DOMString {
         let guard = self.shared_lock().read();

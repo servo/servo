@@ -18,7 +18,7 @@ use js::jsapi::{
 use js::rust::Runtime;
 use servo_url::MutableOrigin;
 
-use super::structuredclone::StructuredCloneTags;
+use crate::structuredclone::StructuredCloneTags;
 
 /// An owned reference to Servo's `JSPrincipals` instance.
 #[repr(transparent)]

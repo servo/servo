@@ -78,7 +78,7 @@ impl PageTransitionEvent {
     }
 }
 
-impl PageTransitionEventMethods for PageTransitionEvent {
+impl PageTransitionEventMethods<crate::DomTypeHolder> for PageTransitionEvent {
     // https://html.spec.whatwg.org/multipage/#pagetransitionevent
     fn Constructor(
         window: &Window,

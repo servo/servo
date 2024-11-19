@@ -75,7 +75,7 @@ impl XRFrame {
     }
 }
 
-impl XRFrameMethods for XRFrame {
+impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-session>
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&self.session)

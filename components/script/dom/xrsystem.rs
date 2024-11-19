@@ -100,17 +100,7 @@ impl XRSystem {
     }
 }
 
-impl From<XRSessionMode> for SessionMode {
-    fn from(mode: XRSessionMode) -> SessionMode {
-        match mode {
-            XRSessionMode::Immersive_vr => SessionMode::ImmersiveVR,
-            XRSessionMode::Immersive_ar => SessionMode::ImmersiveAR,
-            XRSessionMode::Inline => SessionMode::Inline,
-        }
-    }
-}
-
-impl XRSystemMethods for XRSystem {
+impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
     fn IsSessionSupported(&self, mode: XRSessionMode, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first

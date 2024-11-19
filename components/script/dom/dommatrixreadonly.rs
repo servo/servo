@@ -433,7 +433,7 @@ impl DOMMatrixReadOnly {
 }
 
 #[allow(non_snake_case)]
-impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
+impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
     fn Constructor(
         global: &GlobalScope,

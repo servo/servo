@@ -7,6 +7,7 @@ use html5ever::LocalName;
 use js::rust::HandleObject;
 use script_traits::serializable::BlobImpl;
 
+//use crate::dom::bindings::reflector::DomGlobal2;
 use super::bindings::trace::NoTrace;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
@@ -68,7 +69,7 @@ impl FormData {
     }
 }
 
-impl FormDataMethods for FormData {
+impl FormDataMethods<crate::DomTypeHolder> for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata
     fn Constructor(
         global: &GlobalScope,
@@ -139,7 +140,7 @@ impl FormDataMethods for FormData {
                 FormDatumValue::String(ref s) => {
                     FileOrUSVString::USVString(USVString(s.to_string()))
                 },
-                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&**b)),
             })
     }
 
@@ -157,7 +158,7 @@ impl FormDataMethods for FormData {
                     FormDatumValue::String(ref s) => {
                         FileOrUSVString::USVString(USVString(s.to_string()))
                     },
-                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&**b)),
                 })
             })
             .collect()
@@ -264,7 +265,7 @@ impl Iterable for FormData {
         let datum = &data.get(n as usize).unwrap().1;
         match &datum.value {
             FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&**b)),
         }
     }
 

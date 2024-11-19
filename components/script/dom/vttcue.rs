@@ -78,7 +78,7 @@ impl VTTCue {
     }
 }
 
-impl VTTCueMethods for VTTCue {
+impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
     // https://w3c.github.io/webvtt/#dom-vttcue-vttcue
     fn Constructor(
         window: &Window,

@@ -78,7 +78,7 @@ impl BluetoothRemoteGATTDescriptor {
     }
 }
 
-impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
+impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRemoteGATTDescriptor {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-characteristic
     fn Characteristic(&self) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
         DomRoot::from_ref(&self.characteristic)

@@ -68,8 +68,7 @@ impl AnimationEvent {
     }
 }
 
-impl AnimationEventMethods for AnimationEvent {
-    // https://drafts.csswg.org/css-animations/#dom-animationevent-animationevent
+impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

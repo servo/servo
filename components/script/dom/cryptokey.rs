@@ -116,7 +116,7 @@ impl CryptoKey {
     }
 }
 
-impl CryptoKeyMethods for CryptoKey {
+impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
     fn Type(&self) -> KeyType {
         self.key_type

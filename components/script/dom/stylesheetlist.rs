@@ -87,7 +87,7 @@ impl StyleSheetList {
     }
 }
 
-impl StyleSheetListMethods for StyleSheetList {
+impl StyleSheetListMethods<crate::DomTypeHolder> for StyleSheetList {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
     fn Length(&self) -> u32 {
         self.document_or_shadow_root.stylesheet_count() as u32

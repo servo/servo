@@ -1994,7 +1994,7 @@ impl Drop for WebGLRenderingContext {
     }
 }
 
-impl WebGLRenderingContextMethods for WebGLRenderingContext {
+impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.canvas.clone()

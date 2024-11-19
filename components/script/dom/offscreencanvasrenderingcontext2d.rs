@@ -83,7 +83,9 @@ impl OffscreenCanvasRenderingContext2D {
     }
 }
 
-impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContext2D {
+impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
+    for OffscreenCanvasRenderingContext2D
+{
     // https://html.spec.whatwg.org/multipage/offscreencontext2d-canvas
     fn Canvas(&self) -> DomRoot<OffscreenCanvas> {
         DomRoot::from_ref(&self.canvas)

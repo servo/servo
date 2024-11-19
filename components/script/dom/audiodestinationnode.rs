@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsUnwrap, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioDestinationNodeMethods;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -48,7 +48,7 @@ impl AudioDestinationNode {
     }
 }
 
-impl AudioDestinationNodeMethods for AudioDestinationNode {
+impl AudioDestinationNodeMethods<crate::DomTypeHolder> for AudioDestinationNode {
     // https://webaudio.github.io/web-audio-api/#dom-audiodestinationnode-maxchannelcount
     fn MaxChannelCount(&self) -> u32 {
         MAX_CHANNEL_COUNT

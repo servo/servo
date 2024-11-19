@@ -17,6 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
+use crate::dom::gpuconvert::convert_bind_group_entry;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -81,7 +82,7 @@ impl GPUBindGroup {
         let entries = descriptor
             .entries
             .iter()
-            .map(|bind| bind.into())
+            .map(convert_bind_group_entry)
             .collect::<Vec<_>>();
 
         let desc = BindGroupDescriptor {
@@ -129,7 +130,7 @@ impl Drop for GPUBindGroup {
     }
 }
 
-impl GPUBindGroupMethods for GPUBindGroup {
+impl GPUBindGroupMethods<crate::DomTypeHolder> for GPUBindGroup {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

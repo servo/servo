@@ -9,7 +9,7 @@ use servo_media::streams::MediaStreamType;
 use servo_media::ServoMedia;
 
 use crate::dom::audiocontext::AudioContext;
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsUnwrap};
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     AudioNodeOptions, ChannelCountMode, ChannelInterpretation,
 };
@@ -83,7 +83,9 @@ impl MediaStreamAudioDestinationNode {
     }
 }
 
-impl MediaStreamAudioDestinationNodeMethods for MediaStreamAudioDestinationNode {
+impl MediaStreamAudioDestinationNodeMethods<crate::DomTypeHolder>
+    for MediaStreamAudioDestinationNode
+{
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-mediastreamaudiodestinationnode>
     fn Constructor(
         window: &Window,

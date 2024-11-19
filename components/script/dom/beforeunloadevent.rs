@@ -51,7 +51,7 @@ impl BeforeUnloadEvent {
     }
 }
 
-impl BeforeUnloadEventMethods for BeforeUnloadEvent {
+impl BeforeUnloadEventMethods<crate::DomTypeHolder> for BeforeUnloadEvent {
     // https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue
     fn ReturnValue(&self) -> DOMString {
         self.return_value.borrow().clone()

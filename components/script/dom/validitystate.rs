@@ -166,7 +166,7 @@ impl ValidityState {
     }
 }
 
-impl ValidityStateMethods for ValidityState {
+impl ValidityStateMethods<crate::DomTypeHolder> for ValidityState {
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
         self.invalid_flags()

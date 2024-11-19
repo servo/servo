@@ -65,7 +65,7 @@ impl XRBoundedReferenceSpace {
     }
 }
 
-impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
+impl XRBoundedReferenceSpaceMethods<crate::DomTypeHolder> for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
     fn BoundsGeometry(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         if let Some(bounds) = self.reference_space.get_bounds() {

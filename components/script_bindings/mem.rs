@@ -18,3 +18,10 @@ pub unsafe fn malloc_size_of_including_raw_self<T: MallocSizeOf>(
 ) -> usize {
     ops.malloc_size_of(obj) + (*(obj as *const T)).size_of(ops)
 }
+
+pub unsafe fn malloc_size_of_including_raw_self_dummy(
+    ops: &mut MallocSizeOfOps,
+    obj: *const c_void,
+) -> usize {
+    0
+}

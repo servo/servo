@@ -39,7 +39,7 @@ impl RTCRtpTransceiver {
     }
 }
 
-impl RTCRtpTransceiverMethods for RTCRtpTransceiver {
+impl RTCRtpTransceiverMethods<crate::DomTypeHolder> for RTCRtpTransceiver {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-direction>
     fn Direction(&self) -> RTCRtpTransceiverDirection {
         self.direction.get()

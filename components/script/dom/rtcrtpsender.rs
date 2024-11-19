@@ -33,7 +33,7 @@ impl RTCRtpSender {
     }
 }
 
-impl RTCRtpSenderMethods for RTCRtpSender {
+impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
     // https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-getparameters
     fn GetParameters(&self) -> RTCRtpSendParameters {
         RTCRtpSendParameters {

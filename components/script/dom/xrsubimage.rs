@@ -15,7 +15,7 @@ pub struct XRSubImage {
     viewport: Dom<XRViewport>,
 }
 
-impl XRSubImageMethods for XRSubImage {
+impl XRSubImageMethods<crate::DomTypeHolder> for XRSubImage {
     /// <https://immersive-web.github.io/layers/#dom-xrsubimage-viewport>
     fn Viewport(&self) -> DomRoot<XRViewport> {
         DomRoot::from_ref(&self.viewport)

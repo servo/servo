@@ -50,7 +50,7 @@ impl CSSNamespaceRule {
     }
 }
 
-impl CSSNamespaceRuleMethods for CSSNamespaceRule {
+impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
     fn Prefix(&self) -> DOMString {
         self.namespacerule

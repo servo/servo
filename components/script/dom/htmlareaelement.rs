@@ -332,7 +332,7 @@ impl VirtualMethods for HTMLAreaElement {
     }
 }
 
-impl HTMLAreaElementMethods for HTMLAreaElement {
+impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_getter!(Target, "target");
 

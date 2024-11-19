@@ -13,7 +13,7 @@ use servo_media::audio::panner_node::{
 };
 use servo_media::audio::param::{ParamDir, ParamType};
 
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsUnwrap};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -207,7 +207,7 @@ impl PannerNode {
     }
 }
 
-impl PannerNodeMethods for PannerNode {
+impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode
     fn Constructor(
         window: &Window,
@@ -369,45 +369,5 @@ impl PannerNodeMethods for PannerNode {
         self.orientation_x.SetValue(x);
         self.orientation_y.SetValue(y);
         self.orientation_z.SetValue(z);
-    }
-}
-
-impl<'a> From<&'a PannerOptions> for PannerNodeOptions {
-    fn from(options: &'a PannerOptions) -> Self {
-        Self {
-            panning_model: options.panningModel.into(),
-            distance_model: options.distanceModel.into(),
-            position_x: *options.positionX,
-            position_y: *options.positionY,
-            position_z: *options.positionZ,
-            orientation_x: *options.orientationX,
-            orientation_y: *options.orientationY,
-            orientation_z: *options.orientationZ,
-            ref_distance: *options.refDistance,
-            max_distance: *options.maxDistance,
-            rolloff_factor: *options.rolloffFactor,
-            cone_inner_angle: *options.coneInnerAngle,
-            cone_outer_angle: *options.coneOuterAngle,
-            cone_outer_gain: *options.coneOuterGain,
-        }
-    }
-}
-
-impl From<DistanceModelType> for DistanceModel {
-    fn from(model: DistanceModelType) -> Self {
-        match model {
-            DistanceModelType::Linear => DistanceModel::Linear,
-            DistanceModelType::Inverse => DistanceModel::Inverse,
-            DistanceModelType::Exponential => DistanceModel::Exponential,
-        }
-    }
-}
-
-impl From<PanningModelType> for PanningModel {
-    fn from(model: PanningModelType) -> Self {
-        match model {
-            PanningModelType::Equalpower => PanningModel::EqualPower,
-            PanningModelType::HRTF => PanningModel::HRTF,
-        }
     }
 }

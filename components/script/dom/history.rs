@@ -287,7 +287,7 @@ impl History {
     }
 }
 
-impl HistoryMethods for History {
+impl HistoryMethods<crate::DomTypeHolder> for History {
     /// <https://html.spec.whatwg.org/multipage/#dom-history-state>
     fn GetState(&self, _cx: JSContext, mut retval: MutableHandleValue) -> Fallible<()> {
         if !self.window.Document().is_fully_active() {

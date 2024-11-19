@@ -262,7 +262,7 @@ impl Location {
     }
 }
 
-impl LocationMethods for Location {
+impl LocationMethods<crate::DomTypeHolder> for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(&self, url: USVString, can_gc: CanGc) -> ErrorResult {
         self.setter_common(

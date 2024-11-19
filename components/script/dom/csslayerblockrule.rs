@@ -66,7 +66,7 @@ impl SpecificCSSRule for CSSLayerBlockRule {
     }
 }
 
-impl CSSLayerBlockRuleMethods for CSSLayerBlockRule {
+impl CSSLayerBlockRuleMethods<crate::DomTypeHolder> for CSSLayerBlockRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerblockrule-name>
     fn Name(&self) -> DOMString {
         if let Some(name) = &self.layerblockrule.name {

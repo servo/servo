@@ -43,7 +43,7 @@ impl XRJointPose {
     }
 }
 
-impl XRJointPoseMethods for XRJointPose {
+impl XRJointPoseMethods<crate::DomTypeHolder> for XRJointPose {
     /// <https://immersive-web.github.io/webxr/#dom-XRJointPose-views>
     fn GetRadius(&self) -> Option<Finite<f32>> {
         self.radius.map(Finite::wrap)

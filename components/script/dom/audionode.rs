@@ -106,7 +106,7 @@ impl AudioNode {
     }
 }
 
-impl AudioNodeMethods for AudioNode {
+impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
     fn Connect(
         &self,
@@ -367,27 +367,8 @@ impl AudioNodeMethods for AudioNode {
     }
 }
 
-impl From<ChannelCountMode> for ServoMediaChannelCountMode {
-    fn from(mode: ChannelCountMode) -> Self {
-        match mode {
-            ChannelCountMode::Max => ServoMediaChannelCountMode::Max,
-            ChannelCountMode::Clamped_max => ServoMediaChannelCountMode::ClampedMax,
-            ChannelCountMode::Explicit => ServoMediaChannelCountMode::Explicit,
-        }
-    }
-}
-
-impl From<ChannelInterpretation> for ServoMediaChannelInterpretation {
-    fn from(interpretation: ChannelInterpretation) -> Self {
-        match interpretation {
-            ChannelInterpretation::Discrete => ServoMediaChannelInterpretation::Discrete,
-            ChannelInterpretation::Speakers => ServoMediaChannelInterpretation::Speakers,
-        }
-    }
-}
-
-impl AudioNodeOptions {
-    pub fn unwrap_or(
+impl AudioNodeOptionsUnwrap for AudioNodeOptions {
+    fn unwrap_or(
         &self,
         count: u32,
         mode: ChannelCountMode,
@@ -399,6 +380,15 @@ impl AudioNodeOptions {
             interpretation: self.channelInterpretation.unwrap_or(interpretation),
         }
     }
+}
+
+pub trait AudioNodeOptionsUnwrap {
+    fn unwrap_or(
+        &self,
+        count: u32,
+        mode: ChannelCountMode,
+        interpretation: ChannelInterpretation,
+    ) -> UnwrappedAudioNodeOptions;
 }
 
 /// Each node has a set of defaults, so this lets us work with them

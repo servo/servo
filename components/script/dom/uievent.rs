@@ -87,7 +87,7 @@ impl UIEvent {
     }
 }
 
-impl UIEventMethods for UIEvent {
+impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
     /// <https://w3c.github.io/uievents/#dom-uievent-uievent>
     fn Constructor(
         window: &Window,

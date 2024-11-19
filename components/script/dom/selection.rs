@@ -109,7 +109,7 @@ impl Selection {
     }
 }
 
-impl SelectionMethods for Selection {
+impl SelectionMethods<crate::DomTypeHolder> for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-anchornode
     fn GetAnchorNode(&self) -> Option<DomRoot<Node>> {
         if let Some(range) = self.range.get() {

@@ -571,7 +571,7 @@ fn is_leap_year(year: i32) -> bool {
     year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
 }
 
-pub(crate) trait ToInputValueString {
+pub trait ToInputValueString {
     fn to_date_string(&self) -> String;
     fn to_month_string(&self) -> String;
     fn to_week_string(&self) -> String;
@@ -625,7 +625,7 @@ impl ToInputValueString for OffsetDateTime {
     }
 }
 
-pub(crate) trait FromInputValueString {
+pub trait FromInputValueString {
     /// <https://html.spec.whatwg.org/multipage/#parse-a-date-string>
     ///
     /// Parse the date string and return an [`OffsetDateTime`] on midnight of the

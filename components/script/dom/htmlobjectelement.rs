@@ -89,7 +89,7 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
     }
 }
 
-impl HTMLObjectElementMethods for HTMLObjectElement {
+impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_getter!(Type, "type");
 

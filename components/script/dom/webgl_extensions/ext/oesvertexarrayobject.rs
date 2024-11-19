@@ -29,7 +29,7 @@ impl OESVertexArrayObject {
     }
 }
 
-impl OESVertexArrayObjectMethods for OESVertexArrayObject {
+impl OESVertexArrayObjectMethods<crate::DomTypeHolder> for OESVertexArrayObject {
     // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
     fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         self.ctx.create_vertex_array()

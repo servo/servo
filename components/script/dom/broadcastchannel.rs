@@ -66,7 +66,7 @@ impl BroadcastChannel {
     }
 }
 
-impl BroadcastChannelMethods for BroadcastChannel {
+impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
     /// <https://html.spec.whatwg.org/multipage/#broadcastchannel>
     fn Constructor(
         global: &GlobalScope,

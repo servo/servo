@@ -44,7 +44,7 @@ impl NavigationPreloadManager {
     }
 }
 
-impl NavigationPreloadManagerMethods for NavigationPreloadManager {
+impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreloadManager {
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
     fn Enable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);

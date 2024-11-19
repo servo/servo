@@ -61,7 +61,7 @@ impl URLSearchParams {
     }
 }
 
-impl URLSearchParamsMethods for URLSearchParams {
+impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
     /// <https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams>
     fn Constructor(
         global: &GlobalScope,

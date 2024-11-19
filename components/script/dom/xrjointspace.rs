@@ -75,7 +75,7 @@ impl XRJointSpace {
     }
 }
 
-impl XRJointSpaceMethods for XRJointSpace {
+impl XRJointSpaceMethods<crate::DomTypeHolder> for XRJointSpace {
     /// <https://www.w3.org/TR/webxr-hand-input-1/#xrjointspace-jointname>
     fn JointName(&self) -> XRHandJoint {
         self.hand_joint

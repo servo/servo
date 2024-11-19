@@ -70,7 +70,7 @@ impl Touch {
     }
 }
 
-impl TouchMethods for Touch {
+impl TouchMethods<crate::DomTypeHolder> for Touch {
     /// <https://w3c.github.io/touch-events/#widl-Touch-identifier>
     fn Identifier(&self) -> i32 {
         self.identifier

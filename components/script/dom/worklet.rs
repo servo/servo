@@ -116,7 +116,7 @@ impl Worklet {
     }
 }
 
-impl WorkletMethods for Worklet {
+impl WorkletMethods<crate::DomTypeHolder> for Worklet {
     /// <https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule>
     fn AddModule(
         &self,

@@ -140,7 +140,7 @@ fn is_null_body_status(status: u16) -> bool {
     status == 101 || status == 204 || status == 205 || status == 304
 }
 
-impl ResponseMethods for Response {
+impl ResponseMethods<crate::DomTypeHolder> for Response {
     // https://fetch.spec.whatwg.org/#initialize-a-response
     fn Constructor(
         global: &GlobalScope,

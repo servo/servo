@@ -57,7 +57,7 @@ impl DOMRect {
     }
 }
 
-impl DOMRectMethods for DOMRect {
+impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     // https://drafts.fxtf.org/geometry/#dom-domrect-domrect
     fn Constructor(
         global: &GlobalScope,

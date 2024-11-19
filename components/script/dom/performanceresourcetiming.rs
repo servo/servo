@@ -185,7 +185,7 @@ impl PerformanceResourceTiming {
 }
 
 // https://w3c.github.io/resource-timing/
-impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
+impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype
     fn InitiatorType(&self) -> DOMString {
         match self.initiator_type {

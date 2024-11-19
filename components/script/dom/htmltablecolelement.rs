@@ -60,7 +60,7 @@ impl HTMLTableColElement {
     }
 }
 
-impl HTMLTableColElementMethods for HTMLTableColElement {
+impl HTMLTableColElementMethods<crate::DomTypeHolder> for HTMLTableColElement {
     // <https://html.spec.whatwg.org/multipage/#attr-col-span>
     make_uint_getter!(Span, "span", DEFAULT_SPAN);
     // <https://html.spec.whatwg.org/multipage/#attr-col-span>

@@ -625,7 +625,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 
-impl WindowMethods for Window {
+impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert_(&self) {
         self.Alert(DOMString::new());
@@ -2682,7 +2682,12 @@ impl Window {
             current_event: DomRefCell::new(None),
         });
 
-        unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
+        unsafe {
+            WindowBinding::GenericBindings::Wrap::<crate::DomTypeHolder>(
+                JSContext::from_ptr(runtime.cx()),
+                win,
+            )
+        }
     }
 
     pub fn pipeline_id(&self) -> PipelineId {

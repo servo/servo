@@ -15,7 +15,7 @@ pub struct MimeType {
     reflector_: Reflector,
 }
 
-impl MimeTypeMethods for MimeType {
+impl MimeTypeMethods<crate::DomTypeHolder> for MimeType {
     // https://html.spec.whatwg.org/multipage/#dom-mimetype-type
     fn Type(&self) -> DOMString {
         unreachable!()

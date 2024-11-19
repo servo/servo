@@ -90,7 +90,7 @@ impl HTMLFontElement {
     }
 }
 
-impl HTMLFontElementMethods for HTMLFontElement {
+impl HTMLFontElementMethods<crate::DomTypeHolder> for HTMLFontElement {
     // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_getter!(Color, "color");
 

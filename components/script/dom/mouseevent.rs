@@ -187,7 +187,7 @@ impl MouseEvent {
     }
 }
 
-impl MouseEventMethods for MouseEvent {
+impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     // https://w3c.github.io/uievents/#dom-mouseevent-mouseevent
     fn Constructor(
         window: &Window,

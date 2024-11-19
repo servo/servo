@@ -85,7 +85,7 @@ impl HTMLFieldSetElement {
     }
 }
 
-impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
+impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
     fn Elements(&self) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]

@@ -81,7 +81,7 @@ impl BluetoothPermissionResult {
     }
 }
 
-impl BluetoothPermissionResultMethods for BluetoothPermissionResult {
+impl BluetoothPermissionResultMethods<crate::DomTypeHolder> for BluetoothPermissionResult {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothpermissionresult-devices
     fn Devices(&self) -> Vec<DomRoot<BluetoothDevice>> {
         let device_vec: Vec<DomRoot<BluetoothDevice>> = self

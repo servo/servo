@@ -52,6 +52,7 @@ use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
+use crate::dom::gpuconvert::convert_programmable_stage;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
 use crate::dom::gpurenderbundleencoder::GPURenderBundleEncoder;
@@ -264,7 +265,7 @@ impl GPUDevice {
             layout: pipeline_layout.explicit(),
             cache: None,
             vertex: wgpu_pipe::VertexState {
-                stage: (&descriptor.vertex.parent).into(),
+                stage: convert_programmable_stage(&descriptor.vertex.parent),
                 buffers: Cow::Owned(
                     descriptor
                         .vertex
@@ -296,7 +297,7 @@ impl GPUDevice {
                 .as_ref()
                 .map(|stage| -> Fallible<wgpu_pipe::FragmentState> {
                     Ok(wgpu_pipe::FragmentState {
-                        stage: (&stage.parent).into(),
+                        stage: convert_programmable_stage(&stage.parent),
                         targets: Cow::Owned(
                             stage
                                 .targets
@@ -377,7 +378,7 @@ impl GPUDevice {
     }
 }
 
-impl GPUDeviceMethods for GPUDevice {
+impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-features>
     fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
         DomRoot::from_ref(&self.features)

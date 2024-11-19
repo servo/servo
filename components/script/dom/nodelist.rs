@@ -90,7 +90,7 @@ impl NodeList {
     }
 }
 
-impl NodeListMethods for NodeList {
+impl NodeListMethods<crate::DomTypeHolder> for NodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     fn Length(&self) -> u32 {
         match self.list_type {

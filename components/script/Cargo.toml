@@ -18,7 +18,7 @@ jitspew = ['js/jitspew']
 profilemozjs = ['js/profilemozjs']
 tracing = ["dep:tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
-js_backtrace = []
+js_backtrace = ['script_bindings/js_backtrace']
 refcell_backtrace = ["accountable-refcell"]
 
 [build-dependencies]
@@ -92,6 +92,7 @@ range = { path = "../range" }
 ref_filter_map = "1.0.1"
 regex = { workspace = true }
 ring = { workspace = true }
+script_bindings = { workspace = true }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }

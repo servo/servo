@@ -64,7 +64,7 @@ impl MediaMetadata {
     }
 }
 
-impl MediaMetadataMethods for MediaMetadata {
+impl MediaMetadataMethods<crate::DomTypeHolder> for MediaMetadata {
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata>
     fn Constructor(
         window: &Window,

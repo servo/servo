@@ -39,7 +39,7 @@ impl WorkerNavigator {
     }
 }
 
-impl WorkerNavigatorMethods for WorkerNavigator {
+impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()

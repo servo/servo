@@ -68,7 +68,7 @@ impl RTCError {
     }
 }
 
-impl RTCErrorMethods for RTCError {
+impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
     // https://www.w3.org/TR/webrtc/#dom-rtcerror-constructor
     fn Constructor(
         window: &Window,

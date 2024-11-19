@@ -118,7 +118,7 @@ impl GPUSampler {
     }
 }
 
-impl GPUSamplerMethods for GPUSampler {
+impl GPUSamplerMethods<crate::DomTypeHolder> for GPUSampler {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

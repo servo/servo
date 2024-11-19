@@ -36,7 +36,7 @@ impl PaintSize {
     }
 }
 
-impl PaintSizeMethods for PaintSize {
+impl PaintSizeMethods<crate::DomTypeHolder> for PaintSize {
     /// <https://drafts.css-houdini.org/css-paint-api/#paintsize>
     fn Width(&self) -> Finite<f64> {
         self.width

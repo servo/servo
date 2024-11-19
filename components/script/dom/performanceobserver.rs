@@ -118,7 +118,7 @@ impl PerformanceObserver {
     }
 }
 
-impl PerformanceObserverMethods for PerformanceObserver {
+impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-constructor
     fn Constructor(
         global: &GlobalScope,

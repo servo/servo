@@ -87,7 +87,7 @@ impl GamepadEvent {
     }
 }
 
-impl GamepadEventMethods for GamepadEvent {
+impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
     // https://w3c.github.io/gamepad/#gamepadevent-interface
     fn Constructor(
         window: &Window,

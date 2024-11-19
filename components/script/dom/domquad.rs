@@ -66,7 +66,7 @@ impl DOMQuad {
     }
 }
 
-impl DOMQuadMethods for DOMQuad {
+impl DOMQuadMethods<crate::DomTypeHolder> for DOMQuad {
     // https://drafts.fxtf.org/geometry/#dom-domquad-domquad
     fn Constructor(
         global: &GlobalScope,

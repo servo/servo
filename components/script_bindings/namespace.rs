@@ -37,7 +37,7 @@ impl NamespaceObjectClass {
 
 /// Create a new namespace object.
 #[allow(clippy::too_many_arguments)]
-pub fn create_namespace_object(
+pub fn create_namespace_object<D: crate::DomTypes>(
     cx: JSContext,
     global: HandleObject,
     proto: HandleObject,
@@ -47,6 +47,6 @@ pub fn create_namespace_object(
     name: &CStr,
     rval: MutableHandleObject,
 ) {
-    create_object(cx, global, proto, &class.0, methods, &[], constants, rval);
+    create_object::<D>(cx, global, proto, &class.0, methods, &[], constants, rval);
     define_on_global_object(cx, global, name, rval.handle());
 }

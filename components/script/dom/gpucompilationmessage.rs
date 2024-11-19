@@ -77,7 +77,7 @@ impl GPUCompilationMessage {
     }
 }
 
-impl GPUCompilationMessageMethods for GPUCompilationMessage {
+impl GPUCompilationMessageMethods<crate::DomTypeHolder> for GPUCompilationMessage {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-message>
     fn Message(&self) -> DOMString {
         self.message.to_owned()

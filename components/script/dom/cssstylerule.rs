@@ -71,7 +71,7 @@ impl SpecificCSSRule for CSSStyleRule {
     }
 }
 
-impl CSSStyleRuleMethods for CSSStyleRule {
+impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {

@@ -326,7 +326,7 @@ impl Range {
     }
 }
 
-impl RangeMethods for Range {
+impl RangeMethods<crate::DomTypeHolder> for Range {
     /// <https://dom.spec.whatwg.org/#dom-range>
     fn Constructor(
         window: &Window,

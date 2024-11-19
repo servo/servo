@@ -68,7 +68,7 @@ impl RTCErrorEvent {
     }
 }
 
-impl RTCErrorEventMethods for RTCErrorEvent {
+impl RTCErrorEventMethods<crate::DomTypeHolder> for RTCErrorEvent {
     // https://www.w3.org/TR/webrtc/#dom-rtcerrorevent-constructor
     fn Constructor(
         window: &Window,

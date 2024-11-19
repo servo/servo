@@ -79,7 +79,11 @@ use crate::task_source::TaskSourceName;
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
+    Error::Type(string).to_jsval::<crate::DomTypeHolder>(
+        *GlobalScope::get_cx(),
+        global,
+        thrown.handle_mut(),
+    );
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -361,7 +365,7 @@ impl ModuleTree {
 
         let realm = enter_realm(&*owner.global());
         let comp = InRealm::Entered(&realm);
-        let _ais = AutoIncumbentScript::new(&owner.global());
+        let _ais = AutoIncumbentScript::<crate::DomTypeHolder>::new(&owner.global());
 
         if let Some(promise) = self.promise.borrow().as_ref() {
             promise.append_native_handler(&handler, comp, can_gc);
@@ -397,7 +401,7 @@ impl ModuleTree {
 
         let realm = enter_realm(&*owner.global());
         let comp = InRealm::Entered(&realm);
-        let _ais = AutoIncumbentScript::new(&owner.global());
+        let _ais = AutoIncumbentScript::<crate::DomTypeHolder>::new(&owner.global());
 
         if let Some(promise) = self.promise.borrow().as_ref() {
             promise.append_native_handler(&handler, comp, can_gc);

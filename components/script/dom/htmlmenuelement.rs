@@ -46,7 +46,7 @@ impl HTMLMenuElement {
     }
 }
 
-impl HTMLMenuElementMethods for HTMLMenuElement {
+impl HTMLMenuElementMethods<crate::DomTypeHolder> for HTMLMenuElement {
     // spec just mandates that compact reflects the content attribute,
     // with no other semantics. Layout could use it to
     // change line spacing, but nothing requires it to do so.

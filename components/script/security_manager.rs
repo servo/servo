@@ -168,12 +168,3 @@ impl From<SecurityPolicyViolationReport> for SecurityPolicyViolationEventInit {
         }
     }
 }
-
-impl Serialize for SecurityPolicyViolationEventDisposition {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self {
-            Self::Report => serializer.serialize_str("report"),
-            Self::Enforce => serializer.serialize_str("enforce"),
-        }
-    }
-}

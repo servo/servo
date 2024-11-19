@@ -66,7 +66,7 @@ impl TextTrackCue {
     }
 }
 
-impl TextTrackCueMethods for TextTrackCue {
+impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
     // https://html.spec.whatwg.org/multipage/#dom-texttrackcue-id
     fn Id(&self) -> DOMString {
         self.id()

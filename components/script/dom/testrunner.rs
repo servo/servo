@@ -36,7 +36,7 @@ impl TestRunner {
     }
 }
 
-impl TestRunnerMethods for TestRunner {
+impl TestRunnerMethods<crate::DomTypeHolder> for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     #[allow(non_snake_case)]
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {

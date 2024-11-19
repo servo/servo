@@ -85,7 +85,7 @@ impl VideoTrack {
     }
 }
 
-impl VideoTrackMethods for VideoTrack {
+impl VideoTrackMethods<crate::DomTypeHolder> for VideoTrack {
     // https://html.spec.whatwg.org/multipage/#dom-videotrack-id
     fn Id(&self) -> DOMString {
         self.id()

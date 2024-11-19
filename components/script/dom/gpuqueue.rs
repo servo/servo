@@ -22,6 +22,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
+use crate::dom::gpuconvert::convert_image_copy_texture;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
@@ -64,7 +65,7 @@ impl GPUQueue {
     }
 }
 
-impl GPUQueueMethods for GPUQueue {
+impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -163,7 +164,7 @@ impl GPUQueueMethods for GPUQueue {
             return Err(Error::Operation);
         }
 
-        let texture_cv = destination.try_into()?;
+        let texture_cv = convert_image_copy_texture(destination)?;
         let texture_layout = data_layout.into();
         let write_size = (&size).try_into()?;
         let final_data = IpcSharedMemory::from_bytes(&bytes);
