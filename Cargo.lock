@@ -701,7 +701,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "fonts",
- "glow 0.15.0",
+ "glow 0.16.0",
  "half",
  "ipc-channel",
  "log",
@@ -733,6 +733,7 @@ dependencies = [
  "base",
  "crossbeam-channel",
  "euclid",
+ "glow 0.16.0",
  "ipc-channel",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -740,7 +741,6 @@ dependencies = [
  "serde",
  "serde_bytes",
  "servo_config",
- "sparkle",
  "style",
  "webrender_api",
  "webxr-api",
@@ -2518,9 +2518,9 @@ dependencies = [
 
 [[package]]
 name = "glow"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e33cd8ff5e02c1a5463ec10a846c8f3166a3ae0382ec33de6a327ea6dd61c41d"
+checksum = "c5e5ea60d70410161c8bf5da3fdfeaa1c72ed2c15f8bbb9d19fe3a4fad085f08"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -6134,7 +6134,7 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "fxhash",
- "glow 0.15.0",
+ "glow 0.16.0",
  "headers",
  "html5ever",
  "http",
@@ -7147,7 +7147,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "surfman"
 version = "0.9.8"
-source = "git+https://github.com/servo/surfman?rev=e0c34af64f2860bc56bc8a56e1c169a915b16aa3#e0c34af64f2860bc56bc8a56e1c169a915b16aa3"
+source = "git+https://github.com/servo/surfman?rev=c8d6b4b65aeab739ee7651602e29c8d58ceee123#c8d6b4b65aeab739ee7651602e29c8d58ceee123"
 dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases 0.2.1",
@@ -7158,7 +7158,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gl_generator",
- "glow 0.15.0",
+ "glow 0.16.0",
  "io-surface",
  "libc",
  "log",
@@ -8389,11 +8389,11 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#042a7af3271d93d68e357b0b19c9aaa2cb30d322"
+source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825694b7"
 dependencies = [
  "crossbeam-channel",
  "euclid",
- "glow 0.15.0",
+ "glow 0.16.0",
  "log",
  "openxr",
  "serde",
@@ -8406,7 +8406,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#042a7af3271d93d68e357b0b19c9aaa2cb30d322"
+source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825694b7"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8536,7 +8536,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
