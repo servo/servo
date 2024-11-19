@@ -4,12 +4,12 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use std::cell::{RefCell, Ref};
+use std::cell::{Ref, RefCell};
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr::NonNull;
-use std::{ptr, slice, str};
 use std::thread::LocalKey;
+use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
 use js::glue::{

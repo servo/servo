@@ -120,7 +120,10 @@ impl<D: DomTypes> Drop for AutoIncumbentScript<D> {
                 "Dropped AutoIncumbentScript out of order."
             );
             assert_eq!(entry.kind, StackEntryKind::Incumbent);
-            trace!("Clean up after running a callback with {:p}", &*entry.global);
+            trace!(
+                "Clean up after running a callback with {:p}",
+                &*entry.global
+            );
         });
         unsafe {
             // Step 1-2.
