@@ -8,7 +8,7 @@ use std::io::Write;
 use std::path::Path;
 
 use gl_generator::{Api, Fallbacks, Profile, Registry};
-use vergen::EmitBuilder;
+use vergen_git2::{Emitter, Git2Builder};
 
 // We can make this configurable in the future if different platforms start to have
 // different needs.
@@ -18,6 +18,17 @@ fn generate_egl_bindings(out_dir: &Path) {
         .write_bindings(gl_generator::StaticStructGenerator, &mut file)
         .unwrap();
     println!("cargo:rustc-link-lib=EGL");
+}
+
+fn emit_git_sha() -> Result<(), String> {
+    let git_options = Git2Builder::default()
+        .sha(true /* short */)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Emitter::default()
+        .add_instructions(&git_options)
+        .and_then(|emitter| emitter.fail_on_error().emit())
+        .map_err(|e| e.to_string())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -76,11 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         generate_egl_bindings(out);
     }
 
-    if let Err(error) = EmitBuilder::builder()
-        .fail_on_error()
-        .git_sha(true /* short */)
-        .emit()
-    {
+    if let Err(error) = emit_git_sha() {
         println!(
             "cargo:warning=Could not generate git version information: {:?}",
             error
