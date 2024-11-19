@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
 use std::path::{Path, PathBuf};
 
-use log::warn;
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
-use url::{self, Url};
 
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
 pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
     match ServoUrl::parse(input) {
         Ok(url) => Ok(url),
         Err(url::ParseError::RelativeUrlWithoutBase) => {
-            Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
+            url::Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
         },
         Err(_) => Err(()),
     }
@@ -33,7 +32,7 @@ pub fn get_default_url(
     let cmdline_url = url_opt.map(|s| s.to_string()).and_then(|url_string| {
         parse_url_or_filename(cwd.as_ref(), &url_string)
             .map_err(|error| {
-                warn!("URL parsing failed ({:?}).", error);
+                log::warn!("URL parsing failed ({:?}).", error);
                 error
             })
             .ok()

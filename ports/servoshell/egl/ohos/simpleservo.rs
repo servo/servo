@@ -82,18 +82,12 @@ pub fn init(
         "--prefs-file /path/to/prefs.json",
     );
 
-    let opts_matches;
-    let content_process_token;
-    match opts::from_cmdline_args(opts, &args) {
-        ArgumentParsingResult::ContentProcess(matches, token) => {
+    let opts_matches = match opts::from_cmdline_args(opts, &args) {
+        ArgumentParsingResult::ContentProcess(matches, _token) => {
             error!("Content Process mode not supported / tested yet on OpenHarmony!");
-            opts_matches = matches;
-            content_process_token = Some(token);
+            matches
         },
-        ArgumentParsingResult::ChromeProcess(matches) => {
-            opts_matches = matches;
-            content_process_token = None;
-        },
+        ArgumentParsingResult::ChromeProcess(matches) => matches,
     };
 
     crate::prefs::register_user_prefs(&opts_matches);

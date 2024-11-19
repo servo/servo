@@ -4,21 +4,18 @@
 
 use cfg_if::cfg_if;
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-#[macro_use]
-extern crate sig;
-
 #[cfg(test)]
 mod test;
 
 #[cfg(not(target_os = "android"))]
 mod backtrace;
+#[cfg(not(target_env = "ohos"))]
 mod crash_handler;
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
 pub(crate) mod desktop;
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 mod egl;
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
 mod panic_hook;
 mod parser;
 mod prefs;
