@@ -76,19 +76,12 @@ impl Formattable for ProfilerCategory {
         let padding = match *self {
             ProfilerCategory::LayoutStyleRecalc |
             ProfilerCategory::LayoutRestyleDamagePropagation |
-            ProfilerCategory::LayoutNonIncrementalReset |
             ProfilerCategory::LayoutGeneratedContent |
-            ProfilerCategory::LayoutDisplayListSorting |
             ProfilerCategory::LayoutFloatPlacementSpeculation |
             ProfilerCategory::LayoutMain |
             ProfilerCategory::LayoutStoreOverflow |
             ProfilerCategory::LayoutDispListBuild |
-            ProfilerCategory::LayoutDamagePropagate |
-            ProfilerCategory::PaintingPerTile |
-            ProfilerCategory::PaintingPrepBuff => "+ ",
             ProfilerCategory::LayoutParallelWarmup |
-            ProfilerCategory::LayoutSelectorMatch |
-            ProfilerCategory::LayoutTreeBuilder |
             ProfilerCategory::LayoutTextShaping => "| + ",
             _ => "",
         };
@@ -98,22 +91,12 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutStyleRecalc => "Style Recalc",
             ProfilerCategory::LayoutTextShaping => "Text Shaping",
             ProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
-            ProfilerCategory::LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
-            ProfilerCategory::LayoutSelectorMatch => "Selector Matching",
-            ProfilerCategory::LayoutTreeBuilder => "Tree Building",
-            ProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
-            ProfilerCategory::LayoutDisplayListSorting => "Sorting Display List",
             ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
             ProfilerCategory::LayoutFloatPlacementSpeculation => "Float Placement Speculation",
             ProfilerCategory::LayoutMain => "Primary Layout Pass",
             ProfilerCategory::LayoutStoreOverflow => "Store Overflow",
             ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
             ProfilerCategory::LayoutDispListBuild => "Display List Construction",
-            ProfilerCategory::NetHTTPRequestResponse => "Network HTTP Request/Response",
-            ProfilerCategory::PaintingPerTile => "Painting Per Tile",
-            ProfilerCategory::PaintingPrepBuff => "Buffer Prep",
-            ProfilerCategory::Painting => "Painting",
-            ProfilerCategory::ImageDecoding => "Image Decoding",
             ProfilerCategory::ImageSaving => "Image Saving",
             ProfilerCategory::ScriptAttachLayout => "Script Attach Layout",
             ProfilerCategory::ScriptConstellationMsg => "Script Constellation Msg",
@@ -142,7 +125,6 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptServiceWorkerEvent => "Script Service Worker Event",
             ProfilerCategory::ScriptEnterFullscreen => "Script Enter Fullscreen",
             ProfilerCategory::ScriptExitFullscreen => "Script Exit Fullscreen",
-            ProfilerCategory::ScriptWebVREvent => "Script WebVR Event",
             ProfilerCategory::ScriptWorkletEvent => "Script Worklet Event",
             ProfilerCategory::ScriptPerformanceEvent => "Script Performance Event",
             ProfilerCategory::ScriptWebGPUMsg => "Script WebGPU Message",
