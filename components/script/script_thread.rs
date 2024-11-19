@@ -1620,8 +1620,11 @@ impl ScriptThread {
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
         for pipeline_id in pipelines_to_update {
+            // This document is not managed by this script thread. This can happen is the pipeline is
+            // unexpectedly closed or simply that it is managed by a different script thread.
+            // TODO: It would be better if iframes knew whether or not their Document was managed
+            // by the same script thread.
             let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-                warn!("Updating the rendering for closed pipeline {pipeline_id}.");
                 continue;
             };
             // TODO(#32004): The rendering should be updated according parent and shadow root order
