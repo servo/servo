@@ -256,7 +256,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn add_stylesheet(
         &mut self,
@@ -279,7 +279,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
@@ -291,7 +291,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
         process_content_box_request(node, self.fragment_tree.borrow().clone())
@@ -299,7 +299,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<UntypedRect<Au>> {
         process_content_boxes_request(node, self.fragment_tree.borrow().clone())
@@ -307,7 +307,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_client_rect(&self, node: OpaqueNode) -> UntypedRect<i32> {
         process_node_geometry_request(node, self.fragment_tree.borrow().clone())
@@ -315,7 +315,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_element_inner_text(
         &self,
@@ -336,7 +336,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_nodes_from_point(
         &self,
@@ -362,7 +362,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse {
         process_offset_parent_query(node, self.fragment_tree.borrow().clone())
@@ -370,7 +370,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_resolved_style(
         &self,
@@ -409,7 +409,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_resolved_font_style(
         &self,
@@ -445,7 +445,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> UntypedRect<i32> {
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
@@ -453,7 +453,7 @@ impl Layout for LayoutThread {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_text_indext(
         &self,
@@ -693,7 +693,7 @@ impl LayoutThread {
     /// The high-level routine that performs layout.
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_reflow(&mut self, data: &mut ScriptReflowResult) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
@@ -815,13 +815,8 @@ impl LayoutThread {
 
         if token.should_traverse() {
             #[cfg(feature = "tracing")]
-            let span = tracing::span!(
-                tracing::Level::TRACE,
-                "driver::traverse_dom",
-                servo_profiling = true
-            );
-            #[cfg(feature = "tracing")]
-            let _enter = span.enter();
+            let _span =
+                tracing::trace_span!("driver::traverse_dom", servo_profiling = true).entered();
             let dirty_root: ServoLayoutNode =
                 driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 

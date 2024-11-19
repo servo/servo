@@ -1555,7 +1555,12 @@ impl<'a> TableLayout<'a> {
     /// only be be called after calling [`TableLayout.compute_measures`].
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(name = "Table::layout", skip_all, fields(servo_profiling = true))
+        tracing::instrument(
+            name = "Table::layout",
+            skip_all,
+            fields(servo_profiling = true),
+            level = "trace",
+        )
     )]
     fn layout(
         mut self,
@@ -2372,7 +2377,8 @@ impl Table {
         tracing::instrument(
             name = "Table::inline_content_sizes",
             skip_all,
-            fields(servo_profiling = true)
+            fields(servo_profiling = true),
+            level = "trace",
         )
     )]
     pub(crate) fn inline_content_sizes(

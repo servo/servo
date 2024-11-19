@@ -180,9 +180,7 @@ impl DisplayList {
         root_stacking_context: &StackingContext,
     ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
         #[cfg(feature = "tracing")]
-        let span = tracing::span!(tracing::Level::TRACE, "display_list::build");
-        #[cfg(feature = "tracing")]
-        let _enter = span.enter();
+        let _span = tracing::trace_span!("display_list::build", servo_profiling = true).entered();
         let mut builder = DisplayListBuilder {
             current_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,

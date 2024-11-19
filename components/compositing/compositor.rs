@@ -697,7 +697,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// instance in the parent process.
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_webrender_message(&mut self, msg: ForwardedToCompositorMsg) {
         match msg {
@@ -787,13 +787,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
 
                 #[cfg(feature = "tracing")]
-                let span = tracing::span!(
-                    tracing::Level::TRACE,
+                let _span = tracing::trace_span!(
                     "ScriptToCompositorMsg::BuiltDisplayList",
-                    servo_profiling = true
-                );
-                #[cfg(feature = "tracing")]
-                let _enter = span.enter();
+                    servo_profiling = true,
+                )
+                .entered();
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = self.pipeline_details(pipeline_id.into());
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
@@ -2082,7 +2080,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn composite_specific_target(
         &mut self,
@@ -2297,13 +2295,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         #[cfg(feature = "tracing")]
-        let span = tracing::span!(
-            tracing::Level::TRACE,
-            "ConstellationMsg::ReadyToPresent",
-            servo_profiling = true
-        );
-        #[cfg(feature = "tracing")]
-        let _enter = span.enter();
+        let _span =
+            tracing::trace_span!("ConstellationMsg::ReadyToPresent", servo_profiling = true)
+                .entered();
         // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
         self.waiting_on_present = true;
@@ -2330,17 +2324,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn present(&mut self) {
         #[cfg(feature = "tracing")]
-        let span = tracing::span!(
-            tracing::Level::TRACE,
-            "Compositor Present Surface",
-            servo_profiling = true
-        );
-        #[cfg(feature = "tracing")]
-        let _enter = span.enter();
+        let _span =
+            tracing::trace_span!("Compositor Present Surface", servo_profiling = true).entered();
         if let Err(err) = self.rendering_context.present() {
             warn!("Failed to present surface: {:?}", err);
         }
@@ -2404,7 +2393,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
@@ -2434,7 +2423,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true))
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     pub fn perform_updates(&mut self) -> bool {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
