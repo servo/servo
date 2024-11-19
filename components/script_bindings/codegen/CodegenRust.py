@@ -2782,9 +2782,12 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
         iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
         if iterableDecl:
             if iterableDecl.isMaplike():
-                traits += ["crate::like::Maplike<Key=crate::str::DOMString, Value=i32>"]
+                keytype = getRetvalDeclarationForType(iterableDecl.keyType, None).define()
+                valuetype = getRetvalDeclarationForType(iterableDecl.valueType, None).define()
+                traits += [f"crate::like::Maplike<Key={keytype}, Value={valuetype}>"]
             if iterableDecl.isSetlike():
-                traits += ["crate::like::Setlike<Key=crate::str::DOMString>"]
+                keytype = getRetvalDeclarationForType(iterableDecl.keyType, None).define()
+                traits += [f"crate::like::Setlike<Key={keytype}>"]
             if iterableDecl.hasKeyType():
                 traits += [
                     "crate::reflector::DomObjectIteratorWrap<Self>",
@@ -2824,7 +2827,7 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 CGGeneric(f"    type {firstCap(iface_name)}: {' + '.join(traits)};\n")
             ]
     elements += [CGGeneric("}\n")]
-    return CGList(elements)
+    return CGList([CGGeneric("use crate::str::DOMString;\n")] + elements)
 
 
 def DomTypeHolder(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
