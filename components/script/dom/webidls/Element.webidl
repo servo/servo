@@ -83,7 +83,16 @@ interface Element : Node {
   [CEReactions, Throws]
   undefined insertAdjacentHTML(DOMString position, DOMString html);
 
-  [Throws, Pref="dom.shadowdom.enabled"] ShadowRoot attachShadow();
+  [Throws, Pref="dom.shadowdom.enabled"] ShadowRoot attachShadow(ShadowRootInit init);
+  readonly attribute ShadowRoot? shadowRoot;
+};
+
+dictionary ShadowRootInit {
+  required ShadowRootMode mode;
+  // boolean delegatesFocus = false;
+  // SlotAssignmentMode slotAssignment = "named";
+  // boolean clonable = false;
+  // boolean serializable = false;
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface

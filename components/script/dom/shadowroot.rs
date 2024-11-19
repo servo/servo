@@ -36,7 +36,7 @@ pub enum IsUserAgentWidget {
     Yes,
 }
 
-// https://dom.spec.whatwg.org/#interface-shadowroot
+/// <https://dom.spec.whatwg.org/#interface-shadowroot>
 #[dom_struct]
 pub struct ShadowRoot {
     document_fragment: DocumentFragment,
@@ -48,11 +48,14 @@ pub struct ShadowRoot {
     author_styles: DomRefCell<AuthorStyles<StyleSheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     window: Dom<Window>,
+
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-mode>
+    mode: ShadowRootMode,
 }
 
 impl ShadowRoot {
     #[allow(crown::unrooted_must_root)]
-    fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
+    fn new_inherited(host: &Element, document: &Document, mode: ShadowRootMode) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
         let node = document_fragment.upcast::<Node>();
         node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
@@ -60,6 +63,7 @@ impl ShadowRoot {
             NodeFlags::IS_CONNECTED,
             host.upcast::<Node>().is_connected(),
         );
+
         ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
@@ -68,12 +72,13 @@ impl ShadowRoot {
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
+            mode,
         }
     }
 
-    pub fn new(host: &Element, document: &Document) -> DomRoot<ShadowRoot> {
+    pub fn new(host: &Element, document: &Document, mode: ShadowRootMode) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
-            Box::new(ShadowRoot::new_inherited(host, document)),
+            Box::new(ShadowRoot::new_inherited(host, document, mode)),
             document.window(),
         )
     }
@@ -226,7 +231,7 @@ impl ShadowRootMethods for ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-mode>
     fn Mode(&self) -> ShadowRootMode {
-        ShadowRootMode::Closed
+        self.mode
     }
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>

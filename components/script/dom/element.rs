@@ -73,11 +73,13 @@ use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods, ShadowRootInit};
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMethods, ShadowRootMode,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     ScrollBehavior, ScrollToOptions, WindowMethods,
 };
@@ -509,7 +511,11 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     /// XXX This is not exposed to web content yet. It is meant to be used
     ///     for UA widgets only.
-    pub fn attach_shadow(&self, is_ua_widget: IsUserAgentWidget) -> Fallible<DomRoot<ShadowRoot>> {
+    pub fn attach_shadow(
+        &self,
+        is_ua_widget: IsUserAgentWidget,
+        mode: ShadowRootMode,
+    ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
         if self.namespace != ns!(html) {
             return Err(Error::NotSupported);
@@ -546,7 +552,7 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc());
+        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc(), mode);
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -3053,8 +3059,28 @@ impl ElementMethods for Element {
     // XXX Hidden under dom.shadowdom.enabled pref. Only exposed to be able
     //     to test partial Shadow DOM support for UA widgets.
     // https://dom.spec.whatwg.org/#dom-element-attachshadow
-    fn AttachShadow(&self) -> Fallible<DomRoot<ShadowRoot>> {
-        self.attach_shadow(IsUserAgentWidget::No)
+    fn AttachShadow(&self, init: &ShadowRootInit) -> Fallible<DomRoot<ShadowRoot>> {
+        // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
+        // init["delegatesFocus"], and init["slotAssignment"].
+        let shadow_root = self.attach_shadow(IsUserAgentWidget::No, init.mode)?;
+
+        // Step 2. Return this’s shadow root.
+        Ok(shadow_root)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-element-shadowroot>
+    fn GetShadowRoot(&self) -> Option<DomRoot<ShadowRoot>> {
+        // Step 1. Let shadow be this’s shadow root.
+        let shadow_or_none = self.shadow_root();
+
+        // Step 2. If shadow is null or its mode is "closed", then return null.
+        let shadow = shadow_or_none?;
+        if shadow.Mode() == ShadowRootMode::Closed {
+            return None;
+        }
+
+        // Step 3. Return shadow.
+        Some(shadow)
     }
 
     fn GetRole(&self) -> Option<DOMString> {

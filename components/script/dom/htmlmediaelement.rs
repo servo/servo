@@ -54,6 +54,7 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConsta
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -1908,7 +1909,9 @@ impl HTMLMediaElement {
             // if we are already showing the controls.
             return;
         }
-        let shadow_root = element.attach_shadow(IsUserAgentWidget::Yes).unwrap();
+        let shadow_root = element
+            .attach_shadow(IsUserAgentWidget::Yes, ShadowRootMode::Closed)
+            .unwrap();
         let document = document_from_node(self);
         let script = HTMLScriptElement::new(
             local_name!("script"),
