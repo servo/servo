@@ -78,7 +78,11 @@ pub enum ProfilerCategory {
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
     ScriptDomEvent = 0x64,
+
+    /// Rust tracing only: the script thread is executing a script.
+    /// This may include time doing layout or parse work initiated by the script.
     ScriptEvaluate = 0x65,
+
     ScriptEvent = 0x66,
     ScriptFileRead = 0x67,
     ScriptImageCacheMsg = 0x68,
