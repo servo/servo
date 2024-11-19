@@ -3,25 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#crypto-interface
+ * https://w3c.github.io/webcrypto/#crypto-interface
  *
  */
 
-[Exposed=(Window,Worker)]
-interface mixin GlobalCrypto {
-  readonly attribute Crypto crypto;
+partial interface mixin WindowOrWorkerGlobalScope {
+  [SameObject] readonly attribute Crypto crypto;
 };
-
-Window includes GlobalCrypto;
-WorkerGlobalScope includes GlobalCrypto;
 
 [Exposed=(Window,Worker)]
 interface Crypto {
   [SecureContext] readonly attribute SubtleCrypto subtle;
-  [Throws]
-  ArrayBufferView getRandomValues(ArrayBufferView array);
-
-  [SecureContext]
-  // UTF8String is not observably different from USVString
-  USVString randomUUID();
+  [Throws] ArrayBufferView getRandomValues(ArrayBufferView array);
+  [SecureContext] DOMString randomUUID();
 };
