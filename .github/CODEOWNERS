@@ -2,3 +2,9 @@
 
 
 /components/script/  @gterzian
+
+# Reviewers for OpenHarmony related code
+/support/openharmony/                       @jschwe
+/ports/servoshell/egl/                      @jschwe
+/components/fonts/platform/freetype/ohos/   @jschwe
+/.github/workflows/ohos.yml                 @jschwe
