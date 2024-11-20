@@ -55,17 +55,17 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
   Promise<any> exportKey(KeyFormat format, CryptoKey key);
 
-  // Promise<any> wrapKey(KeyFormat format,
-  //                      CryptoKey key,
-  //                      CryptoKey wrappingKey,
-  //                      AlgorithmIdentifier wrapAlgorithm);
-  // Promise<CryptoKey> unwrapKey(KeyFormat format,
-  //                        BufferSource wrappedKey,
-  //                        CryptoKey unwrappingKey,
-  //                        AlgorithmIdentifier unwrapAlgorithm,
-  //                        AlgorithmIdentifier unwrappedKeyAlgorithm,
-  //                        boolean extractable,
-  //                        sequence<KeyUsage> keyUsages );
+  Promise<any> wrapKey(KeyFormat format,
+                       CryptoKey key,
+                       CryptoKey wrappingKey,
+                       AlgorithmIdentifier wrapAlgorithm);
+  Promise<CryptoKey> unwrapKey(KeyFormat format,
+                         BufferSource wrappedKey,
+                         CryptoKey unwrappingKey,
+                         AlgorithmIdentifier unwrapAlgorithm,
+                         AlgorithmIdentifier unwrappedKeyAlgorithm,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
 };
 
 // AES shared
@@ -92,6 +92,13 @@ dictionary AesCtrParams : Algorithm {
   required [EnforceRange] octet length;
 };
 
+// https://w3c.github.io/webcrypto/#aes-gcm-params
+dictionary AesGcmParams : Algorithm {
+  required BufferSource iv;
+  BufferSource additionalData;
+  [EnforceRange] octet tagLength;
+};
+
 // https://w3c.github.io/webcrypto/#dfn-HmacImportParams
 dictionary HmacImportParams : Algorithm {
   required HashAlgorithmIdentifier hash;
@@ -102,6 +109,12 @@ dictionary HmacImportParams : Algorithm {
 dictionary HmacKeyAlgorithm : KeyAlgorithm {
   required KeyAlgorithm hash;
   required unsigned long length;
+};
+
+// https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams
+dictionary HmacKeyGenParams : Algorithm {
+  required HashAlgorithmIdentifier hash;
+  [EnforceRange] unsigned long length;
 };
 
 // https://w3c.github.io/webcrypto/#hkdf-params

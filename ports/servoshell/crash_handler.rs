@@ -11,6 +11,8 @@ pub fn install() {
     use std::sync::atomic;
     use std::thread;
 
+    use sig::signal;
+
     use crate::backtrace;
 
     extern "C" fn handler(sig: i32) {

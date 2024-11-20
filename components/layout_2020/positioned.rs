@@ -846,10 +846,16 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 let stretch_size = free_space -
                     self.computed_margin_start.auto_is(Au::zero) -
                     self.computed_margin_end.auto_is(Au::zero);
-                let used_size = solve_size(Size::Stretch, stretch_size)
-                    .to_definite()
-                    .unwrap();
-                free_space -= used_size;
+                let initial_behavior = match self.alignment.value() {
+                    AlignFlags::STRETCH | AlignFlags::NORMAL | AlignFlags::AUTO => Size::Stretch,
+                    _ => Size::FitContent,
+                };
+                let size = solve_size(initial_behavior, stretch_size);
+                if let Some(used_size) = size.to_definite() {
+                    free_space -= used_size;
+                } else {
+                    free_space = Au::zero();
+                }
                 let (margin_start, margin_end) =
                     match (self.computed_margin_start, self.computed_margin_end) {
                         (AuOrAuto::Auto, AuOrAuto::Auto) => {
@@ -872,7 +878,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     };
                 AxisResult {
                     anchor: Anchor::Start(start),
-                    size: SizeConstraint::Definite(used_size),
+                    size,
                     margin_start,
                     margin_end,
                 }

@@ -60,38 +60,38 @@ pub enum ProfilerMsg {
 pub enum ProfilerCategory {
     Compositing = 0x00,
     LayoutPerform = 0x10,
+
+    /// Events currently only used by Layout 2013.
     LayoutStyleRecalc = 0x11,
     LayoutTextShaping = 0x12,
     LayoutRestyleDamagePropagation = 0x13,
-    LayoutNonIncrementalReset = 0x14,
-    LayoutSelectorMatch = 0x15,
-    LayoutTreeBuilder = 0x16,
-    LayoutDamagePropagate = 0x17,
     LayoutGeneratedContent = 0x18,
-    LayoutDisplayListSorting = 0x19,
     LayoutFloatPlacementSpeculation = 0x1a,
     LayoutMain = 0x1b,
     LayoutStoreOverflow = 0x1c,
     LayoutParallelWarmup = 0x1d,
     LayoutDispListBuild = 0x1e,
-    NetHTTPRequestResponse = 0x30,
-    PaintingPerTile = 0x41,
-    PaintingPrepBuff = 0x42,
-    Painting = 0x43,
-    ImageDecoding = 0x50,
+
     ImageSaving = 0x51,
     ScriptAttachLayout = 0x60,
     ScriptConstellationMsg = 0x61,
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
     ScriptDomEvent = 0x64,
+
+    /// Rust tracing only: the script thread is executing a script.
+    /// This may include time doing layout or parse work initiated by the script.
     ScriptEvaluate = 0x65,
+
     ScriptEvent = 0x66,
     ScriptFileRead = 0x67,
     ScriptImageCacheMsg = 0x68,
     ScriptInputEvent = 0x69,
     ScriptNetworkEvent = 0x6a,
+
+    /// The script thread is parsing HTML, rather than doing other work like evaluating scripts or doing layout.
     ScriptParseHTML = 0x6b,
+
     ScriptPlannedNavigation = 0x6c,
     ScriptResize = 0x6d,
     ScriptSetScrollState = 0x6e,
@@ -102,18 +102,23 @@ pub enum ProfilerCategory {
     ScriptWebSocketEvent = 0x73,
     ScriptWorkerEvent = 0x74,
     ScriptServiceWorkerEvent = 0x75,
+
+    /// The script thread is parsing XML, rather than doing other work like evaluating scripts or doing layout.
     ScriptParseXML = 0x76,
+
     ScriptEnterFullscreen = 0x77,
     ScriptExitFullscreen = 0x78,
-    ScriptWebVREvent = 0x79,
     ScriptWorkletEvent = 0x7a,
     ScriptPerformanceEvent = 0x7b,
     ScriptHistoryEvent = 0x7c,
     ScriptPortMessage = 0x7d,
     ScriptWebGPUMsg = 0x7e,
+
+    /// Web performance metrics.
     TimeToFirstPaint = 0x80,
     TimeToFirstContentfulPaint = 0x81,
     TimeToInteractive = 0x82,
+
     IpcReceiver = 0x83,
     IpcBytesReceiver = 0x84,
 }
@@ -126,22 +131,12 @@ impl ProfilerCategory {
             ProfilerCategory::LayoutStyleRecalc => "LayoutStyleRecalc",
             ProfilerCategory::LayoutTextShaping => "LayoutTextShaping",
             ProfilerCategory::LayoutRestyleDamagePropagation => "LayoutRestyleDamagePropagation",
-            ProfilerCategory::LayoutNonIncrementalReset => "LayoutNonIncrementalReset",
-            ProfilerCategory::LayoutSelectorMatch => "LayoutSelectorMatch",
-            ProfilerCategory::LayoutTreeBuilder => "LayoutTreeBuilder",
-            ProfilerCategory::LayoutDamagePropagate => "LayoutDamagePropagate",
             ProfilerCategory::LayoutGeneratedContent => "LayoutGeneratedContent",
-            ProfilerCategory::LayoutDisplayListSorting => "LayoutDisplayListSorting",
             ProfilerCategory::LayoutFloatPlacementSpeculation => "LayoutFloatPlacementSpeculation",
             ProfilerCategory::LayoutMain => "LayoutMain",
             ProfilerCategory::LayoutStoreOverflow => "LayoutStoreOverflow",
             ProfilerCategory::LayoutParallelWarmup => "LayoutParallelWarmup",
             ProfilerCategory::LayoutDispListBuild => "LayoutDispListBuild",
-            ProfilerCategory::NetHTTPRequestResponse => "NetHTTPRequestResponse",
-            ProfilerCategory::PaintingPerTile => "PaintingPerTile",
-            ProfilerCategory::PaintingPrepBuff => "PaintingPrepBuff",
-            ProfilerCategory::Painting => "Painting",
-            ProfilerCategory::ImageDecoding => "ImageDecoding",
             ProfilerCategory::ImageSaving => "ImageSaving",
             ProfilerCategory::ScriptAttachLayout => "ScriptAttachLayout",
             ProfilerCategory::ScriptConstellationMsg => "ScriptConstellationMsg",
@@ -168,7 +163,6 @@ impl ProfilerCategory {
             ProfilerCategory::ScriptParseXML => "ScriptParseXML",
             ProfilerCategory::ScriptEnterFullscreen => "ScriptEnterFullscreen",
             ProfilerCategory::ScriptExitFullscreen => "ScriptExitFullscreen",
-            ProfilerCategory::ScriptWebVREvent => "ScriptWebVREvent",
             ProfilerCategory::ScriptWorkletEvent => "ScriptWorkletEvent",
             ProfilerCategory::ScriptPerformanceEvent => "ScriptPerformanceEvent",
             ProfilerCategory::ScriptHistoryEvent => "ScriptHistoryEvent",

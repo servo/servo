@@ -266,8 +266,8 @@ impl StylesheetOwner for HTMLStyleElement {
         self.parser_inserted.get()
     }
 
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
+    fn referrer_policy(&self) -> ReferrerPolicy {
+        ReferrerPolicy::EmptyString
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {

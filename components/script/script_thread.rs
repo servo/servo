@@ -69,7 +69,7 @@ use net_traits::request::{
 };
 use net_traits::storage_thread::StorageType;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError, ReferrerPolicy,
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
@@ -1620,8 +1620,11 @@ impl ScriptThread {
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
         for pipeline_id in pipelines_to_update {
+            // This document is not managed by this script thread. This can happen is the pipeline is
+            // unexpectedly closed or simply that it is managed by a different script thread.
+            // TODO: It would be better if iframes knew whether or not their Document was managed
+            // by the same script thread.
             let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-                warn!("Updating the rendering for closed pipeline {pipeline_id}.");
                 continue;
             };
             // TODO(#32004): The rendering should be updated according parent and shadow root order
@@ -3822,12 +3825,6 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
-        let referrer_policy = metadata
-            .headers
-            .as_deref()
-            .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
-            .map(ReferrerPolicy::from);
-
         let document = Document::new(
             &window,
             HasBrowsingContext::Yes,
@@ -3840,11 +3837,18 @@ impl ScriptThread {
             DocumentSource::FromParser,
             loader,
             referrer,
-            referrer_policy,
             Some(metadata.status.raw_code()),
             incomplete.canceller,
             can_gc,
         );
+
+        let referrer_policy = metadata
+            .headers
+            .as_deref()
+            .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
+            .into();
+
+        document.set_referrer_policy(referrer_policy);
         document.set_ready_state(DocumentReadyState::Loading, can_gc);
 
         self.documents

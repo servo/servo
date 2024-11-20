@@ -4539,11 +4539,11 @@ pub fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
     DOMString::new()
 }
 
-pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerPolicy> {
+pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
         .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))
-        .and_then(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
-        .or_else(|| document_from_node(element).get_referrer_policy())
+        .map(|attribute: DomRoot<Attr>| determine_policy_for_token(&attribute.Value()))
+        .unwrap_or(document_from_node(element).get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {

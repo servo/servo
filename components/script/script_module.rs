@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::{mem, ptr};
 
 use encoding_rs::UTF_8;
+use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexSet;
@@ -1189,6 +1190,19 @@ impl FetchResponseListener for ModuleContext {
                 return Err(NetworkError::Internal("No MIME type".into()));
             }
 
+            // Step 13.4: Let referrerPolicy be the result of parsing the `Referrer-Policy` header
+            // given response.
+            let referrer_policy = meta
+                .headers
+                .and_then(|headers| headers.typed_get::<ReferrerPolicyHeader>())
+                .into();
+
+            // Step 13.5: If referrerPolicy is not the empty string, set options's referrer policy
+            // to referrerPolicy.
+            if referrer_policy != ReferrerPolicy::EmptyString {
+                self.options.referrer_policy = referrer_policy;
+            }
+
             // Step 10.
             let (source_text, _, _) = UTF_8.decode(&self.data);
             Ok(ScriptOrigin::external(
@@ -1364,7 +1378,7 @@ pub struct ScriptFetchOptions {
     #[no_trace]
     pub parser_metadata: ParserMetadata,
     #[no_trace]
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: ReferrerPolicy,
 }
 
 impl ScriptFetchOptions {
@@ -1376,7 +1390,7 @@ impl ScriptFetchOptions {
             referrer: global.get_referrer(),
             parser_metadata: ParserMetadata::NotParserInserted,
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
-            referrer_policy: None,
+            referrer_policy: ReferrerPolicy::EmptyString,
         }
     }
 
@@ -1741,6 +1755,7 @@ fn fetch_single_module_script(
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
         .credentials_mode(options.credentials_mode)
+        .referrer_policy(options.referrer_policy)
         .mode(mode);
 
     let context = Arc::new(Mutex::new(ModuleContext {

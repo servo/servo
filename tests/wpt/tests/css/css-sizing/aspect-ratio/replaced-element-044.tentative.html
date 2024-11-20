@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS aspect-ratio: replaced element transferring intrinsic sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11236">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<meta name="assert" content="
+  The inline size resulting from an intrinsic keyword is transferred
+  to the block axis through aspect ratio.
+  Except if the inline size is `auto`, then we ignore the ratio and
+  just use the natural block size instead.
+">
+
+<style>
+canvas { aspect-ratio: 1; height: auto; background: cyan; }
+</style>
+
+<canvas width="50" height="25" style="width: auto"
+        data-expected-width="50" data-expected-height="25"></canvas>
+<canvas width="50" height="25" style="width: min-content"
+        data-expected-width="50" data-expected-height="50"></canvas>
+<canvas width="50" height="25" style="width: fit-content"
+        data-expected-width="50" data-expected-height="50"></canvas>
+<canvas width="50" height="25" style="width: max-content"
+        data-expected-width="50" data-expected-height="50"></canvas>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout("canvas");
+</script>

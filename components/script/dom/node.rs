@@ -2305,7 +2305,6 @@ impl Node {
                     DocumentSource::NotFromParser,
                     loader,
                     None,
-                    None,
                     document.status_code(),
                     Default::default(),
                     can_gc,

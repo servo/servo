@@ -28,8 +28,8 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
-    FetchTaskTarget, NetworkError, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
-    ResourceTimingType,
+    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceTimeValue, ResourceTimingType,
 };
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
@@ -278,18 +278,16 @@ pub async fn main_fetch(
 
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
     // to request’s policy container’s referrer policy.
-    request.referrer_policy = request
-        .referrer_policy
-        .or(Some(policy_container.referrer_policy));
-
-    assert!(request.referrer_policy.is_some());
+    if request.referrer_policy == ReferrerPolicy::EmptyString {
+        request.referrer_policy = policy_container.get_referrer_policy();
+    }
 
     let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
             request.headers.remove(header::REFERER);
             determine_requests_referrer(
-                request.referrer_policy.unwrap(),
+                request.referrer_policy,
                 referrer_source,
                 request.current_url(),
             )

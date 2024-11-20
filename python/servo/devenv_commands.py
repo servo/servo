@@ -13,7 +13,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import urllib
 
 from mach.decorators import (
     CommandArgument,
@@ -167,24 +166,6 @@ class MachCommands(CommandBase):
         return call(
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js', ':(exclude)*.min.css'],
             env=self.build_env())
-
-    @Command('rustup',
-             description='Update the Rust version to latest Nightly',
-             category='devenv')
-    def rustup(self):
-        nightly_date = urllib.request.urlopen(
-            "https://static.rust-lang.org/dist/channel-rust-nightly-date.txt").read()
-        new_toolchain = f"nightly-{nightly_date.decode('utf-8')}"
-        old_toolchain = self.rust_toolchain()
-
-        filename = path.join(self.context.topdir, "rust-toolchain.toml")
-        with open(filename, "r", encoding="utf-8") as file:
-            contents = file.read()
-        contents = contents.replace(old_toolchain, new_toolchain)
-        with open(filename, "w", encoding="utf-8") as file:
-            file.write(contents)
-
-        self.ensure_bootstrapped()
 
     @Command('fetch',
              description='Fetch Rust, Cargo and Cargo dependencies',

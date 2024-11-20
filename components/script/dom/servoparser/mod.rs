@@ -27,7 +27,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use profile_traits::time::{
-    ProfilerCategory, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
+    ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::time_profile;
 use script_traits::DocumentActivity;
@@ -215,7 +215,6 @@ impl ServoParser {
             loader,
             None,
             None,
-            None,
             Default::default(),
             can_gc,
         );
@@ -363,7 +362,28 @@ impl ServoParser {
             input.push_back(String::from(chunk).into());
         }
 
-        self.tokenize(|tokenizer| tokenizer.feed(&input, can_gc), can_gc);
+        let profiler_chan = self
+            .document
+            .window()
+            .upcast::<GlobalScope>()
+            .time_profiler_chan()
+            .clone();
+        let profiler_metadata = TimerMetadata {
+            url: self.document.url().as_str().into(),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        self.tokenize(
+            |tokenizer| {
+                tokenizer.feed(
+                    &input,
+                    can_gc,
+                    profiler_chan.clone(),
+                    profiler_metadata.clone(),
+                )
+            },
+            can_gc,
+        );
 
         if self.suspended.get() {
             // Parser got suspended, insert remaining input at end of
@@ -517,36 +537,10 @@ impl ServoParser {
     }
 
     fn parse_sync(&self, can_gc: CanGc) {
-        let metadata = TimerMetadata {
-            url: self.document.url().as_str().into(),
-            iframe: TimerMetadataFrameType::RootWindow,
-            incremental: TimerMetadataReflowType::FirstReflow,
-        };
-        let profiler_chan = self
-            .document
-            .window()
-            .upcast::<GlobalScope>()
-            .time_profiler_chan()
-            .clone();
         match self.tokenizer {
-            Tokenizer::Html(_) => time_profile!(
-                ProfilerCategory::ScriptParseHTML,
-                Some(metadata),
-                profiler_chan,
-                || self.do_parse_sync(can_gc),
-            ),
-            Tokenizer::AsyncHtml(_) => time_profile!(
-                ProfilerCategory::ScriptParseHTML,
-                Some(metadata),
-                profiler_chan,
-                || self.do_parse_sync(can_gc),
-            ),
-            Tokenizer::Xml(_) => time_profile!(
-                ProfilerCategory::ScriptParseXML,
-                Some(metadata),
-                profiler_chan,
-                || self.do_parse_sync(can_gc),
-            ),
+            Tokenizer::Html(_) => self.do_parse_sync(can_gc),
+            Tokenizer::AsyncHtml(_) => self.do_parse_sync(can_gc),
+            Tokenizer::Xml(_) => self.do_parse_sync(can_gc),
         }
     }
 
@@ -564,8 +558,27 @@ impl ServoParser {
                 }
             }
         }
+
+        let profiler_chan = self
+            .document
+            .window()
+            .upcast::<GlobalScope>()
+            .time_profiler_chan()
+            .clone();
+        let profiler_metadata = TimerMetadata {
+            url: self.document.url().as_str().into(),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
         self.tokenize(
-            |tokenizer| tokenizer.feed(&self.network_input, can_gc),
+            |tokenizer| {
+                tokenizer.feed(
+                    &self.network_input,
+                    can_gc,
+                    profiler_chan.clone(),
+                    profiler_metadata.clone(),
+                )
+            },
             can_gc,
         );
 
@@ -705,11 +718,28 @@ impl Tokenizer {
         &self,
         input: &BufferQueue,
         can_gc: CanGc,
+        profiler_chan: ProfilerChan,
+        profiler_metadata: TimerMetadata,
     ) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match *self {
-            Tokenizer::Html(ref tokenizer) => tokenizer.feed(input),
-            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.feed(input, can_gc),
-            Tokenizer::Xml(ref tokenizer) => tokenizer.feed(input),
+            Tokenizer::Html(ref tokenizer) => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(profiler_metadata),
+                profiler_chan,
+                || tokenizer.feed(input),
+            ),
+            Tokenizer::AsyncHtml(ref tokenizer) => time_profile!(
+                ProfilerCategory::ScriptParseHTML,
+                Some(profiler_metadata),
+                profiler_chan,
+                || tokenizer.feed(input, can_gc),
+            ),
+            Tokenizer::Xml(ref tokenizer) => time_profile!(
+                ProfilerCategory::ScriptParseXML,
+                Some(profiler_metadata),
+                profiler_chan,
+                || tokenizer.feed(input),
+            ),
         }
     }
 
