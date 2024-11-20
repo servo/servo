@@ -1609,7 +1609,6 @@ impl<'a> TableLayout<'a> {
         caption: &TableCaption,
         table_pbm: &PaddingBorderMargin,
         layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
         let context = caption.context.borrow();
@@ -1617,7 +1616,7 @@ impl<'a> TableLayout<'a> {
         let containing_block = &ContainingBlock {
             inline_size: self.table_width + table_pbm.padding_border_sums.inline,
             block_size: AuOrAuto::Auto,
-            style: containing_block.style,
+            style: &self.table.style,
         };
 
         let mut box_fragment = context.layout_in_flow_block_level(
@@ -1716,13 +1715,8 @@ impl<'a> TableLayout<'a> {
                 }
 
                 let original_positioning_context_length = positioning_context.len();
-                let mut caption_fragment = self.layout_caption(
-                    caption,
-                    &table_pbm,
-                    layout_context,
-                    containing_block_for_children,
-                    positioning_context,
-                );
+                let mut caption_fragment =
+                    self.layout_caption(caption, &table_pbm, layout_context, positioning_context);
 
                 // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                 // for the table children and only then convert the result to physical geometry.
@@ -1821,13 +1815,8 @@ impl<'a> TableLayout<'a> {
                 }
 
                 let original_positioning_context_length = positioning_context.len();
-                let mut caption_fragment = self.layout_caption(
-                    caption,
-                    &table_pbm,
-                    layout_context,
-                    containing_block_for_children,
-                    positioning_context,
-                );
+                let mut caption_fragment =
+                    self.layout_caption(caption, &table_pbm, layout_context, positioning_context);
 
                 // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                 // for the table children and only then convert the result to physical geometry.
