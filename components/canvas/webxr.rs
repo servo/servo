@@ -320,6 +320,7 @@ impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
         )?;
         Some(&mut data.ctx)
     }
+
     fn bindings(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&glow::Context> {
         let data = WebGLThread::make_current_if_needed(
             device,
@@ -327,6 +328,6 @@ impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
             self.contexts,
             self.bound_context_id,
         )?;
-        Some(&data.glow)
+        Some(&data.gl)
     }
 }
