@@ -158,12 +158,6 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
         id: DOMString,
         _options: HandleValue,
     ) -> Fallible<Option<OffscreenRenderingContext>> {
-        if id.is_empty() {
-            return Err(Error::Type(String::from(
-                "Context identifier cannot be an empty string",
-            )));
-        }
-
         match &*id {
             "2d" => Ok(self
                 .get_or_init_2d_context()
@@ -174,10 +168,9 @@ impl OffscreenCanvasMethods for OffscreenCanvas {
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options)
                 .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
-            "2D" => Err(Error::Type(String::from(
-                "Context name \"2D\" is unrecognised; matching is case sensitive",
+            _ => Err(Error::Type(String::from(
+                "Unrecognized OffscreenCanvas context type",
             ))),
-            _ => Err(Error::Type(String::from("Unrecognized context identifier"))),
         }
     }
 
