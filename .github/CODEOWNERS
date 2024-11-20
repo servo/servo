@@ -1,6 +1,4 @@
-# Reviewers for the Servo project
-
-
+# Reviewers for the `script` crate
 /components/script/  @gterzian
 
 # Reviewers for OpenHarmony related code
@@ -8,3 +6,10 @@
 /ports/servoshell/egl/                      @jschwe
 /components/fonts/platform/freetype/ohos/   @jschwe
 /.github/workflows/ohos.yml                 @jschwe
+
+# Reviewers for compositing-related code
+/components/compositing @mrobinson
+
+# Reviewers for layout-related code
+/components/layout_2020 @mrobinson
+/components/layout @mrobinson
