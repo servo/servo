@@ -9,6 +9,7 @@ use bitflags::bitflags;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
+use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
@@ -29,9 +30,11 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::Document;
+use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{
+    reflect_referrer_policy_attribute, AttributeMutation, Element, LayoutElementHelpers,
+};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
@@ -300,6 +303,19 @@ impl HTMLIFrameElement {
         // >    `element`.
         let url = self.get_url();
 
+        // Step 2.4: Let referrerPolicy be the current state of element's referrerpolicy content
+        // attribute.
+        let document = document_from_node(self);
+        let referrer_policy_token = self.ReferrerPolicy();
+
+        // Note: despite not being explicitly stated in the spec steps, this falls back to
+        // document's referrer policy here because it satisfies the expectations that when unset,
+        // the iframe should inherit the referrer policy of its parent
+        let referrer_policy = match determine_policy_for_token(referrer_policy_token.str()) {
+            ReferrerPolicy::EmptyString => document.get_referrer_policy(),
+            policy => policy,
+        };
+
         // TODO(#25748):
         // By spec, we return early if there's an ancestor browsing context
         // "whose active document's url, ignoring fragments, is equal".
@@ -331,13 +347,12 @@ impl HTMLIFrameElement {
             None
         };
 
-        let document = document_from_node(self);
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             creator_pipeline_id,
             window.upcast::<GlobalScope>().get_referrer(),
-            document.get_referrer_policy(),
+            referrer_policy,
             Some(window.upcast::<GlobalScope>().is_secure_context()),
         );
 
@@ -609,6 +624,14 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
         // Step 5.
         Some(document)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy>
+    fn ReferrerPolicy(&self) -> DOMString {
+        reflect_referrer_policy_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
     make_bool_getter!(AllowFullscreen, "allowfullscreen");
