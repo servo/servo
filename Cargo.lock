@@ -714,7 +714,6 @@ dependencies = [
  "range",
  "raqote",
  "servo_arc",
- "sparkle",
  "style",
  "style_traits",
  "surfman",
@@ -6916,15 +6915,6 @@ checksum = "ce305eb0b4296696835b71df73eb912e0f1ffd2556a501fcede6e0c50349191c"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "sparkle"
-version = "0.1.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74fc6c6346da9177de9894230716709c223c62adbf910a5c1e6096b2ee2e58e0"
-dependencies = [
- "gl_generator",
 ]
 
 [[package]]

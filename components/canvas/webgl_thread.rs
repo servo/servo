@@ -1,8 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+#![allow(unsafe_code)]
 use std::borrow::Cow;
+use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{slice, thread};
@@ -23,11 +24,14 @@ use canvas_traits::webgl::{
 };
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
+use glow::{
+    self as gl, bytes_per_type, components_per_format, ActiveTransformFeedback, Context as Gl,
+    HasContext, NativeFramebuffer, NativeTransformFeedback, NativeUniformLocation,
+    NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
+};
 use half::f16;
 use log::{debug, error, trace, warn};
 use pixels::{self, unmultiply_inplace, PixelFormat};
-use sparkle::gl;
-use sparkle::gl::{GLint, GLuint, Gl};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
@@ -45,18 +49,24 @@ use crate::webgl_limits::GLLimitsDetect;
 #[cfg(feature = "webxr")]
 use crate::webxr::{WebXRBridge, WebXRBridgeContexts, WebXRBridgeInit};
 
+type GLuint = u32;
+type GLint = i32;
+
+fn native_uniform_location(location: i32) -> Option<NativeUniformLocation> {
+    location.try_into().ok().map(NativeUniformLocation)
+}
+
 pub(crate) struct GLContextData {
     pub(crate) ctx: Context,
-    pub(crate) gl: Rc<Gl>,
-    pub(crate) glow: glow::Context,
+    pub(crate) gl: Rc<glow::Context>,
     state: GLState,
     attributes: GLContextAttributes,
 }
 
 #[derive(Debug)]
 pub struct GLState {
-    webgl_version: WebGLVersion,
-    gl_version: GLVersion,
+    _webgl_version: WebGLVersion,
+    _gl_version: GLVersion,
     requested_flags: ContextAttributeFlags,
     // This is the WebGL view of the color mask
     // The GL view may be different: if the GL context supports alpha
@@ -75,7 +85,7 @@ pub struct GLState {
     depth_clear_value: f64,
     // True when the default framebuffer is bound to DRAW_FRAMEBUFFER
     drawing_to_default_framebuffer: bool,
-    default_vao: gl::GLuint,
+    default_vao: Option<NativeVertexArray>,
 }
 
 impl GLState {
@@ -108,52 +118,56 @@ impl GLState {
 
     fn restore_clear_color_invariant(&self, gl: &Gl) {
         let (r, g, b, a) = self.clear_color;
-        gl.clear_color(r, g, b, a);
+        unsafe { gl.clear_color(r, g, b, a) };
     }
 
     fn restore_scissor_invariant(&self, gl: &Gl) {
         if self.scissor_test_enabled {
-            gl.enable(gl::SCISSOR_TEST);
+            unsafe { gl.enable(gl::SCISSOR_TEST) };
         } else {
-            gl.disable(gl::SCISSOR_TEST);
+            unsafe { gl.disable(gl::SCISSOR_TEST) };
         }
     }
 
     fn restore_alpha_invariant(&self, gl: &Gl) {
         let [r, g, b, a] = self.color_write_mask;
         if self.fake_no_alpha() {
-            gl.color_mask(r, g, b, false);
+            unsafe { gl.color_mask(r, g, b, false) };
         } else {
-            gl.color_mask(r, g, b, a);
+            unsafe { gl.color_mask(r, g, b, a) };
         }
     }
 
     fn restore_depth_invariant(&self, gl: &Gl) {
-        if self.fake_no_depth() {
-            gl.depth_mask(false);
-            gl.disable(gl::DEPTH_TEST);
-        } else {
-            gl.depth_mask(self.depth_write_mask);
-            if self.depth_test_enabled {
-                gl.enable(gl::DEPTH_TEST);
-            } else {
+        unsafe {
+            if self.fake_no_depth() {
+                gl.depth_mask(false);
                 gl.disable(gl::DEPTH_TEST);
+            } else {
+                gl.depth_mask(self.depth_write_mask);
+                if self.depth_test_enabled {
+                    gl.enable(gl::DEPTH_TEST);
+                } else {
+                    gl.disable(gl::DEPTH_TEST);
+                }
             }
         }
     }
 
     fn restore_stencil_invariant(&self, gl: &Gl) {
-        if self.fake_no_stencil() {
-            gl.stencil_mask(0);
-            gl.disable(gl::STENCIL_TEST);
-        } else {
-            let (f, b) = self.stencil_write_mask;
-            gl.stencil_mask_separate(gl::FRONT, f);
-            gl.stencil_mask_separate(gl::BACK, b);
-            if self.stencil_test_enabled {
-                gl.enable(gl::STENCIL_TEST);
-            } else {
+        unsafe {
+            if self.fake_no_stencil() {
+                gl.stencil_mask(0);
                 gl.disable(gl::STENCIL_TEST);
+            } else {
+                let (f, b) = self.stencil_write_mask;
+                gl.stencil_mask_separate(gl::FRONT, f);
+                gl.stencil_mask_separate(gl::BACK, b);
+                if self.stencil_test_enabled {
+                    gl.enable(gl::STENCIL_TEST);
+                } else {
+                    gl.disable(gl::STENCIL_TEST);
+                }
             }
         }
     }
@@ -162,8 +176,8 @@ impl GLState {
 impl Default for GLState {
     fn default() -> GLState {
         GLState {
-            gl_version: GLVersion { major: 1, minor: 0 },
-            webgl_version: WebGLVersion::WebGL1,
+            _gl_version: GLVersion { major: 1, minor: 0 },
+            _webgl_version: WebGLVersion::WebGL1,
             requested_flags: ContextAttributeFlags::empty(),
             color_write_mask: [true, true, true, true],
             clear_color: (0., 0., 0., 0.),
@@ -175,7 +189,7 @@ impl Default for GLState {
             depth_write_mask: true,
             depth_test_enabled: false,
             depth_clear_value: 1.,
-            default_vao: 0,
+            default_vao: None,
             drawing_to_default_framebuffer: true,
         }
     }
@@ -318,9 +332,10 @@ impl WebGLThread {
                         )
                         .expect("WebGLContext not found");
                         let glsl_version = Self::get_glsl_version(&data.gl);
-                        let api_type = match data.gl.get_type() {
-                            gl::GlType::Gl => GlType::Gl,
-                            gl::GlType::Gles => GlType::Gles,
+                        let api_type = if data.gl.version().is_embedded {
+                            GlType::Gles
+                        } else {
+                            GlType::Gl
                         };
 
                         // FIXME(nox): Should probably be done by surfman.
@@ -329,16 +344,20 @@ impl WebGLThread {
                             // and in GLES. Rather than doing version detection, it does
                             // not hurt to enable them anyways.
 
-                            data.gl.enable(gl::POINT_SPRITE);
-                            let err = data.gl.get_error();
-                            if err != 0 {
-                                warn!("Error enabling GL point sprites: {}", err);
-                            }
+                            unsafe {
+                                // XXX: Do we even need to this?
+                                const GL_POINT_SPRITE: u32 = 0x8861;
+                                data.gl.enable(GL_POINT_SPRITE);
+                                let err = data.gl.get_error();
+                                if err != 0 {
+                                    warn!("Error enabling GL point sprites: {}", err);
+                                }
 
-                            data.gl.enable(gl::PROGRAM_POINT_SIZE);
-                            let err = data.gl.get_error();
-                            if err != 0 {
-                                warn!("Error enabling GL program point size: {}", err);
+                                data.gl.enable(gl::PROGRAM_POINT_SIZE);
+                                let err = data.gl.get_error();
+                                if err != 0 {
+                                    warn!("Error enabling GL program point size: {}", err);
+                                }
                             }
                         }
 
@@ -467,7 +486,6 @@ impl WebGLThread {
     }
 
     /// Creates a new WebGLContext
-    #[allow(unsafe_code)]
     fn create_webgl_context(
         &mut self,
         webgl_version: WebGLVersion,
@@ -552,24 +570,15 @@ impl WebGLThread {
             self.device.context_id(&ctx),
         );
 
-        let gl = match self.api_type {
-            GlType::Gl => Gl::gl_fns(gl::ffi_gl::Gl::load_with(|symbol_name| {
-                self.device.get_proc_address(&ctx, symbol_name)
-            })),
-            GlType::Gles => Gl::gles_fns(gl::ffi_gles::Gles2::load_with(|symbol_name| {
-                self.device.get_proc_address(&ctx, symbol_name)
-            })),
-        };
-
-        let glow = unsafe {
-            match self.api_type {
+        let gl = unsafe {
+            Rc::new(match self.api_type {
                 GlType::Gl => glow::Context::from_loader_function(|symbol_name| {
                     self.device.get_proc_address(&ctx, symbol_name)
                 }),
                 GlType::Gles => glow::Context::from_loader_function(|symbol_name| {
                     self.device.get_proc_address(&ctx, symbol_name)
                 }),
-            }
+            })
         };
 
         let limits = GLLimits::detect(&gl, webgl_version);
@@ -596,30 +605,31 @@ impl WebGLThread {
             .ok_or_else(|| "Failed to get context surface info".to_string())?
             .framebuffer_object;
 
-        gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer);
-        gl.viewport(0, 0, size.width as i32, size.height as i32);
-        gl.scissor(0, 0, size.width as i32, size.height as i32);
-        gl.clear_color(0., 0., 0., !has_alpha as u32 as f32);
-        gl.clear_depth(1.);
-        gl.clear_stencil(0);
-        gl.clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
-        gl.clear_color(0., 0., 0., 0.);
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+        unsafe {
+            gl.bind_framebuffer(
+                gl::FRAMEBUFFER,
+                NonZeroU32::new(framebuffer).map(NativeFramebuffer),
+            );
+            gl.viewport(0, 0, size.width as i32, size.height as i32);
+            gl.scissor(0, 0, size.width as i32, size.height as i32);
+            gl.clear_color(0., 0., 0., !has_alpha as u32 as f32);
+            gl.clear_depth(1.);
+            gl.clear_stencil(0);
+            gl.clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+            gl.clear_color(0., 0., 0., 0.);
+            debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+        }
 
-        let use_apple_vertex_array = WebGLImpl::needs_apple_vertex_arrays(gl_version);
-        let default_vao = if let Some(vao) =
-            WebGLImpl::create_vertex_array(&gl, use_apple_vertex_array, webgl_version)
-        {
-            let vao = vao.get();
-            WebGLImpl::bind_vertex_array(&gl, vao, use_apple_vertex_array, webgl_version);
-            vao
+        let default_vao = if let Some(vao) = WebGLImpl::create_vertex_array(&gl) {
+            WebGLImpl::bind_vertex_array(&gl, Some(vao.glow()));
+            Some(vao.glow())
         } else {
-            0
+            None
         };
 
         let state = GLState {
-            gl_version,
-            webgl_version,
+            _gl_version: gl_version,
+            _webgl_version: webgl_version,
             requested_flags,
             default_vao,
             ..Default::default()
@@ -627,14 +637,13 @@ impl WebGLThread {
         debug!("Created state {:?}", state);
 
         state.restore_invariant(&gl);
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
 
         self.contexts.insert(
             id,
             GLContextData {
                 ctx,
                 gl,
-                glow,
                 state,
                 attributes,
             },
@@ -687,7 +696,7 @@ impl WebGLThread {
                 .resize(&mut self.device, &mut data.ctx, size.to_i32())
                 .map_err(|err| format!("Failed to resize swap chain: {:?}", err))?;
             swap_chain
-                .clear_surface(&mut self.device, &mut data.ctx, &data.glow, clear_color)
+                .clear_surface(&mut self.device, &mut data.ctx, &data.gl, clear_color)
                 .map_err(|err| format!("Failed to clear resized swap chain: {:?}", err))?;
         } else {
             error!("Failed to find swap chain");
@@ -695,7 +704,7 @@ impl WebGLThread {
 
         // Reset framebuffer bindings as appropriate.
         framebuffer_rebinding_info.apply(&self.device, &data.ctx, &data.gl);
-        debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+        debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
 
         let has_alpha = data
             .state
@@ -773,13 +782,13 @@ impl WebGLThread {
             .expect("Where's the GL data?");
 
             // Ensure there are no pending GL errors from other parts of the pipeline.
-            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+            debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
 
             // Check to see if any of the current framebuffer bindings are the surface we're about
             // to swap out. If so, we'll have to reset them after destroying the surface.
             let framebuffer_rebinding_info =
                 FramebufferRebindingInfo::detect(&self.device, &data.ctx, &data.gl);
-            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+            debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
 
             debug!("Getting swap chain for {:?}", context_id);
             let swap_chain = self
@@ -793,13 +802,13 @@ impl WebGLThread {
                     &mut self.device,
                     &mut data.ctx,
                     if data.attributes.preserve_drawing_buffer {
-                        PreserveBuffer::Yes(&data.glow)
+                        PreserveBuffer::Yes(&data.gl)
                     } else {
                         PreserveBuffer::No
                     },
                 )
                 .unwrap();
-            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+            debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
 
             if !data.attributes.preserve_drawing_buffer {
                 debug!("Clearing {:?}", context_id);
@@ -809,15 +818,15 @@ impl WebGLThread {
                     .contains(ContextAttributeFlags::ALPHA);
                 let clear_color = [0.0, 0.0, 0.0, !alpha as i32 as f32];
                 swap_chain
-                    .clear_surface(&mut self.device, &mut data.ctx, &data.glow, clear_color)
+                    .clear_surface(&mut self.device, &mut data.ctx, &data.gl, clear_color)
                     .unwrap();
-                debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+                debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
             }
 
             // Rebind framebuffers as appropriate.
             debug!("Rebinding {:?}", context_id);
             framebuffer_rebinding_info.apply(&self.device, &data.ctx, &data.gl);
-            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+            debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
 
             let SurfaceInfo {
                 size,
@@ -956,7 +965,7 @@ impl WebGLThread {
 
     /// Gets the GLSL Version supported by a GLContext.
     fn get_glsl_version(gl: &Gl) -> WebGLSLVersion {
-        let version = gl.get_string(gl::SHADING_LANGUAGE_VERSION);
+        let version = unsafe { gl.get_parameter_string(gl::SHADING_LANGUAGE_VERSION) };
         // Fomat used by SHADING_LANGUAGE_VERSION query : major.minor[.release] [vendor info]
         let mut values = version.split(&['.', ' '][..]);
         let major = values
@@ -990,7 +999,6 @@ fn current_wr_image_buffer_kind(device: &Device) -> ImageBufferKind {
 pub struct WebGLImpl;
 
 impl WebGLImpl {
-    #[allow(unsafe_code)]
     pub fn apply(
         device: &Device,
         ctx: &Context,
@@ -1003,70 +1011,72 @@ impl WebGLImpl {
         debug!("WebGLImpl::apply({:?})", command);
 
         // Ensure there are no pending GL errors from other parts of the pipeline.
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
 
         match command {
             WebGLCommand::GetContextAttributes(ref sender) => sender.send(*attributes).unwrap(),
-            WebGLCommand::ActiveTexture(target) => gl.active_texture(target),
-            WebGLCommand::AttachShader(program_id, shader_id) => {
-                gl.attach_shader(program_id.get(), shader_id.get())
+            WebGLCommand::ActiveTexture(target) => unsafe { gl.active_texture(target) },
+            WebGLCommand::AttachShader(program_id, shader_id) => unsafe {
+                gl.attach_shader(program_id.glow(), shader_id.glow())
             },
-            WebGLCommand::DetachShader(program_id, shader_id) => {
-                gl.detach_shader(program_id.get(), shader_id.get())
+            WebGLCommand::DetachShader(program_id, shader_id) => unsafe {
+                gl.detach_shader(program_id.glow(), shader_id.glow())
             },
-            WebGLCommand::BindAttribLocation(program_id, index, ref name) => {
-                gl.bind_attrib_location(program_id.get(), index, &to_name_in_compiled_shader(name))
+            WebGLCommand::BindAttribLocation(program_id, index, ref name) => unsafe {
+                gl.bind_attrib_location(program_id.glow(), index, &to_name_in_compiled_shader(name))
             },
-            WebGLCommand::BlendColor(r, g, b, a) => gl.blend_color(r, g, b, a),
-            WebGLCommand::BlendEquation(mode) => gl.blend_equation(mode),
-            WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha) => {
+            WebGLCommand::BlendColor(r, g, b, a) => unsafe { gl.blend_color(r, g, b, a) },
+            WebGLCommand::BlendEquation(mode) => unsafe { gl.blend_equation(mode) },
+            WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha) => unsafe {
                 gl.blend_equation_separate(mode_rgb, mode_alpha)
             },
-            WebGLCommand::BlendFunc(src, dest) => gl.blend_func(src, dest),
-            WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) => {
+            WebGLCommand::BlendFunc(src, dest) => unsafe { gl.blend_func(src, dest) },
+            WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) => unsafe {
                 gl.blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha)
             },
-            WebGLCommand::BufferData(buffer_type, ref receiver, usage) => {
-                gl::buffer_data(gl, buffer_type, &receiver.recv().unwrap(), usage)
+            WebGLCommand::BufferData(buffer_type, ref receiver, usage) => unsafe {
+                gl.buffer_data_u8_slice(buffer_type, &receiver.recv().unwrap(), usage)
             },
-            WebGLCommand::BufferSubData(buffer_type, offset, ref receiver) => {
-                gl::buffer_sub_data(gl, buffer_type, offset, &receiver.recv().unwrap())
+            WebGLCommand::BufferSubData(buffer_type, offset, ref receiver) => unsafe {
+                gl.buffer_sub_data_u8_slice(buffer_type, offset as i32, &receiver.recv().unwrap())
             },
             WebGLCommand::CopyBufferSubData(src, dst, src_offset, dst_offset, size) => {
-                gl.copy_buffer_sub_data(
-                    src,
-                    dst,
-                    src_offset as isize,
-                    dst_offset as isize,
-                    size as isize,
-                );
+                unsafe {
+                    gl.copy_buffer_sub_data(
+                        src,
+                        dst,
+                        src_offset as i32,
+                        dst_offset as i32,
+                        size as i32,
+                    )
+                };
             },
-            WebGLCommand::GetBufferSubData(buffer_type, offset, length, ref sender) => {
+            WebGLCommand::GetBufferSubData(buffer_type, offset, length, ref sender) => unsafe {
                 let ptr = gl.map_buffer_range(
                     buffer_type,
-                    offset as isize,
-                    length as isize,
+                    offset as i32,
+                    length as i32,
                     gl::MAP_READ_BIT,
                 );
-                let data: &[u8] = unsafe { slice::from_raw_parts(ptr as _, length) };
+                let data: &[u8] = slice::from_raw_parts(ptr as _, length);
                 sender.send(data).unwrap();
                 gl.unmap_buffer(buffer_type);
             },
             WebGLCommand::Clear(mask) => {
-                gl.clear(mask);
+                unsafe { gl.clear(mask) };
             },
             WebGLCommand::ClearColor(r, g, b, a) => {
                 state.clear_color = (r, g, b, a);
-                gl.clear_color(r, g, b, a);
+                unsafe { gl.clear_color(r, g, b, a) };
             },
             WebGLCommand::ClearDepth(depth) => {
                 let value = depth.clamp(0., 1.) as f64;
                 state.depth_clear_value = value;
-                gl.clear_depth(value)
+                unsafe { gl.clear_depth(value) }
             },
             WebGLCommand::ClearStencil(stencil) => {
                 state.stencil_clear_value = stencil;
-                gl.clear_stencil(stencil);
+                unsafe { gl.clear_stencil(stencil) };
             },
             WebGLCommand::ColorMask(r, g, b, a) => {
                 state.color_write_mask = [r, g, b, a];
@@ -1081,7 +1091,9 @@ impl WebGLImpl {
                 width,
                 height,
                 border,
-            ) => gl.copy_tex_image_2d(target, level, internal_format, x, y, width, height, border),
+            ) => unsafe {
+                gl.copy_tex_image_2d(target, level, internal_format, x, y, width, height, border)
+            },
             WebGLCommand::CopyTexSubImage2D(
                 target,
                 level,
@@ -1091,14 +1103,16 @@ impl WebGLImpl {
                 y,
                 width,
                 height,
-            ) => gl.copy_tex_sub_image_2d(target, level, xoffset, yoffset, x, y, width, height),
-            WebGLCommand::CullFace(mode) => gl.cull_face(mode),
-            WebGLCommand::DepthFunc(func) => gl.depth_func(func),
+            ) => unsafe {
+                gl.copy_tex_sub_image_2d(target, level, xoffset, yoffset, x, y, width, height)
+            },
+            WebGLCommand::CullFace(mode) => unsafe { gl.cull_face(mode) },
+            WebGLCommand::DepthFunc(func) => unsafe { gl.depth_func(func) },
             WebGLCommand::DepthMask(flag) => {
                 state.depth_write_mask = flag;
                 state.restore_depth_invariant(gl);
             },
-            WebGLCommand::DepthRange(near, far) => {
+            WebGLCommand::DepthRange(near, far) => unsafe {
                 gl.depth_range(near.clamp(0., 1.) as f64, far.clamp(0., 1.) as f64)
             },
             WebGLCommand::Disable(cap) => match cap {
@@ -1114,7 +1128,7 @@ impl WebGLImpl {
                     state.stencil_test_enabled = false;
                     state.restore_stencil_invariant(gl);
                 },
-                _ => gl.disable(cap),
+                _ => unsafe { gl.disable(cap) },
             },
             WebGLCommand::Enable(cap) => match cap {
                 gl::SCISSOR_TEST => {
@@ -1129,15 +1143,15 @@ impl WebGLImpl {
                     state.stencil_test_enabled = true;
                     state.restore_stencil_invariant(gl);
                 },
-                _ => gl.enable(cap),
+                _ => unsafe { gl.enable(cap) },
             },
             WebGLCommand::FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb) => {
-                let attach = |attachment| {
+                let attach = |attachment| unsafe {
                     gl.framebuffer_renderbuffer(
                         target,
                         attachment,
                         renderbuffertarget,
-                        rb.map_or(0, WebGLRenderbufferId::get),
+                        rb.map(WebGLRenderbufferId::glow),
                     )
                 };
                 if attachment == gl::DEPTH_STENCIL_ATTACHMENT {
@@ -1148,12 +1162,12 @@ impl WebGLImpl {
                 }
             },
             WebGLCommand::FramebufferTexture2D(target, attachment, textarget, texture, level) => {
-                let attach = |attachment| {
+                let attach = |attachment| unsafe {
                     gl.framebuffer_texture_2d(
                         target,
                         attachment,
                         textarget,
-                        texture.map_or(0, WebGLTextureId::get),
+                        texture.map(WebGLTextureId::glow),
                         level,
                     )
                 };
@@ -1164,46 +1178,57 @@ impl WebGLImpl {
                     attach(attachment)
                 }
             },
-            WebGLCommand::FrontFace(mode) => gl.front_face(mode),
-            WebGLCommand::DisableVertexAttribArray(attrib_id) => {
+            WebGLCommand::FrontFace(mode) => unsafe { gl.front_face(mode) },
+            WebGLCommand::DisableVertexAttribArray(attrib_id) => unsafe {
                 gl.disable_vertex_attrib_array(attrib_id)
             },
-            WebGLCommand::EnableVertexAttribArray(attrib_id) => {
+            WebGLCommand::EnableVertexAttribArray(attrib_id) => unsafe {
                 gl.enable_vertex_attrib_array(attrib_id)
             },
-            WebGLCommand::Hint(name, val) => gl.hint(name, val),
+            WebGLCommand::Hint(name, val) => unsafe { gl.hint(name, val) },
             WebGLCommand::LineWidth(width) => {
-                gl.line_width(width);
+                unsafe { gl.line_width(width) };
                 // In OpenGL Core Profile >3.2, any non-1.0 value will generate INVALID_VALUE.
                 if width != 1.0 {
-                    let _ = gl.get_error();
+                    let _ = unsafe { gl.get_error() };
                 }
             },
-            WebGLCommand::PixelStorei(name, val) => gl.pixel_store_i(name, val),
-            WebGLCommand::PolygonOffset(factor, units) => gl.polygon_offset(factor, units),
+            WebGLCommand::PixelStorei(name, val) => unsafe { gl.pixel_store_i32(name, val) },
+            WebGLCommand::PolygonOffset(factor, units) => unsafe {
+                gl.polygon_offset(factor, units)
+            },
             WebGLCommand::ReadPixels(rect, format, pixel_type, ref sender) => {
-                let pixels = gl.read_pixels(
-                    rect.origin.x as i32,
-                    rect.origin.y as i32,
-                    rect.size.width as i32,
-                    rect.size.height as i32,
-                    format,
-                    pixel_type,
-                );
+                let len = bytes_per_type(pixel_type) *
+                    components_per_format(format) *
+                    rect.size.area() as usize;
+                let mut pixels = vec![0; len];
+                unsafe {
+                    // We don't want any alignment padding on pixel rows.
+                    gl.pixel_store_i32(glow::PACK_ALIGNMENT, 1);
+                    gl.read_pixels(
+                        rect.origin.x as i32,
+                        rect.origin.y as i32,
+                        rect.size.width as i32,
+                        rect.size.height as i32,
+                        format,
+                        pixel_type,
+                        glow::PixelPackData::Slice(Some(&mut pixels)),
+                    )
+                };
                 sender.send(&pixels).unwrap();
             },
             WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {
-                gl.read_pixels_into_pixel_pack_buffer(
+                gl.read_pixels(
                     rect.origin.x,
                     rect.origin.y,
                     rect.size.width,
                     rect.size.height,
                     format,
                     pixel_type,
-                    offset,
+                    glow::PixelPackData::BufferOffset(offset as u32),
                 );
             },
-            WebGLCommand::RenderbufferStorage(target, format, width, height) => {
+            WebGLCommand::RenderbufferStorage(target, format, width, height) => unsafe {
                 gl.renderbuffer_storage(target, format, width, height)
             },
             WebGLCommand::RenderbufferStorageMultisample(
@@ -1212,16 +1237,22 @@ impl WebGLImpl {
                 format,
                 width,
                 height,
-            ) => gl.renderbuffer_storage_multisample(target, samples, format, width, height),
-            WebGLCommand::SampleCoverage(value, invert) => gl.sample_coverage(value, invert),
+            ) => unsafe {
+                gl.renderbuffer_storage_multisample(target, samples, format, width, height)
+            },
+            WebGLCommand::SampleCoverage(value, invert) => unsafe {
+                gl.sample_coverage(value, invert)
+            },
             WebGLCommand::Scissor(x, y, width, height) => {
                 // FIXME(nox): Kinda unfortunate that some u32 values could
                 // end up as negative numbers here, but I don't even think
                 // that can happen in the real world.
-                gl.scissor(x, y, width as i32, height as i32);
+                unsafe { gl.scissor(x, y, width as i32, height as i32) };
             },
-            WebGLCommand::StencilFunc(func, ref_, mask) => gl.stencil_func(func, ref_, mask),
-            WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) => {
+            WebGLCommand::StencilFunc(func, ref_, mask) => unsafe {
+                gl.stencil_func(func, ref_, mask)
+            },
+            WebGLCommand::StencilFuncSeparate(face, func, ref_, mask) => unsafe {
                 gl.stencil_func_separate(face, func, ref_, mask)
             },
             WebGLCommand::StencilMask(mask) => {
@@ -1236,47 +1267,72 @@ impl WebGLImpl {
                 }
                 state.restore_stencil_invariant(gl);
             },
-            WebGLCommand::StencilOp(fail, zfail, zpass) => gl.stencil_op(fail, zfail, zpass),
-            WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass) => {
+            WebGLCommand::StencilOp(fail, zfail, zpass) => unsafe {
+                gl.stencil_op(fail, zfail, zpass)
+            },
+            WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass) => unsafe {
                 gl.stencil_op_separate(face, fail, zfail, zpass)
             },
             WebGLCommand::GetRenderbufferParameter(target, pname, ref chan) => {
                 Self::get_renderbuffer_parameter(gl, target, pname, chan)
             },
             WebGLCommand::CreateTransformFeedback(ref sender) => {
-                let value = gl.gen_transform_feedbacks();
-                sender.send(value).unwrap()
+                let value = unsafe { gl.create_transform_feedback() }.ok();
+                sender
+                    .send(value.map(|ntf| ntf.0.get()).unwrap_or_default())
+                    .unwrap()
             },
             WebGLCommand::DeleteTransformFeedback(id) => {
-                gl.delete_transform_feedbacks(id);
+                if let Some(tf) = NonZeroU32::new(id) {
+                    unsafe { gl.delete_transform_feedback(NativeTransformFeedback(tf)) };
+                }
             },
             WebGLCommand::IsTransformFeedback(id, ref sender) => {
-                let value = gl.is_transform_feedback(id);
+                let value = NonZeroU32::new(id)
+                    .map(|id| unsafe { gl.is_transform_feedback(NativeTransformFeedback(id)) })
+                    .unwrap_or_default();
                 sender.send(value).unwrap()
             },
             WebGLCommand::BindTransformFeedback(target, id) => {
-                gl.bind_transform_feedback(target, id);
+                unsafe {
+                    gl.bind_transform_feedback(
+                        target,
+                        NonZeroU32::new(id).map(NativeTransformFeedback),
+                    )
+                };
             },
             WebGLCommand::BeginTransformFeedback(mode) => {
-                gl.begin_transform_feedback(mode);
+                unsafe { gl.begin_transform_feedback(mode) };
             },
             WebGLCommand::EndTransformFeedback() => {
-                gl.end_transform_feedback();
+                unsafe { gl.end_transform_feedback() };
             },
             WebGLCommand::PauseTransformFeedback() => {
-                gl.pause_transform_feedback();
+                unsafe { gl.pause_transform_feedback() };
             },
             WebGLCommand::ResumeTransformFeedback() => {
-                gl.resume_transform_feedback();
+                unsafe { gl.resume_transform_feedback() };
             },
             WebGLCommand::GetTransformFeedbackVarying(program, index, ref sender) => {
-                let (size, ty, mut name) = gl.get_transform_feedback_varying(program.get(), index);
+                let ActiveTransformFeedback { size, tftype, name } =
+                    unsafe { gl.get_transform_feedback_varying(program.glow(), index) }.unwrap();
                 // We need to split, because the name starts with '_u' prefix.
-                name = name.split_off(2);
-                sender.send((size, ty, name)).unwrap();
+                let name = from_name_in_compiled_shader(&name);
+                sender.send((size, tftype, name)).unwrap();
             },
             WebGLCommand::TransformFeedbackVaryings(program, ref varyings, buffer_mode) => {
-                gl.transform_feedback_varyings(program.get(), varyings.as_slice(), buffer_mode);
+                let varyings: Vec<String> = varyings
+                    .iter()
+                    .map(|varying| to_name_in_compiled_shader(varying))
+                    .collect();
+                let varyings_refs: Vec<&str> = varyings.iter().map(String::as_ref).collect();
+                unsafe {
+                    gl.transform_feedback_varyings(
+                        program.glow(),
+                        varyings_refs.as_slice(),
+                        buffer_mode,
+                    )
+                };
             },
             WebGLCommand::GetFramebufferAttachmentParameter(
                 target,
@@ -1289,8 +1345,9 @@ impl WebGLImpl {
             },
             WebGLCommand::GetExtensions(ref chan) => Self::get_extensions(gl, chan),
             WebGLCommand::GetFragDataLocation(program_id, ref name, ref sender) => {
-                let location =
-                    gl.get_frag_data_location(program_id.get(), &to_name_in_compiled_shader(name));
+                let location = unsafe {
+                    gl.get_frag_data_location(program_id.glow(), &to_name_in_compiled_shader(name))
+                };
                 sender.send(location).unwrap();
             },
             WebGLCommand::GetUniformLocation(program_id, ref name, ref chan) => {
@@ -1313,93 +1370,180 @@ impl WebGLImpl {
             WebGLCommand::CreateShader(shader_type, ref chan) => {
                 Self::create_shader(gl, shader_type, chan)
             },
-            WebGLCommand::DeleteBuffer(id) => gl.delete_buffers(&[id.get()]),
-            WebGLCommand::DeleteFramebuffer(id) => gl.delete_framebuffers(&[id.get()]),
-            WebGLCommand::DeleteRenderbuffer(id) => gl.delete_renderbuffers(&[id.get()]),
-            WebGLCommand::DeleteTexture(id) => gl.delete_textures(&[id.get()]),
-            WebGLCommand::DeleteProgram(id) => gl.delete_program(id.get()),
-            WebGLCommand::DeleteShader(id) => gl.delete_shader(id.get()),
-            WebGLCommand::BindBuffer(target, id) => {
-                gl.bind_buffer(target, id.map_or(0, WebGLBufferId::get))
+            WebGLCommand::DeleteBuffer(id) => unsafe { gl.delete_buffer(id.glow()) },
+            WebGLCommand::DeleteFramebuffer(id) => unsafe { gl.delete_framebuffer(id.glow()) },
+            WebGLCommand::DeleteRenderbuffer(id) => unsafe { gl.delete_renderbuffer(id.glow()) },
+            WebGLCommand::DeleteTexture(id) => unsafe { gl.delete_texture(id.glow()) },
+            WebGLCommand::DeleteProgram(id) => unsafe { gl.delete_program(id.glow()) },
+            WebGLCommand::DeleteShader(id) => unsafe { gl.delete_shader(id.glow()) },
+            WebGLCommand::BindBuffer(target, id) => unsafe {
+                gl.bind_buffer(target, id.map(WebGLBufferId::glow))
             },
             WebGLCommand::BindFramebuffer(target, request) => {
                 Self::bind_framebuffer(gl, target, request, ctx, device, state)
             },
-            WebGLCommand::BindRenderbuffer(target, id) => {
-                gl.bind_renderbuffer(target, id.map_or(0, WebGLRenderbufferId::get))
+            WebGLCommand::BindRenderbuffer(target, id) => unsafe {
+                gl.bind_renderbuffer(target, id.map(WebGLRenderbufferId::glow))
             },
-            WebGLCommand::BindTexture(target, id) => {
-                gl.bind_texture(target, id.map_or(0, WebGLTextureId::get))
+            WebGLCommand::BindTexture(target, id) => unsafe {
+                gl.bind_texture(target, id.map(WebGLTextureId::glow))
             },
-            WebGLCommand::Uniform1f(uniform_id, v) => gl.uniform_1f(uniform_id, v),
-            WebGLCommand::Uniform1fv(uniform_id, ref v) => gl.uniform_1fv(uniform_id, v),
-            WebGLCommand::Uniform1i(uniform_id, v) => gl.uniform_1i(uniform_id, v),
-            WebGLCommand::Uniform1iv(uniform_id, ref v) => gl.uniform_1iv(uniform_id, v),
-            WebGLCommand::Uniform1ui(uniform_id, v) => gl.uniform_1ui(uniform_id, v),
-            WebGLCommand::Uniform1uiv(uniform_id, ref v) => gl.uniform_1uiv(uniform_id, v),
-            WebGLCommand::Uniform2f(uniform_id, x, y) => gl.uniform_2f(uniform_id, x, y),
-            WebGLCommand::Uniform2fv(uniform_id, ref v) => gl.uniform_2fv(uniform_id, v),
-            WebGLCommand::Uniform2i(uniform_id, x, y) => gl.uniform_2i(uniform_id, x, y),
-            WebGLCommand::Uniform2iv(uniform_id, ref v) => gl.uniform_2iv(uniform_id, v),
-            WebGLCommand::Uniform2ui(uniform_id, x, y) => gl.uniform_2ui(uniform_id, x, y),
-            WebGLCommand::Uniform2uiv(uniform_id, ref v) => gl.uniform_2uiv(uniform_id, v),
-            WebGLCommand::Uniform3f(uniform_id, x, y, z) => gl.uniform_3f(uniform_id, x, y, z),
-            WebGLCommand::Uniform3fv(uniform_id, ref v) => gl.uniform_3fv(uniform_id, v),
-            WebGLCommand::Uniform3i(uniform_id, x, y, z) => gl.uniform_3i(uniform_id, x, y, z),
-            WebGLCommand::Uniform3iv(uniform_id, ref v) => gl.uniform_3iv(uniform_id, v),
-            WebGLCommand::Uniform3ui(uniform_id, x, y, z) => gl.uniform_3ui(uniform_id, x, y, z),
-            WebGLCommand::Uniform3uiv(uniform_id, ref v) => gl.uniform_3uiv(uniform_id, v),
-            WebGLCommand::Uniform4f(uniform_id, x, y, z, w) => {
-                gl.uniform_4f(uniform_id, x, y, z, w)
+            WebGLCommand::Uniform1f(uniform_id, v) => unsafe {
+                gl.uniform_1_f32(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::Uniform4fv(uniform_id, ref v) => gl.uniform_4fv(uniform_id, v),
-            WebGLCommand::Uniform4i(uniform_id, x, y, z, w) => {
-                gl.uniform_4i(uniform_id, x, y, z, w)
+            WebGLCommand::Uniform1fv(uniform_id, ref v) => unsafe {
+                gl.uniform_1_f32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::Uniform4iv(uniform_id, ref v) => gl.uniform_4iv(uniform_id, v),
-            WebGLCommand::Uniform4ui(uniform_id, x, y, z, w) => {
-                gl.uniform_4ui(uniform_id, x, y, z, w)
+            WebGLCommand::Uniform1i(uniform_id, v) => unsafe {
+                gl.uniform_1_i32(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::Uniform4uiv(uniform_id, ref v) => gl.uniform_4uiv(uniform_id, v),
-            WebGLCommand::UniformMatrix2fv(uniform_id, ref v) => {
-                gl.uniform_matrix_2fv(uniform_id, false, v)
+            WebGLCommand::Uniform1iv(uniform_id, ref v) => unsafe {
+                gl.uniform_1_i32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::UniformMatrix3fv(uniform_id, ref v) => {
-                gl.uniform_matrix_3fv(uniform_id, false, v)
+            WebGLCommand::Uniform1ui(uniform_id, v) => unsafe {
+                gl.uniform_1_u32(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::UniformMatrix4fv(uniform_id, ref v) => {
-                gl.uniform_matrix_4fv(uniform_id, false, v)
+            WebGLCommand::Uniform1uiv(uniform_id, ref v) => unsafe {
+                gl.uniform_1_u32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::UniformMatrix3x2fv(uniform_id, ref v) => {
-                gl.uniform_matrix_3x2fv(uniform_id, false, v)
+            WebGLCommand::Uniform2f(uniform_id, x, y) => unsafe {
+                gl.uniform_2_f32(native_uniform_location(uniform_id).as_ref(), x, y)
             },
-            WebGLCommand::UniformMatrix4x2fv(uniform_id, ref v) => {
-                gl.uniform_matrix_4x2fv(uniform_id, false, v)
+            WebGLCommand::Uniform2fv(uniform_id, ref v) => unsafe {
+                gl.uniform_2_f32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::UniformMatrix2x3fv(uniform_id, ref v) => {
-                gl.uniform_matrix_2x3fv(uniform_id, false, v)
+            WebGLCommand::Uniform2i(uniform_id, x, y) => unsafe {
+                gl.uniform_2_i32(native_uniform_location(uniform_id).as_ref(), x, y)
             },
-            WebGLCommand::UniformMatrix4x3fv(uniform_id, ref v) => {
-                gl.uniform_matrix_4x3fv(uniform_id, false, v)
+            WebGLCommand::Uniform2iv(uniform_id, ref v) => unsafe {
+                gl.uniform_2_i32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::UniformMatrix2x4fv(uniform_id, ref v) => {
-                gl.uniform_matrix_2x4fv(uniform_id, false, v)
+            WebGLCommand::Uniform2ui(uniform_id, x, y) => unsafe {
+                gl.uniform_2_u32(native_uniform_location(uniform_id).as_ref(), x, y)
             },
-            WebGLCommand::UniformMatrix3x4fv(uniform_id, ref v) => {
-                gl.uniform_matrix_3x4fv(uniform_id, false, v)
+            WebGLCommand::Uniform2uiv(uniform_id, ref v) => unsafe {
+                gl.uniform_2_u32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::ValidateProgram(program_id) => gl.validate_program(program_id.get()),
-            WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) => {
-                gl.vertex_attrib_4f(attrib_id, x, y, z, w)
+            WebGLCommand::Uniform3f(uniform_id, x, y, z) => unsafe {
+                gl.uniform_3_f32(native_uniform_location(uniform_id).as_ref(), x, y, z)
             },
-            WebGLCommand::VertexAttribI(attrib_id, x, y, z, w) => {
-                gl.vertex_attrib_4i(attrib_id, x, y, z, w)
+            WebGLCommand::Uniform3fv(uniform_id, ref v) => unsafe {
+                gl.uniform_3_f32_slice(native_uniform_location(uniform_id).as_ref(), v)
             },
-            WebGLCommand::VertexAttribU(attrib_id, x, y, z, w) => {
-                gl.vertex_attrib_4ui(attrib_id, x, y, z, w)
+            WebGLCommand::Uniform3i(uniform_id, x, y, z) => unsafe {
+                gl.uniform_3_i32(native_uniform_location(uniform_id).as_ref(), x, y, z)
             },
-            WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => {
-                gl.vertex_attrib_pointer_f32(attrib_id, size, normalized, stride, offset)
+            WebGLCommand::Uniform3iv(uniform_id, ref v) => unsafe {
+                gl.uniform_3_i32_slice(native_uniform_location(uniform_id).as_ref(), v)
+            },
+            WebGLCommand::Uniform3ui(uniform_id, x, y, z) => unsafe {
+                gl.uniform_3_u32(native_uniform_location(uniform_id).as_ref(), x, y, z)
+            },
+            WebGLCommand::Uniform3uiv(uniform_id, ref v) => unsafe {
+                gl.uniform_3_u32_slice(native_uniform_location(uniform_id).as_ref(), v)
+            },
+            WebGLCommand::Uniform4f(uniform_id, x, y, z, w) => unsafe {
+                gl.uniform_4_f32(native_uniform_location(uniform_id).as_ref(), x, y, z, w)
+            },
+            WebGLCommand::Uniform4fv(uniform_id, ref v) => unsafe {
+                gl.uniform_4_f32_slice(native_uniform_location(uniform_id).as_ref(), v)
+            },
+            WebGLCommand::Uniform4i(uniform_id, x, y, z, w) => unsafe {
+                gl.uniform_4_i32(native_uniform_location(uniform_id).as_ref(), x, y, z, w)
+            },
+            WebGLCommand::Uniform4iv(uniform_id, ref v) => unsafe {
+                gl.uniform_4_i32_slice(native_uniform_location(uniform_id).as_ref(), v)
+            },
+            WebGLCommand::Uniform4ui(uniform_id, x, y, z, w) => unsafe {
+                gl.uniform_4_u32(native_uniform_location(uniform_id).as_ref(), x, y, z, w)
+            },
+            WebGLCommand::Uniform4uiv(uniform_id, ref v) => unsafe {
+                gl.uniform_4_u32_slice(native_uniform_location(uniform_id).as_ref(), v)
+            },
+            WebGLCommand::UniformMatrix2fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_2_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix3fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_3_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix4fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_4_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix3x2fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_3x2_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix4x2fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_4x2_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix2x3fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_2x3_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix4x3fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_4x3_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix2x4fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_2x4_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::UniformMatrix3x4fv(uniform_id, ref v) => unsafe {
+                gl.uniform_matrix_3x4_f32_slice(
+                    native_uniform_location(uniform_id).as_ref(),
+                    false,
+                    v,
+                )
+            },
+            WebGLCommand::ValidateProgram(program_id) => unsafe {
+                gl.validate_program(program_id.glow())
+            },
+            WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) => unsafe {
+                gl.vertex_attrib_4_f32(attrib_id, x, y, z, w)
+            },
+            WebGLCommand::VertexAttribI(attrib_id, x, y, z, w) => unsafe {
+                gl.vertex_attrib_4_i32(attrib_id, x, y, z, w)
+            },
+            WebGLCommand::VertexAttribU(attrib_id, x, y, z, w) => unsafe {
+                gl.vertex_attrib_4_u32(attrib_id, x, y, z, w)
+            },
+            WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset) => unsafe {
+                gl.vertex_attrib_pointer_f32(
+                    attrib_id,
+                    size,
+                    gl::FLOAT,
+                    normalized,
+                    stride,
+                    offset as _,
+                )
             },
             WebGLCommand::VertexAttribPointer(
                 attrib_id,
@@ -1408,8 +1552,19 @@ impl WebGLImpl {
                 normalized,
                 stride,
                 offset,
-            ) => gl.vertex_attrib_pointer(attrib_id, size, data_type, normalized, stride, offset),
-            WebGLCommand::SetViewport(x, y, width, height) => gl.viewport(x, y, width, height),
+            ) => unsafe {
+                gl.vertex_attrib_pointer_f32(
+                    attrib_id,
+                    size,
+                    data_type,
+                    normalized,
+                    stride,
+                    offset as _,
+                )
+            },
+            WebGLCommand::SetViewport(x, y, width, height) => unsafe {
+                gl.viewport(x, y, width, height)
+            },
             WebGLCommand::TexImage2D {
                 target,
                 level,
@@ -1435,18 +1590,20 @@ impl WebGLImpl {
                     Cow::Borrowed(data),
                 );
 
-                gl.pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
-                gl.tex_image_2d(
-                    target,
-                    level as i32,
-                    internal_format.as_gl_constant() as i32,
-                    size.width as i32,
-                    size.height as i32,
-                    0,
-                    format.as_gl_constant(),
-                    effective_data_type,
-                    gl::TexImageSource::Pixels(Some(&pixels)),
-                );
+                unsafe {
+                    gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
+                    gl.tex_image_2d(
+                        target,
+                        level as i32,
+                        internal_format.as_gl_constant() as i32,
+                        size.width as i32,
+                        size.height as i32,
+                        0,
+                        format.as_gl_constant(),
+                        effective_data_type,
+                        PixelUnpackData::Slice(Some(&pixels)),
+                    );
+                }
             },
             WebGLCommand::TexImage2DPBO {
                 target,
@@ -1457,8 +1614,8 @@ impl WebGLImpl {
                 effective_data_type,
                 unpacking_alignment,
                 offset,
-            } => {
-                gl.pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
+            } => unsafe {
+                gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
 
                 gl.tex_image_2d(
                     target,
@@ -1469,7 +1626,7 @@ impl WebGLImpl {
                     0,
                     format.as_gl_constant(),
                     effective_data_type,
-                    gl::TexImageSource::BufferOffset(offset),
+                    PixelUnpackData::BufferOffset(offset as u32),
                 );
             },
             WebGLCommand::TexSubImage2D {
@@ -1498,18 +1655,20 @@ impl WebGLImpl {
                     Cow::Borrowed(data),
                 );
 
-                gl.pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
-                gl.tex_sub_image_2d(
-                    target,
-                    level as i32,
-                    xoffset,
-                    yoffset,
-                    size.width as i32,
-                    size.height as i32,
-                    format.as_gl_constant(),
-                    effective_data_type,
-                    &pixels,
-                );
+                unsafe {
+                    gl.pixel_store_i32(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
+                    gl.tex_sub_image_2d(
+                        target,
+                        level as i32,
+                        xoffset,
+                        yoffset,
+                        size.width as i32,
+                        size.height as i32,
+                        format.as_gl_constant(),
+                        effective_data_type,
+                        glow::PixelUnpackData::Slice(Some(&pixels)),
+                    );
+                }
             },
             WebGLCommand::CompressedTexImage2D {
                 target,
@@ -1517,16 +1676,17 @@ impl WebGLImpl {
                 internal_format,
                 size,
                 ref data,
-            } => {
+            } => unsafe {
                 gl.compressed_tex_image_2d(
                     target,
                     level as i32,
-                    internal_format,
+                    internal_format as i32,
                     size.width as i32,
                     size.height as i32,
                     0,
+                    data.len() as i32,
                     data,
-                );
+                )
             },
             WebGLCommand::CompressedTexSubImage2D {
                 target,
@@ -1537,34 +1697,38 @@ impl WebGLImpl {
                 format,
                 ref data,
             } => {
-                gl.compressed_tex_sub_image_2d(
-                    target,
-                    level,
-                    xoffset,
-                    yoffset,
-                    size.width as i32,
-                    size.height as i32,
-                    format,
-                    data,
-                );
+                unsafe {
+                    gl.compressed_tex_sub_image_2d(
+                        target,
+                        level,
+                        xoffset,
+                        yoffset,
+                        size.width as i32,
+                        size.height as i32,
+                        format,
+                        glow::CompressedPixelUnpackData::Slice(data),
+                    )
+                };
             },
-            WebGLCommand::TexStorage2D(target, levels, internal_format, width, height) => gl
-                .tex_storage_2d(
+            WebGLCommand::TexStorage2D(target, levels, internal_format, width, height) => unsafe {
+                gl.tex_storage_2d(
                     target,
                     levels as i32,
                     internal_format.as_gl_constant(),
                     width as i32,
                     height as i32,
-                ),
-            WebGLCommand::TexStorage3D(target, levels, internal_format, width, height, depth) => gl
-                .tex_storage_3d(
+                )
+            },
+            WebGLCommand::TexStorage3D(target, levels, internal_format, width, height, depth) => unsafe {
+                gl.tex_storage_3d(
                     target,
                     levels as i32,
                     internal_format.as_gl_constant(),
                     width as i32,
                     height as i32,
                     depth as i32,
-                ),
+                )
+            },
             WebGLCommand::DrawingBufferWidth(ref sender) => {
                 let size = device
                     .context_surface_info(ctx)
@@ -1582,57 +1746,47 @@ impl WebGLImpl {
                 sender.send(size.height).unwrap()
             },
             WebGLCommand::Finish(ref sender) => Self::finish(gl, sender),
-            WebGLCommand::Flush => gl.flush(),
-            WebGLCommand::GenerateMipmap(target) => gl.generate_mipmap(target),
+            WebGLCommand::Flush => unsafe { gl.flush() },
+            WebGLCommand::GenerateMipmap(target) => unsafe { gl.generate_mipmap(target) },
             WebGLCommand::CreateVertexArray(ref chan) => {
-                let use_apple_vertex_array = Self::needs_apple_vertex_arrays(state.gl_version);
-                let id = Self::create_vertex_array(gl, use_apple_vertex_array, state.webgl_version);
+                let id = Self::create_vertex_array(gl);
                 let _ = chan.send(id);
             },
             WebGLCommand::DeleteVertexArray(id) => {
-                let use_apple_vertex_array = Self::needs_apple_vertex_arrays(state.gl_version);
-                let id = id.get();
-                Self::delete_vertex_array(gl, id, use_apple_vertex_array, state.webgl_version);
+                Self::delete_vertex_array(gl, id);
             },
             WebGLCommand::BindVertexArray(id) => {
-                let id = id.map_or(state.default_vao, WebGLVertexArrayId::get);
-                let use_apple_vertex_array = Self::needs_apple_vertex_arrays(state.gl_version);
-                Self::bind_vertex_array(gl, id, use_apple_vertex_array, state.webgl_version);
+                let id = id.map(WebGLVertexArrayId::glow).or(state.default_vao);
+                Self::bind_vertex_array(gl, id);
             },
             WebGLCommand::GetParameterBool(param, ref sender) => {
                 let value = match param {
                     webgl::ParameterBool::DepthWritemask => state.depth_write_mask,
-                    _ => unsafe {
-                        let mut value = [0];
-                        gl.get_boolean_v(param as u32, &mut value);
-                        value[0] != 0
-                    },
+                    _ => unsafe { gl.get_parameter_bool(param as u32) },
                 };
                 sender.send(value).unwrap()
             },
             WebGLCommand::FenceSync(ref sender) => {
-                let value = gl.fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0);
-                sender
-                    .send(unsafe { WebGLSyncId::new(value as u64) })
-                    .unwrap();
+                let value = unsafe { gl.fence_sync(gl::SYNC_GPU_COMMANDS_COMPLETE, 0).unwrap() };
+                sender.send(WebGLSyncId::from_glow(value)).unwrap();
             },
             WebGLCommand::IsSync(sync_id, ref sender) => {
-                let value = gl.is_sync(sync_id.get() as *const _);
+                let value = unsafe { gl.is_sync(sync_id.glow()) };
                 sender.send(value).unwrap();
             },
             WebGLCommand::ClientWaitSync(sync_id, flags, timeout, ref sender) => {
-                let value = gl.client_wait_sync(sync_id.get() as *const _, flags, timeout);
+                let value = unsafe { gl.client_wait_sync(sync_id.glow(), flags, timeout as _) };
                 sender.send(value).unwrap();
             },
             WebGLCommand::WaitSync(sync_id, flags, timeout) => {
-                gl.wait_sync(sync_id.get() as *const _, flags, timeout as u64);
+                unsafe { gl.wait_sync(sync_id.glow(), flags, timeout as u64) };
             },
             WebGLCommand::GetSyncParameter(sync_id, param, ref sender) => {
-                let value = gl.get_sync_iv(sync_id.get() as *const _, param);
-                sender.send(value[0] as u32).unwrap();
+                let value = unsafe { gl.get_sync_parameter_i32(sync_id.glow(), param) };
+                sender.send(value as u32).unwrap();
             },
             WebGLCommand::DeleteSync(sync_id) => {
-                gl.delete_sync(sync_id.get() as *const _);
+                unsafe { gl.delete_sync(sync_id.glow()) };
             },
             WebGLCommand::GetParameterBool4(param, ref sender) => {
                 let value = match param {
@@ -1647,154 +1801,162 @@ impl WebGLImpl {
                     webgl::ParameterInt::StencilBits if state.fake_no_stencil() => 0,
                     webgl::ParameterInt::StencilWritemask => state.stencil_write_mask.0 as i32,
                     webgl::ParameterInt::StencilBackWritemask => state.stencil_write_mask.1 as i32,
-                    _ => unsafe {
-                        let mut value = [0];
-                        gl.get_integer_v(param as u32, &mut value);
-                        value[0]
-                    },
+                    _ => unsafe { gl.get_parameter_i32(param as u32) },
                 };
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetParameterInt2(param, ref sender) => {
                 let mut value = [0; 2];
                 unsafe {
-                    gl.get_integer_v(param as u32, &mut value);
+                    gl.get_parameter_i32_slice(param as u32, &mut value);
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetParameterInt4(param, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
-                    gl.get_integer_v(param as u32, &mut value);
+                    gl.get_parameter_i32_slice(param as u32, &mut value);
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetParameterFloat(param, ref sender) => {
                 let mut value = [0.];
                 unsafe {
-                    gl.get_float_v(param as u32, &mut value);
+                    gl.get_parameter_f32_slice(param as u32, &mut value);
                 }
                 sender.send(value[0]).unwrap()
             },
             WebGLCommand::GetParameterFloat2(param, ref sender) => {
                 let mut value = [0.; 2];
                 unsafe {
-                    gl.get_float_v(param as u32, &mut value);
+                    gl.get_parameter_f32_slice(param as u32, &mut value);
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetParameterFloat4(param, ref sender) => {
                 let mut value = [0.; 4];
                 unsafe {
-                    gl.get_float_v(param as u32, &mut value);
+                    gl.get_parameter_f32_slice(param as u32, &mut value);
                 }
                 sender.send(value).unwrap()
             },
-            WebGLCommand::GetProgramValidateStatus(program, ref sender) => {
-                let mut value = [0];
-                unsafe {
-                    gl.get_program_iv(program.get(), gl::VALIDATE_STATUS, &mut value);
-                }
-                sender.send(value[0] != 0).unwrap()
-            },
-            WebGLCommand::GetProgramActiveUniforms(program, ref sender) => {
-                let mut value = [0];
-                unsafe {
-                    gl.get_program_iv(program.get(), gl::ACTIVE_UNIFORMS, &mut value);
-                }
-                sender.send(value[0]).unwrap()
-            },
+            WebGLCommand::GetProgramValidateStatus(program, ref sender) => sender
+                .send(unsafe { gl.get_program_validate_status(program.glow()) })
+                .unwrap(),
+            WebGLCommand::GetProgramActiveUniforms(program, ref sender) => sender
+                .send(unsafe { gl.get_program_parameter_i32(program.glow(), gl::ACTIVE_UNIFORMS) })
+                .unwrap(),
             WebGLCommand::GetCurrentVertexAttrib(index, ref sender) => {
                 let mut value = [0.; 4];
                 unsafe {
-                    gl.get_vertex_attrib_fv(index, gl::CURRENT_VERTEX_ATTRIB, &mut value);
+                    gl.get_vertex_attrib_parameter_f32_slice(
+                        index,
+                        gl::CURRENT_VERTEX_ATTRIB,
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetTexParameterFloat(target, param, ref sender) => {
                 sender
-                    .send(gl.get_tex_parameter_fv(target, param as u32))
+                    .send(unsafe { gl.get_tex_parameter_f32(target, param as u32) })
                     .unwrap();
             },
             WebGLCommand::GetTexParameterInt(target, param, ref sender) => {
                 sender
-                    .send(gl.get_tex_parameter_iv(target, param as u32))
+                    .send(unsafe { gl.get_tex_parameter_i32(target, param as u32) })
                     .unwrap();
             },
             WebGLCommand::GetTexParameterBool(target, param, ref sender) => {
                 sender
-                    .send(gl.get_tex_parameter_iv(target, param as u32) != 0)
+                    .send(unsafe { gl.get_tex_parameter_i32(target, param as u32) } != 0)
                     .unwrap();
             },
             WebGLCommand::GetInternalFormatIntVec(target, internal_format, param, ref sender) => {
                 match param {
                     InternalFormatIntVec::Samples => {
                         let mut count = [0; 1];
-                        gl.get_internal_format_iv(
-                            target,
-                            internal_format,
-                            gl::NUM_SAMPLE_COUNTS,
-                            &mut count,
-                        );
+                        unsafe {
+                            gl.get_internal_format_i32_slice(
+                                target,
+                                internal_format,
+                                gl::NUM_SAMPLE_COUNTS,
+                                &mut count,
+                            )
+                        };
                         assert!(count[0] >= 0);
 
                         let mut values = vec![0; count[0] as usize];
-                        gl.get_internal_format_iv(
-                            target,
-                            internal_format,
-                            param as u32,
-                            &mut values,
-                        );
+                        unsafe {
+                            gl.get_internal_format_i32_slice(
+                                target,
+                                internal_format,
+                                param as u32,
+                                &mut values,
+                            )
+                        };
                         sender.send(values).unwrap()
                     },
                 }
             },
-            WebGLCommand::TexParameteri(target, param, value) => {
-                gl.tex_parameter_i(target, param, value)
+            WebGLCommand::TexParameteri(target, param, value) => unsafe {
+                gl.tex_parameter_i32(target, param, value)
             },
-            WebGLCommand::TexParameterf(target, param, value) => {
-                gl.tex_parameter_f(target, param, value)
+            WebGLCommand::TexParameterf(target, param, value) => unsafe {
+                gl.tex_parameter_f32(target, param, value)
             },
             WebGLCommand::LinkProgram(program_id, ref sender) => {
                 return sender.send(Self::link_program(gl, program_id)).unwrap();
             },
-            WebGLCommand::UseProgram(program_id) => {
-                gl.use_program(program_id.map_or(0, |p| p.get()))
+            WebGLCommand::UseProgram(program_id) => unsafe {
+                gl.use_program(program_id.map(|p| p.glow()))
             },
-            WebGLCommand::DrawArrays { mode, first, count } => gl.draw_arrays(mode, first, count),
+            WebGLCommand::DrawArrays { mode, first, count } => unsafe {
+                gl.draw_arrays(mode, first, count)
+            },
             WebGLCommand::DrawArraysInstanced {
                 mode,
                 first,
                 count,
                 primcount,
-            } => gl.draw_arrays_instanced(mode, first, count, primcount),
+            } => unsafe { gl.draw_arrays_instanced(mode, first, count, primcount) },
             WebGLCommand::DrawElements {
                 mode,
                 count,
                 type_,
                 offset,
-            } => gl.draw_elements(mode, count, type_, offset),
+            } => unsafe { gl.draw_elements(mode, count, type_, offset as _) },
             WebGLCommand::DrawElementsInstanced {
                 mode,
                 count,
                 type_,
                 offset,
                 primcount,
-            } => gl.draw_elements_instanced(mode, count, type_, offset, primcount),
-            WebGLCommand::VertexAttribDivisor { index, divisor } => {
+            } => unsafe {
+                gl.draw_elements_instanced(mode, count, type_, offset as i32, primcount)
+            },
+            WebGLCommand::VertexAttribDivisor { index, divisor } => unsafe {
                 gl.vertex_attrib_divisor(index, divisor)
             },
             WebGLCommand::GetUniformBool(program_id, loc, ref sender) => {
                 let mut value = [0];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value[0] != 0).unwrap();
             },
             WebGLCommand::GetUniformBool2(program_id, loc, ref sender) => {
                 let mut value = [0; 2];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 let value = [value[0] != 0, value[1] != 0];
                 sender.send(value).unwrap();
@@ -1802,7 +1964,11 @@ impl WebGLImpl {
             WebGLCommand::GetUniformBool3(program_id, loc, ref sender) => {
                 let mut value = [0; 3];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 let value = [value[0] != 0, value[1] != 0, value[2] != 0];
                 sender.send(value).unwrap();
@@ -1810,7 +1976,11 @@ impl WebGLImpl {
             WebGLCommand::GetUniformBool4(program_id, loc, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 let value = [value[0] != 0, value[1] != 0, value[2] != 0, value[3] != 0];
                 sender.send(value).unwrap();
@@ -1818,147 +1988,228 @@ impl WebGLImpl {
             WebGLCommand::GetUniformInt(program_id, loc, ref sender) => {
                 let mut value = [0];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value[0]).unwrap();
             },
             WebGLCommand::GetUniformInt2(program_id, loc, ref sender) => {
                 let mut value = [0; 2];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformInt3(program_id, loc, ref sender) => {
                 let mut value = [0; 3];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformInt4(program_id, loc, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
-                    gl.get_uniform_iv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_i32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformUint(program_id, loc, ref sender) => {
                 let mut value = [0];
                 unsafe {
-                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_u32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value[0]).unwrap();
             },
             WebGLCommand::GetUniformUint2(program_id, loc, ref sender) => {
                 let mut value = [0; 2];
                 unsafe {
-                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_u32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformUint3(program_id, loc, ref sender) => {
                 let mut value = [0; 3];
                 unsafe {
-                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_u32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformUint4(program_id, loc, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
-                    gl.get_uniform_uiv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_u32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformFloat(program_id, loc, ref sender) => {
                 let mut value = [0.];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value[0]).unwrap();
             },
             WebGLCommand::GetUniformFloat2(program_id, loc, ref sender) => {
                 let mut value = [0.; 2];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformFloat3(program_id, loc, ref sender) => {
                 let mut value = [0.; 3];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformFloat4(program_id, loc, ref sender) => {
                 let mut value = [0.; 4];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformFloat9(program_id, loc, ref sender) => {
                 let mut value = [0.; 9];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformFloat16(program_id, loc, ref sender) => {
                 let mut value = [0.; 16];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetUniformFloat2x3(program_id, loc, ref sender) => {
                 let mut value = [0.; 2 * 3];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformFloat2x4(program_id, loc, ref sender) => {
                 let mut value = [0.; 2 * 4];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformFloat3x2(program_id, loc, ref sender) => {
                 let mut value = [0.; 3 * 2];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformFloat3x4(program_id, loc, ref sender) => {
                 let mut value = [0.; 3 * 4];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformFloat4x2(program_id, loc, ref sender) => {
                 let mut value = [0.; 4 * 2];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformFloat4x3(program_id, loc, ref sender) => {
                 let mut value = [0.; 4 * 3];
                 unsafe {
-                    gl.get_uniform_fv(program_id.get(), loc, &mut value);
+                    gl.get_uniform_f32(
+                        program_id.glow(),
+                        &NativeUniformLocation(loc as u32),
+                        &mut value,
+                    );
                 }
                 sender.send(value).unwrap()
             },
             WebGLCommand::GetUniformBlockIndex(program_id, ref name, ref sender) => {
                 let name = to_name_in_compiled_shader(name);
-                let index = gl.get_uniform_block_index(program_id.get(), &name);
-                sender.send(index).unwrap();
+                let index = unsafe { gl.get_uniform_block_index(program_id.glow(), &name) };
+                // TODO(#34300): use Option<u32>
+                sender.send(index.unwrap_or(gl::INVALID_INDEX)).unwrap();
             },
             WebGLCommand::GetUniformIndices(program_id, ref names, ref sender) => {
                 let names = names
@@ -1966,15 +2217,22 @@ impl WebGLImpl {
                     .map(|name| to_name_in_compiled_shader(name))
                     .collect::<Vec<_>>();
                 let name_strs = names.iter().map(|name| name.as_str()).collect::<Vec<_>>();
-                let indices = gl.get_uniform_indices(program_id.get(), &name_strs);
+                let indices = unsafe {
+                    gl.get_uniform_indices(program_id.glow(), &name_strs)
+                        .iter()
+                        .map(|index| index.unwrap_or(gl::INVALID_INDEX))
+                        .collect()
+                };
                 sender.send(indices).unwrap();
             },
             WebGLCommand::GetActiveUniforms(program_id, ref indices, pname, ref sender) => {
-                let results = gl.get_active_uniforms_iv(program_id.get(), indices, pname);
+                let results =
+                    unsafe { gl.get_active_uniforms_parameter(program_id.glow(), indices, pname) };
                 sender.send(results).unwrap();
             },
             WebGLCommand::GetActiveUniformBlockName(program_id, block_idx, ref sender) => {
-                let name = gl.get_active_uniform_block_name(program_id.get(), block_idx);
+                let name =
+                    unsafe { gl.get_active_uniform_block_name(program_id.glow(), block_idx) };
                 sender.send(name).unwrap();
             },
             WebGLCommand::GetActiveUniformBlockParameter(
@@ -1983,11 +2241,29 @@ impl WebGLImpl {
                 pname,
                 ref sender,
             ) => {
-                let results = gl.get_active_uniform_block_iv(program_id.get(), block_idx, pname);
-                sender.send(results).unwrap();
+                let size = match pname {
+                    gl::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => unsafe {
+                        gl.get_active_uniform_block_parameter_i32(
+                            program_id.glow(),
+                            block_idx,
+                            gl::UNIFORM_BLOCK_ACTIVE_UNIFORMS,
+                        ) as usize
+                    },
+                    _ => 1,
+                };
+                let mut result = vec![0; size];
+                unsafe {
+                    gl.get_active_uniform_block_parameter_i32_slice(
+                        program_id.glow(),
+                        block_idx,
+                        pname,
+                        &mut result,
+                    )
+                };
+                sender.send(result).unwrap();
             },
-            WebGLCommand::UniformBlockBinding(program_id, block_idx, block_binding) => {
-                gl.uniform_block_binding(program_id.get(), block_idx, block_binding)
+            WebGLCommand::UniformBlockBinding(program_id, block_idx, block_binding) => unsafe {
+                gl.uniform_block_binding(program_id.glow(), block_idx, block_binding)
             },
             WebGLCommand::InitializeFramebuffer {
                 color,
@@ -1995,44 +2271,45 @@ impl WebGLImpl {
                 stencil,
             } => Self::initialize_framebuffer(gl, state, color, depth, stencil),
             WebGLCommand::BeginQuery(target, query_id) => {
-                gl.begin_query(target, query_id.get());
+                unsafe { gl.begin_query(target, query_id.glow()) };
             },
             WebGLCommand::EndQuery(target) => {
-                gl.end_query(target);
+                unsafe { gl.end_query(target) };
             },
             WebGLCommand::DeleteQuery(query_id) => {
-                gl.delete_queries(&[query_id.get()]);
+                unsafe { gl.delete_query(query_id.glow()) };
             },
             WebGLCommand::GenerateQuery(ref sender) => {
-                let id = gl.gen_queries(1)[0];
-                sender.send(unsafe { WebGLQueryId::new(id) }).unwrap()
+                // TODO(#34300): use Option<WebGLQueryId>
+                let id = unsafe { gl.create_query().unwrap() };
+                sender.send(WebGLQueryId::from_glow(id)).unwrap()
             },
             WebGLCommand::GetQueryState(ref sender, query_id, pname) => {
-                let value = gl.get_query_object_uiv(query_id.get(), pname);
+                let value = unsafe { gl.get_query_parameter_u32(query_id.glow(), pname) };
                 sender.send(value).unwrap()
             },
             WebGLCommand::GenerateSampler(ref sender) => {
-                let id = gl.gen_samplers(1)[0];
-                sender.send(unsafe { WebGLSamplerId::new(id) }).unwrap()
+                let id = unsafe { gl.create_sampler().unwrap() };
+                sender.send(WebGLSamplerId::from_glow(id)).unwrap()
             },
             WebGLCommand::DeleteSampler(sampler_id) => {
-                gl.delete_samplers(&[sampler_id.get()]);
+                unsafe { gl.delete_sampler(sampler_id.glow()) };
             },
             WebGLCommand::BindSampler(unit, sampler_id) => {
-                gl.bind_sampler(unit, sampler_id.get());
+                unsafe { gl.bind_sampler(unit, Some(sampler_id.glow())) };
             },
             WebGLCommand::SetSamplerParameterInt(sampler_id, pname, value) => {
-                gl.sampler_parameter_i(sampler_id.get(), pname, value);
+                unsafe { gl.sampler_parameter_i32(sampler_id.glow(), pname, value) };
             },
             WebGLCommand::SetSamplerParameterFloat(sampler_id, pname, value) => {
-                gl.sampler_parameter_f(sampler_id.get(), pname, value);
+                unsafe { gl.sampler_parameter_f32(sampler_id.glow(), pname, value) };
             },
             WebGLCommand::GetSamplerParameterInt(sampler_id, pname, ref sender) => {
-                let value = gl.get_sampler_parameter_iv(sampler_id.get(), pname)[0];
+                let value = unsafe { gl.get_sampler_parameter_i32(sampler_id.glow(), pname) };
                 sender.send(value).unwrap();
             },
             WebGLCommand::GetSamplerParameterFloat(sampler_id, pname, ref sender) => {
-                let value = gl.get_sampler_parameter_fv(sampler_id.get(), pname)[0];
+                let value = unsafe { gl.get_sampler_parameter_f32(sampler_id.glow(), pname) };
                 sender.send(value).unwrap();
             },
             WebGLCommand::BindBufferBase(target, index, id) => {
@@ -2040,42 +2317,46 @@ impl WebGLImpl {
                 // BindBufferBase/Range will fail (on some drivers) if the buffer name has
                 // never been bound. (GenBuffers makes a name, but BindBuffer initializes
                 // that name as a real buffer object)
-                let id = id.map_or(0, WebGLBufferId::get);
-                gl.bind_buffer(target, id);
-                gl.bind_buffer(target, 0);
-                gl.bind_buffer_base(target, index, id);
+                let id = id.map(WebGLBufferId::glow);
+                unsafe {
+                    gl.bind_buffer(target, id);
+                    gl.bind_buffer(target, None);
+                    gl.bind_buffer_base(target, index, id);
+                }
             },
             WebGLCommand::BindBufferRange(target, index, id, offset, size) => {
                 // https://searchfox.org/mozilla-central/rev/13b081a62d3f3e3e3120f95564529257b0bf451c/dom/canvas/WebGLContextBuffers.cpp#208-210
                 // BindBufferBase/Range will fail (on some drivers) if the buffer name has
                 // never been bound. (GenBuffers makes a name, but BindBuffer initializes
                 // that name as a real buffer object)
-                let id = id.map_or(0, WebGLBufferId::get);
-                gl.bind_buffer(target, id);
-                gl.bind_buffer(target, 0);
-                gl.bind_buffer_range(target, index, id, offset as isize, size as isize);
+                let id = id.map(WebGLBufferId::glow);
+                unsafe {
+                    gl.bind_buffer(target, id);
+                    gl.bind_buffer(target, None);
+                    gl.bind_buffer_range(target, index, id, offset as i32, size as i32);
+                }
             },
-            WebGLCommand::ClearBufferfv(buffer, draw_buffer, ref value) => {
-                gl.clear_buffer_fv(buffer, draw_buffer, value)
+            WebGLCommand::ClearBufferfv(buffer, draw_buffer, ref value) => unsafe {
+                gl.clear_buffer_f32_slice(buffer, draw_buffer as u32, value)
             },
-            WebGLCommand::ClearBufferiv(buffer, draw_buffer, ref value) => {
-                gl.clear_buffer_iv(buffer, draw_buffer, value)
+            WebGLCommand::ClearBufferiv(buffer, draw_buffer, ref value) => unsafe {
+                gl.clear_buffer_i32_slice(buffer, draw_buffer as u32, value)
             },
-            WebGLCommand::ClearBufferuiv(buffer, draw_buffer, ref value) => {
-                gl.clear_buffer_uiv(buffer, draw_buffer, value)
+            WebGLCommand::ClearBufferuiv(buffer, draw_buffer, ref value) => unsafe {
+                gl.clear_buffer_u32_slice(buffer, draw_buffer as u32, value)
             },
-            WebGLCommand::ClearBufferfi(buffer, draw_buffer, depth, stencil) => {
-                gl.clear_buffer_fi(buffer, draw_buffer, depth, stencil)
+            WebGLCommand::ClearBufferfi(buffer, draw_buffer, depth, stencil) => unsafe {
+                gl.clear_buffer_depth_stencil(buffer, draw_buffer as u32, depth, stencil)
             },
-            WebGLCommand::InvalidateFramebuffer(target, ref attachments) => {
+            WebGLCommand::InvalidateFramebuffer(target, ref attachments) => unsafe {
                 gl.invalidate_framebuffer(target, attachments)
             },
-            WebGLCommand::InvalidateSubFramebuffer(target, ref attachments, x, y, w, h) => {
+            WebGLCommand::InvalidateSubFramebuffer(target, ref attachments, x, y, w, h) => unsafe {
                 gl.invalidate_sub_framebuffer(target, attachments, x, y, w, h)
             },
             WebGLCommand::FramebufferTextureLayer(target, attachment, tex_id, level, layer) => {
-                let tex_id = tex_id.map_or(0, WebGLTextureId::get);
-                let attach = |attachment| {
+                let tex_id = tex_id.map(WebGLTextureId::glow);
+                let attach = |attachment| unsafe {
                     gl.framebuffer_texture_layer(target, attachment, tex_id, level, layer)
                 };
 
@@ -2086,25 +2367,23 @@ impl WebGLImpl {
                     attach(attachment)
                 }
             },
-            WebGLCommand::ReadBuffer(buffer) => gl.read_buffer(buffer),
-            WebGLCommand::DrawBuffers(ref buffers) => gl.draw_buffers(buffers),
+            WebGLCommand::ReadBuffer(buffer) => unsafe { gl.read_buffer(buffer) },
+            WebGLCommand::DrawBuffers(ref buffers) => unsafe { gl.draw_buffers(buffers) },
         }
 
         // If debug asertions are enabled, then check the error state.
         #[cfg(debug_assertions)]
         {
-            let error = gl.get_error();
+            let error = unsafe { gl.get_error() };
             if error != gl::NO_ERROR {
                 error!("Last GL operation failed: {:?}", command);
                 if error == gl::INVALID_FRAMEBUFFER_OPERATION {
-                    let mut framebuffer_bindings = [0];
-                    unsafe {
-                        gl.get_integer_v(gl::DRAW_FRAMEBUFFER_BINDING, &mut framebuffer_bindings);
-                    }
+                    let framebuffer_bindings =
+                        unsafe { gl.get_parameter_framebuffer(gl::DRAW_FRAMEBUFFER_BINDING) };
                     debug!(
-                        "(thread {:?}) Current draw framebuffer binding: {}",
+                        "(thread {:?}) Current draw framebuffer binding: {:?}",
                         ::std::thread::current().id(),
-                        framebuffer_bindings[0]
+                        framebuffer_bindings
                     );
                 }
                 #[cfg(feature = "webgl_backtrace")]
@@ -2136,27 +2415,25 @@ impl WebGLImpl {
             bits | if enabled { bit } else { 0 }
         });
 
-        gl.disable(gl::SCISSOR_TEST);
-        gl.color_mask(true, true, true, true);
-        gl.clear_color(0., 0., 0., 0.);
-        gl.depth_mask(true);
-        gl.clear_depth(1.);
-        gl.stencil_mask_separate(gl::FRONT, 0xFFFFFFFF);
-        gl.stencil_mask_separate(gl::BACK, 0xFFFFFFFF);
-        gl.clear_stencil(0);
-        gl.clear(bits);
+        unsafe {
+            gl.disable(gl::SCISSOR_TEST);
+            gl.color_mask(true, true, true, true);
+            gl.clear_color(0., 0., 0., 0.);
+            gl.depth_mask(true);
+            gl.clear_depth(1.);
+            gl.stencil_mask_separate(gl::FRONT, 0xFFFFFFFF);
+            gl.stencil_mask_separate(gl::BACK, 0xFFFFFFFF);
+            gl.clear_stencil(0);
+            gl.clear(bits);
+        }
 
         state.restore_invariant(gl);
     }
 
-    #[allow(unsafe_code)]
     fn link_program(gl: &Gl, program: WebGLProgramId) -> ProgramLinkInfo {
-        gl.link_program(program.get());
-        let mut linked = [0];
-        unsafe {
-            gl.get_program_iv(program.get(), gl::LINK_STATUS, &mut linked);
-        }
-        if linked[0] == 0 {
+        unsafe { gl.link_program(program.glow()) };
+        let linked = unsafe { gl.get_program_link_status(program.glow()) };
+        if !linked {
             return ProgramLinkInfo {
                 linked: false,
                 active_attribs: vec![].into(),
@@ -2166,107 +2443,88 @@ impl WebGLImpl {
                 transform_feedback_mode: Default::default(),
             };
         }
-        let mut num_active_attribs = [0];
-        unsafe {
-            gl.get_program_iv(
-                program.get(),
-                gl::ACTIVE_ATTRIBUTES,
-                &mut num_active_attribs,
-            );
-        }
-        let active_attribs = (0..num_active_attribs[0] as u32)
+        let num_active_attribs =
+            unsafe { gl.get_program_parameter_i32(program.glow(), gl::ACTIVE_ATTRIBUTES) };
+        let active_attribs = (0..num_active_attribs as u32)
             .map(|i| {
-                // FIXME(nox): This allocates strings sometimes for nothing
-                // and the gleam method keeps getting ACTIVE_ATTRIBUTE_MAX_LENGTH.
-                let (size, type_, name) = gl.get_active_attrib(program.get(), i);
+                let active_attribute =
+                    unsafe { gl.get_active_attribute(program.glow(), i) }.unwrap();
+                let name = &active_attribute.name;
                 let location = if name.starts_with("gl_") {
-                    -1
+                    None
                 } else {
-                    gl.get_attrib_location(program.get(), &name)
+                    unsafe { gl.get_attrib_location(program.glow(), name) }
                 };
                 ActiveAttribInfo {
-                    name: from_name_in_compiled_shader(&name),
-                    size,
-                    type_,
+                    name: from_name_in_compiled_shader(name),
+                    size: active_attribute.size,
+                    type_: active_attribute.atype,
                     location,
                 }
             })
             .collect::<Vec<_>>()
             .into();
 
-        let mut num_active_uniforms = [0];
-        unsafe {
-            gl.get_program_iv(program.get(), gl::ACTIVE_UNIFORMS, &mut num_active_uniforms);
-        }
-        let active_uniforms = (0..num_active_uniforms[0] as u32)
+        let num_active_uniforms =
+            unsafe { gl.get_program_parameter_i32(program.glow(), gl::ACTIVE_UNIFORMS) };
+        let active_uniforms = (0..num_active_uniforms as u32)
             .map(|i| {
-                // FIXME(nox): This allocates strings sometimes for nothing
-                // and the gleam method keeps getting ACTIVE_UNIFORM_MAX_LENGTH.
-                let (size, type_, mut name) = gl.get_active_uniform(program.get(), i);
-                let is_array = name.ends_with("[0]");
-                if is_array {
-                    // FIXME(nox): NLL
-                    let len = name.len();
-                    name.truncate(len - 3);
-                }
+                let active_uniform = unsafe { gl.get_active_uniform(program.glow(), i) }.unwrap();
+                let is_array = active_uniform.name.ends_with("[0]");
+                let active_uniform_name = active_uniform
+                    .name
+                    .strip_suffix("[0]")
+                    .unwrap_or_else(|| &active_uniform.name);
                 ActiveUniformInfo {
-                    base_name: from_name_in_compiled_shader(&name).into(),
-                    size: if is_array { Some(size) } else { None },
-                    type_,
+                    base_name: from_name_in_compiled_shader(active_uniform_name).into(),
+                    size: if is_array {
+                        Some(active_uniform.size)
+                    } else {
+                        None
+                    },
+                    type_: active_uniform.utype,
                     bind_index: None,
                 }
             })
             .collect::<Vec<_>>()
             .into();
 
-        let mut num_active_uniform_blocks = [0];
-        unsafe {
-            gl.get_program_iv(
-                program.get(),
-                gl::ACTIVE_UNIFORM_BLOCKS,
-                &mut num_active_uniform_blocks,
-            );
-        }
-        let active_uniform_blocks = (0..num_active_uniform_blocks[0] as u32)
+        let num_active_uniform_blocks =
+            unsafe { gl.get_program_parameter_i32(program.glow(), gl::ACTIVE_UNIFORM_BLOCKS) };
+        let active_uniform_blocks = (0..num_active_uniform_blocks as u32)
             .map(|i| {
-                let name = gl.get_active_uniform_block_name(program.get(), i);
-                let size =
-                    gl.get_active_uniform_block_iv(program.get(), i, gl::UNIFORM_BLOCK_DATA_SIZE)
-                        [0];
+                let name = unsafe { gl.get_active_uniform_block_name(program.glow(), i) };
+                let size = unsafe {
+                    gl.get_active_uniform_block_parameter_i32(
+                        program.glow(),
+                        i,
+                        gl::UNIFORM_BLOCK_DATA_SIZE,
+                    )
+                };
                 ActiveUniformBlockInfo { name, size }
             })
             .collect::<Vec<_>>()
             .into();
 
-        let mut transform_feedback_length = [0];
-        unsafe {
-            gl.get_program_iv(
-                program.get(),
-                gl::TRANSFORM_FEEDBACK_VARYINGS,
-                &mut transform_feedback_length,
-            );
-        }
-        let mut transform_feedback_mode = [0];
-        unsafe {
-            gl.get_program_iv(
-                program.get(),
-                gl::TRANSFORM_FEEDBACK_BUFFER_MODE,
-                &mut transform_feedback_mode,
-            );
-        }
+        let transform_feedback_length = unsafe {
+            gl.get_program_parameter_i32(program.glow(), gl::TRANSFORM_FEEDBACK_VARYINGS)
+        };
+        let transform_feedback_mode = unsafe {
+            gl.get_program_parameter_i32(program.glow(), gl::TRANSFORM_FEEDBACK_BUFFER_MODE)
+        };
 
         ProgramLinkInfo {
             linked: true,
             active_attribs,
             active_uniforms,
             active_uniform_blocks,
-            transform_feedback_length: transform_feedback_length[0],
-            transform_feedback_mode: transform_feedback_mode[0],
+            transform_feedback_length,
+            transform_feedback_mode,
         }
     }
 
     fn finish(gl: &Gl, chan: &WebGLSender<()>) {
-        gl.finish();
+        unsafe { gl.finish() };
         chan.send(()).unwrap();
     }
 
@@ -2276,33 +2534,37 @@ impl WebGLImpl {
         precision_type: u32,
         chan: &WebGLSender<(i32, i32, i32)>,
     ) {
-        let result = gl.get_shader_precision_format(shader_type, precision_type);
-        chan.send(result).unwrap();
+        let ShaderPrecisionFormat {
+            range_min,
+            range_max,
+            precision,
+        } = unsafe {
+            gl.get_shader_precision_format(shader_type, precision_type)
+                .unwrap_or_else(|| {
+                    ShaderPrecisionFormat::common_desktop_hardware(
+                        precision_type,
+                        gl.version().is_embedded,
+                    )
+                })
+        };
+        chan.send((range_min, range_max, precision)).unwrap();
     }
 
-    // surfman creates a legacy OpenGL context on macOS when
-    // OpenGL 2 support is requested. Legacy contexts return GL errors for the vertex
-    // array object functions, but support a set of APPLE extension functions that
-    // provide VAO support instead.
-    fn needs_apple_vertex_arrays(gl_version: GLVersion) -> bool {
-        cfg!(target_os = "macos") && gl_version.major < 3
-    }
-
-    #[allow(unsafe_code)]
     fn get_extensions(gl: &Gl, chan: &WebGLSender<String>) {
         let mut ext_count = [0];
         unsafe {
-            gl.get_integer_v(gl::NUM_EXTENSIONS, &mut ext_count);
+            gl.get_parameter_i32_slice(gl::NUM_EXTENSIONS, &mut ext_count);
         }
         // Fall back to the depricated extensions API if that fails
-        if gl.get_error() != gl::NO_ERROR {
-            chan.send(gl.get_string(gl::EXTENSIONS)).unwrap();
+        if unsafe { gl.get_error() } != gl::NO_ERROR {
+            chan.send(unsafe { gl.get_parameter_string(gl::EXTENSIONS) })
+                .unwrap();
             return;
         }
         let ext_count = ext_count[0] as usize;
         let mut extensions = Vec::with_capacity(ext_count);
         for idx in 0..ext_count {
-            extensions.push(gl.get_string_i(gl::EXTENSIONS, idx as u32))
+            extensions.push(unsafe { gl.get_parameter_indexed_string(gl::EXTENSIONS, idx as u32) })
         }
         let extensions = extensions.join(" ");
         chan.send(extensions).unwrap();
@@ -2316,154 +2578,97 @@ impl WebGLImpl {
         pname: u32,
         chan: &WebGLSender<i32>,
     ) {
-        let parameter = gl.get_framebuffer_attachment_parameter_iv(target, attachment, pname);
+        let parameter =
+            unsafe { gl.get_framebuffer_attachment_parameter_i32(target, attachment, pname) };
         chan.send(parameter).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn get_renderbuffer_parameter(gl: &Gl, target: u32, pname: u32, chan: &WebGLSender<i32>) {
-        let parameter = gl.get_renderbuffer_parameter_iv(target, pname);
+        let parameter = unsafe { gl.get_renderbuffer_parameter_i32(target, pname) };
         chan.send(parameter).unwrap();
     }
 
     fn uniform_location(gl: &Gl, program_id: WebGLProgramId, name: &str, chan: &WebGLSender<i32>) {
-        let location = gl.get_uniform_location(program_id.get(), &to_name_in_compiled_shader(name));
-        chan.send(location).unwrap();
+        let location = unsafe {
+            gl.get_uniform_location(program_id.glow(), &to_name_in_compiled_shader(name))
+        };
+        // (#34300): replace this with WebGLUniformId
+        chan.send(location.map(|l| l.0).unwrap_or_default() as i32)
+            .unwrap();
     }
 
     fn shader_info_log(gl: &Gl, shader_id: WebGLShaderId, chan: &WebGLSender<String>) {
-        let log = gl.get_shader_info_log(shader_id.get());
+        let log = unsafe { gl.get_shader_info_log(shader_id.glow()) };
         chan.send(log).unwrap();
     }
 
     fn program_info_log(gl: &Gl, program_id: WebGLProgramId, chan: &WebGLSender<String>) {
-        let log = gl.get_program_info_log(program_id.get());
+        let log = unsafe { gl.get_program_info_log(program_id.glow()) };
         chan.send(log).unwrap();
     }
 
-    #[allow(unsafe_code)]
     fn create_buffer(gl: &Gl, chan: &WebGLSender<Option<WebGLBufferId>>) {
-        let buffer = gl.gen_buffers(1)[0];
-        let buffer = if buffer == 0 {
-            None
-        } else {
-            Some(unsafe { WebGLBufferId::new(buffer) })
-        };
+        let buffer = unsafe { gl.create_buffer() }
+            .ok()
+            .map(WebGLBufferId::from_glow);
         chan.send(buffer).unwrap();
     }
 
-    #[allow(unsafe_code)]
     fn create_framebuffer(gl: &Gl, chan: &WebGLSender<Option<WebGLFramebufferId>>) {
-        let framebuffer = gl.gen_framebuffers(1)[0];
-        let framebuffer = if framebuffer == 0 {
-            None
-        } else {
-            Some(unsafe { WebGLFramebufferId::new(framebuffer) })
-        };
+        let framebuffer = unsafe { gl.create_framebuffer() }
+            .ok()
+            .map(WebGLFramebufferId::from_glow);
         chan.send(framebuffer).unwrap();
     }
 
-    #[allow(unsafe_code)]
     fn create_renderbuffer(gl: &Gl, chan: &WebGLSender<Option<WebGLRenderbufferId>>) {
-        let renderbuffer = gl.gen_renderbuffers(1)[0];
-        let renderbuffer = if renderbuffer == 0 {
-            None
-        } else {
-            Some(unsafe { WebGLRenderbufferId::new(renderbuffer) })
-        };
+        let renderbuffer = unsafe { gl.create_renderbuffer() }
+            .ok()
+            .map(WebGLRenderbufferId::from_glow);
         chan.send(renderbuffer).unwrap();
     }
 
-    #[allow(unsafe_code)]
     fn create_texture(gl: &Gl, chan: &WebGLSender<Option<WebGLTextureId>>) {
-        let texture = gl.gen_textures(1)[0];
-        let texture = if texture == 0 {
-            None
-        } else {
-            Some(unsafe { WebGLTextureId::new(texture) })
-        };
+        let texture = unsafe { gl.create_texture() }
+            .ok()
+            .map(WebGLTextureId::from_glow);
         chan.send(texture).unwrap();
     }
 
-    #[allow(unsafe_code)]
     fn create_program(gl: &Gl, chan: &WebGLSender<Option<WebGLProgramId>>) {
-        let program = gl.create_program();
-        let program = if program == 0 {
-            None
-        } else {
-            Some(unsafe { WebGLProgramId::new(program) })
-        };
+        let program = unsafe { gl.create_program() }
+            .ok()
+            .map(WebGLProgramId::from_glow);
         chan.send(program).unwrap();
     }
 
-    #[allow(unsafe_code)]
     fn create_shader(gl: &Gl, shader_type: u32, chan: &WebGLSender<Option<WebGLShaderId>>) {
-        let shader = gl.create_shader(shader_type);
-        let shader = if shader == 0 {
-            None
-        } else {
-            Some(unsafe { WebGLShaderId::new(shader) })
-        };
+        let shader = unsafe { gl.create_shader(shader_type) }
+            .ok()
+            .map(WebGLShaderId::from_glow);
         chan.send(shader).unwrap();
     }
 
-    #[allow(unsafe_code)]
-    fn create_vertex_array(
-        gl: &Gl,
-        use_apple_ext: bool,
-        version: WebGLVersion,
-    ) -> Option<WebGLVertexArrayId> {
-        let vao = match gl {
-            Gl::Gl(ref gl) if use_apple_ext => {
-                let mut ids = vec![0];
-                unsafe {
-                    gl.GenVertexArraysAPPLE(ids.len() as gl::GLsizei, ids.as_mut_ptr());
-                }
-                ids[0]
-            },
-            Gl::Gles(ref gles) if version == WebGLVersion::WebGL1 => {
-                let mut ids = vec![0];
-                unsafe { gles.GenVertexArraysOES(ids.len() as gl::GLsizei, ids.as_mut_ptr()) }
-                ids[0]
-            },
-            _ => gl.gen_vertex_arrays(1)[0],
-        };
-        if vao == 0 {
-            let code = gl.get_error();
+    fn create_vertex_array(gl: &Gl) -> Option<WebGLVertexArrayId> {
+        let vao = unsafe { gl.create_vertex_array() }
+            .ok()
+            .map(WebGLVertexArrayId::from_glow);
+        if vao.is_none() {
+            let code = unsafe { gl.get_error() };
             warn!("Failed to create vertex array with error code {:x}", code);
-            None
-        } else {
-            Some(unsafe { WebGLVertexArrayId::new(vao) })
         }
+        vao
     }
 
-    #[allow(unsafe_code)]
-    fn bind_vertex_array(gl: &Gl, vao: GLuint, use_apple_ext: bool, version: WebGLVersion) {
-        match gl {
-            Gl::Gl(ref gl) if use_apple_ext => unsafe {
-                gl.BindVertexArrayAPPLE(vao);
-            },
-            Gl::Gles(ref gles) if version == WebGLVersion::WebGL1 => unsafe {
-                gles.BindVertexArrayOES(vao);
-            },
-            _ => gl.bind_vertex_array(vao),
-        }
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+    fn bind_vertex_array(gl: &Gl, vao: Option<NativeVertexArray>) {
+        unsafe { gl.bind_vertex_array(vao) }
+        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
     }
 
-    #[allow(unsafe_code)]
-    fn delete_vertex_array(gl: &Gl, vao: GLuint, use_apple_ext: bool, version: WebGLVersion) {
-        let vaos = [vao];
-        match gl {
-            Gl::Gl(ref gl) if use_apple_ext => unsafe {
-                gl.DeleteVertexArraysAPPLE(vaos.len() as gl::GLsizei, vaos.as_ptr());
-            },
-            Gl::Gles(ref gl) if version == WebGLVersion::WebGL1 => unsafe {
-                gl.DeleteVertexArraysOES(vaos.len() as gl::GLsizei, vaos.as_ptr());
-            },
-            _ => gl.delete_vertex_arrays(&vaos),
-        }
-        debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
+    fn delete_vertex_array(gl: &Gl, vao: WebGLVertexArrayId) {
+        unsafe { gl.delete_vertex_array(vao.glow()) };
+        debug_assert_eq!(unsafe { gl.get_error() }, gl::NO_ERROR);
     }
 
     #[inline]
@@ -2476,18 +2681,19 @@ impl WebGLImpl {
         state: &mut GLState,
     ) {
         let id = match request {
-            WebGLFramebufferBindingRequest::Explicit(id) => id.get(),
-            WebGLFramebufferBindingRequest::Default => {
+            WebGLFramebufferBindingRequest::Explicit(id) => Some(id.glow()),
+            WebGLFramebufferBindingRequest::Default => NonZeroU32::new(
                 device
                     .context_surface_info(ctx)
                     .unwrap()
                     .expect("No surface attached!")
-                    .framebuffer_object
-            },
+                    .framebuffer_object,
+            )
+            .map(NativeFramebuffer),
         };
 
         debug!("WebGLImpl::bind_framebuffer: {:?}", id);
-        gl.bind_framebuffer(target, id);
+        unsafe { gl.bind_framebuffer(target, id) };
 
         if (target == gl::FRAMEBUFFER) || (target == gl::DRAW_FRAMEBUFFER) {
             state.drawing_to_default_framebuffer =
@@ -2498,8 +2704,10 @@ impl WebGLImpl {
 
     #[inline]
     fn compile_shader(gl: &Gl, shader_id: WebGLShaderId, source: &str) {
-        gl.shader_source(shader_id.get(), &[source.as_bytes()]);
-        gl.compile_shader(shader_id.get());
+        unsafe {
+            gl.shader_source(shader_id.glow(), source);
+            gl.compile_shader(shader_id.glow());
+        }
     }
 }
 
@@ -2511,6 +2719,7 @@ impl WebGLImpl {
 /// API to look up the `x.name` and `x.mappedName` members.
 const ANGLE_NAME_PREFIX: &str = "_u";
 
+/// Adds `_u` prefix to variable names
 fn to_name_in_compiled_shader(s: &str) -> String {
     map_dot_separated(s, |s, mapped| {
         mapped.push_str(ANGLE_NAME_PREFIX);
@@ -2518,6 +2727,7 @@ fn to_name_in_compiled_shader(s: &str) -> String {
     })
 }
 
+/// Removes `_u` prefix from variable names
 fn from_name_in_compiled_shader(s: &str) -> String {
     map_dot_separated(s, |s, mapped| {
         mapped.push_str(if let Some(stripped) = s.strip_prefix(ANGLE_NAME_PREFIX) {
@@ -2885,10 +3095,10 @@ fn flip_pixels_y(
 fn clamp_viewport(gl: &Gl, size: Size2D<u32>) -> Size2D<u32> {
     let mut max_viewport = [i32::MAX, i32::MAX];
     let mut max_renderbuffer = [i32::MAX];
-    #[allow(unsafe_code)]
+
     unsafe {
-        gl.get_integer_v(gl::MAX_VIEWPORT_DIMS, &mut max_viewport);
-        gl.get_integer_v(gl::MAX_RENDERBUFFER_SIZE, &mut max_renderbuffer);
+        gl.get_parameter_i32_slice(gl::MAX_VIEWPORT_DIMS, &mut max_viewport);
+        gl.get_parameter_i32_slice(gl::MAX_RENDERBUFFER_SIZE, &mut max_renderbuffer);
         debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
     }
     Size2D::new(
@@ -2960,12 +3170,11 @@ struct FramebufferRebindingInfo {
 }
 
 impl FramebufferRebindingInfo {
-    #[allow(unsafe_code)]
     fn detect(device: &Device, context: &Context, gl: &Gl) -> FramebufferRebindingInfo {
         unsafe {
             let (mut read_framebuffer, mut draw_framebuffer) = ([0], [0]);
-            gl.get_integer_v(gl::READ_FRAMEBUFFER_BINDING, &mut read_framebuffer);
-            gl.get_integer_v(gl::DRAW_FRAMEBUFFER_BINDING, &mut draw_framebuffer);
+            gl.get_parameter_i32_slice(gl::READ_FRAMEBUFFER_BINDING, &mut read_framebuffer);
+            gl.get_parameter_i32_slice(gl::DRAW_FRAMEBUFFER_BINDING, &mut draw_framebuffer);
 
             let context_surface_framebuffer = device
                 .context_surface_info(context)
@@ -2982,7 +3191,7 @@ impl FramebufferRebindingInfo {
             }
 
             let mut viewport = [0; 4];
-            gl.get_integer_v(gl::VIEWPORT, &mut viewport);
+            gl.get_parameter_i32_slice(gl::VIEWPORT, &mut viewport);
 
             FramebufferRebindingInfo { flags, viewport }
         }
@@ -3002,20 +3211,32 @@ impl FramebufferRebindingInfo {
             .flags
             .contains(FramebufferRebindingFlags::REBIND_READ_FRAMEBUFFER)
         {
-            gl.bind_framebuffer(gl::READ_FRAMEBUFFER, context_surface_framebuffer);
+            unsafe {
+                gl.bind_framebuffer(
+                    gl::READ_FRAMEBUFFER,
+                    NonZeroU32::new(context_surface_framebuffer).map(NativeFramebuffer),
+                )
+            };
         }
         if self
             .flags
             .contains(FramebufferRebindingFlags::REBIND_DRAW_FRAMEBUFFER)
         {
-            gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, context_surface_framebuffer);
+            unsafe {
+                gl.bind_framebuffer(
+                    gl::DRAW_FRAMEBUFFER,
+                    NonZeroU32::new(context_surface_framebuffer).map(NativeFramebuffer),
+                )
+            };
         }
 
-        gl.viewport(
-            self.viewport[0],
-            self.viewport[1],
-            self.viewport[2],
-            self.viewport[3],
-        );
+        unsafe {
+            gl.viewport(
+                self.viewport[0],
+                self.viewport[1],
+                self.viewport[2],
+                self.viewport[3],
+            )
+        };
     }
 }

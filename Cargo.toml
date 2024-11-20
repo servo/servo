@@ -117,7 +117,6 @@ servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-10-04", fea
 servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
-sparkle = "0.1.26"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
