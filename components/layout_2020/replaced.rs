@@ -507,6 +507,7 @@ impl ReplacedContent {
     ///
     /// <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
     /// <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
         &self,
         containing_block: &ContainingBlock,
