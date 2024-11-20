@@ -4104,7 +4104,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4583,9 +4583,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee89f0553eb651d27e7402df9e6564e2ca327a261d0fab7fec7feb64d319f531"
+checksum = "678c5cb2b618d3d806a02f4a719e0e0ceaf00f7f0ad5286e04239ae01b65d380"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -4597,9 +4597,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba695c18e242caab837f7b5113fe271d516a24afdc82b24fe3ee5d92b4f2ec48"
+checksum = "83d2cc9b0d47f989e3218c8cf17e8db4ba3d690ffe04dbde4263f5865c779fd1"
 dependencies = [
  "convert_case",
  "napi-derive-backend-ohos",
@@ -4610,9 +4610,9 @@ dependencies = [
 
 [[package]]
 name = "napi-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2595591bd7525f697450c326b0b786babd5b568d61a582e96e48e4ede82f5ac4"
+checksum = "ce44b811af16b0ce805b67597c882c7291e2c45ed10bf20c11315bcb9039cb8c"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
@@ -4621,9 +4621,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "271aa4dcc256a7e30d9f6564f8540e0f9fd323c838c63c259ff1a2fd2c7ba16b"
+checksum = "950058f2a75d5d06f60329fd10fca41084af2a11aa964750f5820b42004490c2"
 dependencies = [
  "libloading",
 ]
@@ -8526,7 +8526,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

@@ -88,8 +88,8 @@ env_filter = "0.1.2"
 # https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 hilog = "0.1.1"
-napi-derive-ohos = "1.0.1"
-napi-ohos = "1.0.1"
+napi-derive-ohos = "1.0.3"
+napi-ohos = "1.0.3"
 ohos-sys = { version = "0.4.0", features = ["xcomponent"] }
 ohos-vsync = "0.1.2"
 ohos-ime = { version = "0.2" }
