@@ -146,7 +146,7 @@ fn is_unrooted_ty<'tcx>(
             },
             ty::Ref(..) => false,    // don't recurse down &ptrs
             ty::RawPtr(..) => false, // don't recurse down *ptrs
-            ty::FnDef(..) | ty::FnPtr(_) => false,
+            ty::FnDef(..) | ty::FnPtr(..) => false,
             ty::Alias(
                 ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
                 ty,
