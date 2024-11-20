@@ -800,15 +800,15 @@ impl<'a> AbsoluteAxisSolver<'a> {
             } else {
                 let preferred_size = self
                     .computed_size
-                    .maybe_resolve_extrinsic(Some(stretch_size))
+                    .maybe_resolve_extrinsic(Some(stretch_size), false)
                     .or(initial_is_stretch.then_some(stretch_size));
                 let min_size = self
                     .computed_min_size
-                    .maybe_resolve_extrinsic(Some(stretch_size))
+                    .maybe_resolve_extrinsic(Some(stretch_size), false)
                     .unwrap_or_default();
                 let max_size = self
                     .computed_max_size
-                    .maybe_resolve_extrinsic(Some(stretch_size));
+                    .maybe_resolve_extrinsic(Some(stretch_size), false);
                 SizeConstraint::new(preferred_size, min_size, max_size)
             }
         };

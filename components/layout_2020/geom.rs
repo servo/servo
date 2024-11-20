@@ -842,10 +842,20 @@ impl Size<Au> {
     ///   TODO: should we allow it to behave as `stretch` instead of assuming it's intrinsic?
     /// - The provided `stretch_size` is `None` but we need its value.
     #[inline]
-    pub(crate) fn maybe_resolve_extrinsic(&self, stretch_size: Option<Au>) -> Option<Au> {
+    pub(crate) fn maybe_resolve_extrinsic(
+        &self,
+        stretch_size: Option<Au>,
+        allow_stretch: bool,
+    ) -> Option<Au> {
         match self {
             Self::Initial | Self::MinContent | Self::MaxContent | Self::FitContent => None,
-            Self::Stretch => stretch_size,
+            Self::Stretch => {
+                if allow_stretch {
+                    stretch_size.or(Some(Au::zero()))
+                } else {
+                    None
+                }
+            },
             Self::Numeric(numeric) => Some(*numeric),
         }
     }
