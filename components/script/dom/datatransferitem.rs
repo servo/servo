@@ -18,25 +18,11 @@ use crate::dom::datatransfer::DataTransfer;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 
-pub enum Kind<'a> {
-    Text(DOMString),
-    File(&'a File),
-}
-
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 enum KindStorage {
     Text(DOMString),
     File(Dom<File>),
-}
-
-impl KindStorage {
-    fn new(kind: Kind) -> KindStorage {
-        match kind {
-            Kind::Text(text) => KindStorage::Text(text),
-            Kind::File(file) => KindStorage::File(Dom::from_ref(file)),
-        }
-    }
 }
 
 #[dom_struct]
@@ -48,44 +34,21 @@ pub struct DataTransferItem {
 }
 
 impl DataTransferItem {
-    fn new_inherited(
-        kind: Kind,
-        type_: DOMString,
-        data_transfer: Option<&DataTransfer>,
-    ) -> DataTransferItem {
+    fn new_inherited(data_transfer: Option<&DataTransfer>) -> DataTransferItem {
         DataTransferItem {
             reflector_: Reflector::new(),
-            kind: KindStorage::new(kind),
-            type_: DomRefCell::new(type_),
+            kind: KindStorage::Text(DOMString::from("todo")),
+            type_: DomRefCell::new(DOMString::from("todo")),
             data_store: MutableWeakRef::new(data_transfer),
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        type_: DOMString,
-        kind: Kind,
-        data_transfer: Option<&DataTransfer>,
-    ) -> DomRoot<DataTransferItem> {
-        reflect_dom_object(
-            Box::new(DataTransferItem::new_inherited(kind, type_, data_transfer)),
-            global,
-        )
-    }
-
-    pub fn set_data_store(&self, data_transfer: Option<&DataTransfer>) {
-        self.data_store.set(data_transfer);
+    pub fn new(global: &GlobalScope) -> DomRoot<DataTransferItem> {
+        reflect_dom_object(Box::new(DataTransferItem::new_inherited(None)), global)
     }
 
     pub fn type_(&self) -> DOMString {
         self.type_.borrow().clone()
-    }
-
-    pub fn as_string(&self) -> Option<DOMString> {
-        match &self.kind {
-            KindStorage::Text(data) => Some(data.clone()),
-            _ => None,
-        }
     }
 
     pub fn as_file(&self) -> Option<DomRoot<File>> {
@@ -93,14 +56,6 @@ impl DataTransferItem {
             KindStorage::File(file) => Some(DomRoot::from_ref(file)),
             _ => None,
         }
-    }
-
-    pub fn text_type_matches(&self, type_: &DOMString) -> bool {
-        matches!(self.kind, KindStorage::Text(_) if self.type_.borrow().eq(type_))
-    }
-
-    pub fn is_file(&self) -> bool {
-        matches!(self.kind, KindStorage::File(_))
     }
 }
 

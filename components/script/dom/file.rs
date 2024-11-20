@@ -97,6 +97,10 @@ impl File {
         )
     }
 
+    pub fn file_bytes(&self) -> Result<Vec<u8>, ()> {
+        self.blob.get_bytes()
+    }
+
     pub fn name(&self) -> &DOMString {
         &self.name
     }

@@ -200,6 +200,10 @@ impl HTMLImageElement {
             State::PartiallyAvailable | State::Unavailable => Ok(false),
         }
     }
+
+    pub fn image_data(&self) -> Option<Arc<Image>> {
+        self.current_request.borrow().image.clone()
+    }
 }
 
 /// The context required for asynchronously loading an external image.
