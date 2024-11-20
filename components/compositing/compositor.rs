@@ -174,12 +174,12 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Some XR devices want to run on the main thread.
     pub webxr_main_thread: webxr::MainThreadRegistry,
 
-    /// Map of the pending paint metrics per Layout.
-    /// The Layout for each specific pipeline expects the compositor to
-    /// paint frames with specific given IDs (epoch). Once the compositor paints
-    /// these frames, it records the paint time for each of them and sends the
-    /// metric to the corresponding Layout.
-    pending_paint_metrics: HashMap<PipelineId, Epoch>,
+    /// A per-pipeline queue of display lists that have not yet been rendered by WebRender. Layout
+    /// expects WebRender to paint each given epoch. Once the compositor paints a frame with that
+    /// epoch's display list, it will be removed from the queue and the paint time will be recorded
+    /// as a metric. In case new display lists come faster than painting a metric might never be
+    /// recorded.
+    pending_paint_metrics: HashMap<PipelineId, Vec<Epoch>>,
 
     /// The coordinates of the native window, its view and the screen.
     embedder_coordinates: EmbedderCoordinates,
@@ -650,7 +650,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             CompositorMsg::PendingPaintMetric(pipeline_id, epoch) => {
-                self.pending_paint_metrics.insert(pipeline_id, epoch);
+                self.pending_paint_metrics
+                    .entry(pipeline_id)
+                    .or_default()
+                    .push(epoch);
             },
 
             CompositorMsg::CrossProcess(cross_proces_message) => {
@@ -950,10 +953,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // Subtract from the number of pending frames, but do not do any compositing.
                 self.pending_frames -= 1;
             },
-            CompositorMsg::PendingPaintMetric(pipeline_id, epoch) => {
-                self.pending_paint_metrics.insert(pipeline_id, epoch);
-            },
-
             _ => {
                 debug!("Ignoring message ({:?} while shutting down", msg);
             },
@@ -2114,48 +2113,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
-        // If there are pending paint metrics, we check if any of the painted epochs is one of the
-        // ones that the paint metrics recorder is expecting. In that case, we get the current
-        // time, inform layout about it and remove the pending metric from the list.
-        if !self.pending_paint_metrics.is_empty() {
-            let paint_time = CrossProcessInstant::now();
-            let mut to_remove = Vec::new();
-            // For each pending paint metrics pipeline id
-            for (id, pending_epoch) in &self.pending_paint_metrics {
-                // we get the last painted frame id from webrender
-                if let Some(WebRenderEpoch(epoch)) = self
-                    .webrender
-                    .current_epoch(self.webrender_document, id.into())
-                {
-                    // and check if it is the one layout is expecting,
-                    let epoch = Epoch(epoch);
-                    if *pending_epoch != epoch {
-                        warn!(
-                            "{}: paint metrics: pending {:?} should be {:?}",
-                            id, pending_epoch, epoch
-                        );
-                        continue;
-                    }
-                    // in which case, we remove it from the list of pending metrics,
-                    to_remove.push(*id);
-                    if let Some(pipeline) = self.pipeline(*id) {
-                        // and inform layout with the measured paint time.
-                        if let Err(e) =
-                            pipeline
-                                .script_chan
-                                .send(ConstellationControlMsg::SetEpochPaintTime(
-                                    *id, epoch, paint_time,
-                                ))
-                        {
-                            warn!("Sending RequestLayoutPaintMetric message to layout failed ({e:?}).");
-                        }
-                    }
-                }
-            }
-            for id in to_remove.iter() {
-                self.pending_paint_metrics.remove(id);
-            }
-        }
+        self.send_pending_paint_metrics_messages_after_composite();
 
         let (x, y, width, height) = if let Some(rect) = page_rect {
             let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
@@ -2259,6 +2217,72 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.process_animations(true);
 
         Ok(rv)
+    }
+
+    /// Send all pending paint metrics messages after a composite operation, which may advance
+    /// the epoch for pipelines in the WebRender scene.
+    ///
+    /// If there are pending paint metrics, we check if any of the painted epochs is one
+    /// of the ones that the paint metrics recorder is expecting. In that case, we get the
+    /// current time, inform the constellation about it and remove the pending metric from
+    /// the list.
+    fn send_pending_paint_metrics_messages_after_composite(&mut self) {
+        if self.pending_paint_metrics.is_empty() {
+            return;
+        }
+
+        let paint_time = CrossProcessInstant::now();
+        let mut pipelines_to_remove = Vec::new();
+        let pending_paint_metrics = &mut self.pending_paint_metrics;
+
+        // For each pending paint metrics pipeline id, determine the current
+        // epoch and update paint timing if necessary.
+        for (pipeline_id, pending_epochs) in pending_paint_metrics.iter_mut() {
+            let Some(WebRenderEpoch(current_epoch)) = self
+                .webrender
+                .current_epoch(self.webrender_document, pipeline_id.into())
+            else {
+                continue;
+            };
+
+            // If the pipeline is unknown, stop trying to send paint metrics for it.
+            let Some(pipeline) = self
+                .pipeline_details
+                .get(pipeline_id)
+                .and_then(|pipeline_details| pipeline_details.pipeline.as_ref())
+            else {
+                pipelines_to_remove.push(*pipeline_id);
+                continue;
+            };
+
+            let current_epoch = Epoch(current_epoch);
+            let Some(index) = pending_epochs
+                .iter()
+                .position(|epoch| *epoch == current_epoch)
+            else {
+                continue;
+            };
+
+            // Remove all epochs that were pending before the current epochs. They were not and will not,
+            // be painted.
+            pending_epochs.drain(0..index);
+
+            if let Err(error) =
+                pipeline
+                    .script_chan
+                    .send(ConstellationControlMsg::SetEpochPaintTime(
+                        *pipeline_id,
+                        current_epoch,
+                        paint_time,
+                    ))
+            {
+                warn!("Sending RequestLayoutPaintMetric message to layout failed ({error:?}).");
+            }
+        }
+
+        for pipeline_id in pipelines_to_remove.iter() {
+            self.pending_paint_metrics.remove(pipeline_id);
+        }
     }
 
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
