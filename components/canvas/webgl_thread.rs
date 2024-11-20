@@ -2208,7 +2208,7 @@ impl WebGLImpl {
             WebGLCommand::GetUniformBlockIndex(program_id, ref name, ref sender) => {
                 let name = to_name_in_compiled_shader(name);
                 let index = unsafe { gl.get_uniform_block_index(program_id.glow(), &name) };
-                // TODO(safe_gl): use Option<u32>
+                // TODO(#34300): use Option<u32>
                 sender.send(index.unwrap_or(gl::INVALID_INDEX)).unwrap();
             },
             WebGLCommand::GetUniformIndices(program_id, ref names, ref sender) => {
@@ -2280,7 +2280,7 @@ impl WebGLImpl {
                 unsafe { gl.delete_query(query_id.glow()) };
             },
             WebGLCommand::GenerateQuery(ref sender) => {
-                // TODO(safe_gl): use Option<WebGLQueryId>
+                // TODO(#34300): use Option<WebGLQueryId>
                 let id = unsafe { gl.create_query().unwrap() };
                 sender.send(WebGLQueryId::from_glow(id)).unwrap()
             },
@@ -2593,7 +2593,7 @@ impl WebGLImpl {
         let location = unsafe {
             gl.get_uniform_location(program_id.glow(), &to_name_in_compiled_shader(name))
         };
-        // (safe_gl): replace this with WebGLUniformId
+        // (#34300): replace this with WebGLUniformId
         chan.send(location.map(|l| l.0).unwrap_or_default() as i32)
             .unwrap();
     }

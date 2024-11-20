@@ -294,13 +294,13 @@ impl WebGL2RenderingContext {
         for prog_attrib in program.active_attribs().iter() {
             let attrib = handle_potential_webgl_error!(
                 self.base,
-                // TODO(safe_gl): remove unwrap
+                // TODO(#34300): remove unwrap
                 vao.get_vertex_attrib(prog_attrib.location.unwrap_or(u32::MAX))
                     .ok_or(InvalidOperation),
                 return
             );
 
-            // TODO(safe_gl): remove unwrap
+            // TODO(#34300): remove unwrap
             let current_vertex_attrib = self.base.current_vertex_attribs()[prog_attrib
                 .location
                 .map(|l| l as usize)
