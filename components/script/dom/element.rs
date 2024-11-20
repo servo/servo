@@ -509,8 +509,6 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
-    /// XXX This is not exposed to web content yet. It is meant to be used
-    ///     for UA widgets only.
     pub fn attach_shadow(
         &self,
         is_ua_widget: IsUserAgentWidget,
@@ -3056,8 +3054,6 @@ impl ElementMethods for Element {
         doc.enter_fullscreen(self, can_gc)
     }
 
-    // XXX Hidden under dom.shadowdom.enabled pref. Only exposed to be able
-    //     to test partial Shadow DOM support for UA widgets.
     // https://dom.spec.whatwg.org/#dom-element-attachshadow
     fn AttachShadow(&self, init: &ShadowRootInit) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
