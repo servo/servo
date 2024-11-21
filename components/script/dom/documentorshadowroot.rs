@@ -37,6 +37,14 @@ pub struct StyleSheetInDocument {
     pub owner: Dom<Element>,
 }
 
+// This is necessary because this type is contained within a Stylo type which needs
+// Stylo's version of MallocSizeOf.
+impl style_malloc_size_of::MallocSizeOf for StyleSheetInDocument {
+    fn size_of(&self, ops: &mut style_malloc_size_of::MallocSizeOfOps) -> usize {
+        <StyleSheetInDocument as malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
 impl fmt::Debug for StyleSheetInDocument {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         self.sheet.fmt(formatter)
