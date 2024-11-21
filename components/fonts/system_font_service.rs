@@ -533,11 +533,15 @@ impl SystemFontServiceProxy {
             );
             panic!("SystemFontService has already exited.");
         };
-        templates
+
+        let templates: Vec<_> = templates
             .into_iter()
             .map(AtomicRefCell::new)
             .map(Arc::new)
-            .collect()
+            .collect();
+        self.templates.write().insert(cache_key, templates.clone());
+
+        templates
     }
 
     pub(crate) fn generate_font_key(&self) -> FontKey {
