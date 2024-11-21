@@ -452,13 +452,13 @@ impl ReadableStreamDefaultController {
             }
             result.set(*rval);
             read_request.chunk_steps(result);
+        } else {
+            // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
+            stream.add_read_request(read_request);
+
+            // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
+            self.call_pull_if_needed(CanGc::note());
         }
-
-        // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
-        stream.add_read_request(read_request);
-
-        // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
-        self.call_pull_if_needed(CanGc::note());
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-releasesteps>
