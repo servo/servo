@@ -21,17 +21,13 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
-use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamController_Binding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::import::module::UnionTypes::{
-    ReadableStreamDefaultControllerOrReadableByteStreamController as Controller,
-    ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader,
-};
+use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
@@ -79,9 +75,9 @@ pub enum ReadableStreamState {
 #[crown::unrooted_must_root_lint::must_root]
 pub enum ControllerType {
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
-    Byte(Dom<ReadableByteStreamController>),
+    Byte(MutNullableDom<ReadableByteStreamController>),
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
-    Default(Dom<ReadableStreamDefaultController>),
+    Default(MutNullableDom<ReadableStreamDefaultController>),
 }
 
 /// <https://streams.spec.whatwg.org/#readablestream-readerr>
@@ -101,6 +97,8 @@ pub struct ReadableStream {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestream-controller>
+    /// Note: the inner `MutNullableDom` should really be an `Option<Dom>`,
+    /// because it is never unset once set.
     controller: ControllerType,
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
@@ -121,25 +119,14 @@ pub struct ReadableStream {
 impl ReadableStream {
     #[allow(crown::unrooted_must_root)]
     /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
-    fn new_inherited(controller: Controller) -> ReadableStream {
+    fn new_inherited(controller: ControllerType) -> ReadableStream {
         let reader = match &controller {
-            Controller::ReadableStreamDefaultController(_) => {
-                ReaderType::Default(MutNullableDom::new(None))
-            },
-            Controller::ReadableByteStreamController(_) => {
-                ReaderType::BYOB(MutNullableDom::new(None))
-            },
+            ControllerType::Default(_) => ReaderType::Default(MutNullableDom::new(None)),
+            ControllerType::Byte(_) => ReaderType::BYOB(MutNullableDom::new(None)),
         };
         ReadableStream {
             reflector_: Reflector::new(),
-            controller: match controller {
-                Controller::ReadableStreamDefaultController(root) => {
-                    ControllerType::Default(Dom::from_ref(&*root))
-                },
-                Controller::ReadableByteStreamController(root) => {
-                    ControllerType::Byte(Dom::from_ref(&*root))
-                },
-            },
+            controller,
             stored_error: Heap::default(),
             disturbed: Default::default(),
             reader,
@@ -147,18 +134,30 @@ impl ReadableStream {
         }
     }
 
-    fn new(global: &GlobalScope, controller: Controller) -> DomRoot<ReadableStream> {
-        let stream =
-            reflect_dom_object(Box::new(ReadableStream::new_inherited(controller)), global);
-        match &stream.controller {
-            ControllerType::Default(controller) => {
-                controller.set_stream(&stream);
+    #[allow(crown::unrooted_must_root)]
+    fn new(global: &GlobalScope, controller: ControllerType) -> DomRoot<ReadableStream> {
+        reflect_dom_object(Box::new(ReadableStream::new_inherited(controller)), global)
+    }
+
+    /// Used as part of
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    pub fn set_default_controller(&self, controller: &ReadableStreamDefaultController) {
+        match self.controller {
+            ControllerType::Default(ref ctrl) => ctrl.set(Some(controller)),
+            ControllerType::Byte(_) => {
+                unreachable!("set_default_controller called in setup of default controller.")
             },
-            ControllerType::Byte(controller) => {
-                controller.set_stream(&stream);
-            },
+        }
+    }
+
+    /// Used as part of
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    pub fn assert_no_controller(&self) {
+        let has_no_controller = match self.controller {
+            ControllerType::Default(ref ctrl) => ctrl.get().is_none(),
+            ControllerType::Byte(ref ctrl) => ctrl.get().is_none(),
         };
-        stream
+        assert!(has_no_controller);
     }
 
     /// Used from RustCodegen.py
@@ -197,23 +196,26 @@ impl ReadableStream {
         can_gc: CanGc,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let controller = ReadableStreamDefaultController::new(
+        let stream =
+            ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)));
+        let _controller = ReadableStreamDefaultController::new(
             global,
+            stream.clone(),
             source,
             1.0,
             extract_size_algorithm(&QueuingStrategy::empty()),
             can_gc,
         );
-        ReadableStream::new(
-            global,
-            Controller::ReadableStreamDefaultController(controller.clone()),
-        )
+        stream
     }
 
     /// Call into the release steps of the controller,
     pub fn perform_release_steps(&self) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.perform_release_steps(),
+            ControllerType::Default(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .perform_release_steps(),
             ControllerType::Byte(_) => todo!(),
         }
     }
@@ -223,7 +225,10 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.perform_pull_steps(read_request),
+            ControllerType::Default(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .perform_pull_steps(read_request),
             ControllerType::Byte(_) => todo!(),
         }
     }
@@ -260,7 +265,10 @@ impl ReadableStream {
     /// Note: in other use cases this call happens via the controller.
     pub fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.enqueue_native(bytes, can_gc),
+            ControllerType::Default(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .enqueue_native(bytes, can_gc),
             _ => unreachable!(
                 "Enqueueing chunk to a stream from Rust on other than default controller"
             ),
@@ -322,10 +330,13 @@ impl ReadableStream {
     pub fn close_native(&self) {
         match self.controller {
             ControllerType::Default(ref controller) => {
-                let _ = controller.Close();
+                let _ = controller
+                    .get()
+                    .expect("Stream should have controller.")
+                    .Close();
             },
-            ControllerType::Byte(ref controller) => {
-                let _ = controller.Close();
+            ControllerType::Byte(_) => {
+                unreachable!("Native closing is only done on default controllers.")
             },
         }
     }
@@ -334,7 +345,10 @@ impl ReadableStream {
     /// Useful for native source integration only.
     pub fn in_memory(&self) -> bool {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.in_memory(),
+            ControllerType::Default(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .in_memory(),
             ControllerType::Byte(_) => unreachable!(
                 "Checking if source is in memory for a stream with a non-default controller"
             ),
@@ -345,7 +359,10 @@ impl ReadableStream {
     /// Useful for native source integration only.
     pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.get_in_memory_bytes(),
+            ControllerType::Default(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .get_in_memory_bytes(),
             ControllerType::Byte(_) => {
                 unreachable!("Getting in-memory bytes for a stream with a non-default controller")
             },
@@ -538,9 +555,10 @@ impl ReadableStream {
 
         // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
         let source_cancel_promise = match self.controller {
-            ControllerType::Default(ref controller) => {
-                controller.perform_cancel_steps(reason, can_gc)
-            },
+            ControllerType::Default(ref controller) => controller
+                .get()
+                .expect("Stream should have controller.")
+                .perform_cancel_steps(reason, can_gc),
             ControllerType::Byte(_) => {
                 todo!()
             },
@@ -602,7 +620,14 @@ impl ReadableStreamMethods for ReadableStream {
             JsUnderlyingSource::empty()
         };
 
-        let controller = if underlying_source_dict.type_.is_some() {
+        // Perform ! InitializeReadableStream(this).
+        let stream = if underlying_source_dict.type_.is_some() {
+            ReadableStream::new(global, ControllerType::Byte(MutNullableDom::new(None)))
+        } else {
+            ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)))
+        };
+
+        if underlying_source_dict.type_.is_some() {
             // TODO: If underlyingSourceDict["type"] is "bytes"
             todo!()
         } else {
@@ -613,22 +638,17 @@ impl ReadableStreamMethods for ReadableStream {
             let size_algorithm = extract_size_algorithm(strategy);
 
             // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
-            ReadableStreamDefaultController::new(
+            let _ = ReadableStreamDefaultController::new(
                 global,
+                stream.clone(),
                 UnderlyingSourceType::Js(underlying_source_dict),
                 high_water_mark,
                 size_algorithm,
                 can_gc,
-            )
+            );
         };
 
-        // Perform ! InitializeReadableStream(this).
-        // Note: in the spec this step is done before
-        // SetUpReadableStreamDefaultControllerFromUnderlyingSource
-        Ok(ReadableStream::new(
-            global,
-            Controller::ReadableStreamDefaultController(controller),
-        ))
+        Ok(stream)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-locked>
