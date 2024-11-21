@@ -124,7 +124,7 @@ style = { git = "https://github.com/servo/stylo", branch = "2024-10-04", feature
 style_config = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-10-04" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
-surfman = { git = "https://github.com/servo/surfman", rev = "c8d6b4b65aeab739ee7651602e29c8d58ceee123", features = ["chains"] }
+surfman = { git = "https://github.com/sagudev/surfman", branch = "no_gl_gen", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
@@ -150,8 +150,8 @@ webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
-webxr = { git = "https://github.com/servo/webxr" }
-webxr-api = { git = "https://github.com/servo/webxr" }
+webxr = { git = "https://github.com/sagudev/webxr", branch = "glowing_surfman" }
+webxr-api = { git = "https://github.com/sagudev/webxr", branch = "glowing_surfman" }
 wgpu-core = "23"
 wgpu-types = "23"
 windows-sys = "0.59"
