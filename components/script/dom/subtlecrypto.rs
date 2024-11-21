@@ -1868,7 +1868,7 @@ impl SubtleCrypto {
                     .expect("key length did not match")
                     .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
             },
-            (20, 12) => {
+            (24, 12) => {
                 let nonce = GenericArray::from_slice(&params.iv);
                 <Aes192Gcm96Iv>::new_from_slice(key_bytes)
                     .expect("key length did not match")
@@ -1886,7 +1886,7 @@ impl SubtleCrypto {
                     .expect("key length did not match")
                     .encrypt_in_place_detached(nonce, additional_data, &mut ciphertext)
             },
-            (20, 32) => {
+            (24, 32) => {
                 let nonce = GenericArray::from_slice(&params.iv);
                 <Aes192Gcm256Iv>::new_from_slice(key_bytes)
                     .expect("key length did not match")
@@ -1987,7 +1987,7 @@ impl SubtleCrypto {
                     .expect("key length did not match")
                     .decrypt_in_place(nonce, additional_data, &mut plaintext)
             },
-            (20, 12) => {
+            (24, 12) => {
                 let nonce = GenericArray::from_slice(&params.iv);
                 <Aes192Gcm96Iv>::new_from_slice(key_bytes)
                     .expect("key length did not match")
@@ -2005,7 +2005,7 @@ impl SubtleCrypto {
                     .expect("key length did not match")
                     .decrypt_in_place(nonce, additional_data, &mut plaintext)
             },
-            (20, 32) => {
+            (24, 32) => {
                 let nonce = GenericArray::from_slice(&params.iv);
                 <Aes192Gcm256Iv>::new_from_slice(key_bytes)
                     .expect("key length did not match")
