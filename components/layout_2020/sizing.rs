@@ -141,15 +141,15 @@ pub(crate) fn outer_inline(
         } else {
             content_box_size
                 .block
-                .maybe_resolve_extrinsic(available_block_size, false)
+                .maybe_resolve_extrinsic(Size::FitContent, available_block_size)
         };
         let min_block_size = content_min_box_size
             .block
-            .maybe_resolve_extrinsic(available_block_size, false)
+            .maybe_resolve_extrinsic(Size::FitContent, available_block_size)
             .unwrap_or(auto_minimum.block);
         let max_block_size = content_max_box_size
             .block
-            .maybe_resolve_extrinsic(available_block_size, false);
+            .maybe_resolve_extrinsic(Size::FitContent, available_block_size);
         get_content_size(&ConstraintSpace::new(
             SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
             style.writing_mode,

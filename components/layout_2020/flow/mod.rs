@@ -2042,16 +2042,16 @@ impl IndependentFormattingContext {
                 let preferred_block_size = content_box_sizes_and_pbm
                     .content_box_size
                     .block
-                    .maybe_resolve_extrinsic(available_block_size, false);
+                    .maybe_resolve_extrinsic(Size::FitContent, available_block_size);
                 let min_block_size = content_box_sizes_and_pbm
                     .content_min_box_size
                     .block
-                    .maybe_resolve_extrinsic(available_block_size, false)
+                    .maybe_resolve_extrinsic(Size::FitContent, available_block_size)
                     .unwrap_or_default();
                 let max_block_size = content_box_sizes_and_pbm
                     .content_max_box_size
                     .block
-                    .maybe_resolve_extrinsic(available_block_size, false);
+                    .maybe_resolve_extrinsic(Size::FitContent, available_block_size);
                 let tentative_block_size =
                     SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
 

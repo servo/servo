@@ -554,14 +554,14 @@ impl ReplacedContent {
                 SizeConstraint::new(
                     box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size), true),
+                        .maybe_resolve_extrinsic(Size::Stretch, Some(block_stretch_size)),
                     min_box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size), false)
+                        .maybe_resolve_extrinsic(Size::Stretch, Some(block_stretch_size))
                         .unwrap_or_default(),
                     max_box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size), false),
+                        .maybe_resolve_extrinsic(Size::Stretch, Some(block_stretch_size)),
                 )
             };
             self.content_size(
