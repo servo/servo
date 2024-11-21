@@ -55,11 +55,19 @@ pub struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-mode>
     mode: ShadowRootMode,
+
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
+    clonable: bool,
 }
 
 impl ShadowRoot {
     #[allow(crown::unrooted_must_root)]
-    fn new_inherited(host: &Element, document: &Document, mode: ShadowRootMode) -> ShadowRoot {
+    fn new_inherited(
+        host: &Element,
+        document: &Document,
+        mode: ShadowRootMode,
+        clonable: bool,
+    ) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
         let node = document_fragment.upcast::<Node>();
         node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
@@ -77,12 +85,18 @@ impl ShadowRoot {
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
             mode,
+            clonable,
         }
     }
 
-    pub fn new(host: &Element, document: &Document, mode: ShadowRootMode) -> DomRoot<ShadowRoot> {
+    pub fn new(
+        host: &Element,
+        document: &Document,
+        mode: ShadowRootMode,
+        clonable: bool,
+    ) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
-            Box::new(ShadowRoot::new_inherited(host, document, mode)),
+            Box::new(ShadowRoot::new_inherited(host, document, mode, clonable)),
             document.window(),
         )
     }
@@ -236,6 +250,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-mode>
     fn Mode(&self) -> ShadowRootMode {
         self.mode
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
+    fn Clonable(&self) -> bool {
+        self.clonable
     }
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>

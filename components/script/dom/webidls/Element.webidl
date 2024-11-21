@@ -91,7 +91,7 @@ dictionary ShadowRootInit {
   required ShadowRootMode mode;
   // boolean delegatesFocus = false;
   // SlotAssignmentMode slotAssignment = "named";
-  // boolean clonable = false;
+  boolean clonable = false;
   // boolean serializable = false;
 };
 
