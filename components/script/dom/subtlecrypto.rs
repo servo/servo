@@ -954,13 +954,14 @@ impl SubtleCryptoMethods for SubtleCrypto {
                             promise.reject_error(Error::Syntax);
                             return;
                         };
+                        let key_ops_str = key_ops.iter().map(|op| op.to_string()).collect::<Vec<String>>();
                         format!("{{
                             \"kty\": \"oct\",
                             \"k\": \"{}\",
                             \"alg\": \"{}\",
                             \"ext\": {},
                             \"key_ops\": {:?}
-                        }}", k, alg, ext, key_ops)
+                        }}", k, alg, ext, key_ops_str)
                         .into_bytes()
                     },
                 };
@@ -3056,7 +3057,11 @@ fn parse_jwk(
             let k = get_jwk_string(&obj, "k")?;
             let alg = get_jwk_string(&obj, "alg")?;
 
-            let expected_alg = match (k.len() * 8, &import_alg) {
+            let data = base64::engine::general_purpose::STANDARD_NO_PAD
+                .decode(k.as_bytes())
+                .map_err(|_| Error::Data)?;
+
+            let expected_alg = match (data.len() * 8, &import_alg) {
                 (128, ImportKeyAlgorithm::AesCbc) => "A128CBC",
                 (128, ImportKeyAlgorithm::AesCtr) => "A128CTR",
                 (128, ImportKeyAlgorithm::AesKw) => "A128KW",
@@ -3082,9 +3087,7 @@ fn parse_jwk(
                 }
             }
 
-            base64::engine::general_purpose::STANDARD_NO_PAD
-                .decode(k.as_bytes())
-                .map_err(|_| Error::Data)
+            Ok(data)
         },
         ImportKeyAlgorithm::Hmac(params) => {
             if kty != "oct" {
