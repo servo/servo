@@ -265,15 +265,16 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel>
-    fn generic_cancel(&self, promise: &Rc<Promise>, reason: SafeHandleValue) {
-        // step 1
-        if let Some(stream) = self.stream.get() {
-            // step 2
-            assert!(self.stream.get().is_some());
+    fn generic_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+        // Let stream be reader.[[stream]].
+        let stream = self.stream.get();
 
-            // step 3
-            stream.cancel(promise, reason);
-        }
+        // Assert: stream is not undefined.
+        let stream =
+            stream.expect("Reader should have a stream when generic cancel is called into.");
+
+        // Return ! ReadableStreamCancel(stream, reason).
+        stream.cancel(reason, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
@@ -368,14 +369,15 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new(&self.reflector_.global(), can_gc);
-
         if self.stream.get().is_none() {
+            // If this.[[stream]] is undefined,
+            // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&self.reflector_.global(), can_gc);
             promise.reject_error(Error::Type("stream is undefined".to_owned()));
+            promise
         } else {
-            self.generic_cancel(&promise, reason);
+            // Return ! ReadableStreamReaderGenericCancel(this, reason).
+            self.generic_cancel(reason, can_gc)
         }
-
-        promise
     }
 }

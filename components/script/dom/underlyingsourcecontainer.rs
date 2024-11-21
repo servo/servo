@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{IsPromiseObject, JSObject, JS_NewObject};
 use js::jsval::JSVal;
-use js::rust::IntoHandle;
+use js::rust::{HandleValue as SafeHandleValue, IntoHandle};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -86,6 +86,29 @@ impl UnderlyingSourceContainer {
             None,
             can_gc,
         )
+    }
+
+    /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
+    #[allow(unsafe_code)]
+    pub fn call_cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Rc<Promise>> {
+        if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
+            if let Some(pull) = &source.cancel {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+                // TODO: move this into `bindings`.
+                unsafe {
+                    let obj = JS_NewObject(*cx, ptr::null_mut());
+                    assert!(!obj.is_null());
+                    this_object.set(obj);
+                    source.to_jsobject(*cx, this_object.handle_mut());
+                }
+                let this_handle = this_object.handle();
+                return pull
+                    .Call_(&this_handle, Some(reason), ExceptionHandling::Report)
+                    .ok();
+            }
+        }
+        None
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
