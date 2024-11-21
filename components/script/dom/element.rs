@@ -1959,7 +1959,7 @@ impl Element {
         win.scroll_node(node, x, y, behavior, can_gc);
     }
 
-    // https://w3c.github.io/DOM-Parsing/#parsing
+    /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
     pub fn parse_fragment(
         &self,
         markup: DOMString,
