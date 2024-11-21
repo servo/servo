@@ -18,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{document_from_node, window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -59,6 +59,38 @@ impl DocumentFragment {
 
     pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         &self.id_map
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
+    pub fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
+        // Step 1. Let context document be node's node document.
+        let context_document = document_from_node(self);
+
+        // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
+        // with node, false, and « ».
+        let mut writer = vec![];
+        if context_document.is_html_document() {
+            html5ever::serialize(
+                &mut writer,
+                &self.upcast::<Node>(),
+                html5ever::serialize::SerializeOpts::default(),
+            )
+            .expect("Cannot serialize element");
+
+            return DOMString::from(String::from_utf8(writer).unwrap());
+        }
+
+        // Step 3. Return the XML serialization of node given require well-formed.
+        // TODO: xml5ever doesn't seem to want require_well_formed
+        let _ = require_well_formed;
+        xml5ever::serialize::serialize(
+            &mut writer,
+            &self.upcast::<Node>(),
+            xml5ever::serialize::SerializeOpts::default(),
+        )
+        .expect("Cannot serialize element");
+
+        DOMString::from(String::from_utf8(writer).unwrap())
     }
 }
 
