@@ -415,6 +415,33 @@ impl ReadableStreamDefaultController {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
+    pub fn perform_cancel_steps(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+        // Perform ! ResetQueue(this).
+        self.queue.borrow_mut().reset();
+
+        let underlying_source = self
+            .underlying_source
+            .get()
+            .expect("Controller should have a source when the cancel steps are called into.");
+        let global = self.global();
+
+        // Let result be the result of performing this.[[cancelAlgorithm]], passing reason.
+        let result = underlying_source
+            .call_cancel_algorithm(reason)
+            .unwrap_or_else(|| {
+                let promise = Promise::new(&global, can_gc);
+                promise.resolve_native(&());
+                promise
+            });
+
+        // Perform ! ReadableStreamDefaultControllerClearAlgorithms(this).
+        self.clear_algorithms();
+
+        // Return result
+        result
+    }
+
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
     #[allow(unsafe_code)]
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
