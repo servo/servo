@@ -225,7 +225,10 @@ impl RenderingContext {
 
     pub fn surface_texture_object(&self, surface: &SurfaceTexture) -> u32 {
         let device = &self.0.device.borrow();
-        device.surface_texture_object(surface)
+        device
+            .surface_texture_object(surface)
+            .map(|t| t.0.get())
+            .unwrap_or_default()
     }
 
     pub fn get_proc_address(&self, name: &str) -> *const c_void {

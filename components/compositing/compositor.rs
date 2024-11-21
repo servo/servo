@@ -2089,7 +2089,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .rendering_context
                 .context_surface_info()
                 .unwrap_or(None)
-                .map(|info| info.framebuffer_object)
+                .and_then(|info| info.framebuffer_object)
+                .map(|fbo| fbo.0.get())
                 .unwrap_or(0);
             self.webrender_gl
                 .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
