@@ -370,6 +370,19 @@ mod font_context {
             .matching_templates(&font_descriptor, &family_descriptor)[0]
             .clone();
 
+        let _ = context
+            .context
+            .matching_templates(&font_descriptor, &family_descriptor);
+
+        assert_eq!(
+            context
+                .system_font_service
+                .find_font_count
+                .fetch_add(0, Ordering::Relaxed),
+            1,
+            "we should only have requested matching templates from the font service once"
+        );
+
         let font1 = context
             .context
             .font(font_template.clone(), &font_descriptor)
