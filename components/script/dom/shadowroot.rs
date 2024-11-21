@@ -277,7 +277,7 @@ impl ShadowRootMethods for ShadowRoot {
         };
 
         // Step 4. Replace all with fragment within this.
-        Node::replace_all(Some(frag.upcast()), &self.upcast());
+        Node::replace_all(Some(frag.upcast()), self.upcast());
     }
 }
 
