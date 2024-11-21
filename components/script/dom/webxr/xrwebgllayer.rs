@@ -152,8 +152,7 @@ impl XRWebGLLayer {
         let sub_images = frame.get_sub_images(self.layer_id()?)?;
         let session = self.session();
         // TODO: Cache this texture
-        let color_texture_id =
-            WebGLTextureId::maybe_new(sub_images.sub_image.as_ref()?.color_texture)?;
+        let color_texture_id = WebGLTextureId::new(sub_images.sub_image.as_ref()?.color_texture?);
         let color_texture = WebGLTexture::new_webxr(context, color_texture_id, session);
         let target = self.texture_target();
 
@@ -187,7 +186,7 @@ impl XRWebGLLayer {
             .ok()?;
         if let Some(id) = sub_images.sub_image.as_ref()?.depth_stencil_texture {
             // TODO: Cache this texture
-            let depth_stencil_texture_id = WebGLTextureId::maybe_new(id)?;
+            let depth_stencil_texture_id = WebGLTextureId::new(id);
             let depth_stencil_texture =
                 WebGLTexture::new_webxr(context, depth_stencil_texture_id, session);
             framebuffer

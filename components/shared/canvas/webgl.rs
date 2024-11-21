@@ -570,15 +570,9 @@ macro_rules! define_resource_id {
         pub struct $name(nonzero_type!($type));
 
         impl $name {
-            #[allow(unsafe_code)]
             #[inline]
-            /// Create a new $name.
-            ///
-            /// # Safety
-            ///
-            /// Using an invalid OpenGL id may result in undefined behavior.
-            pub unsafe fn new(id: $type) -> Self {
-                $name(<nonzero_type!($type)>::new_unchecked(id))
+            pub fn new(id: nonzero_type!($type)) -> Self {
+                Self(id)
             }
 
             #[inline]
@@ -599,10 +593,10 @@ macro_rules! define_resource_id {
                 D: ::serde::Deserializer<'de>,
             {
                 let id = <$type>::deserialize(deserializer)?;
-                if id == 0 {
-                    Err(::serde::de::Error::custom("expected a non-zero value"))
+                if let Some(id) = <nonzero_type!($type)>::new(id) {
+                    Ok($name(id))
                 } else {
-                    Ok(unsafe { $name::new(id) })
+                    Err(::serde::de::Error::custom("expected a non-zero value"))
                 }
             }
         }
