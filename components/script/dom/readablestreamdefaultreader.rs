@@ -135,23 +135,26 @@ impl ReadableStreamDefaultReader {
     ) -> DomRoot<ReadableStreamDefaultReader> {
         let promise;
         if stream.is_readable() {
-            // step 3
+            // If stream.[[state]] is "readable
+            // Set reader.[[closedPromise]] to a new promise.
             promise = Promise::new(global, can_gc);
         } else if stream.is_closed() {
-            // step 4
+            // Otherwise, if stream.[[state]] is "closed",
+            // Set reader.[[closedPromise]] to a promise resolved with undefined.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            promise = Promise::new_rejected(global, cx, rval.handle()).unwrap();
+            promise = Promise::new_resolved(global, cx, rval.handle()).unwrap();
         } else {
-            // step 5.1
+            // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());
-            // step 5.2
+
+            // Set reader.[[closedPromise]] to a promise rejected with stream.[[storedError]].
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             stream.get_stored_error(rval.handle_mut());
             promise = Promise::new_rejected(global, cx, rval.handle()).unwrap();
 
-            // step 5.3
+            // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
             promise.set_promise_is_handled();
         }
         reflect_dom_object(
