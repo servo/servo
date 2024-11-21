@@ -8,18 +8,16 @@ use style::properties::ComputedValues;
 
 use super::convert;
 
-/// A wrapper struct for anything that Deref's to a [`stylo::ComputedValues`], which implements Taffy's layout traits
-/// and can used with Taffy's layout algorithms.
+/// A wrapper struct for anything that Deref's to a [`stylo::ComputedValues`], which
+/// implements Taffy's layout traits and can used with Taffy's layout algorithms.
 pub struct TaffyStyloStyle<T: Deref<Target = ComputedValues>>(pub T);
 
-// Deref<stylo::ComputedValues> impl
 impl<T: Deref<Target = ComputedValues>> From<T> for TaffyStyloStyle<T> {
     fn from(value: T) -> Self {
         Self(value)
     }
 }
 
-// CoreStyle impl
 impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> {
     #[inline]
     fn box_generation_mode(&self) -> taffy::BoxGenerationMode {
@@ -132,7 +130,6 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
     }
 }
 
-// GridContainerStyle impl
 impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStyloStyle<T> {
     type TemplateTrackList<'a>
         = Vec<taffy::TrackSizingFunction>
@@ -198,7 +195,6 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStylo
     }
 }
 
-// GridItemStyle impl
 impl<T: Deref<Target = ComputedValues>> taffy::GridItemStyle for TaffyStyloStyle<T> {
     #[inline]
     fn grid_row(&self) -> taffy::Line<taffy::GridPlacement> {

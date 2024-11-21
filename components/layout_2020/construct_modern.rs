@@ -20,15 +20,6 @@ use crate::formatting_contexts::{
 };
 use crate::style_ext::DisplayGeneratingBox;
 
-/// <https://drafts.csswg.org/css-text/#white-space>
-fn is_only_document_white_space(text: &str) -> bool {
-    // FIXME: is this the right definition? See
-    // https://github.com/w3c/csswg-drafts/issues/5146
-    // https://github.com/w3c/csswg-drafts/issues/5147
-    text.bytes()
-        .all(|byte| matches!(byte, b' ' | b'\n' | b'\t'))
-}
-
 /// <https://drafts.csswg.org/css-flexbox/#flex-items>
 pub(crate) struct ModernContainerBuilder<'a, 'dom, Node> {
     context: &'a LayoutContext<'a>,
@@ -53,6 +44,18 @@ enum ModernContainerJob<'dom, Node> {
 struct ModernContainerTextRun<'dom, Node> {
     info: NodeAndStyleInfo<Node>,
     text: Cow<'dom, str>,
+}
+
+impl<Node> ModernContainerTextRun<'_, Node> {
+    /// <https://drafts.csswg.org/css-text/#white-space>
+    fn is_only_document_white_space(&self) -> bool {
+        // FIXME: is this the right definition? See
+        // https://github.com/w3c/csswg-drafts/issues/5146
+        // https://github.com/w3c/csswg-drafts/issues/5147
+        self.text
+            .bytes()
+            .all(|byte| matches!(byte, b' ' | b'\n' | b'\t'))
+    }
 }
 
 pub(crate) enum ModernItemKind {
@@ -118,7 +121,10 @@ where
 
     fn wrap_any_text_in_anonymous_block_container(&mut self) {
         let runs = std::mem::take(&mut self.contiguous_text_runs);
-        if runs.iter().all(|r| is_only_document_white_space(&r.text)) {
+        if runs
+            .iter()
+            .all(ModernContainerTextRun::is_only_document_white_space)
+        {
             // There is no text run, or they all only contain document white space characters
         } else {
             self.jobs.push(ModernContainerJob::TextRuns(runs));

@@ -114,7 +114,6 @@ pub fn is_block(input: stylo::Display) -> bool {
 pub fn box_generation_mode(input: stylo::Display) -> taffy::BoxGenerationMode {
     match input.inside() {
         stylo::DisplayInside::None => taffy::BoxGenerationMode::None,
-        // stylo::DisplayInside::Contents => display = taffy::BoxGenerationMode::Contents,
         _ => taffy::BoxGenerationMode::Normal,
     }
 }

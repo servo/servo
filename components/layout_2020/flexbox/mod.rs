@@ -162,7 +162,7 @@ impl std::fmt::Debug for FlexItemBox {
 }
 
 impl FlexItemBox {
-    pub(crate) fn new(independent_formatting_context: IndependentFormattingContext) -> Self {
+    fn new(independent_formatting_context: IndependentFormattingContext) -> Self {
         Self {
             independent_formatting_context,
             block_content_size_cache: Default::default(),
