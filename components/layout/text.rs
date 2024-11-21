@@ -188,6 +188,7 @@ impl TextRunScanner {
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().clone_font();
+                let computed_font_size = font_style.font_size.computed_size();
                 let inherited_text_style = in_fragment.style().get_inherited_text();
                 font_group = font_context.font_group(font_style);
                 compression = match in_fragment.white_space_collapse() {
@@ -198,7 +199,10 @@ impl TextRunScanner {
                     WhiteSpaceCollapse::PreserveBreaks => CompressionMode::CompressWhitespace,
                 };
                 text_transform = inherited_text_style.text_transform;
-                letter_spacing = inherited_text_style.letter_spacing;
+                letter_spacing = inherited_text_style
+                    .letter_spacing
+                    .0
+                    .resolve(computed_font_size);
                 word_spacing = inherited_text_style
                     .word_spacing
                     .to_length()
@@ -337,7 +341,7 @@ impl TextRunScanner {
             // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
             // `ﬁ n a l l y`.
             let mut flags = ShapingFlags::empty();
-            if letter_spacing.0.px() != 0. {
+            if letter_spacing.px() != 0. {
                 flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
             }
             if text_rendering == TextRendering::Optimizespeed {
@@ -348,10 +352,10 @@ impl TextRunScanner {
                 flags.insert(ShapingFlags::KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
-                letter_spacing: if letter_spacing.0.px() == 0. {
+                letter_spacing: if letter_spacing.px() == 0. {
                     None
                 } else {
-                    Some(Au::from(letter_spacing.0))
+                    Some(Au::from(letter_spacing))
                 },
                 word_spacing,
                 script: Script::Common,

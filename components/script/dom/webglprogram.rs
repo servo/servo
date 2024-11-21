@@ -173,9 +173,9 @@ impl WebGLProgram {
             let mut used_locs = FnvHashSet::default();
             let mut used_names = FnvHashSet::default();
             for active_attrib in &*link_info.active_attribs {
-                if active_attrib.location == -1 {
+                let Some(location) = active_attrib.location else {
                     continue;
-                }
+                };
                 let columns = match active_attrib.type_ {
                     constants::FLOAT_MAT2 => 2,
                     constants::FLOAT_MAT3 => 3,
@@ -185,7 +185,7 @@ impl WebGLProgram {
                 assert!(used_names.insert(&*active_attrib.name));
                 for column in 0..columns {
                     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.31
-                    if !used_locs.insert(active_attrib.location as u32 + column) {
+                    if !used_locs.insert(location + column) {
                         return Ok(());
                     }
                 }
@@ -364,7 +364,8 @@ impl WebGLProgram {
             .borrow()
             .iter()
             .find(|attrib| attrib.name == *name)
-            .map_or(-1, |attrib| attrib.location);
+            .and_then(|attrib| attrib.location.map(|l| l as i32))
+            .unwrap_or(-1);
         Ok(location)
     }
 

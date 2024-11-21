@@ -772,7 +772,6 @@ impl SubtleCryptoMethods for SubtleCrypto {
             },
         };
 
-        // TODO: Figure out a way to Send this data so per-algorithm JWK checks can happen
         let data = match key_data {
             ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(json_web_key) => {
@@ -951,12 +950,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                             promise.reject_error(Error::Syntax);
                             return;
                         };
+                        let Some(key_ops) = key.key_ops else {
+                            promise.reject_error(Error::Syntax);
+                            return;
+                        };
+                        let key_ops_str = key_ops.iter().map(|op| op.to_string()).collect::<Vec<String>>();
                         format!("{{
                             \"kty\": \"oct\",
                             \"k\": \"{}\",
                             \"alg\": \"{}\",
-                            \"ext\": {}
-                        }}", k, alg, ext)
+                            \"ext\": {},
+                            \"key_ops\": {:?}
+                        }}", k, alg, ext, key_ops_str)
                         .into_bytes()
                     },
                 };
@@ -1081,7 +1086,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let import_key_bytes = match format {
                     KeyFormat::Raw | KeyFormat::Spki | KeyFormat::Pkcs8 => bytes,
                     KeyFormat::Jwk => {
-                        match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable) {
+                        match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
                             Ok(bytes) => bytes,
                             Err(e) => {
                                 promise.reject_error(e);
@@ -2224,8 +2229,6 @@ impl SubtleCrypto {
             192 => Handle::Aes192(data.to_vec()),
             256 => Handle::Aes256(data.to_vec()),
             _ => {
-                println!("{}", String::from_utf8_lossy(data));
-                println!("Bad data length: {}", data.len());
                 return Err(Error::Data);
             },
         };
@@ -2233,7 +2236,7 @@ impl SubtleCrypto {
         let name = DOMString::from(alg_name.to_string());
 
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
         assert!(!algorithm_object.is_null());
 
         AesKeyAlgorithm::from_name_and_size(
@@ -2278,6 +2281,11 @@ impl SubtleCrypto {
                     },
                     _ => return Err(Error::Data),
                 };
+                let key_ops = key
+                    .usages()
+                    .iter()
+                    .map(|usage| DOMString::from(usage.as_str()))
+                    .collect::<Vec<DOMString>>();
                 let jwk = JsonWebKey {
                     alg: Some(alg),
                     crv: None,
@@ -2287,7 +2295,7 @@ impl SubtleCrypto {
                     e: None,
                     ext: Some(key.Extractable()),
                     k: Some(k),
-                    key_ops: None,
+                    key_ops: Some(key_ops),
                     kty: Some(DOMString::from("oct")),
                     n: None,
                     oth: None,
@@ -2319,7 +2327,8 @@ impl SubtleCrypto {
             // Step 1. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
             if usages
                 .iter()
-                .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+                .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
+                usages.is_empty()
             {
                 return Err(Error::Syntax);
             }
@@ -2370,9 +2379,11 @@ impl SubtleCrypto {
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. Let keyData be the key data to be imported.
         // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
+        // Note: This is not explicitly spec'ed, but also throw a SyntaxError if usages is empty
         if usages
             .iter()
-            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
+            .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify)) ||
+            usages.is_empty()
         {
             return Err(Error::Syntax);
         }
@@ -2383,18 +2394,14 @@ impl SubtleCrypto {
         // Step 4.
         let data;
         match format {
-            // If format is "raw":
-            KeyFormat::Raw => {
+            // Key data has already been extracted in the case of JWK,
+            // so both raw and jwk can be treated the same here.
+            KeyFormat::Raw | KeyFormat::Jwk => {
                 // Step 4.1 Let data be the octet string contained in keyData.
-                data = key_data;
+                data = key_data.to_vec();
 
                 // Step 4.2 Set hash to equal the hash member of normalizedAlgorithm.
                 hash = normalized_algorithm.hash;
-            },
-            // If format is "jwk":
-            KeyFormat::Jwk => {
-                // TODO: This seems to require having key_data be more than just &[u8]
-                return Err(Error::NotSupported);
             },
             // Otherwise:
             _ => {
@@ -2435,7 +2442,7 @@ impl SubtleCrypto {
         let truncated_data = data[..length as usize / 8].to_vec();
         let name = DOMString::from(ALG_HMAC);
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        rooted!(in(*cx) let mut algorithm_object = unsafe { JS_NewObject(*cx, ptr::null()) });
         assert!(!algorithm_object.is_null());
         HmacKeyAlgorithm::from_length_and_hash(length, hash, algorithm_object.handle_mut(), cx);
 
@@ -2568,7 +2575,8 @@ impl SubtleCrypto {
         // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
         if usages
             .iter()
-            .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+            .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
+            usages.is_empty()
         {
             return Err(Error::Syntax);
         }
@@ -3000,9 +3008,13 @@ impl KeyWrapAlgorithm {
 }
 
 /// <https://w3c.github.io/webcrypto/#concept-parse-a-jwk>
-fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result<Vec<u8>, Error> {
-    let jwk_string = String::from_utf8_lossy(bytes).to_string();
-    let value = serde_json::from_str(&jwk_string)
+fn parse_jwk(
+    bytes: &[u8],
+    import_alg: ImportKeyAlgorithm,
+    extractable: bool,
+    key_usages: &[KeyUsage],
+) -> Result<Vec<u8>, Error> {
+    let value = serde_json::from_slice(bytes)
         .map_err(|_| Error::Type("Failed to parse JWK string".into()))?;
     let serde_json::Value::Object(obj) = value else {
         return Err(Error::Data);
@@ -3014,7 +3026,27 @@ fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result
         return Err(Error::Data);
     }
 
-    match alg {
+    // If the key_ops field of jwk is present, and is invalid according to the requirements of JSON Web Key [JWK]
+    // or does not contain all of the specified usages values, then throw a DataError.
+    if let Some(serde_json::Value::Array(key_ops)) = obj.get("key_ops") {
+        if key_ops.iter().any(|op| {
+            let op_string = match op {
+                serde_json::Value::String(op_string) => op_string,
+                _ => return true,
+            };
+            let usage = match usage_from_str(op_string) {
+                Ok(usage) => usage,
+                Err(_) => {
+                    return true;
+                },
+            };
+            !key_usages.contains(&usage)
+        }) {
+            return Err(Error::Data);
+        }
+    }
+
+    match import_alg {
         ImportKeyAlgorithm::AesCbc |
         ImportKeyAlgorithm::AesCtr |
         ImportKeyAlgorithm::AesKw |
@@ -3023,6 +3055,63 @@ fn parse_jwk(bytes: &[u8], alg: ImportKeyAlgorithm, extractable: bool) -> Result
                 return Err(Error::Data);
             }
             let k = get_jwk_string(&obj, "k")?;
+            let alg = get_jwk_string(&obj, "alg")?;
+
+            let data = base64::engine::general_purpose::STANDARD_NO_PAD
+                .decode(k.as_bytes())
+                .map_err(|_| Error::Data)?;
+
+            let expected_alg = match (data.len() * 8, &import_alg) {
+                (128, ImportKeyAlgorithm::AesCbc) => "A128CBC",
+                (128, ImportKeyAlgorithm::AesCtr) => "A128CTR",
+                (128, ImportKeyAlgorithm::AesKw) => "A128KW",
+                (128, ImportKeyAlgorithm::AesGcm) => "A128GCM",
+                (192, ImportKeyAlgorithm::AesCbc) => "A192CBC",
+                (192, ImportKeyAlgorithm::AesCtr) => "A192CTR",
+                (192, ImportKeyAlgorithm::AesKw) => "A192KW",
+                (192, ImportKeyAlgorithm::AesGcm) => "A192GCM",
+                (256, ImportKeyAlgorithm::AesCbc) => "A256CBC",
+                (256, ImportKeyAlgorithm::AesCtr) => "A256CTR",
+                (256, ImportKeyAlgorithm::AesKw) => "A256KW",
+                (256, ImportKeyAlgorithm::AesGcm) => "A256GCM",
+                _ => return Err(Error::Data),
+            };
+
+            if alg != expected_alg {
+                return Err(Error::Data);
+            }
+
+            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
+                if use_ != "enc" {
+                    return Err(Error::Data);
+                }
+            }
+
+            Ok(data)
+        },
+        ImportKeyAlgorithm::Hmac(params) => {
+            if kty != "oct" {
+                return Err(Error::Data);
+            }
+            let k = get_jwk_string(&obj, "k")?;
+            let alg = get_jwk_string(&obj, "alg")?;
+
+            let expected_alg = match params.hash {
+                DigestAlgorithm::Sha1 => "HS1",
+                DigestAlgorithm::Sha256 => "HS256",
+                DigestAlgorithm::Sha384 => "HS384",
+                DigestAlgorithm::Sha512 => "HS512",
+            };
+
+            if alg != expected_alg {
+                return Err(Error::Data);
+            }
+
+            if let Some(serde_json::Value::String(use_)) = obj.get("use") {
+                if use_ != "sign" {
+                    return Err(Error::Data);
+                }
+            }
 
             base64::engine::general_purpose::STANDARD_NO_PAD
                 .decode(k.as_bytes())
@@ -3054,4 +3143,21 @@ fn get_jwk_bool(
         .as_bool()
         .ok_or(Error::Data)?;
     Ok(b)
+}
+
+fn usage_from_str(op: &str) -> Result<KeyUsage, Error> {
+    let usage = match op {
+        "encrypt" => KeyUsage::Encrypt,
+        "decrypt" => KeyUsage::Decrypt,
+        "sign" => KeyUsage::Sign,
+        "verify" => KeyUsage::Verify,
+        "deriveKey" => KeyUsage::DeriveKey,
+        "deriveBits" => KeyUsage::DeriveBits,
+        "wrapKey" => KeyUsage::WrapKey,
+        "unwrapKey" => KeyUsage::UnwrapKey,
+        _ => {
+            return Err(Error::Data);
+        },
+    };
+    Ok(usage)
 }

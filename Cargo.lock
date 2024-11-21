@@ -621,9 +621,9 @@ checksum = "28346c117b50270785fbc123bd6e4ecad20d0c6d5f43d081dc80a3abcc62be64"
 
 [[package]]
 name = "bytemuck"
-version = "1.19.0"
+version = "1.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8334215b81e418a0a7bdb8ef0849474f40bb10c8b71f1c4ed315cff49f32494d"
+checksum = "8b37c88a63ffd85d15b406896cc343916d7cf57838a847b3a6f2ca5d39a5695a"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -714,7 +714,6 @@ dependencies = [
  "range",
  "raqote",
  "servo_arc",
- "sparkle",
  "style",
  "style_traits",
  "surfman",
@@ -1351,9 +1350,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edb49164822f3ee45b17acd4a208cfc1251410cf0cad9a833234c9890774dd9f"
+checksum = "32a2785755761f3ddc1492979ce1e48d2c00d09311c39e4466429188f3dd6501"
 dependencies = [
  "quote",
  "syn",
@@ -1641,7 +1640,7 @@ dependencies = [
 [[package]]
 name = "dom"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "bitflags 2.6.0",
 ]
@@ -3781,9 +3780,9 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "1.0.11"
+version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
+checksum = "7a73e9fe3c49d7afb2ace819fa181a287ce54a0983eda4e0eb05c22f82ffe534"
 
 [[package]]
 name = "jni"
@@ -4105,7 +4104,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4277,7 +4276,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -4584,9 +4583,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee89f0553eb651d27e7402df9e6564e2ca327a261d0fab7fec7feb64d319f531"
+checksum = "678c5cb2b618d3d806a02f4a719e0e0ceaf00f7f0ad5286e04239ae01b65d380"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -4598,9 +4597,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba695c18e242caab837f7b5113fe271d516a24afdc82b24fe3ee5d92b4f2ec48"
+checksum = "83d2cc9b0d47f989e3218c8cf17e8db4ba3d690ffe04dbde4263f5865c779fd1"
 dependencies = [
  "convert_case",
  "napi-derive-backend-ohos",
@@ -4611,9 +4610,9 @@ dependencies = [
 
 [[package]]
 name = "napi-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2595591bd7525f697450c326b0b786babd5b568d61a582e96e48e4ede82f5ac4"
+checksum = "ce44b811af16b0ce805b67597c882c7291e2c45ed10bf20c11315bcb9039cb8c"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
@@ -4622,9 +4621,9 @@ dependencies = [
 
 [[package]]
 name = "napi-sys-ohos"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "271aa4dcc256a7e30d9f6564f8540e0f9fd323c838c63c259ff1a2fd2c7ba16b"
+checksum = "950058f2a75d5d06f60329fd10fca41084af2a11aa964750f5820b42004490c2"
 dependencies = [
  "libloading",
 ]
@@ -6312,8 +6311,8 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.25.0"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+version = "0.26.0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "bitflags 2.6.0",
  "cssparser",
@@ -6601,7 +6600,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6610,7 +6609,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -6919,15 +6918,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sparkle"
-version = "0.1.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74fc6c6346da9177de9894230716709c223c62adbf910a5c1e6096b2ee2e58e0"
-dependencies = [
- "gl_generator",
-]
-
-[[package]]
 name = "speexdsp-resampler"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6963,7 +6953,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 
 [[package]]
 name = "strck"
@@ -7022,7 +7012,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7080,7 +7070,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "lazy_static",
 ]
@@ -7088,7 +7078,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7118,7 +7108,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "app_units",
  "bitflags 2.6.0",
@@ -7469,7 +7459,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7482,7 +7472,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#bedab74ee38a04c9b8a8fe97e963a133ef5228c0"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7791,9 +7781,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.13"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
+checksum = "adb9e6ca4f869e1180728b7950e35922a7fc6397f7b641499e8f3ef06e50dc83"
 
 [[package]]
 name = "unicode-properties"
@@ -8536,7 +8526,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

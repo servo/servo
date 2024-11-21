@@ -81,7 +81,7 @@ keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 memmap2 = "0.9.5"
 mime = "0.3.13"
@@ -106,25 +106,24 @@ rustls = { version = "0.21.12", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+selectors = { git = "https://github.com/servo/stylo", branch = "2024-11-01" }
 serde = "1.0.215"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
-servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
+servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-11-01" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
-sparkle = "0.1.26"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
-style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-10-04" }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+style = { git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo", branch = "2024-11-01" }
+style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-11-01" }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
 surfman = { git = "https://github.com/servo/surfman", rev = "c8d6b4b65aeab739ee7651602e29c8d58ceee123", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -132,7 +131,7 @@ thin-vec = "0.2.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 time_03 = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
-to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-11-01" }
 tokio = "1"
 tokio-rustls = "0.24"
 tracing = "0.1.40"
@@ -162,6 +161,14 @@ xml5ever = "0.20"
 [profile.release]
 opt-level = 3
 debug-assertions = true
+
+# A profile between `dev` and `release` which aims to offer a compromise between
+# fast incremental rebuilds and runtime speed.
+[profile.medium]
+inherits = "release"
+opt-level = 2
+incremental = true
+debug = "line-tables-only"
 
 [profile.production]
 inherits = "release"

@@ -14,50 +14,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-win:
-    name: Windows
-    if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/windows.yml
-    with:
-      unit-tests: true
-    secrets: inherit
+  decision:
+    name: Generate Try Configuration
+    runs-on: ubuntu-20.04
+    outputs:
+      configuration: ${{ steps.configuration.outputs.result }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            python/servo/try_parser.py
+          sparse-checkout-cone-mode: false
+      - name: Get Configuration
+        id: configuration
+        run: |
+          {
+            echo 'result<<EOF'
+            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux lint' || 'fail-fast full' }}
+            echo EOF
+           } >> $GITHUB_OUTPUT
 
-  build-mac:
-    name: Mac
-    if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/mac.yml
+  build:
+    needs: ["decision"]
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.decision.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.decision.outputs.configuration).matrix }}
+    # We need to use `dipatch-workflow.yml` because workflows do not support using: ${}
+    uses: ./.github/workflows/dispatch-workflow.yml
+    secrets: inherit
     with:
-      unit-tests: true
-    secrets: inherit
-
-  build-linux:
-    name: Linux
-    uses: ./.github/workflows/linux.yml
-    with:
-      unit-tests: true
-      wpt-layout: ${{ github.event_name == 'pull_request' && 'none' || '2020' }}
-    secrets: inherit
-
-  lint:
-    name: Lint
-    uses: ./.github/workflows/lint.yml
-    secrets: inherit
-
-  build-android:
-    name: Android
-    if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/android.yml
-    with:
-      profile: "release"
-    secrets: inherit
-
-  build-ohos:
-    name: OpenHarmony
-    if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/ohos.yml
-    with:
-      profile: "release"
-    secrets: inherit
+      workflow: ${{ matrix.workflow }}
+      wpt-layout: ${{ matrix.wpt_layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
+      wpt-args: ${{ matrix.wpt_args }}
 
   build-result:
     name: Result
@@ -65,12 +61,7 @@ jobs:
     if: always()
     # needs all build to detect cancellation
     needs:
-      - "build-win"
-      - "build-mac"
-      - "build-linux"
-      - "build-android"
-      - "build-ohos"
-      - "lint"
+      - build
     steps:
       - name: Merge build timings
         uses: actions/upload-artifact/merge@v4
