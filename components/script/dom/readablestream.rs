@@ -43,8 +43,27 @@ use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::js::conversions::FromJSValConvertible;
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+
+/// The fulfillment handler for the reacting to sourceCancelPromise part of
+/// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct SourceCancelPromiseFulfillmentHandler {
+    #[ignore_malloc_size_of = "Rc are hard"]
+    result: Rc<Promise>,
+}
+
+impl Callback for SourceCancelPromiseFulfillmentHandler {
+    /// The fulfillment handler for the reacting to sourceCancelPromise part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
+    /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
+    fn callback(&self, _cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        self.result.resolve_native(&());
+    }
+}
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
 #[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -491,21 +510,25 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     #[allow(unsafe_code)]
-    pub fn cancel(&self, promise: &Promise, _reason: SafeHandleValue) {
+    pub fn cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         // step 1
         self.disturbed.set(true);
 
         // step 2
         if self.is_closed() {
-            return promise.resolve_native(&());
+            let promise = Promise::new(&self.reflector_.global(), can_gc);
+            promise.resolve_native(&());
+            return promise;
         }
         // step 3
         if self.is_errored() {
+            let promise = Promise::new(&self.reflector_.global(), can_gc);
             unsafe {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 self.stored_error.to_jsval(*cx, rval.handle_mut());
-                return promise.reject_native(&rval.handle());
+                promise.reject_native(&rval.handle());
+                return promise;
             }
         }
         // step 4
@@ -513,7 +536,31 @@ impl ReadableStream {
         // step 5, 6, 7, 8
         // TODO: run the bytes reader steps.
 
-        // TODO: react to sourceCancelPromise.
+        // Let sourceCancelPromise be ! stream.[[controller]].[[CancelSteps]](reason).
+        let source_cancel_promise = match self.controller {
+            ControllerType::Default(ref controller) => {
+                controller.perform_cancel_steps(reason, can_gc)
+            },
+            ControllerType::Byte(_) => {
+                todo!()
+            },
+        };
+
+        // Create a new promise,
+        // and setup a handler in order to react to the fulfillment of sourceCancelPromise.
+        let global = self.reflector_.global();
+        let result_promise = Promise::new(&global, can_gc);
+        let fulfillment_handler = Box::new(SourceCancelPromiseFulfillmentHandler {
+            result: result_promise.clone(),
+        });
+        let handler = PromiseNativeHandler::new(&global, Some(fulfillment_handler), None);
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        source_cancel_promise.append_native_handler(&handler, comp, can_gc);
+
+        // Return the result of reacting to sourceCancelPromise
+        // with a fulfillment step that returns undefined.
+        result_promise
     }
 
     pub fn set_reader(&self, new_reader: Option<&ReadableStreamDefaultReader>) {
@@ -591,16 +638,16 @@ impl ReadableStreamMethods for ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new(&self.reflector_.global(), can_gc);
         if self.is_locked() {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
+            let promise = Promise::new(&self.reflector_.global(), can_gc);
             promise.reject_error(Error::Type("stream is not locked".to_owned()));
+            promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
-            self.cancel(&promise, reason);
+            self.cancel(reason, can_gc)
         }
-        promise
     }
 
     /// <https://streams.spec.whatwg.org/#rs-get-reader>
