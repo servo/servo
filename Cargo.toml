@@ -162,6 +162,14 @@ xml5ever = "0.20"
 opt-level = 3
 debug-assertions = true
 
+# A profile between `dev` and `release` which aims to offer a compromise between
+# fast incremental rebuilds and runtime speed.
+[profile.medium]
+inherits = "release"
+opt-level = 2
+incremental = true
+debug = "line-tables-only"
+
 [profile.production]
 inherits = "release"
 debug-assertions = false

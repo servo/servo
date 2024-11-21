@@ -678,6 +678,10 @@ class CommandBase(object):
             elif self.config["build"]["mode"] == "release":
                 print("No build type specified, but .servobuild specified `--release`.")
                 return BuildType.release()
+            elif self.config["build"]["mode"] != "":
+                profile = self.config["build"]["mode"]
+                print(f"No build type specified, but .servobuild specified custom profile `{profile}`.")
+                return BuildType.custom(profile)
             else:
                 print("No build type specified so assuming `--dev`.")
                 return BuildType.dev()
