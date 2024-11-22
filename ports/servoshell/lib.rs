@@ -53,7 +53,8 @@ pub fn init_tracing() {
             // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
             let file = std::fs::File::create("servo.pftrace").unwrap();
             let perfetto_layer = tracing_perfetto::PerfettoLayer::new(std::sync::Mutex::new(file))
-                .with_filter_by_marker(|field_name| field_name == "servo_profiling");
+                .with_filter_by_marker(|field_name| field_name == "servo_profiling")
+                .with_debug_annotations(true);
             subscriber.with(perfetto_layer)
         };
 

@@ -18,10 +18,15 @@ pub mod time;
 #[macro_export]
 macro_rules! time_profile {
     ($category:expr, $meta:expr, $profiler_chan:expr, $($callback:tt)+) => {{
+        let meta: Option<$crate::time::TimerMetadata> = $meta;
         #[cfg(feature = "tracing")]
-        let span = tracing::info_span!($category.variant_name(), servo_profiling = true);
+        let span = tracing::info_span!(
+            $category.variant_name(),
+            servo_profiling = true,
+            url = meta.as_ref().map(|m| m.url.clone()),
+        );
         #[cfg(not(feature = "tracing"))]
         let span = ();
-        $crate::time::profile($category, $meta, $profiler_chan, span, $($callback)+)
+        $crate::time::profile($category, meta, $profiler_chan, span, $($callback)+)
     }};
 }
