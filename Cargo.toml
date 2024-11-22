@@ -81,7 +81,7 @@ keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
+malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
 memmap2 = "0.9.5"
 mime = "0.3.13"
@@ -124,6 +124,7 @@ style = { git = "https://github.com/servo/stylo", branch = "2024-11-01", feature
 style_config = { git = "https://github.com/servo/stylo", branch = "2024-11-01" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-11-01" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
+style_malloc_size_of = { package = "malloc_size_of", git = "https://github.com/servo/stylo", branch = "2024-11-01", features = ["servo"] }
 surfman = { git = "https://github.com/servo/surfman", rev = "c8d6b4b65aeab739ee7651602e29c8d58ceee123", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -156,6 +157,7 @@ webxr-api = { git = "https://github.com/servo/webxr" }
 wgpu-core = "23"
 wgpu-types = "23"
 windows-sys = "0.59"
+wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65" }
 xi-unicode = "0.3.0"
 xml5ever = "0.20"
 
@@ -197,8 +199,6 @@ codegen-units = 1
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
-# dom = { path = "../stylo/dom" }
-# malloc_size_of = { path = "../stylo/malloc_size_of" }
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # servo_atoms = { path = "../stylo/atoms" }
@@ -206,6 +206,8 @@ codegen-units = 1
 # style = { path = "../stylo/style" }
 # style_config = { path = "../stylo/style_config" }
 # style_derive = { path = "../stylo/style_derive" }
+# style_dom = { path = "../stylo/dom", package = "dom" }
+# style_malloc_size_of = { path = "../stylo/malloc_size_of", package = "malloc_size_of" }
 # style_traits = { path = "../stylo/style_traits" }
 # to_shmem = { path = "../stylo/to_shmem" }
 #
@@ -214,6 +216,7 @@ codegen-units = 1
 # [patch."https://github.com/servo/webrender"]
 # webrender = { path = "../webrender/webrender" }
 # webrender_api = { path = "../webrender/webrender_api" }
+# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for another Git dependency:
 #

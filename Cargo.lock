@@ -369,10 +369,10 @@ version = "0.0.1"
 dependencies = [
  "base",
  "ipc-channel",
- "malloc_size_of",
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
+ "servo_malloc_size_of",
  "webrender_api",
 ]
 
@@ -399,10 +399,10 @@ dependencies = [
  "ipc-channel",
  "libc",
  "mach2",
- "malloc_size_of",
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
+ "servo_malloc_size_of",
  "static_assertions",
  "time 0.3.36",
  "webrender_api",
@@ -734,12 +734,12 @@ dependencies = [
  "euclid",
  "glow 0.16.0",
  "ipc-channel",
- "malloc_size_of",
  "malloc_size_of_derive",
  "pixels",
  "serde",
  "serde_bytes",
  "servo_config",
+ "servo_malloc_size_of",
  "style",
  "webrender_api",
  "webxr-api",
@@ -1527,10 +1527,10 @@ dependencies = [
  "bitflags 2.6.0",
  "http",
  "ipc-channel",
- "malloc_size_of",
  "malloc_size_of_derive",
  "net_traits",
  "serde",
+ "servo_malloc_size_of",
  "servo_url",
  "uuid",
 ]
@@ -1640,9 +1640,10 @@ dependencies = [
 [[package]]
 name = "dom"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "bitflags 2.6.0",
+ "malloc_size_of",
 ]
 
 [[package]]
@@ -2057,7 +2058,6 @@ dependencies = [
  "itertools 0.13.0",
  "libc",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "memmap2",
  "net_traits",
@@ -2069,6 +2069,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
+ "servo_malloc_size_of",
  "servo_url",
  "smallvec",
  "style",
@@ -2091,10 +2092,10 @@ name = "fonts_traits"
 version = "0.0.1"
 dependencies = [
  "ipc-channel",
- "malloc_size_of",
  "malloc_size_of_derive",
  "range",
  "serde",
+ "servo_malloc_size_of",
  "webrender_api",
 ]
 
@@ -3893,7 +3894,6 @@ dependencies = [
  "html5ever",
  "ipc-channel",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "net_traits",
  "parking_lot",
@@ -3909,6 +3909,7 @@ dependencies = [
  "servo_atoms",
  "servo_config",
  "servo_geometry",
+ "servo_malloc_size_of",
  "servo_url",
  "smallvec",
  "style",
@@ -3984,7 +3985,6 @@ dependencies = [
  "ipc-channel",
  "layout_2013",
  "log",
- "malloc_size_of",
  "metrics",
  "net_traits",
  "parking_lot",
@@ -3998,6 +3998,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
+ "servo_malloc_size_of",
  "servo_url",
  "style",
  "style_traits",
@@ -4023,7 +4024,6 @@ dependencies = [
  "ipc-channel",
  "layout_2020",
  "log",
- "malloc_size_of",
  "metrics",
  "net_traits",
  "parking_lot",
@@ -4035,6 +4035,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
+ "servo_malloc_size_of",
  "servo_url",
  "style",
  "style_traits",
@@ -4283,32 +4284,18 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
- "accountable-refcell",
  "app_units",
- "content-security-policy",
- "crossbeam-channel",
  "cssparser",
- "dom",
  "euclid",
- "http",
- "indexmap",
- "keyboard-types",
  "selectors",
- "serde",
- "serde_bytes",
  "servo_arc",
  "smallbitvec",
  "smallvec",
  "string_cache",
  "thin-vec",
- "tokio",
- "url",
- "uuid",
  "void",
- "webrender_api",
- "xml5ever",
 ]
 
 [[package]]
@@ -4326,8 +4313,8 @@ dependencies = [
 name = "malloc_size_of_tests"
 version = "0.0.1"
 dependencies = [
- "malloc_size_of",
  "servo_arc",
+ "servo_malloc_size_of",
 ]
 
 [[package]]
@@ -4435,11 +4422,11 @@ dependencies = [
  "fonts_traits",
  "ipc-channel",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "profile_traits",
  "script_traits",
  "servo_config",
+ "servo_malloc_size_of",
  "servo_url",
 ]
 
@@ -4704,7 +4691,6 @@ dependencies = [
  "imsz",
  "ipc-channel",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "mime",
  "mime_guess",
@@ -4720,6 +4706,7 @@ dependencies = [
  "servo_allocator",
  "servo_arc",
  "servo_config",
+ "servo_malloc_size_of",
  "servo_url",
  "sha2",
  "time 0.3.36",
@@ -4752,7 +4739,6 @@ dependencies = [
  "image",
  "ipc-channel",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "mime",
  "num-traits",
@@ -4761,6 +4747,7 @@ dependencies = [
  "rustls",
  "serde",
  "servo_arc",
+ "servo_malloc_size_of",
  "servo_rand",
  "servo_url",
  "url",
@@ -5496,9 +5483,9 @@ dependencies = [
  "image",
  "ipc-channel",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "serde",
+ "servo_malloc_size_of",
  "webrender_api",
 ]
 
@@ -5834,10 +5821,10 @@ dependencies = [
 name = "range"
 version = "0.0.1"
 dependencies = [
- "malloc_size_of",
  "malloc_size_of_derive",
  "num-traits",
  "serde",
+ "servo_malloc_size_of",
 ]
 
 [[package]]
@@ -6186,6 +6173,7 @@ dependencies = [
  "servo_atoms",
  "servo_config",
  "servo_geometry",
+ "servo_malloc_size_of",
  "servo_rand",
  "servo_url",
  "smallvec",
@@ -6224,7 +6212,6 @@ dependencies = [
  "html5ever",
  "ipc-channel",
  "libc",
- "malloc_size_of",
  "malloc_size_of_derive",
  "metrics",
  "net_traits",
@@ -6236,6 +6223,7 @@ dependencies = [
  "serde",
  "servo_arc",
  "servo_atoms",
+ "servo_malloc_size_of",
  "servo_url",
  "style",
  "style_traits",
@@ -6274,7 +6262,6 @@ dependencies = [
  "keyboard-types",
  "libc",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "media",
  "net_traits",
@@ -6282,6 +6269,7 @@ dependencies = [
  "profile_traits",
  "serde",
  "servo_atoms",
+ "servo_malloc_size_of",
  "servo_url",
  "smallvec",
  "style_traits",
@@ -6319,7 +6307,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "bitflags 2.6.0",
  "cssparser",
@@ -6607,7 +6595,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6616,7 +6604,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -6657,9 +6645,39 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "euclid",
- "malloc_size_of",
  "malloc_size_of_derive",
+ "servo_malloc_size_of",
  "webrender_api",
+]
+
+[[package]]
+name = "servo_malloc_size_of"
+version = "0.0.1"
+dependencies = [
+ "accountable-refcell",
+ "app_units",
+ "content-security-policy",
+ "crossbeam-channel",
+ "dom",
+ "euclid",
+ "http",
+ "indexmap",
+ "keyboard-types",
+ "malloc_size_of",
+ "serde",
+ "serde_bytes",
+ "servo_allocator",
+ "servo_arc",
+ "smallvec",
+ "string_cache",
+ "style",
+ "thin-vec",
+ "tokio",
+ "url",
+ "uuid",
+ "webrender_api",
+ "wr_malloc_size_of",
+ "xml5ever",
 ]
 
 [[package]]
@@ -6667,11 +6685,11 @@ name = "servo_rand"
 version = "0.0.1"
 dependencies = [
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "rand",
  "rand_core",
  "rand_isaac",
+ "servo_malloc_size_of",
  "uuid",
 ]
 
@@ -6679,10 +6697,10 @@ dependencies = [
 name = "servo_url"
 version = "0.0.1"
 dependencies = [
- "malloc_size_of",
  "malloc_size_of_derive",
  "serde",
  "servo_arc",
+ "servo_malloc_size_of",
  "servo_rand",
  "to_shmem",
  "url",
@@ -6960,7 +6978,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 
 [[package]]
 name = "strck"
@@ -7019,7 +7037,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7077,7 +7095,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "lazy_static",
 ]
@@ -7085,7 +7103,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7115,7 +7133,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "app_units",
  "bitflags 2.6.0",
@@ -7479,7 +7497,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7492,7 +7510,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-11-01#6605bdbb042735492efaa7530c40378cc1c21afa"
+source = "git+https://github.com/servo/stylo?branch=2024-11-01#639802f35677f444a66fa1cf01bb579065cb2a27"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8300,9 +8318,9 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
- "malloc_size_of",
  "serde",
  "servo_config",
+ "servo_malloc_size_of",
  "webrender",
  "webrender_api",
  "webrender_traits",
