@@ -928,6 +928,11 @@ impl<'a> AbsoluteAxisSolver<'a> {
             _ => return None,
         };
 
+        let default_overflow_rect = self.containing_size -
+            alignment_container.origin.min(Au::zero()) -
+            (self.containing_size - (alignment_container.origin + alignment_container.length))
+                .min(Au::zero());
+
         let mut value_after_safety = self.alignment.value();
         if self.alignment.flags() == AlignFlags::SAFE &&
             margin_box_axis.length > alignment_container.length
@@ -940,7 +945,33 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 alignment_container.origin +
                     ((alignment_container.length - margin_box_axis.length) / 2),
             ),
-            AlignFlags::FLEX_END | AlignFlags::END => Some(
+            AlignFlags::FLEX_END | AlignFlags::END => {
+                if self.alignment.flags() == AlignFlags::UNSAFE {
+                    Some(
+                        alignment_container.origin + alignment_container.length -
+                            margin_box_axis.length,
+                    )
+                } else {
+                    if margin_box_axis.length <= alignment_container.length {
+                        Some(
+                            alignment_container.origin + alignment_container.length -
+                                margin_box_axis.length,
+                        )
+                    } else if margin_box_axis.length <= default_overflow_rect {
+                        Some(
+                            self.containing_size -
+                                (self.containing_size -
+                                    (alignment_container.origin + alignment_container.length))
+                                    .min(Au::zero()) -
+                                margin_box_axis.length,
+                        )
+                    } else {
+                        Some(alignment_container.origin.min(Au::zero()))
+                    }
+                }
+            },
+            AlignFlags::START => Some(alignment_container.origin),
+            AlignFlags::STRETCH | AlignFlags::AUTO => Some(
                 alignment_container.origin + alignment_container.length - margin_box_axis.length,
             ),
             _ => None,
