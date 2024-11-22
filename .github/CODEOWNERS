@@ -13,3 +13,6 @@
 # Reviewers for layout-related code
 /components/layout_2020 @mrobinson @Loirooriol
 /components/layout @mrobinson @Loirooriol
+
+# Reviewers for Minibrowser related code
+/ports/servoshell/desktop @atbrakhi
