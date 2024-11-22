@@ -169,6 +169,10 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                     block: Size::Initial,
                                 },
                                 pbm.padding_border_sums,
+                                LogicalVec2 {
+                                    inline: AlignFlags::START,
+                                    block: AlignFlags::START,
+                                },
                             )
                             .to_physical_size(self.style.writing_mode);
 
