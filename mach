@@ -37,10 +37,10 @@ if __name__ == '__main__':
         from shlex import quote
         mach_dir = os.path.abspath(os.path.dirname(__file__))
         build_android_args = ['--arg', 'buildAndroid', 'true'] if 'SERVO_ANDROID_BUILD' in os.environ else []
-        print('NOTE: Entering nix-shell etc/shell.nix')
+        print(f'NOTE: Entering nix-shell {mach_dir}/shell.nix')
         try:
             # sys argv already contains the ./mach part, so we just need to pass it as-is
-            result = subprocess.run(['nix-shell', mach_dir + '/etc/shell.nix'] + build_android_args + ['--run', ' '.join(map(quote, sys.argv))])
+            result = subprocess.run(['nix-shell', f'{mach_dir}/shell.nix'] + build_android_args + ['--run', ' '.join(map(quote, sys.argv))])
             sys.exit(result.returncode)
         except KeyboardInterrupt:
             sys.exit(0)

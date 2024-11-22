@@ -1,5 +1,5 @@
 [toolchain]
-# Be sure to update etc/shell.nix and support/crown/rust-toolchain.toml when bumping this!
+# Be sure to update shell.nix and support/crown/rust-toolchain.toml when bumping this!
 channel = "1.80.1"
 
 components = [

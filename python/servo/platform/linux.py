@@ -126,7 +126,7 @@ class Linux(Base):
             print('You will need to run a nix-shell if you are trying '
                   'to run any of the built binaries')
             print('To enter the nix-shell manually use:')
-            print('  $ nix-shell etc/shell.nix')
+            print('  $ nix-shell')
             return False
 
         if self.distro.lower() == 'ubuntu' and self.version > '22.04':
