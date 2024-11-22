@@ -456,6 +456,7 @@ impl ReplacedContent {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
+        alignment: LogicalVec2<AlignFlags>,
     ) -> LogicalVec2<Au> {
         let pbm = &content_box_sizes_and_pbm.pbm;
         self.used_size_as_if_inline_element_from_content_box_sizes(
@@ -465,10 +466,7 @@ impl ReplacedContent {
             content_box_sizes_and_pbm.content_min_box_size,
             content_box_sizes_and_pbm.content_max_box_size,
             pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
-            LogicalVec2 {
-                inline: AlignFlags::STRETCH,
-                block: AlignFlags::STRETCH,
-            },
+            alignment,
         )
     }
 
@@ -554,14 +552,14 @@ impl ReplacedContent {
                 SizeConstraint::new(
                     box_size
                         .block
-                        .maybe_resolve_extrinsic(Size::Stretch, Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(Size::FitContent, Some(block_stretch_size)),
                     min_box_size
                         .block
-                        .maybe_resolve_extrinsic(Size::Stretch, Some(block_stretch_size))
+                        .maybe_resolve_extrinsic(Size::FitContent, Some(block_stretch_size))
                         .unwrap_or_default(),
                     max_box_size
                         .block
-                        .maybe_resolve_extrinsic(Size::Stretch, Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(Size::FitContent, Some(block_stretch_size)),
                 )
             };
             self.content_size(
@@ -572,7 +570,7 @@ impl ReplacedContent {
             )
             .into()
         });
-        let inline_behaviour = match alignment.inline {
+        let inline_behaviour = match alignment.inline.value() {
             AlignFlags::STRETCH => Size::Stretch,
             _ => Size::FitContent,
         };
@@ -610,7 +608,7 @@ impl ReplacedContent {
         });
         let block_stretch_size =
             block_stretch_size.unwrap_or_else(|| block_content_size.max_content);
-        let block_behaviour = match alignment.block {
+        let block_behaviour = match alignment.block.value() {
             AlignFlags::STRETCH => Size::Stretch,
             _ => Size::FitContent,
         };

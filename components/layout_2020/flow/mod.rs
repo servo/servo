@@ -1368,6 +1368,10 @@ fn layout_in_flow_replaced_block_level(
         containing_block,
         style,
         &content_box_sizes_and_pbm,
+        LogicalVec2 {
+            inline: AlignFlags::START,
+            block: AlignFlags::START,
+        },
     );
 
     let margin_inline_start;
@@ -2020,6 +2024,10 @@ impl IndependentFormattingContext {
                         containing_block,
                         &replaced.style,
                         &content_box_sizes_and_pbm,
+                        LogicalVec2 {
+                            inline: AlignFlags::START,
+                            block: AlignFlags::START,
+                        },
                     )
                     .to_physical_size(container_writing_mode);
                 let fragments = replaced.contents.make_fragments(
