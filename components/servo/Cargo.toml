@@ -37,6 +37,7 @@ webxr = [
     "compositing/webxr",
     "embedder_traits/webxr",
     "canvas/webxr",
+    "script/webxr",
 ]
 
 [dependencies]

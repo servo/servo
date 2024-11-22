@@ -20,6 +20,7 @@ tracing = ["dep:tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
+webxr = []
 
 [build-dependencies]
 phf_codegen = "0.11"
