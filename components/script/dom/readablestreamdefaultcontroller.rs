@@ -538,7 +538,11 @@ impl ReadableStreamDefaultController {
         // Let result be the result of performing controller.[[strategySizeAlgorithm]],
         // passing in chunk, and interpreting the result as a completion record.
         // Note: the clone is necessary to prevent potential re-borrow panics.
-        let size = if let Some(strategy_size) = self.strategy_size.borrow().clone() {
+        let strategy_size = {
+            let reference = self.strategy_size.borrow();
+            reference.clone()
+        };
+        let size = if let Some(strategy_size) = strategy_size {
             let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
             match result {
                 // Let chunkSize be result.[[Value]].
