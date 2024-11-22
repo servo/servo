@@ -2487,7 +2487,7 @@ impl Node {
         // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
         // with node, false, and « ».
         if context_document.is_html_document() {
-            return self.xml_serialize(html_serialize::TraversalScope::ChildrenOnly(None));
+            return self.html_serialize(html_serialize::TraversalScope::ChildrenOnly(None));
         }
 
         // Step 3. Return the XML serialization of node given require well-formed.
