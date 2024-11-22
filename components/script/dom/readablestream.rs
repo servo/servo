@@ -9,7 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::{ObjectValue, UndefinedValue, JSVal};
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
@@ -104,7 +104,7 @@ pub struct ReadableStream {
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
     /// TODO: check correctness of this.
     #[ignore_malloc_size_of = "mozjs"]
-    stored_error: Heap<*mut JSObject>,
+    stored_error: Heap<JSVal>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-disturbed>
     disturbed: Cell<bool>,
@@ -282,11 +282,7 @@ impl ReadableStream {
         // step 2
         self.state.set(ReadableStreamState::Errored);
         // step 3
-        {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let object = e.to_object());
-            self.stored_error.set(*object);
-        }
+        self.stored_error.set(e.get());
 
         // step 4
         match self.reader {

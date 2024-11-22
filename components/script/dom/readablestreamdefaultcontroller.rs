@@ -543,17 +543,20 @@ impl ReadableStreamDefaultController {
             reference.clone()
         };
         let size = if let Some(strategy_size) = strategy_size {
-            let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
+            // Note: the Rethrow exception handling is necessary,
+            // otherwise returning JSFailed will panic because no exception is pending.
+            let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
             match result {
                 // Let chunkSize be result.[[Value]].
                 Ok(size) => size,
                 Err(error) => {
                     // If result is an abrupt completion,
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-   
+
                     match error {
-                        // Note: `to_jsval` on JSFailed panics.
-                        Error::JSFailed => (),
+                        // Note: `to_jsval` on JSFailed panics,
+                        // so result.[[Value]] is left undefined in this case.
+                        Error::JSFailed => {},
                         _ => {
                             // TODO: check if `self.global()` is the right globalscope.
                             unsafe {
