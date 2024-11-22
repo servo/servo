@@ -245,9 +245,9 @@ pub struct ReadableStreamDefaultController {
 }
 
 impl ReadableStreamDefaultController {
-    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     fn new_inherited(
         global: &GlobalScope,
+        stream: DomRoot<ReadableStream>,
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
@@ -256,7 +256,7 @@ impl ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
             queue: RefCell::new(Default::default()),
-            stream: MutNullableDom::new(None),
+            stream: MutNullableDom::new(Some(&stream)),
             underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
                 global,
                 underlying_source_type,
@@ -270,16 +270,32 @@ impl ReadableStreamDefaultController {
             pull_again: Default::default(),
         }
     }
+
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     pub fn new(
         global: &GlobalScope,
+        stream: DomRoot<ReadableStream>,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
         can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultController> {
+        // Assert: stream.[[controller]] is undefined
+        stream.assert_no_controller();
+
+        // Set controller.[[stream]] to stream.
+        // Perform ! ResetQueue(controller).
+        // Set controller.[[started]], controller.[[closeRequested]],
+        // controller.[[pullAgain]], and controller.[[pulling]] to false.
+        // Set controller.[[strategySizeAlgorithm]] to sizeAlgorithm
+        // and controller.[[strategyHWM]] to highWaterMark.
+        // Set controller.[[strategySizeAlgorithm]] to sizeAlgorithm
+        // and controller.[[strategyHWM]] to highWaterMark.
+        // Set controller.[[cancelAlgorithm]] to cancelAlgorithm.
         let rooted_default_controller = reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
                 global,
+                stream.clone(),
                 underlying_source,
                 strategy_hwm,
                 strategy_size,
@@ -287,6 +303,9 @@ impl ReadableStreamDefaultController {
             )),
             global,
         );
+
+        // Set stream.[[controller]] to controller.
+        stream.set_default_controller(&rooted_default_controller);
 
         if let Some(underlying_source) = rooted_default_controller.underlying_source.get() {
             let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
@@ -303,6 +322,7 @@ impl ReadableStreamDefaultController {
 
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
+            // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
             if let Some(promise) = underlying_source.call_start_algorithm(
                 Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
                 can_gc,
@@ -311,17 +331,13 @@ impl ReadableStreamDefaultController {
             } else {
                 let promise = Promise::new(global, can_gc);
                 promise.append_native_handler(&handler, comp, can_gc);
+                // Let startPromise be a promise resolved with startResult.
+                // Note: where is startResult?
                 promise.resolve_native(&());
             }
         };
 
         rooted_default_controller
-    }
-
-    pub fn set_stream(&self, stream: &ReadableStream) {
-        // Stream is set in its default readable state.
-        assert!(stream.is_readable());
-        self.stream.set(Some(stream))
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
