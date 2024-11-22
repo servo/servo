@@ -182,6 +182,8 @@ codegen-units = 1
 [profile.production-stripped]
 inherits = "production"
 strip = true
+opt-level = "s"
+lto = true
 
 [profile.profiling]
 inherits = "release"
