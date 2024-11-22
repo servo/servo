@@ -255,8 +255,7 @@ impl ShadowRootMethods for ShadowRoot {
     fn InnerHTML(&self) -> DOMString {
         // ShadowRoot's innerHTML getter steps are to return the result of running fragment serializing
         // algorithm steps with this and true.
-        self.upcast::<DocumentFragment>()
-            .fragment_serialization_algorithm(true)
+        self.upcast::<Node>().fragment_serialization_algorithm(true)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
