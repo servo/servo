@@ -1901,8 +1901,16 @@ impl FlexItem<'_> {
                                 self.content_max_size.cross,
                             )
                         });
-                    content_contributions
-                        .shrink_to_fit(containing_block.inline_size - self.pbm_auto_is_zero.cross)
+                    let stretch_size = containing_block.inline_size - self.pbm_auto_is_zero.cross;
+                    let style = self.box_.style();
+                    if flex_context
+                        .config
+                        .item_with_auto_cross_size_stretches_to_container_size(style, &self.margin)
+                    {
+                        stretch_size
+                    } else {
+                        content_contributions.shrink_to_fit(stretch_size)
+                    }
                 }),
                 // The main size of a flex item is considered to be definite if its flex basis is definite
                 // or the flex container has a definite main size.
