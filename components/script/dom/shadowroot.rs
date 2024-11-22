@@ -18,6 +18,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
@@ -248,6 +249,34 @@ impl ShadowRootMethods for ShadowRoot {
                 StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
             )
         })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
+    fn InnerHTML(&self) -> DOMString {
+        // ShadowRoot's innerHTML getter steps are to return the result of running fragment serializing
+        // algorithm steps with this and true.
+        self.upcast::<Node>().fragment_serialization_algorithm(true)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
+    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) {
+        // TODO Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
+        // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
+        let compliant_string = value;
+
+        // Step 2. Let context be this's host.
+        let context = self.Host();
+
+        // Step 3. Let fragment be the result of invoking the fragment parsing algorithm steps with context and
+        // compliantString.
+        let Ok(frag) = context.parse_fragment(compliant_string, can_gc) else {
+            // NOTE: The spec doesn't strictly tell us to bail out here, but
+            // we can't continue if parsing failed
+            return;
+        };
+
+        // Step 4. Replace all with fragment within this.
+        Node::replace_all(Some(frag.upcast()), self.upcast());
     }
 }
 
