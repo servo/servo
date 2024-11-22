@@ -58,7 +58,12 @@ impl AutoEntryScript {
             AutoEntryScript {
                 global: DomRoot::from_ref(global),
                 #[cfg(feature = "tracing")]
-                span: tracing::info_span!("ScriptEvaluate", servo_profiling = true).entered(),
+                span: tracing::info_span!(
+                    "ScriptEvaluate",
+                    servo_profiling = true,
+                    url = global.get_url().to_string(),
+                )
+                .entered(),
             }
         })
     }
