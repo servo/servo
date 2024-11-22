@@ -550,13 +550,19 @@ impl ReadableStreamDefaultController {
                 Err(error) => {
                     // If result is an abrupt completion,
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-
-                    // TODO: check if this is the right globalscope.
-                    unsafe {
-                        error
-                            .clone()
-                            .to_jsval(*cx, &self.global(), rval.handle_mut())
-                    };
+   
+                    match error {
+                        // Note: `to_jsval` on JSFailed panics.
+                        Error::JSFailed => (),
+                        _ => {
+                            // TODO: check if `self.global()` is the right globalscope.
+                            unsafe {
+                                error
+                                    .clone()
+                                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+                            };
+                        },
+                    }
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
                     self.error(rval.handle());
