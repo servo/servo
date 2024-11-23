@@ -52,7 +52,7 @@ impl HTMLDataListElement {
     }
 }
 
-impl HTMLDataListElementMethods for HTMLDataListElement {
+impl HTMLDataListElementMethods<crate::DomTypeHolder> for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
     fn Options(&self) -> DomRoot<HTMLCollection> {
         #[derive(JSTraceable, MallocSizeOf)]

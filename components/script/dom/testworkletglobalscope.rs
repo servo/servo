@@ -65,7 +65,7 @@ impl TestWorkletGlobalScope {
     }
 }
 
-impl TestWorkletGlobalScopeMethods for TestWorkletGlobalScope {
+impl TestWorkletGlobalScopeMethods<crate::DomTypeHolder> for TestWorkletGlobalScope {
     fn RegisterKeyValue(&self, key: DOMString, value: DOMString) {
         debug!("Registering test worklet key/value {}/{}.", key, value);
         self.lookup_table

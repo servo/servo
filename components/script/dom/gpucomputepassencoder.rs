@@ -63,7 +63,7 @@ impl GPUComputePassEncoder {
     }
 }
 
-impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
+impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

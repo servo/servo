@@ -31,7 +31,7 @@ impl GamepadButtonList {
     }
 }
 
-impl GamepadButtonListMethods for GamepadButtonList {
+impl GamepadButtonListMethods<crate::DomTypeHolder> for GamepadButtonList {
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Length(&self) -> u32 {
         self.list.len() as u32

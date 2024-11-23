@@ -52,7 +52,7 @@ impl HTMLFormControlsCollection {
     }
 }
 
-impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
+impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControlsCollection {
     // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
     // HTMLFormControlsCollection) implements Length
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length

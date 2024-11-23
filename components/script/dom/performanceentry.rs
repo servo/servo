@@ -73,7 +73,7 @@ impl PerformanceEntry {
     }
 }
 
-impl PerformanceEntryMethods for PerformanceEntry {
+impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {
     // https://w3c.github.io/performance-timeline/#dom-performanceentry-name
     fn Name(&self) -> DOMString {
         self.name.clone()

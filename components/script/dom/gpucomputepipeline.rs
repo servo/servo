@@ -101,7 +101,7 @@ impl GPUComputePipeline {
     }
 }
 
-impl GPUComputePipelineMethods for GPUComputePipeline {
+impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

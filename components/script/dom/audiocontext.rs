@@ -109,7 +109,7 @@ impl AudioContext {
     }
 }
 
-impl AudioContextMethods for AudioContext {
+impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     fn Constructor(
         window: &Window,

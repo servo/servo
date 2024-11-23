@@ -783,7 +783,7 @@ impl EventTarget {
     }
 }
 
-impl EventTargetMethods for EventTarget {
+impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     // https://dom.spec.whatwg.org/#dom-eventtarget-eventtarget
     fn Constructor(
         global: &GlobalScope,

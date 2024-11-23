@@ -387,7 +387,7 @@ impl Event {
     }
 }
 
-impl EventMethods for Event {
+impl EventMethods<crate::DomTypeHolder> for Event {
     /// <https://dom.spec.whatwg.org/#dom-event-event>
     fn Constructor(
         global: &GlobalScope,

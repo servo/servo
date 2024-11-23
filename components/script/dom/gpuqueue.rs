@@ -64,7 +64,7 @@ impl GPUQueue {
     }
 }
 
-impl GPUQueueMethods for GPUQueue {
+impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

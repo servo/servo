@@ -2068,7 +2068,7 @@ impl Drop for HTMLMediaElement {
     }
 }
 
-impl HTMLMediaElementMethods for HTMLMediaElement {
+impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-networkstate
     fn NetworkState(&self) -> u16 {
         self.network_state.get() as u16

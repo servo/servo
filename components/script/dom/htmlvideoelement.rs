@@ -240,7 +240,7 @@ impl HTMLVideoElement {
     }
 }
 
-impl HTMLVideoElementMethods for HTMLVideoElement {
+impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
     // https://html.spec.whatwg.org/multipage/#dom-video-videowidth
     fn VideoWidth(&self) -> u32 {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {

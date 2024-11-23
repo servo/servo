@@ -38,7 +38,7 @@ impl XRPose {
     }
 }
 
-impl XRPoseMethods for XRPose {
+impl XRPoseMethods<crate::DomTypeHolder> for XRPose {
     /// <https://immersive-web.github.io/webxr/#dom-xrpose-transform>
     fn Transform(&self) -> DomRoot<XRRigidTransform> {
         DomRoot::from_ref(&self.transform)

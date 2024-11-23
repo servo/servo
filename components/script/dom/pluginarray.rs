@@ -28,7 +28,7 @@ impl PluginArray {
     }
 }
 
-impl PluginArrayMethods for PluginArray {
+impl PluginArrayMethods<crate::DomTypeHolder> for PluginArray {
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh
     fn Refresh(&self, _reload: bool) {}
 

@@ -96,7 +96,7 @@ impl XMLDocument {
     }
 }
 
-impl XMLDocumentMethods for XMLDocument {
+impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     // https://html.spec.whatwg.org/multipage/#dom-document-location
     fn GetLocation(&self) -> Option<DomRoot<Location>> {
         self.upcast::<Document>().GetLocation()

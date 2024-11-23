@@ -332,7 +332,7 @@ fn get_callback(
     }
 }
 
-impl CustomElementRegistryMethods for CustomElementRegistry {
+impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistry {
     #[allow(unsafe_code, crown::unrooted_must_root)]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     fn Define(

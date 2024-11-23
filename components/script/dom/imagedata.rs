@@ -172,7 +172,7 @@ impl ImageData {
     }
 }
 
-impl ImageDataMethods for ImageData {
+impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
     fn Constructor(
         global: &GlobalScope,

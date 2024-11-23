@@ -47,7 +47,7 @@ impl HTMLTimeElement {
     }
 }
 
-impl HTMLTimeElementMethods for HTMLTimeElement {
+impl HTMLTimeElementMethods<crate::DomTypeHolder> for HTMLTimeElement {
     // https://html.spec.whatwg.org/multipage/#dom-time-datetime
     make_getter!(DateTime, "datetime");
 

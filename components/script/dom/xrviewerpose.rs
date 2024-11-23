@@ -188,7 +188,7 @@ impl XRViewerPose {
     }
 }
 
-impl XRViewerPoseMethods for XRViewerPose {
+impl XRViewerPoseMethods<crate::DomTypeHolder> for XRViewerPose {
     /// <https://immersive-web.github.io/webxr/#dom-xrviewerpose-views>
     fn Views(&self, _cx: JSContext, mut retval: MutableHandleValue) {
         retval.set(self.views.get())

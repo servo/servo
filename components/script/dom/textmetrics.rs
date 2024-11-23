@@ -98,7 +98,7 @@ impl TextMetrics {
     }
 }
 
-impl TextMetricsMethods for TextMetrics {
+impl TextMetricsMethods<crate::DomTypeHolder> for TextMetrics {
     /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-width>
     fn Width(&self) -> Finite<f64> {
         self.width

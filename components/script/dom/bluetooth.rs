@@ -534,7 +534,7 @@ impl From<BluetoothError> for Error {
     }
 }
 
-impl BluetoothMethods for Bluetooth {
+impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(
         &self,

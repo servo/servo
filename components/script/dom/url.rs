@@ -97,7 +97,7 @@ impl URL {
     }
 }
 
-impl URLMethods for URL {
+impl URLMethods<crate::DomTypeHolder> for URL {
     /// <https://url.spec.whatwg.org/#constructors>
     fn Constructor(
         global: &GlobalScope,

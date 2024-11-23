@@ -59,7 +59,7 @@ impl IntersectionObserver {
     }
 }
 
-impl IntersectionObserverMethods for IntersectionObserver {
+impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver {
     /// > The root provided to the IntersectionObserver constructor, or null if none was provided.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>

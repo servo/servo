@@ -90,7 +90,7 @@ impl ConstantSourceNode {
     }
 }
 
-impl ConstantSourceNodeMethods for ConstantSourceNode {
+impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-constantsourcenode
     fn Constructor(
         window: &Window,

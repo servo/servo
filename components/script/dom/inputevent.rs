@@ -52,7 +52,7 @@ impl InputEvent {
     }
 }
 
-impl InputEventMethods for InputEvent {
+impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     // https://w3c.github.io/uievents/#dom-inputevent-inputevent
     fn Constructor(
         window: &Window,

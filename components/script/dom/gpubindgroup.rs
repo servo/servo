@@ -129,7 +129,7 @@ impl Drop for GPUBindGroup {
     }
 }
 
-impl GPUBindGroupMethods for GPUBindGroup {
+impl GPUBindGroupMethods<crate::DomTypeHolder> for GPUBindGroup {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

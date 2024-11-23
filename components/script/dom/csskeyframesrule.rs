@@ -88,7 +88,7 @@ impl CSSKeyframesRule {
     }
 }
 
-impl CSSKeyframesRuleMethods for CSSKeyframesRule {
+impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
     fn CssRules(&self) -> DomRoot<CSSRuleList> {
         self.rulelist()

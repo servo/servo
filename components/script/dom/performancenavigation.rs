@@ -29,7 +29,7 @@ impl PerformanceNavigation {
     }
 }
 
-impl PerformanceNavigationMethods for PerformanceNavigation {
+impl PerformanceNavigationMethods<crate::DomTypeHolder> for PerformanceNavigation {
     // https://w3c.github.io/navigation-timing/#dom-performancenavigation-type
     fn Type(&self) -> u16 {
         PerformanceNavigationConstants::TYPE_NAVIGATE

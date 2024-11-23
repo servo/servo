@@ -184,7 +184,7 @@ impl Drop for GPUBuffer {
     }
 }
 
-impl GPUBufferMethods for GPUBuffer {
+impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) {

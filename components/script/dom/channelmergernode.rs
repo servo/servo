@@ -84,7 +84,7 @@ impl ChannelMergerNode {
     }
 }
 
-impl ChannelMergerNodeMethods for ChannelMergerNode {
+impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-channelmergernode-channelmergernode>
     fn Constructor(
         window: &Window,

@@ -156,7 +156,7 @@ fn request_is_locked(input: &Request) -> bool {
     input.is_locked()
 }
 
-impl RequestMethods for Request {
+impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-request
     fn Constructor(
         global: &GlobalScope,

@@ -54,7 +54,7 @@ impl MediaDeviceInfo {
     }
 }
 
-impl MediaDeviceInfoMethods for MediaDeviceInfo {
+impl MediaDeviceInfoMethods<crate::DomTypeHolder> for MediaDeviceInfo {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid>
     fn DeviceId(&self) -> DOMString {
         self.device_id.clone()

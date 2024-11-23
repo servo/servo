@@ -69,7 +69,7 @@ impl TransitionEvent {
     }
 }
 
-impl TransitionEventMethods for TransitionEvent {
+impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
     // https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent
     fn Constructor(
         window: &Window,

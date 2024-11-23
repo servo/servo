@@ -85,7 +85,7 @@ impl HTMLTableRowElement {
     }
 }
 
-impl HTMLTableRowElementMethods for HTMLTableRowElement {
+impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
     make_getter!(BgColor, "bgcolor");
 

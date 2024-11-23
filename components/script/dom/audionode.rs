@@ -106,7 +106,7 @@ impl AudioNode {
     }
 }
 
-impl AudioNodeMethods for AudioNode {
+impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
     fn Connect(
         &self,

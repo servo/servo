@@ -46,7 +46,7 @@ impl TestBindingMaplike {
     }
 }
 
-impl TestBindingMaplikeMethods for TestBindingMaplike {
+impl TestBindingMaplikeMethods<crate::DomTypeHolder> for TestBindingMaplike {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

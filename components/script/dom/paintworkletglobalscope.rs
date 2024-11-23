@@ -491,7 +491,7 @@ impl PaintDefinition {
     }
 }
 
-impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
+impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     #[allow(crown::unrooted_must_root)]
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>

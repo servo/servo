@@ -61,7 +61,7 @@ impl FakeXRInputController {
     }
 }
 
-impl FakeXRInputControllerMethods for FakeXRInputController {
+impl FakeXRInputControllerMethods<crate::DomTypeHolder> for FakeXRInputController {
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setpointerorigin>
     fn SetPointerOrigin(&self, origin: &FakeXRRigidTransformInit, _emulated: bool) -> Fallible<()> {
         self.send_message(MockInputMsg::SetPointerOrigin(Some(get_origin(origin)?)));

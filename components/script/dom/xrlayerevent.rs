@@ -48,7 +48,7 @@ impl XRLayerEvent {
     }
 }
 
-impl XRLayerEventMethods for XRLayerEvent {
+impl XRLayerEventMethods<crate::DomTypeHolder> for XRLayerEvent {
     // https://immersive-web.github.io/layers/#dom-xrlayerevent-xrlayerevent
     fn Constructor(
         window: &Window,

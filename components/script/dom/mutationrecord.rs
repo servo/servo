@@ -123,7 +123,7 @@ impl MutationRecord {
     }
 }
 
-impl MutationRecordMethods for MutationRecord {
+impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     // https://dom.spec.whatwg.org/#dom-mutationrecord-type
     fn Type(&self) -> DOMString {
         self.record_type.clone()

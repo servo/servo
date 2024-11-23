@@ -48,7 +48,7 @@ impl PermissionStatus {
     }
 }
 
-impl PermissionStatusMethods for PermissionStatus {
+impl PermissionStatusMethods<crate::DomTypeHolder> for PermissionStatus {
     // https://w3c.github.io/permissions/#dom-permissionstatus-state
     fn State(&self) -> PermissionState {
         self.state.get()

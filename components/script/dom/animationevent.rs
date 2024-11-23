@@ -68,7 +68,7 @@ impl AnimationEvent {
     }
 }
 
-impl AnimationEventMethods for AnimationEvent {
+impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
     // https://drafts.csswg.org/css-animations/#dom-animationevent-animationevent
     fn Constructor(
         window: &Window,

@@ -40,7 +40,7 @@ impl TestBindingIterable {
     }
 }
 
-impl TestBindingIterableMethods for TestBindingIterable {
+impl TestBindingIterableMethods<crate::DomTypeHolder> for TestBindingIterable {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

@@ -383,7 +383,7 @@ pub static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::ne
     enabled_longhands
 });
 
-impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
+impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
         if self.readonly {

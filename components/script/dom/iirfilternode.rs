@@ -95,7 +95,7 @@ impl IIRFilterNode {
     }
 }
 
-impl IIRFilterNodeMethods for IIRFilterNode {
+impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-iirfilternode>
     fn Constructor(
         window: &Window,

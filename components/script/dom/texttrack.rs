@@ -88,7 +88,7 @@ impl TextTrack {
     }
 }
 
-impl TextTrackMethods for TextTrack {
+impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     // https://html.spec.whatwg.org/multipage/#dom-texttrack-kind
     fn Kind(&self) -> TextTrackKind {
         self.kind
