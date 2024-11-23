@@ -14,6 +14,7 @@ use std::process;
         not(target_os = "windows"),
         not(target_os = "ios"),
         not(target_os = "android"),
+        not(target_env = "ohos"),
         not(target_arch = "arm"),
         not(target_arch = "aarch64")
     )
@@ -98,6 +99,7 @@ pub fn content_process_sandbox_profile() -> Profile {
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
+    not(target_env = "ohos"),
     not(target_arch = "arm"),
     not(target_arch = "aarch64")
 ))]
@@ -128,6 +130,7 @@ pub fn content_process_sandbox_profile() -> Profile {
     target_os = "windows",
     target_os = "ios",
     target_os = "android",
+    target_env = "ohos",
     target_arch = "arm",
 
     // exclude apple arm devices
@@ -140,6 +143,7 @@ pub fn content_process_sandbox_profile() {
 
 #[cfg(any(
     target_os = "android",
+    target_env = "ohos",
     target_arch = "arm",
     all(target_arch = "aarch64", not(target_os = "windows"))
 ))]
@@ -168,6 +172,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
+    not(target_env = "ohos"),
     not(target_arch = "arm"),
     not(target_arch = "aarch64")
 ))]

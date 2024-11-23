@@ -91,5 +91,5 @@ webrender_traits = { workspace = true }
 webxr = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 
-[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
