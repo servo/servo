@@ -6,8 +6,9 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use crate::dom::abstractrange::AbstractRange;
-use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::StaticRangeInit;
-use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::StaticRangeMethods;
+use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{
+    StaticRangeInit, StaticRangeMethods,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::NodeTypeId;
