@@ -21,7 +21,6 @@ app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
-cssparser = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
@@ -45,16 +44,13 @@ servo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
-surfman = { workspace = true }
 style = { workspace = true }
 tracing = { workspace = true, optional = true }
-unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-xi-unicode = { workspace = true }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }
