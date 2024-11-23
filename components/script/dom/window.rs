@@ -2587,8 +2587,7 @@ impl Window {
         creator_url: ServoUrl,
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
-        #[cfg(feature = "webxr")]
-        webxr_registry: Option<webxr_api::Registry>,
+        #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,

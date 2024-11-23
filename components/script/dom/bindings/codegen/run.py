@@ -12,6 +12,7 @@ SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", "..", "..", "
 
 FILTER_PATTERN = re.compile("// skip-unless ([A-Z_]+)\n")
 
+
 def main():
     os.chdir(os.path.join(os.path.dirname(__file__)))
     sys.path.insert(0, os.path.join(SERVO_ROOT, "third_party", "WebIDL"))

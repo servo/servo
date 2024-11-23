@@ -75,10 +75,8 @@ impl WebGLTexture {
     fn new_inherited(
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
-        #[cfg(feature = "webxr")]
-        owner: Option<&XRSession>,
-        #[cfg(not(feature = "webxr"))]
-        owner: Option<WebGLTextureOwner>,
+        #[cfg(feature = "webxr")] owner: Option<&XRSession>,
+        #[cfg(not(feature = "webxr"))] owner: Option<WebGLTextureOwner>,
     ) -> Self {
         #[cfg(feature = "webxr")]
         let owner = owner.map(|session| WebGLTextureOwner::WebXR(Dom::from_ref(session)));
