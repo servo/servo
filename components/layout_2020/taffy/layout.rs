@@ -172,11 +172,15 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             )
                             .to_physical_size(self.style.writing_mode);
 
-                        child.child_fragments = replaced.contents.make_fragments(
-                            &replaced.style,
-                            containing_block,
-                            content_box_size,
-                        );
+                        // Create fragments if the RunMode if PerformLayout
+                        // If the RunMode is ComputeSize then only the returned size will be used
+                        if inputs.run_mode == RunMode::PerformLayout {
+                            child.child_fragments = replaced.contents.make_fragments(
+                                &replaced.style,
+                                containing_block,
+                                content_box_size,
+                            );
+                        }
 
                         let computed_size = taffy::Size {
                             width: inputs.known_dimensions.width.unwrap_or_else(|| {
