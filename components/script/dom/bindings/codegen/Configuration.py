@@ -20,6 +20,7 @@ class Configuration:
         config = glbl['DOMInterfaces']
         self.enumConfig = glbl['Enums']
         self.dictConfig = glbl['Dictionaries']
+        self.unionConfig = glbl['Unions']
 
         # Build descriptors for all the interfaces we have in the parse data.
         # This allows callers to specify a subset of interfaces by filtering
@@ -125,6 +126,9 @@ class Configuration:
             return items
 
         return [x for x in items if x.filename == webIDLFile]
+
+    def getUnionConfig(self, name):
+        return self.unionConfig.get(name, {})
 
     def getDictionaries(self, webIDLFile=""):
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)

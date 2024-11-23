@@ -2647,7 +2647,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         if name not in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
             unionStructs[name] = CGList([
-                CGUnionStruct(t, provider),
+                CGUnionStruct(t, provider, config),
                 CGUnionConversionStruct(t, provider)
             ])
 
@@ -4931,12 +4931,13 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
 
 
 class CGUnionStruct(CGThing):
-    def __init__(self, type, descriptorProvider):
+    def __init__(self, type, descriptorProvider, config):
         assert not type.nullable()
         assert not type.hasNullableType
 
         CGThing.__init__(self)
         self.type = type
+        self.derives = config.getUnionConfig(str(type)).get('derives', [])
         self.descriptorProvider = descriptorProvider
 
     def membersNeedTracing(self):
@@ -4965,8 +4966,9 @@ class CGUnionStruct(CGThing):
         ]
         joinedEnumValues = "\n".join(enumValues)
         joinedEnumConversions = "\n".join(enumConversions)
+        derives = ["JSTraceable"] + self.derives
         return f"""
-#[derive(JSTraceable)]
+#[derive({", ".join(derives)})]
 pub enum {self.type} {{
 {joinedEnumValues}
 }}

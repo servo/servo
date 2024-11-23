@@ -39,15 +39,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
 
-impl Clone for HTMLCanvasElementOrOffscreenCanvas {
-    fn clone(&self) -> Self {
-        match self {
-            Self::HTMLCanvasElement(arg0) => Self::HTMLCanvasElement(arg0.clone()),
-            Self::OffscreenCanvas(arg0) => Self::OffscreenCanvas(arg0.clone()),
-        }
-    }
-}
-
 impl malloc_size_of::MallocSizeOf for GPUTextureDescriptor {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         let Self {
