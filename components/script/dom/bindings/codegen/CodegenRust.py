@@ -4801,6 +4801,18 @@ impl Default for super::{ident} {{
     }}
 }}
 
+impl std::str::FromStr for super::{ident} {{
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {{
+        pairs
+            .iter()
+            .find(|&&(key, _)| s == key)
+            .map(|&(_, ev)| ev)
+            .ok_or(())
+    }}
+}}
+
 impl ToJSValConvertible for super::{ident} {{
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {{
         pairs[*self as usize].0.to_jsval(cx, rval);

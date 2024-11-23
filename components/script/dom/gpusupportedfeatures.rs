@@ -4,8 +4,6 @@
 
 // check-tidy: no specs after this line
 
-use std::str::FromStr;
-
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
@@ -13,7 +11,6 @@ use webgpu::wgt::Features;
 
 use super::bindings::like::Setlike;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUFeatureNameValues::pairs;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUFeatureName, GPUSupportedFeaturesMethods,
 };
@@ -139,19 +136,6 @@ pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
         GPUFeatureName::Dual_source_blending => Some(Features::DUAL_SOURCE_BLENDING),
         GPUFeatureName::Texture_compression_bc_sliced_3d => None,
         GPUFeatureName::Clip_distances => None,
-    }
-}
-
-// this should be autogenerate by bindings
-impl FromStr for GPUFeatureName {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        pairs
-            .iter()
-            .find(|&&(key, _)| s == key)
-            .map(|&(_, ev)| ev)
-            .ok_or(())
     }
 }
 
