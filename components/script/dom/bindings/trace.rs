@@ -53,6 +53,7 @@ use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
 use tendril::TendrilSink;
+#[cfg(feature = "webxr")]
 use webxr_api::{Finger, Hand};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -424,6 +425,7 @@ where
     }
 }
 
+#[cfg(feature = "webxr")]
 unsafe impl<J> CustomTraceable for Hand<J>
 where
     J: JSTraceable,
@@ -454,6 +456,7 @@ where
     }
 }
 
+#[cfg(feature = "webxr")]
 unsafe impl<J> CustomTraceable for Finger<J>
 where
     J: JSTraceable,
