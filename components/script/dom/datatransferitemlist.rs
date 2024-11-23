@@ -78,12 +78,13 @@ impl DataTransferItemListMethods for DataTransferItemList {
         self.data_store
             .borrow()
             .as_ref()
-            .map_or(0, |data_store| data_store.list_len())
+            .map_or(0, |data_store| data_store.list_len() as u32)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<DataTransferItem>> {
         // Step 1 Return null if it isn't associated with a data store
+        self.data_store.borrow().as_ref()?;
 
         // Step 2
         self.items
@@ -109,10 +110,15 @@ impl DataTransferItemListMethods for DataTransferItemList {
         // whose type string is equal to the value of the method's second argument, converted to ASCII lowercase,
         // and whose data is the string given by the method's first argument.
         type_.make_ascii_lowercase();
-        data_store.add(Kind::Text(PlainString { data, type_ }))?;
+        data_store.add(Kind::Text(PlainString::new(data, type_)))?;
 
         self.frozen_types.clear();
-        Ok(Some(DataTransferItem::new(&self.global())))
+
+        Ok(Some(DataTransferItem::new(
+            &self.global(),
+            Rc::clone(&self.data_store),
+            data_store.list_len() - 1,
+        )))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
@@ -129,16 +135,21 @@ impl DataTransferItemListMethods for DataTransferItemList {
         // and whose data is the same as the File's data.
         let mut type_ = data.file_type();
         type_.make_ascii_lowercase();
-        let binary = Binary {
-            bytes: data.file_bytes().unwrap_or_default(),
-            name: data.name().clone(),
+        let binary = Binary::new(
+            data.file_bytes().unwrap_or_default(),
+            data.name().clone(),
             type_,
-        };
+        );
 
         data_store.add(Kind::File(binary))?;
 
         self.frozen_types.clear();
-        Ok(Some(DataTransferItem::new(&self.global())))
+
+        Ok(Some(DataTransferItem::new(
+            &self.global(),
+            Rc::clone(&self.data_store),
+            data_store.list_len() - 1,
+        )))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-remove>
@@ -151,10 +162,13 @@ impl DataTransferItemListMethods for DataTransferItemList {
             _ => return Err(Error::InvalidState),
         };
 
+        let index = index as usize;
+
         // Step 2 If the drag data store does not contain an indexth item, then return.
         if index < data_store.list_len() {
             // Step 3 Remove the indexth item from the drag data store.
             data_store.remove(index);
+            self.items.borrow_mut().remove(index);
             self.frozen_types.clear();
         }
 

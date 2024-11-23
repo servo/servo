@@ -78,13 +78,6 @@ impl DataTransfer {
             can_gc,
         )
     }
-
-    pub fn can_read(&self) -> bool {
-        self.data_store
-            .borrow()
-            .as_ref()
-            .map_or(false, |data_store| data_store.mode() != Mode::Protected)
-    }
 }
 
 impl DataTransferMethods for DataTransfer {

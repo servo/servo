@@ -2,107 +2,115 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };
-use crate::dom::bindings::import::module::Rc;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::weakref::MutableWeakRef;
-use crate::dom::datatransfer::DataTransfer;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
-
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-enum KindStorage {
-    Text(DOMString),
-    File(Dom<File>),
-}
+use crate::drag_data_store::{DragDataStore, Kind, Mode};
 
 #[dom_struct]
 pub struct DataTransferItem {
     reflector_: Reflector,
-    kind: KindStorage,
-    type_: DomRefCell<DOMString>,
-    data_store: MutableWeakRef<DataTransfer>,
+    #[ignore_malloc_size_of = "Rc"]
+    #[no_trace]
+    data_store: Rc<RefCell<Option<DragDataStore>>>,
+    index: usize,
 }
 
 impl DataTransferItem {
-    fn new_inherited(data_transfer: Option<&DataTransfer>) -> DataTransferItem {
+    fn new_inherited(
+        data_store: Rc<RefCell<Option<DragDataStore>>>,
+        index: usize,
+    ) -> DataTransferItem {
         DataTransferItem {
             reflector_: Reflector::new(),
-            kind: KindStorage::Text(DOMString::from("todo")),
-            type_: DomRefCell::new(DOMString::from("todo")),
-            data_store: MutableWeakRef::new(data_transfer),
+            data_store,
+            index,
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<DataTransferItem> {
-        reflect_dom_object(Box::new(DataTransferItem::new_inherited(None)), global)
-    }
-
-    pub fn type_(&self) -> DOMString {
-        self.type_.borrow().clone()
-    }
-
-    pub fn as_file(&self) -> Option<DomRoot<File>> {
-        match &self.kind {
-            KindStorage::File(file) => Some(DomRoot::from_ref(file)),
-            _ => None,
-        }
+    pub fn new(
+        global: &GlobalScope,
+        data_store: Rc<RefCell<Option<DragDataStore>>>,
+        index: usize,
+    ) -> DomRoot<DataTransferItem> {
+        reflect_dom_object(
+            Box::new(DataTransferItem::new_inherited(data_store, index)),
+            global,
+        )
     }
 }
 
 impl DataTransferItemMethods for DataTransferItem {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind>
     fn Kind(&self) -> DOMString {
-        // Step 1 Return the empty string if it isn't associated with a data store
-        if self.data_store.root().is_none() {
-            return DOMString::new();
-        }
-
-        // Step 2
-        match self.kind {
-            KindStorage::Text(_) => DOMString::from("string"),
-            KindStorage::File(_) => DOMString::from("file"),
+        match self
+            .data_store
+            .borrow()
+            .as_ref()
+            .and_then(|data_store| data_store.get_item(self.index))
+        {
+            // Step 1 Return the empty string if it isn't associated with a data store
+            None => DOMString::new(),
+            // Step 2
+            Some(Kind::Text(_)) => DOMString::from("string"),
+            Some(Kind::File(_)) => DOMString::from("file"),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type>
     fn Type(&self) -> DOMString {
-        // Step 1 Return the empty string if it isn't associated with a data store
-        if self.data_store.root().is_none() {
-            return DOMString::new();
+        match self
+            .data_store
+            .borrow()
+            .as_ref()
+            .and_then(|data_store| data_store.get_item(self.index))
+        {
+            // Step 1 Return the empty string if it isn't associated with a data store
+            None => DOMString::new(),
+            // Step 2
+            Some(item) => item.type_(),
         }
-
-        // Step 2
-        self.type_()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring>
     fn GetAsString(&self, callback: Option<Rc<FunctionStringCallback>>) {
-        if self
-            .data_store
-            .root()
-            .is_some_and(|data_store| data_store.can_read())
-        {
-            if let (Some(callback), KindStorage::Text(data)) = (callback, &self.kind) {
-                let _ = callback.Call__(data.clone(), ExceptionHandling::Report);
-            }
+        let option = self.data_store.borrow();
+        let data_store = match option.as_ref() {
+            Some(value) if value.mode() != Mode::Protected => value,
+            _ => return,
+        };
+
+        if let (Some(callback), Some(data)) = (
+            callback,
+            data_store
+                .get_item(self.index)
+                .and_then(|item| item.as_string()),
+        ) {
+            let _ = callback.Call__(data, ExceptionHandling::Report);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile>
     fn GetAsFile(&self) -> Option<DomRoot<File>> {
-        self.data_store
-            .root()
-            .filter(|data_store| data_store.can_read())
-            .and_then(|_| self.as_file())
+        let option = self.data_store.borrow();
+        let data_store = match option.as_ref() {
+            Some(value) if value.mode() != Mode::Protected => value,
+            _ => return None,
+        };
+
+        data_store
+            .get_item(self.index)
+            .and_then(|item| item.as_file(&self.global()))
     }
 }

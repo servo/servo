@@ -21,25 +21,44 @@ pub enum Kind {
 }
 
 pub struct PlainString {
-    pub data: DOMString,
-    pub type_: DOMString,
+    data: DOMString,
+    type_: DOMString,
+}
+
+impl PlainString {
+    pub fn new(data: DOMString, type_: DOMString) -> Self {
+        Self { data, type_ }
+    }
 }
 
 pub struct Binary {
-    pub bytes: Vec<u8>,
-    pub name: DOMString,
-    pub type_: String,
+    bytes: Vec<u8>,
+    name: DOMString,
+    type_: String,
+}
+
+impl Binary {
+    pub fn new(bytes: Vec<u8>, name: DOMString, type_: String) -> Self {
+        Self { bytes, name, type_ }
+    }
 }
 
 impl Kind {
-    fn as_string(&self) -> Option<DOMString> {
+    pub fn type_(&self) -> DOMString {
+        match self {
+            Kind::Text(string) => string.type_.clone(),
+            Kind::File(binary) => DOMString::from(binary.type_.clone()),
+        }
+    }
+
+    pub fn as_string(&self) -> Option<DOMString> {
         match self {
             Kind::Text(string) => Some(string.data.clone()),
             Kind::File(_) => None,
         }
     }
 
-    fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
+    pub fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
         match self {
             Kind::Text(_) => None,
             Kind::File(binary) => Some(File::new(
@@ -223,12 +242,16 @@ impl DragDataStore {
             .for_each(|file| file_list.push(file));
     }
 
-    pub fn list_len(&self) -> u32 {
-        self.item_list.len() as u32
+    pub fn list_len(&self) -> usize {
+        self.item_list.len()
     }
 
-    pub fn remove(&mut self, index: u32) {
-        self.item_list.remove(index as usize);
+    pub fn get_item(&self, index: usize) -> Option<&Kind> {
+        self.item_list.get(index)
+    }
+
+    pub fn remove(&mut self, index: usize) {
+        self.item_list.remove(index);
     }
 
     pub fn clear_list(&mut self) {
