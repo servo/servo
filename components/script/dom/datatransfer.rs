@@ -10,7 +10,6 @@ use js::rust::{HandleObject, MutableHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
-use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -42,8 +41,6 @@ pub struct DataTransfer {
     drop_effect: DomRefCell<DOMString>,
     effect_allowed: DomRefCell<DOMString>,
     items: Dom<DataTransferItemList>,
-    #[ignore_malloc_size_of = "mozjs"]
-    frozen_types: CachedFrozenArray,
     #[ignore_malloc_size_of = "Rc"]
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
@@ -59,7 +56,6 @@ impl DataTransfer {
             drop_effect: DomRefCell::new(DOMString::from("none")),
             effect_allowed: DomRefCell::new(DOMString::from("none")),
             items: Dom::from_ref(item_list),
-            frozen_types: CachedFrozenArray::new(),
             data_store,
         }
     }
@@ -158,16 +154,7 @@ impl DataTransferMethods for DataTransfer {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-types>
     fn Types(&self, cx: JSContext, retval: MutableHandleValue) {
-        self.frozen_types.get_or_init(
-            || {
-                self.data_store
-                    .borrow_mut()
-                    .as_mut()
-                    .map_or(Vec::new(), |data_store| data_store.types())
-            },
-            cx,
-            retval,
-        );
+        self.items.frozen_types(cx, retval);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
@@ -234,6 +221,7 @@ impl DataTransferMethods for DataTransfer {
         }
 
         data_store.set_data(format, data);
+        self.items.invalidate_frozen_types();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata>
@@ -250,7 +238,9 @@ impl DataTransferMethods for DataTransfer {
             return;
         }
 
-        data_store.clear_data(format);
+        if data_store.clear_data(format) {
+            self.items.invalidate_frozen_types();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>

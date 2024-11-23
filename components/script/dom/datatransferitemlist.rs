@@ -6,10 +6,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemListBinding::DataTransferItemListMethods;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -17,6 +19,7 @@ use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
 use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
+use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct DataTransferItemList {
@@ -25,6 +28,8 @@ pub struct DataTransferItemList {
     #[ignore_malloc_size_of = "Rc"]
     #[no_trace]
     data_store: Rc<RefCell<Option<DragDataStore>>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    frozen_types: CachedFrozenArray,
 }
 
 impl DataTransferItemList {
@@ -32,6 +37,7 @@ impl DataTransferItemList {
         DataTransferItemList {
             reflector_: Reflector::new(),
             items: DomRefCell::new(Vec::new()),
+            frozen_types: CachedFrozenArray::new(),
             data_store,
         }
     }
@@ -44,6 +50,23 @@ impl DataTransferItemList {
             Box::new(DataTransferItemList::new_inherited(data_store)),
             window,
         )
+    }
+
+    pub fn frozen_types(&self, cx: JSContext, retval: MutableHandleValue) {
+        self.frozen_types.get_or_init(
+            || {
+                self.data_store
+                    .borrow()
+                    .as_ref()
+                    .map_or(Vec::new(), |data_store| data_store.types())
+            },
+            cx,
+            retval,
+        );
+    }
+
+    pub fn invalidate_frozen_types(&self) {
+        self.frozen_types.clear();
     }
 }
 
@@ -86,10 +109,9 @@ impl DataTransferItemListMethods for DataTransferItemList {
         // whose type string is equal to the value of the method's second argument, converted to ASCII lowercase,
         // and whose data is the string given by the method's first argument.
         type_.make_ascii_lowercase();
-        let string = PlainString { data, type_ };
+        data_store.add(Kind::Text(PlainString { data, type_ }))?;
 
-        data_store.add(Kind::Text(string))?;
-
+        self.frozen_types.clear();
         Ok(Some(DataTransferItem::new(&self.global())))
     }
 
@@ -115,6 +137,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
 
         data_store.add(Kind::File(binary))?;
 
+        self.frozen_types.clear();
         Ok(Some(DataTransferItem::new(&self.global())))
     }
 
@@ -132,6 +155,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
         if index < data_store.list_len() {
             // Step 3 Remove the indexth item from the drag data store.
             data_store.remove(index);
+            self.frozen_types.clear();
         }
 
         Ok(())
@@ -147,6 +171,10 @@ impl DataTransferItemListMethods for DataTransferItemList {
             _ => return,
         };
 
-        data_store.clear_list();
+        // If the item list is empty we don't clear it.
+        if data_store.list_len() > 0 {
+            data_store.clear_list();
+            self.frozen_types.clear();
+        }
     }
 }

@@ -83,7 +83,6 @@ pub enum Mode {
 pub struct DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-item-list>
     item_list: Vec<Kind>,
-    types: Option<Vec<DOMString>>,
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-default-feedback>
     default_feedback: Option<String>,
     bitmap: Option<Bitmap>,
@@ -97,7 +96,6 @@ impl DragDataStore {
     pub fn new() -> DragDataStore {
         DragDataStore {
             item_list: Vec::new(),
-            types: None,
             default_feedback: None,
             bitmap: None,
             mode: Mode::Protected,
@@ -120,31 +118,26 @@ impl DragDataStore {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-datatransfer-types>
-    pub fn types(&mut self) -> Vec<DOMString> {
-        self.types
-            .get_or_insert_with(|| {
-                let mut types = Vec::new();
+    pub fn types(&self) -> Vec<DOMString> {
+        let mut types = Vec::new();
 
-                let has_files = self.item_list.iter().fold(false, |has_files, item| {
-                    // Step 2.1 For each item in the item list whose kind is text,
-                    // add an entry to L consisting of the item's type string.
-                    match item {
-                        Kind::Text(string) => types.push(string.type_.clone()),
-                        Kind::File(_) => return true,
-                    }
+        let has_files = self.item_list.iter().fold(false, |has_files, item| {
+            // Step 2.1 For each item in the item list whose kind is text,
+            // add an entry to L consisting of the item's type string.
+            match item {
+                Kind::Text(string) => types.push(string.type_.clone()),
+                Kind::File(_) => return true,
+            }
 
-                    has_files
-                });
+            has_files
+        });
 
-                // Step 2.2 If there are any items in the item list whose kind is File,
-                // add an entry to L consisting of the string "Files".
-                if has_files {
-                    types.push(DOMString::from("Files"));
-                }
-
-                types
-            })
-            .to_vec()
+        // Step 2.2 If there are any items in the item list whose kind is File,
+        // add an entry to L consisting of the string "Files".
+        if has_files {
+            types.push(DOMString::from("Files"));
+        }
+        types
     }
 
     pub fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
@@ -170,7 +163,6 @@ impl DragDataStore {
         // Step 2.2
         self.item_list.push(kind);
 
-        self.types = None;
         Ok(())
     }
 
@@ -184,13 +176,10 @@ impl DragDataStore {
             .retain(|item| !item.text_type_matches(&type_));
 
         // Step 6 Add an item whose kind is text, whose type is format, and whose data is the method's second argument.
-        let plain_string = PlainString { data, type_ };
-        self.item_list.push(Kind::Text(plain_string));
-
-        self.types = None;
+        self.item_list.push(Kind::Text(PlainString { data, type_ }));
     }
 
-    pub fn clear_data(&mut self, format: Option<DOMString>) {
+    pub fn clear_data(&mut self, format: Option<DOMString>) -> bool {
         let mut was_modified = false;
 
         if let Some(format) = format {
@@ -218,10 +207,7 @@ impl DragDataStore {
             });
         }
 
-        // If items were removed, frozen_types will be invalid.
-        if was_modified {
-            self.types = None;
-        }
+        was_modified
     }
 
     pub fn files(&self, global: &GlobalScope, file_list: &mut Vec<DomRoot<File>>) {
@@ -243,12 +229,10 @@ impl DragDataStore {
 
     pub fn remove(&mut self, index: u32) {
         self.item_list.remove(index as usize);
-        self.types = None;
     }
 
     pub fn clear_list(&mut self) {
         self.item_list.clear();
-        self.types = None;
     }
 }
 
