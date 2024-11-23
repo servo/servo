@@ -9,7 +9,7 @@ use euclid::RigidTransform3D;
 use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, View};
 
-use super::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};

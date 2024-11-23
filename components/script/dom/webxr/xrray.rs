@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, Ray};
 
-use super::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
