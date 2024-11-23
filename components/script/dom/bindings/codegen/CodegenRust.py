@@ -4755,14 +4755,18 @@ def getEnumValueName(value):
 
 
 class CGEnum(CGThing):
-    def __init__(self, enum):
+    def __init__(self, enum, config):
         CGThing.__init__(self)
 
         ident = enum.identifier.name
         enums = ",\n    ".join(map(getEnumValueName, list(enum.values())))
+        derives = ["Copy", "Clone", "Debug", "JSTraceable", "MallocSizeOf", "PartialEq"]
+        enum_config = config.getEnumConfig(ident)
+        extra_derives = enum_config.get('derives', [])
+        derives = ', '.join(derives + extra_derives)
         decl = f"""
 #[repr(usize)]
-#[derive(Copy, Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive({derives})]
 pub enum {ident} {{
     {enums}
 }}
@@ -7146,7 +7150,7 @@ class CGBindingRoot(CGThing):
             return
 
         # Do codegen for all the enums.
-        cgthings = [CGEnum(e) for e in enums]
+        cgthings = [CGEnum(e, config) for e in enums]
 
         # Do codegen for all the typedefs
         for t in typedefs:

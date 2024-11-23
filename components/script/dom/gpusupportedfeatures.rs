@@ -24,16 +24,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
-// manual hash derived
-// TODO: allow derivables in bindings.conf
-impl std::hash::Hash for GPUFeatureName {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        core::mem::discriminant(self).hash(state);
-    }
-}
-
-impl Eq for GPUFeatureName {}
-
 #[dom_struct]
 pub struct GPUSupportedFeatures {
     reflector: Reflector,
