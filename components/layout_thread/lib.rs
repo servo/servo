@@ -101,9 +101,10 @@ use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
-use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
+use style_traits::{CSSPixel, SpeculativePainter};
 use time_03::Duration;
 use url::Url;
+use webrender_api::units::DevicePixel;
 use webrender_api::{units, ColorF, HitTestFlags};
 use webrender_traits::CrossProcessCompositorApi;
 
@@ -587,7 +588,7 @@ impl LayoutThread {
             MediaType::screen(),
             QuirksMode::NoQuirks,
             window_size.initial_viewport,
-            window_size.device_pixel_ratio,
+            Scale::new(window_size.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider),
             ComputedValues::initial_values_with_font_override(font),
         );
@@ -1400,7 +1401,8 @@ impl LayoutThread {
         );
 
         if self.stylist.device().au_viewport_size() == au_viewport_size &&
-            self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
+            self.stylist.device().device_pixel_ratio().get() ==
+                window_size_data.device_pixel_ratio.get()
         {
             return false;
         }
@@ -1409,7 +1411,7 @@ impl LayoutThread {
             MediaType::screen(),
             self.stylist.quirks_mode(),
             window_size_data.initial_viewport,
-            window_size_data.device_pixel_ratio,
+            Scale::new(window_size_data.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider),
             self.stylist.device().default_computed_values().to_arc(),
         );

@@ -32,8 +32,8 @@ use style::values::generics::NonNegative;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style::Zero;
-use style_traits::{CSSPixel, DevicePixel};
-use webrender_api::units::{LayoutPixel, LayoutRect, LayoutSize};
+use style_traits::CSSPixel;
+use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
     ImageRendering, NinePatchBorder, NinePatchBorderSource,

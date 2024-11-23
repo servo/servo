@@ -75,9 +75,9 @@ use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
-use style_traits::{CSSPixel, DevicePixel, ParsingMode};
+use style_traits::{CSSPixel, ParsingMode};
 use url::Position;
-use webrender_api::units::LayoutPixel;
+use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 use webrender_traits::CrossProcessCompositorApi;
 
