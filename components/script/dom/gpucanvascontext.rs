@@ -39,19 +39,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
 
-// TODO: make all this derivables available via new Bindings.conf option
-impl Clone for GPUCanvasConfiguration {
-    fn clone(&self) -> Self {
-        Self {
-            alphaMode: self.alphaMode,
-            device: self.device.clone(),
-            format: self.format,
-            usage: self.usage,
-            viewFormats: self.viewFormats.clone(),
-        }
-    }
-}
-
 impl Clone for HTMLCanvasElementOrOffscreenCanvas {
     fn clone(&self) -> Self {
         match self {

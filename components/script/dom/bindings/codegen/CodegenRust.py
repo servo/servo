@@ -6773,9 +6773,10 @@ class CGNonNamespacedEnum(CGThing):
 
 
 class CGDictionary(CGThing):
-    def __init__(self, dictionary, descriptorProvider):
+    def __init__(self, dictionary, descriptorProvider, config):
         self.dictionary = dictionary
-        if all(CGDictionary(d, descriptorProvider).generatable for
+        self.derives = config.getDictConfig(dictionary.identifier.name).get('derives', [])
+        if all(CGDictionary(d, descriptorProvider, config).generatable for
                d in CGDictionary.getDictionaryDependencies(dictionary)):
             self.generatable = True
         else:
@@ -6809,7 +6810,7 @@ class CGDictionary(CGThing):
         memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
-        derive = ["JSTraceable"]
+        derive = ["JSTraceable"] + self.derives
         default = ""
         mustRoot = ""
         if self.membersNeedTracing():
@@ -7167,7 +7168,7 @@ class CGBindingRoot(CGThing):
             cgthings.append(CGGeneric(typeDefinition))
 
         # Do codegen for all the dictionaries.
-        cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
+        cgthings.extend([CGDictionary(d, config.getDescriptorProvider(), config)
                          for d in dictionaries])
 
         # Do codegen for all the callbacks.
