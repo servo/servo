@@ -76,17 +76,19 @@ impl WebGLTexture {
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
         #[cfg(feature = "webxr")] owner: Option<&XRSession>,
-        #[cfg(not(feature = "webxr"))] owner: Option<WebGLTextureOwner>,
     ) -> Self {
-        #[cfg(feature = "webxr")]
-        let owner = owner.map(|session| WebGLTextureOwner::WebXR(Dom::from_ref(session)));
 
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
-            owner: owner.unwrap_or(WebGLTextureOwner::WebGL),
+            #[cfg(feature = "webxr")]
+            owner: owner
+                .map(|session| WebGLTextureOwner::WebXR(Dom::from_ref(session)))
+                .unwrap_or(WebGLTextureOwner::WebGL),
+            #[cfg(not(feature = "webxr"))]
+            owner: WebGLTextureOwner::WebGL,
             immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
@@ -108,7 +110,7 @@ impl WebGLTexture {
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(WebGLTexture::new_inherited(context, id, None)),
+            Box::new(WebGLTexture::new_inherited(context, id, #[cfg(feature = "webxr")] None)),
             &*context.global(),
         )
     }
