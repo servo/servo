@@ -327,7 +327,7 @@ impl NonReplacedFormattingContext {
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
         sizing::outer_inline(
-            &self.style.clone(),
+            &self.style,
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
