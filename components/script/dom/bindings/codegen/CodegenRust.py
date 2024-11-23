@@ -6806,11 +6806,39 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         derive = ["JSTraceable"]
+        default = ""
         mustRoot = ""
         if self.membersNeedTracing():
             mustRoot = "#[crown::unrooted_must_root_lint::must_root]\n"
-            if not self.hasRequiredFields(self.dictionary):
-                derive += ["Default"]
+
+        # We can't unconditionally derive Default here, because union types can have unique
+        # default values provided for each usage. Instead, whenever possible we re-use the empty()
+        # method that is generated.
+        if not self.hasRequiredFields(self.dictionary):
+            if d.parent:
+                inheritanceDefault = "        parent: Default::default(),\n"
+            else:
+                inheritanceDefault = ""
+            if not self.membersNeedTracing():
+                impl = "        Self::empty()\n"
+            else:
+                memberDefaults = [f"        {self.makeMemberName(m[0].identifier.name)}: Default::default(),"
+                                  for m in self.memberInfo]
+                joinedDefaults = '\n'.join(memberDefaults)
+                impl = (
+                    "        Self {\n"
+                    f"            {inheritanceDefault}{joinedDefaults}"
+                    "        }\n"
+                )
+
+            default = (
+                f"impl Default for {self.makeClassName(d)} {{\n"
+                "    fn default() -> Self {\n"
+                f"{impl}"
+                "    }\n"
+                "}\n"
+            )
+
         joinedMemberDecls = '\n'.join(memberDecls)
         return (
             f"#[derive({', '.join(derive)})]\n"
@@ -6818,7 +6846,8 @@ class CGDictionary(CGThing):
             f"pub struct {self.makeClassName(d)} {{\n"
             f"{inheritance}"
             f"{joinedMemberDecls}\n"
-            "}"
+            "}\n"
+            f"{default}"
         )
 
     def impl(self):

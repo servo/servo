@@ -102,9 +102,3 @@ impl ExtendableEventMethods for ExtendableEvent {
         self.event.IsTrusted()
     }
 }
-
-impl Default for ExtendableEventInit {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
