@@ -614,9 +614,7 @@ pub mod webglvertexarrayobjectoes;
 pub mod websocket;
 #[cfg(feature = "webxr")]
 mod webxr;
-#[cfg(not(feature = "webxr"))]
-mod webxr {}
-#[allow(unused_imports)]
+#[cfg(feature = "webxr")]
 pub use self::webxr::*;
 pub mod wheelevent;
 pub mod window;
