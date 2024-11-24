@@ -7,7 +7,7 @@ use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
 use js::typedarray::{Float32, Float32Array};
 
-use super::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::{Error, Fallible};

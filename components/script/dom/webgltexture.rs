@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(unused_imports)]
+
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
 use std::cell::Cell;
@@ -23,6 +25,7 @@ use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+#[cfg(feature = "webxr")]
 use crate::dom::xrsession::XRSession;
 
 pub enum TexParameterValue {
@@ -37,6 +40,7 @@ pub enum TexParameterValue {
 #[derive(JSTraceable, MallocSizeOf)]
 enum WebGLTextureOwner {
     WebGL,
+    #[cfg(feature = "webxr")]
     WebXR(Dom<XRSession>),
 }
 
@@ -71,16 +75,19 @@ impl WebGLTexture {
     fn new_inherited(
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
-        owner: Option<&XRSession>,
+        #[cfg(feature = "webxr")] owner: Option<&XRSession>,
     ) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
+            #[cfg(feature = "webxr")]
             owner: owner
                 .map(|session| WebGLTextureOwner::WebXR(Dom::from_ref(session)))
                 .unwrap_or(WebGLTextureOwner::WebGL),
+            #[cfg(not(feature = "webxr"))]
+            owner: WebGLTextureOwner::WebGL,
             immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
@@ -102,11 +109,17 @@ impl WebGLTexture {
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(WebGLTexture::new_inherited(context, id, None)),
+            Box::new(WebGLTexture::new_inherited(
+                context,
+                id,
+                #[cfg(feature = "webxr")]
+                None,
+            )),
             &*context.global(),
         )
     }
 
+    #[cfg(feature = "webxr")]
     pub fn new_webxr(
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
@@ -238,6 +251,7 @@ impl WebGLTexture {
             }
 
             // We don't delete textures owned by WebXR
+            #[cfg(feature = "webxr")]
             if let WebGLTextureOwner::WebXR(_) = self.owner {
                 return;
             }
@@ -252,6 +266,7 @@ impl WebGLTexture {
 
     pub fn is_invalid(&self) -> bool {
         // https://immersive-web.github.io/layers/#xrwebglsubimagetype
+        #[cfg(feature = "webxr")]
         if let WebGLTextureOwner::WebXR(ref session) = self.owner {
             if session.is_outside_raf() {
                 return true;

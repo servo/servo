@@ -24,7 +24,7 @@ use webxr_api::{
     SelectEvent, SelectKind, Session, SessionId, View, Viewer, Visibility,
 };
 
-use super::bindings::trace::HashMapTracedValues;
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
