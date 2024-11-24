@@ -15,7 +15,7 @@ pub struct TestBindingProxy {
     testbinding_: TestBinding,
 }
 
-impl TestBindingProxyMethods for TestBindingProxy {
+impl TestBindingProxyMethods<crate::DomTypeHolder> for TestBindingProxy {
     fn Length(&self) -> u32 {
         0
     }

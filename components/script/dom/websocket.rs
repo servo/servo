@@ -191,7 +191,7 @@ impl WebSocket {
     }
 }
 
-impl WebSocketMethods for WebSocket {
+impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
     fn Constructor(
         global: &GlobalScope,

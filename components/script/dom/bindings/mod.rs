@@ -170,6 +170,12 @@ pub mod xmlname;
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
 pub mod codegen {
+    pub mod DomTypeHolder {
+        include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
+    }
+    pub mod DomTypes {
+        include!(concat!(env!("OUT_DIR"), "/DomTypes.rs"));
+    }
     #[allow(dead_code)]
     pub mod Bindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));

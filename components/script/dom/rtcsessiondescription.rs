@@ -48,7 +48,7 @@ impl RTCSessionDescription {
     }
 }
 
-impl RTCSessionDescriptionMethods for RTCSessionDescription {
+impl RTCSessionDescriptionMethods<crate::DomTypeHolder> for RTCSessionDescription {
     /// <https://w3c.github.io/webrtc-pc/#dom-sessiondescription>
     fn Constructor(
         window: &Window,

@@ -48,7 +48,7 @@ impl TestWorklet {
     }
 }
 
-impl TestWorkletMethods for TestWorklet {
+impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

@@ -25,6 +25,7 @@ pub mod base {
         ChannelCountMode, ChannelCountModeValues, ChannelInterpretation,
         ChannelInterpretationValues,
     };
+    pub use crate::dom::bindings::codegen::DomTypes::DomTypes;
     pub use crate::dom::bindings::codegen::UnionTypes;
     pub use crate::dom::bindings::conversions::{
         root_from_handlevalue, ConversionBehavior, ConversionResult, FromJSValConvertible,

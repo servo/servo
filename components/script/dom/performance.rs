@@ -414,7 +414,7 @@ impl Performance {
     }
 }
 
-impl PerformanceMethods for Performance {
+impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     // FIXME(avada): this should be deprecated in the future, but some sites still use it
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {

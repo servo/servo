@@ -277,7 +277,7 @@ impl StylesheetOwner for HTMLStyleElement {
     }
 }
 
-impl HTMLStyleElementMethods for HTMLStyleElement {
+impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     /// <https://drafts.csswg.org/cssom/#dom-linkstyle-sheet>
     fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet().map(DomRoot::upcast)

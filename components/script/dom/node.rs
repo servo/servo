@@ -2497,7 +2497,7 @@ impl Node {
     }
 }
 
-impl NodeMethods for Node {
+impl NodeMethods<crate::DomTypeHolder> for Node {
     /// <https://dom.spec.whatwg.org/#dom-node-nodetype>
     fn NodeType(&self) -> u16 {
         match self.type_id() {

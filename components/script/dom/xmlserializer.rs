@@ -43,7 +43,7 @@ impl XMLSerializer {
     }
 }
 
-impl XMLSerializerMethods for XMLSerializer {
+impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
     // https://w3c.github.io/DOM-Parsing/#dom-xmlserializer
     fn Constructor(
         window: &Window,

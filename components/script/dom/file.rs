@@ -102,7 +102,7 @@ impl File {
     }
 }
 
-impl FileMethods for File {
+impl FileMethods<crate::DomTypeHolder> for File {
     // https://w3c.github.io/FileAPI/#file-constructor
     #[allow(non_snake_case)]
     fn Constructor(

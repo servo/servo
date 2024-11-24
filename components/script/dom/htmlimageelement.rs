@@ -1534,7 +1534,7 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
 }
 
 #[allow(non_snake_case)]
-impl HTMLImageElementMethods for HTMLImageElement {
+impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-image
     fn Image(
         window: &Window,

@@ -341,7 +341,7 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     }
 }
 
-impl GPUCanvasContextMethods for GPUCanvasContext {
+impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.canvas.clone()

@@ -67,7 +67,7 @@ impl ExtendableEvent {
     }
 }
 
-impl ExtendableEventMethods for ExtendableEvent {
+impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
     // https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,

@@ -549,7 +549,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
     }
 }
 
-impl HTMLIFrameElementMethods for HTMLIFrameElement {
+impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     make_url_getter!(Src, "src");
 

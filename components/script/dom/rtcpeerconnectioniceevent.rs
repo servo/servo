@@ -73,7 +73,7 @@ impl RTCPeerConnectionIceEvent {
     }
 }
 
-impl RTCPeerConnectionIceEventMethods for RTCPeerConnectionIceEvent {
+impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectionIceEvent {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-constructor>
     fn Constructor(
         window: &Window,

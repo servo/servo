@@ -160,7 +160,7 @@ impl AudioListener {
 }
 
 #[allow(non_snake_case)]
-impl AudioListenerMethods for AudioListener {
+impl AudioListenerMethods<crate::DomTypeHolder> for AudioListener {
     // https://webaudio.github.io/web-audio-api/#dom-audiolistener-positionx
     fn PositionX(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.position_x)

@@ -4269,7 +4269,7 @@ impl ProfilerMetadataFactory for Document {
 }
 
 #[allow(non_snake_case)]
-impl DocumentMethods for Document {
+impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://dom.spec.whatwg.org/#dom-document-document
     fn Constructor(
         window: &Window,

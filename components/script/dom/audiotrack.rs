@@ -85,7 +85,7 @@ impl AudioTrack {
     }
 }
 
-impl AudioTrackMethods for AudioTrack {
+impl AudioTrackMethods<crate::DomTypeHolder> for AudioTrack {
     // https://html.spec.whatwg.org/multipage/#dom-audiotrack-id
     fn Id(&self) -> DOMString {
         self.id()

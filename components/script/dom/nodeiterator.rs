@@ -69,7 +69,7 @@ impl NodeIterator {
     }
 }
 
-impl NodeIteratorMethods for NodeIterator {
+impl NodeIteratorMethods<crate::DomTypeHolder> for NodeIterator {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
     fn Root(&self) -> DomRoot<Node> {
         DomRoot::from_ref(&*self.root_node)

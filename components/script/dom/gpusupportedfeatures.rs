@@ -125,7 +125,7 @@ impl GPUSupportedFeatures {
     }
 }
 
-impl GPUSupportedFeaturesMethods for GPUSupportedFeatures {
+impl GPUSupportedFeaturesMethods<crate::DomTypeHolder> for GPUSupportedFeatures {
     fn Size(&self) -> u32 {
         self.internal.size()
     }

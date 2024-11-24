@@ -242,7 +242,7 @@ impl WorkerGlobalScope {
     }
 }
 
-impl WorkerGlobalScopeMethods for WorkerGlobalScope {
+impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
     fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
         DomRoot::from_ref(self)

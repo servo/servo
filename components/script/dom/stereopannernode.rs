@@ -101,7 +101,7 @@ impl StereoPannerNode {
     }
 }
 
-impl StereoPannerNodeMethods for StereoPannerNode {
+impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-stereopannernode-stereopannernode
     fn Constructor(
         window: &Window,

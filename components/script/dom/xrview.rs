@@ -87,7 +87,7 @@ impl XRView {
     }
 }
 
-impl XRViewMethods for XRView {
+impl XRViewMethods<crate::DomTypeHolder> for XRView {
     /// <https://immersive-web.github.io/webxr/#dom-xrview-eye>
     fn Eye(&self) -> XREye {
         self.eye

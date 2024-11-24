@@ -176,7 +176,7 @@ impl ShadowRoot {
     }
 }
 
-impl ShadowRootMethods for ShadowRoot {
+impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
     fn GetActiveElement(&self) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root

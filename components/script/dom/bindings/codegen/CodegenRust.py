@@ -540,6 +540,12 @@ def union_native_type(t):
     return f'UnionTypes::{name}'
 
 
+# Unfortunately, .capitalize() on a string will lowercase things inside the
+# string, which we do not want.
+def firstCap(string):
+    return f"{string[0].upper()}{string[1:]}"
+
+
 class JSToNativeConversionInfo():
     """
     An object representing information about a JS-to-native conversion.
@@ -642,11 +648,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     def handleOptional(template, declType, default):
         assert (defaultValue is None) == (default is None)
         return JSToNativeConversionInfo(template, default, declType)
-
-    # Unfortunately, .capitalize() on a string will lowercase things inside the
-    # string, which we do not want.
-    def firstCap(string):
-        return f"{string[0].upper()}{string[1:]}"
 
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
@@ -2621,6 +2622,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     imports = [
         'crate::dom',
         'crate::dom::bindings::import::base::*',
+        'crate::dom::bindings::codegen::DomTypes::DomTypes',
         'crate::dom::bindings::conversions::windowproxy_from_handlevalue',
         'crate::dom::bindings::record::Record',
         'crate::dom::types::*',
@@ -2656,6 +2658,108 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
 
     return CGImports(CGList(unionStructs, "\n\n"), descriptors=[], callbacks=[], dictionaries=[], enums=[],
                      typedefs=[], imports=imports, config=config)
+
+
+def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
+    traits = [
+        "js::rust::Trace",
+        "malloc_size_of::MallocSizeOf",
+        "Sized",
+    ]
+    joinedTraits = ' + '.join(traits)
+    elements = [CGGeneric(f"pub trait DomTypes: {joinedTraits} where Self: 'static {{\n")]
+    for descriptor in descriptors:
+        iface_name = descriptor.interface.identifier.name
+        traits = []
+
+        chain = descriptor.prototypeChain
+        upcast = descriptor.hasDescendants()
+
+        if not upcast:
+            # No other interface will implement DeriveFrom<Foo> for this Foo, so avoid
+            # implementing it for itself.
+            chain = chain[:-1]
+
+        if chain:
+            traits += ["crate::dom::bindings::inheritance::Castable"]
+
+        for parent in chain:
+            traits += [f"crate::dom::bindings::conversions::DerivedFrom<Self::{parent}>"]
+
+        iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
+        if iterableDecl:
+            if iterableDecl.isMaplike():
+                keytype = getRetvalDeclarationForType(iterableDecl.keyType, None).define()
+                valuetype = getRetvalDeclarationForType(iterableDecl.valueType, None).define()
+                traits += [f"crate::dom::bindings::like::Maplike<Key={keytype}, Value={valuetype}>"]
+            if iterableDecl.isSetlike():
+                keytype = getRetvalDeclarationForType(iterableDecl.keyType, None).define()
+                traits += [f"crate::dom::bindings::like::Setlike<Key={keytype}>"]
+            if iterableDecl.hasKeyType():
+                traits += [
+                    "crate::dom::bindings::reflector::DomObjectIteratorWrap",
+                ]
+
+        if descriptor.weakReferenceable:
+            traits += ["crate::dom::bindings::weakref::WeakReferenceable"]
+
+        if not descriptor.interface.isNamespace():
+            traits += [
+                "js::conversions::ToJSValConvertible",
+                "crate::dom::bindings::reflector::MutDomObject",
+                "crate::dom::bindings::reflector::DomObject",
+            ]
+
+        if descriptor.register:
+            if (
+                (descriptor.concrete or descriptor.hasDescendants())
+                and not descriptor.interface.isNamespace()
+                and not descriptor.interface.isIteratorInterface()
+            ):
+                traits += [
+                    "crate::dom::bindings::conversions::IDLInterface",
+                    "PartialEq",
+                ]
+
+            if descriptor.concrete and not descriptor.isGlobal():
+                traits += ["crate::dom::bindings::reflector::DomObjectWrap"]
+
+        if not descriptor.interface.isCallback() and not descriptor.interface.isIteratorInterface():
+            nonConstMembers = [m for m in descriptor.interface.members if not m.isConst()]
+            ctor = descriptor.interface.ctor()
+            if (
+                    nonConstMembers
+                    or (ctor and not ctor.isHTMLConstructor())
+                    or descriptor.interface.legacyFactoryFunctions
+            ):
+                namespace = f"{toBindingPath(descriptor)}"
+                traits += [f"crate::dom::bindings::codegen::Bindings::{namespace}::{iface_name}Methods<Self>"]
+            isPromise = firstCap(iface_name) == "Promise"
+            elements += [
+                CGGeneric("    #[crown::unrooted_must_root_lint::must_root]\n"),
+                CGGeneric("    #[crown::unrooted_must_root_lint::allow_unrooted_in_rc]\n" if isPromise else ""),
+                CGGeneric(f"    type {firstCap(iface_name)}: {' + '.join(traits)};\n")
+            ]
+    elements += [CGGeneric("}\n")]
+    return CGList([CGGeneric("use crate::dom::bindings::str::DOMString;\n")] + elements)
+
+
+def DomTypeHolder(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
+    elements = [
+        CGGeneric(
+            "#[derive(JSTraceable, MallocSizeOf, PartialEq)]\n"
+            "pub struct DomTypeHolder;\n"
+            "impl crate::DomTypes for DomTypeHolder {\n"
+        ),
+    ]
+    for descriptor in descriptors:
+        if descriptor.interface.isCallback() or descriptor.interface.isIteratorInterface():
+            continue
+        iface_name = descriptor.interface.identifier.name
+        path = f"crate::dom::{iface_name.lower()}::{firstCap(iface_name)}"
+        elements.append(CGGeneric(f"    type {firstCap(iface_name)} = {path};\n"))
+    elements.append(CGGeneric("}\n"))
+    return CGList(elements)
 
 
 class Argument():
@@ -3059,6 +3163,12 @@ assert!(immutable);
 
 DomRoot::from_ref(&*root)\
 """)
+
+
+def toBindingPath(descriptor):
+    module = toBindingModuleFileFromDescriptor(descriptor)
+    namespace = toBindingNamespace(descriptor.interface.identifier.name)
+    return f"{module}::{namespace}"
 
 
 class CGIDLInterface(CGThing):
@@ -6495,7 +6605,7 @@ class CGInterfaceTrait(CGThing):
 
         if methods:
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
-                                    pre=f"pub trait {descriptor.interface.identifier.name}Methods {{\n",
+                                    pre=f"pub trait {descriptor.interface.identifier.name}Methods<D: DomTypes> {{\n",
                                     post="}")
         else:
             self.cgRoot = CGGeneric("")
@@ -8143,6 +8253,36 @@ impl {base} {{
                           config.getCallbacks(),
                           config.typedefs,
                           config)
+
+        # Add the auto-generated comment.
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+
+        # Done.
+        return curr
+
+    @staticmethod
+    def DomTypes(config):
+        curr = DomTypes(config.getDescriptors(),
+                        config.getDescriptorProvider(),
+                        config.getDictionaries(),
+                        config.getCallbacks(),
+                        config.typedefs,
+                        config)
+
+        # Add the auto-generated comment.
+        curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
+
+        # Done.
+        return curr
+
+    @staticmethod
+    def DomTypeHolder(config):
+        curr = DomTypeHolder(config.getDescriptors(),
+                             config.getDescriptorProvider(),
+                             config.getDictionaries(),
+                             config.getCallbacks(),
+                             config.typedefs,
+                             config)
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)

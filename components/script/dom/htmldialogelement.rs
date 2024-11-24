@@ -55,7 +55,7 @@ impl HTMLDialogElement {
     }
 }
 
-impl HTMLDialogElementMethods for HTMLDialogElement {
+impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_getter!(Open, "open");
 

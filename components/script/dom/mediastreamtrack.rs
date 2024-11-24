@@ -50,7 +50,7 @@ impl MediaStreamTrack {
     }
 }
 
-impl MediaStreamTrackMethods for MediaStreamTrack {
+impl MediaStreamTrackMethods<crate::DomTypeHolder> for MediaStreamTrack {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-kind>
     fn Kind(&self) -> DOMString {
         match self.ty {

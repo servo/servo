@@ -106,7 +106,7 @@ impl Drop for GPUAdapter {
     }
 }
 
-impl GPUAdapterMethods for GPUAdapter {
+impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
         &self,

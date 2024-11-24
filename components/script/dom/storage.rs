@@ -51,7 +51,7 @@ impl Storage {
     }
 }
 
-impl StorageMethods for Storage {
+impl StorageMethods<crate::DomTypeHolder> for Storage {
     // https://html.spec.whatwg.org/multipage/#dom-storage-length
     fn Length(&self) -> u32 {
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();

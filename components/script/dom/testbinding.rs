@@ -81,7 +81,7 @@ impl TestBinding {
     }
 }
 
-impl TestBindingMethods for TestBinding {
+impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

@@ -307,7 +307,7 @@ impl XMLHttpRequest {
     }
 }
 
-impl XMLHttpRequestMethods for XMLHttpRequest {
+impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#constructors>
     fn Constructor(
         global: &GlobalScope,

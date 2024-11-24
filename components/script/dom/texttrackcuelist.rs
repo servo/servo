@@ -58,7 +58,7 @@ impl TextTrackCueList {
     }
 }
 
-impl TextTrackCueListMethods for TextTrackCueList {
+impl TextTrackCueListMethods<crate::DomTypeHolder> for TextTrackCueList {
     // https://html.spec.whatwg.org/multipage/#dom-texttrackcuelist-length
     fn Length(&self) -> u32 {
         self.dom_cues.borrow().len() as u32

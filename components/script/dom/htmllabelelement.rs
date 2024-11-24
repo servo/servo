@@ -83,7 +83,7 @@ impl Activatable for HTMLLabelElement {
     }
 }
 
-impl HTMLLabelElementMethods for HTMLLabelElement {
+impl HTMLLabelElementMethods<crate::DomTypeHolder> for HTMLLabelElement {
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         self.form_owner()

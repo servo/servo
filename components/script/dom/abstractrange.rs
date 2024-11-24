@@ -64,7 +64,7 @@ impl AbstractRange {
     }
 }
 
-impl AbstractRangeMethods for AbstractRange {
+impl AbstractRangeMethods<crate::DomTypeHolder> for AbstractRange {
     /// <https://dom.spec.whatwg.org/#dom-range-startcontainer>
     fn StartContainer(&self) -> DomRoot<Node> {
         self.start.node.get()

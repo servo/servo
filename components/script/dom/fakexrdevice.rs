@@ -182,7 +182,7 @@ impl From<FakeXRRegionType> for EntityType {
     }
 }
 
-impl FakeXRDeviceMethods for FakeXRDevice {
+impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SetViews(
         &self,

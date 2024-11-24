@@ -90,7 +90,7 @@ impl ProgressEvent {
     }
 }
 
-impl ProgressEventMethods for ProgressEvent {
+impl ProgressEventMethods<crate::DomTypeHolder> for ProgressEvent {
     // https://xhr.spec.whatwg.org/#dom-progressevent-progressevent
     fn Constructor(
         global: &GlobalScope,

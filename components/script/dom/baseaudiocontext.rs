@@ -276,7 +276,7 @@ impl BaseAudioContext {
     }
 }
 
-impl BaseAudioContextMethods for BaseAudioContext {
+impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate>
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)

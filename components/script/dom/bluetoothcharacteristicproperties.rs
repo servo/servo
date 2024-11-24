@@ -82,7 +82,9 @@ impl BluetoothCharacteristicProperties {
     }
 }
 
-impl BluetoothCharacteristicPropertiesMethods for BluetoothCharacteristicProperties {
+impl BluetoothCharacteristicPropertiesMethods<crate::DomTypeHolder>
+    for BluetoothCharacteristicProperties
+{
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-broadcast
     fn Broadcast(&self) -> bool {
         self.broadcast

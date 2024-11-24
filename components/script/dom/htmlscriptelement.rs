@@ -1229,7 +1229,7 @@ impl VirtualMethods for HTMLScriptElement {
     }
 }
 
-impl HTMLScriptElementMethods for HTMLScriptElement {
+impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_url_getter!(Src, "src");
 

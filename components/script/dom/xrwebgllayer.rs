@@ -237,7 +237,7 @@ impl XRWebGLLayer {
     }
 }
 
-impl XRWebGLLayerMethods for XRWebGLLayer {
+impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer>
     fn Constructor(
         global: &Window,

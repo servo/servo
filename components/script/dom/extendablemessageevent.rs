@@ -161,7 +161,7 @@ impl ExtendableMessageEvent {
     }
 }
 
-impl ExtendableMessageEventMethods for ExtendableMessageEvent {
+impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-extendablemessageevent>
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,

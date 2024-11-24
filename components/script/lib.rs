@@ -101,6 +101,8 @@ mod links;
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
 
+pub use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
+pub use crate::dom::bindings::codegen::DomTypes::DomTypes;
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.

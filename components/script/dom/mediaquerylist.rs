@@ -78,7 +78,7 @@ impl MediaQueryList {
     }
 }
 
-impl MediaQueryListMethods for MediaQueryList {
+impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-media
     fn Media(&self) -> DOMString {
         self.media_query_list.to_css_string().into()

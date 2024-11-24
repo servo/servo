@@ -219,7 +219,7 @@ impl HTMLSelectElement {
     }
 }
 
-impl HTMLSelectElementMethods for HTMLSelectElement {
+impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-select-add
     fn Add(
         &self,

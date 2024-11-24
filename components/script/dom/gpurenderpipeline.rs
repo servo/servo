@@ -91,7 +91,7 @@ impl GPURenderPipeline {
     }
 }
 
-impl GPURenderPipelineMethods for GPURenderPipeline {
+impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

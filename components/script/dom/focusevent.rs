@@ -96,7 +96,7 @@ impl FocusEvent {
     }
 }
 
-impl FocusEventMethods for FocusEvent {
+impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
     // https://w3c.github.io/uievents/#dom-focusevent-focusevent
     fn Constructor(
         window: &Window,

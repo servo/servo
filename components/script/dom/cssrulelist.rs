@@ -207,7 +207,7 @@ impl CSSRuleList {
     }
 }
 
-impl CSSRuleListMethods for CSSRuleList {
+impl CSSRuleListMethods<crate::DomTypeHolder> for CSSRuleList {
     // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
     fn Item(&self, idx: u32) -> Option<DomRoot<CSSRule>> {
         self.item(idx)

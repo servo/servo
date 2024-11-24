@@ -157,7 +157,7 @@ impl Worker {
     }
 }
 
-impl WorkerMethods for Worker {
+impl WorkerMethods<crate::DomTypeHolder> for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code)]
     fn Constructor(

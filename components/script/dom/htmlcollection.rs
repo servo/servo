@@ -315,7 +315,7 @@ impl HTMLCollection {
     }
 }
 
-impl HTMLCollectionMethods for HTMLCollection {
+impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-length>
     fn Length(&self) -> u32 {
         self.validate_cache();

@@ -91,7 +91,9 @@ impl BluetoothRemoteGATTCharacteristic {
     }
 }
 
-impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
+impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
+    for BluetoothRemoteGATTCharacteristic
+{
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
     fn Properties(&self) -> DomRoot<BluetoothCharacteristicProperties> {
         DomRoot::from_ref(&self.properties)

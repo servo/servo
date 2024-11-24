@@ -60,7 +60,7 @@ impl Screen {
     }
 }
 
-impl ScreenMethods for Screen {
+impl ScreenMethods<crate::DomTypeHolder> for Screen {
     // https://drafts.csswg.org/cssom-view/#dom-screen-availwidth
     fn AvailWidth(&self) -> Finite<f64> {
         Finite::wrap(self.screen_avail_size().width as f64)

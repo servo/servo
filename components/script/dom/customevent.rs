@@ -84,7 +84,7 @@ impl CustomEvent {
     }
 }
 
-impl CustomEventMethods for CustomEvent {
+impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
     // https://dom.spec.whatwg.org/#dom-customevent-customevent
     fn Constructor(
         global: &GlobalScope,

@@ -78,7 +78,7 @@ impl XRInputSourceEvent {
     }
 }
 
-impl XRInputSourceEventMethods for XRInputSourceEvent {
+impl XRInputSourceEventMethods<crate::DomTypeHolder> for XRInputSourceEvent {
     // https://immersive-web.github.io/webxr/#dom-xrinputsourceevent-xrinputsourceevent
     fn Constructor(
         window: &Window,

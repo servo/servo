@@ -49,7 +49,7 @@ impl HTMLQuoteElement {
     }
 }
 
-impl HTMLQuoteElementMethods for HTMLQuoteElement {
+impl HTMLQuoteElementMethods<crate::DomTypeHolder> for HTMLQuoteElement {
     // https://html.spec.whatwg.org/multipage/#dom-quote-cite
     make_url_getter!(Cite, "cite");
 

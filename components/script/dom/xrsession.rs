@@ -619,7 +619,7 @@ impl XRSession {
     }
 }
 
-impl XRSessionMethods for XRSession {
+impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     // https://immersive-web.github.io/webxr/#eventdef-xrsession-end
     event_handler!(end, GetOnend, SetOnend);
 

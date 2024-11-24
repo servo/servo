@@ -153,7 +153,7 @@ impl SubtleCrypto {
     }
 }
 
-impl SubtleCryptoMethods for SubtleCrypto {
+impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-encrypt>
     fn Encrypt(
         &self,

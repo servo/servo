@@ -68,7 +68,7 @@ impl FormData {
     }
 }
 
-impl FormDataMethods for FormData {
+impl FormDataMethods<crate::DomTypeHolder> for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata
     fn Constructor(
         global: &GlobalScope,
