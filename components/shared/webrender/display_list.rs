@@ -21,7 +21,7 @@ pub enum ScrollSensitivity {
 
 /// Information that Servo keeps alongside WebRender display items
 /// in order to add more context to hit test results.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct HitTestInfo {
     /// The id of the node of this hit test item.
     pub node: u64,
@@ -327,17 +327,19 @@ impl CompositorDisplayListInfo {
         cursor: Option<Cursor>,
         scroll_tree_node: ScrollTreeNodeId,
     ) -> usize {
+        let hit_test_info = HitTestInfo {
+            node,
+            cursor,
+            scroll_tree_node,
+        };
+
         if let Some(last) = self.hit_test_info.last() {
-            if node == last.node && cursor == last.cursor {
+            if hit_test_info == *last {
                 return self.hit_test_info.len() - 1;
             }
         }
 
-        self.hit_test_info.push(HitTestInfo {
-            node,
-            cursor,
-            scroll_tree_node,
-        });
+        self.hit_test_info.push(hit_test_info);
         self.hit_test_info.len() - 1
     }
 }
