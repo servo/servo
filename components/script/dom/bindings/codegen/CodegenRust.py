@@ -2649,7 +2649,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         if name not in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
             unionStructs[name] = CGList([
-                CGUnionStruct(t, provider),
+                CGUnionStruct(t, provider, config),
                 CGUnionConversionStruct(t, provider)
             ])
 
@@ -4865,14 +4865,18 @@ def getEnumValueName(value):
 
 
 class CGEnum(CGThing):
-    def __init__(self, enum):
+    def __init__(self, enum, config):
         CGThing.__init__(self)
 
         ident = enum.identifier.name
         enums = ",\n    ".join(map(getEnumValueName, list(enum.values())))
+        derives = ["Copy", "Clone", "Debug", "JSTraceable", "MallocSizeOf", "PartialEq"]
+        enum_config = config.getEnumConfig(ident)
+        extra_derives = enum_config.get('derives', [])
+        derives = ', '.join(derives + extra_derives)
         decl = f"""
 #[repr(usize)]
-#[derive(Copy, Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive({derives})]
 pub enum {ident} {{
     {enums}
 }}
@@ -4904,6 +4908,18 @@ impl super::{ident} {{
 impl Default for super::{ident} {{
     fn default() -> super::{ident} {{
         pairs[0].1
+    }}
+}}
+
+impl std::str::FromStr for super::{ident} {{
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {{
+        pairs
+            .iter()
+            .find(|&&(key, _)| s == key)
+            .map(|&(_, ev)| ev)
+            .ok_or(())
     }}
 }}
 
@@ -5037,12 +5053,13 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
 
 
 class CGUnionStruct(CGThing):
-    def __init__(self, type, descriptorProvider):
+    def __init__(self, type, descriptorProvider, config):
         assert not type.nullable()
         assert not type.hasNullableType
 
         CGThing.__init__(self)
         self.type = type
+        self.derives = config.getUnionConfig(str(type)).get('derives', [])
         self.descriptorProvider = descriptorProvider
 
     def membersNeedTracing(self):
@@ -5071,8 +5088,9 @@ class CGUnionStruct(CGThing):
         ]
         joinedEnumValues = "\n".join(enumValues)
         joinedEnumConversions = "\n".join(enumConversions)
+        derives = ["JSTraceable"] + self.derives
         return f"""
-#[derive(JSTraceable)]
+#[derive({", ".join(derives)})]
 pub enum {self.type} {{
 {joinedEnumValues}
 }}
@@ -6879,9 +6897,10 @@ class CGNonNamespacedEnum(CGThing):
 
 
 class CGDictionary(CGThing):
-    def __init__(self, dictionary, descriptorProvider):
+    def __init__(self, dictionary, descriptorProvider, config):
         self.dictionary = dictionary
-        if all(CGDictionary(d, descriptorProvider).generatable for
+        self.derives = config.getDictConfig(dictionary.identifier.name).get('derives', [])
+        if all(CGDictionary(d, descriptorProvider, config).generatable for
                d in CGDictionary.getDictionaryDependencies(dictionary)):
             self.generatable = True
         else:
@@ -6915,12 +6934,40 @@ class CGDictionary(CGThing):
         memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
-        derive = ["JSTraceable"]
+        derive = ["JSTraceable"] + self.derives
+        default = ""
         mustRoot = ""
         if self.membersNeedTracing():
             mustRoot = "#[crown::unrooted_must_root_lint::must_root]\n"
-            if not self.hasRequiredFields(self.dictionary):
-                derive += ["Default"]
+
+        # We can't unconditionally derive Default here, because union types can have unique
+        # default values provided for each usage. Instead, whenever possible we re-use the empty()
+        # method that is generated.
+        if not self.hasRequiredFields(self.dictionary):
+            if d.parent:
+                inheritanceDefault = "        parent: Default::default(),\n"
+            else:
+                inheritanceDefault = ""
+            if not self.membersNeedTracing():
+                impl = "        Self::empty()\n"
+            else:
+                memberDefaults = [f"        {self.makeMemberName(m[0].identifier.name)}: Default::default(),"
+                                  for m in self.memberInfo]
+                joinedDefaults = '\n'.join(memberDefaults)
+                impl = (
+                    "        Self {\n"
+                    f"            {inheritanceDefault}{joinedDefaults}"
+                    "        }\n"
+                )
+
+            default = (
+                f"impl Default for {self.makeClassName(d)} {{\n"
+                "    fn default() -> Self {\n"
+                f"{impl}"
+                "    }\n"
+                "}\n"
+            )
+
         joinedMemberDecls = '\n'.join(memberDecls)
         return (
             f"#[derive({', '.join(derive)})]\n"
@@ -6928,7 +6975,8 @@ class CGDictionary(CGThing):
             f"pub struct {self.makeClassName(d)} {{\n"
             f"{inheritance}"
             f"{joinedMemberDecls}\n"
-            "}"
+            "}\n"
+            f"{default}"
         )
 
     def impl(self):
@@ -7227,7 +7275,7 @@ class CGBindingRoot(CGThing):
             return
 
         # Do codegen for all the enums.
-        cgthings = [CGEnum(e) for e in enums]
+        cgthings = [CGEnum(e, config) for e in enums]
 
         # Do codegen for all the typedefs
         for t in typedefs:
@@ -7244,7 +7292,7 @@ class CGBindingRoot(CGThing):
             cgthings.append(CGGeneric(typeDefinition))
 
         # Do codegen for all the dictionaries.
-        cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
+        cgthings.extend([CGDictionary(d, config.getDescriptorProvider(), config)
                          for d in dictionaries])
 
         # Do codegen for all the callbacks.
@@ -8145,7 +8193,10 @@ class GlobalGenRoots():
         descriptors = (set(toBindingModuleFile(d.name) for d in descriptors if d.maybeGetSuperModule() is None)
                        | set(leafModule(d) for d in config.callbacks)
                        | set(leafModule(d) for d in config.getDictionaries()))
-        curr = CGList([CGGeneric(f"pub mod {name};\n") for name in sorted(descriptors)])
+        curr = CGList([CGGeneric(
+            "#[allow(clippy::derivable_impls)]\n"
+            f"pub mod {name};\n"
+        ) for name in sorted(descriptors)])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 

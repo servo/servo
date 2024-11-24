@@ -624,15 +624,6 @@ impl BluetoothUUID {
     }
 }
 
-impl Clone for StringOrUnsignedLong {
-    fn clone(&self) -> StringOrUnsignedLong {
-        match self {
-            StringOrUnsignedLong::String(s) => StringOrUnsignedLong::String(s.clone()),
-            &StringOrUnsignedLong::UnsignedLong(ul) => StringOrUnsignedLong::UnsignedLong(ul),
-        }
-    }
-}
-
 fn canonical_uuid(alias: u32) -> UUID {
     UUID::from(format!("{:08x}", &alias) + BASE_UUID)
 }
