@@ -38,7 +38,7 @@ impl DataTransferItem {
     }
 }
 
-impl DataTransferItemMethods for DataTransferItem {
+impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind>
     fn Kind(&self) -> DOMString {
         match self.item {

@@ -80,7 +80,7 @@ impl DataTransfer {
     }
 }
 
-impl DataTransferMethods for DataTransfer {
+impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer>
     fn Constructor(
         window: &Window,

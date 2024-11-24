@@ -61,6 +61,8 @@ impl Kind {
         }
     }
 
+    // TODO for now we create a new BlobImpl
+    // since File constructor requires moving it.
     pub fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
         match self {
             Kind::Text(_) => None,
@@ -84,6 +86,7 @@ impl Kind {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#drag-data-store-bitmap>
+#[allow(dead_code)] // TODO this used by DragEvent.
 struct Bitmap {
     image: Option<Arc<Image>>,
     x: i32,
@@ -96,12 +99,13 @@ pub enum Mode {
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-rw>
     ReadWrite,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-ro>
+    #[allow(dead_code)] // TODO this used by ClipboardEvent.
     ReadOnly,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-p>
     Protected,
 }
 
-/// The data and logic backing DataTransfer API.
+#[allow(dead_code)] // TODO some fields are used by DragEvent.
 pub struct DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-item-list>
     item_list: Vec<Kind>,
@@ -115,6 +119,8 @@ pub struct DragDataStore {
 
 impl DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#create-a-drag-data-store>
+    // We don't really need it since it's only instantiated by DataTransfer.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> DragDataStore {
         DragDataStore {
             item_list: Vec::new(),

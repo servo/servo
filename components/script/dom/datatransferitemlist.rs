@@ -67,7 +67,7 @@ impl DataTransferItemList {
     }
 }
 
-impl DataTransferItemListMethods for DataTransferItemList {
+impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-length>
     fn Length(&self) -> u32 {
         // Return zero if the object is in the disabled mode;
