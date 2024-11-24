@@ -11,6 +11,7 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
@@ -24,7 +25,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, BindContext, UnbindContext, document_from_node};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -173,6 +174,34 @@ impl ShadowRoot {
             &id,
             root,
         );
+    }
+
+    pub fn bind_to_tree(&self, context: &BindContext) {
+        if context.tree_connected {
+            let document = document_from_node(self);
+            document.register_shadow_root(self);
+        }
+
+        let shadow_root = self.upcast::<Node>();
+        shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+        for node in shadow_root.children() {
+            node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+            node.bind_to_tree(context);
+        }
+    }
+
+    pub fn unbind_from_tree(&self, context: &UnbindContext) {
+        if context.tree_connected {
+            let document = document_from_node(self);
+            document.unregister_shadow_root(self);
+        }
+
+        let shadow_root = self.upcast::<Node>();
+        shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
+        for node in shadow_root.children() {
+            node.set_flag(NodeFlags::IS_CONNECTED, false);
+            node.unbind_from_tree(context);
+        }
     }
 }
 
