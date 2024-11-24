@@ -20,6 +20,7 @@ use crate::dom::element::Element;
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -130,5 +131,11 @@ impl DocumentFragmentMethods for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         self.upcast::<Node>().query_selector_all(selectors)
+    }
+}
+
+impl VirtualMethods for DocumentFragment {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<Node>() as &dyn VirtualMethods)
     }
 }
