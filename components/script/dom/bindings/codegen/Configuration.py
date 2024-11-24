@@ -372,7 +372,7 @@ class Descriptor(DescriptorProvider):
         filename = getIdlFileName(self.interface)
         # if interface name is not same as webidl file
         # webidl is super module for interface
-        if filename.lower() != self.interface.identifier.name.lower() and not self.interface.isIteratorInterface():
+        if filename.lower() != self.interface.identifier.name.lower():
             return filename
         return None
 

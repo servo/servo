@@ -1654,22 +1654,33 @@ class PropertyDefiner:
             if specTerminator:
                 currentSpecs.append(specTerminator)
             joinedCurrentSpecs = ',\n'.join(currentSpecs)
-            specs.append(f"&[\n{joinedCurrentSpecs}]\n")
+            specs.append(f"&Box::leak(vec![\n{joinedCurrentSpecs}].into_boxed_slice())[..]\n")
             conds = ','.join(cond) if isinstance(cond, list) else cond
             prefableSpecs.append(
                 prefableTemplate % (f"&[{conds}]", f"{name}_specs", len(specs) - 1)
             )
 
         joinedSpecs = ',\n'.join(specs)
-        specsArray = (f"const {name}_specs: &[&[{specType}]] = &[\n"
-                      f"{joinedSpecs}\n"
-                      "];\n")
+        specsArray = f"static mut {name}_specs: &[&[{specType}]] = &[];\n"
+
+        initSpecs = f"""
+pub(crate) fn init_{name}_specs() {{
+    unsafe {{
+        {name}_specs = Box::leak(Box::new([{joinedSpecs}]));
+    }}
+}}"""
 
         joinedPrefableSpecs = ',\n'.join(prefableSpecs)
-        prefArray = (f"const {name}: &[Guard<&[{specType}]>] = &[\n"
-                     f"{joinedPrefableSpecs}\n"
-                     "];\n")
-        return f"{specsArray}{prefArray}"
+        prefArray = f"static mut {name}: &[Guard<&[{specType}]>] = &[];\n"
+
+        initPrefs = f"""
+pub(crate) fn init_{name}_prefs() {{
+    unsafe {{
+        {name} = Box::leak(Box::new([{joinedPrefableSpecs}]));
+    }}
+}}"""
+
+        return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
 
     def generateUnguardedArray(self, array, name, specTemplate, specTerminator,
                                specType, getCondition, getDataTuple):
@@ -1692,12 +1703,14 @@ class PropertyDefiner:
         specsArray.append(specTerminator)
 
         joinedSpecs = ',\n'.join(specsArray)
-        return dedent(
-            f"""
-            const {name}: &[{specType}] = &[
-            {joinedSpecs}
-            ];
-            """)
+        initialSpecs = f"static mut {name}: &[{specType}] = &[];\n"
+        initSpecs = f"""
+pub(crate) fn init_{name}() {{
+    unsafe {{
+        {name} = Box::leak(Box::new([{joinedSpecs}]));
+    }}
+}}"""
+        return dedent(f"{initialSpecs}{initSpecs}")
 
 
 # The length of a method is the minimum of the lengths of the
@@ -1861,11 +1874,12 @@ class MethodDefiner(PropertyDefiner):
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
-                    jitinfo = f"&{identifier}_methodinfo as *const _ as *const JSJitInfo"
+                    jitinfo = (f"ptr::addr_of!({identifier}_methodinfo)"
+                               " as *const _ as *const JSJitInfo")
                     accessor = f"Some(generic_method::<{exceptionToRejection}>)"
                 else:
                     if m.get("returnsPromise", False):
-                        jitinfo = f"&{m.get('nativeName', m['name'])}_methodinfo"
+                        jitinfo = f"ptr::addr_of!({m.get('nativeName', m['name'])}_methodinfo)"
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
@@ -1970,7 +1984,8 @@ class AttrDefiner(PropertyDefiner):
                     accessor = f"generic_lenient_getter::<{exceptionToRejection}>"
                 else:
                     accessor = f"generic_getter::<{exceptionToRejection}>"
-                jitinfo = f"&{self.descriptor.internalNameFor(attr.identifier.name)}_getterinfo"
+                internalName = self.descriptor.internalNameFor(attr.identifier.name)
+                jitinfo = f"ptr::addr_of!({internalName}_getterinfo)"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -1991,7 +2006,8 @@ class AttrDefiner(PropertyDefiner):
                     accessor = "generic_lenient_setter"
                 else:
                     accessor = "generic_setter"
-                jitinfo = f"&{self.descriptor.internalNameFor(attr.identifier.name)}_setterinfo"
+                internalName = self.descriptor.internalNameFor(attr.identifier.name)
+                jitinfo = f"ptr::addr_of!({internalName}_setterinfo)"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -2345,7 +2361,7 @@ def DOMClass(descriptor):
     # padding.
     protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
     prototypeChainString = ', '.join(protoList)
-    mallocSizeOf = f'malloc_size_of_including_raw_self::<{descriptor.concreteType}>'
+    mallocSizeOf = "crate::mem::malloc_size_of_including_raw_self_dummy"
     if descriptor.isGlobal():
         globals_ = camel_to_upper_snake(descriptor.name)
     else:
@@ -2393,32 +2409,56 @@ class CGDOMJSClass(CGThing):
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
         return f"""
-static CLASS_OPS: JSClassOps = JSClassOps {{
+static mut CLASS_OPS: JSClassOps = JSClassOps {{
     addProperty: None,
     delProperty: None,
     enumerate: None,
-    newEnumerate: {args['enumerateHook']},
-    resolve: {args['resolveHook']},
+    newEnumerate: None,
+    resolve: None,
     mayResolve: None,
-    finalize: Some({args['finalizeHook']}),
+    finalize: None,
     call: None,
     construct: None,
-    trace: Some({args['traceHook']}),
+    trace: None,
 }};
 
-static Class: DOMJSClass = DOMJSClass {{
+pub(crate) fn init_class_ops() {{
+    unsafe {{
+        CLASS_OPS = JSClassOps {{
+            addProperty: None,
+            delProperty: None,
+            enumerate: None,
+            newEnumerate: {args['enumerateHook']},
+            resolve: {args['resolveHook']},
+            mayResolve: None,
+            finalize: Some({args['finalizeHook']}),
+            call: None,
+            construct: None,
+            trace: Some({args['traceHook']}),
+        }};
+    }}
+}}
+
+static mut Class: DOMJSClass = DOMJSClass {{
     base: JSClass {{
         name: {args['name']},
         flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
                ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
-        cOps: &CLASS_OPS,
+        cOps: unsafe {{ ptr::addr_of!(CLASS_OPS) }},
         spec: ptr::null(),
         ext: ptr::null(),
         oOps: ptr::null(),
     }},
     dom_class: {args['domClass']},
 }};
+
+pub(crate) fn init_domjs_class() {{
+    init_class_ops();
+    unsafe {{
+        Class.dom_class.malloc_size_of = malloc_size_of_including_raw_self::<{self.descriptor.concreteType}>;
+    }}
+}}
 """
 
 
@@ -2523,19 +2563,23 @@ static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {{
         name = self.descriptor.interface.identifier.name
         representation = f'b"function {name}() {{\\n    [native code]\\n}}"'
         return f"""
-static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
+static mut INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
-        {{
-            // Intermediate `const` because as of nightly-2018-10-05,
-            // rustc is conservative in promotion to `'static` of the return values of `const fn`s:
-            // https://github.com/rust-lang/rust/issues/54846
-            // https://github.com/rust-lang/rust/pull/53851
-            const BEHAVIOR: InterfaceConstructorBehavior = {constructorBehavior};
-            &BEHAVIOR
-        }},
+        &crate::dom::bindings::interface::DEFAULT_THROW,
         {representation},
         PrototypeList::ID::{name},
         {self.descriptor.prototypeDepth});
+
+pub(crate) fn init_interface_object() {{
+    unsafe {{
+        INTERFACE_OBJECT_CLASS = NonCallbackInterfaceObjectClass::new(
+            Box::leak(Box::new({constructorBehavior})),
+            {representation},
+            PrototypeList::ID::{name},
+            {self.descriptor.prototypeDepth},
+        );
+    }}
+}}
 """
 
 
@@ -3189,7 +3233,7 @@ class CGIDLInterface(CGThing):
         elif self.descriptor.proxy:
             check = "ptr::eq(class, &Class)"
         else:
-            check = "ptr::eq(class, &Class.dom_class)"
+            check = "unsafe {{ ptr::eq(class, &Class.dom_class) }}"
         return f"""
 impl IDLInterface for {name} {{
     #[inline]
@@ -3308,11 +3352,20 @@ class CGCrossOriginProperties(CGThing):
     def define(self):
         return f"{self.methods}{self.attributes}" + dedent(
             """
-            const CROSS_ORIGIN_PROPERTIES: proxyhandler::CrossOriginProperties =
+            static mut CROSS_ORIGIN_PROPERTIES: proxyhandler::CrossOriginProperties =
                 proxyhandler::CrossOriginProperties {
-                    attributes: sCrossOriginAttributes,
-                    methods: sCrossOriginMethods,
+                    attributes: &[],
+                    methods: &[],
                 };
+
+            pub(crate) fn init_cross_origin_properties() {
+                unsafe {
+                    CROSS_ORIGIN_PROPERTIES = proxyhandler::CrossOriginProperties {
+                        attributes: sCrossOriginAttributes,
+                        methods: sCrossOriginMethods,
+                    };
+                }
+            }
             """
         )
 
@@ -3512,7 +3565,7 @@ rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
 create_noncallback_interface_object(cx,
                                     global,
                                     interface_proto.handle(),
-                                    &INTERFACE_OBJECT_CLASS,
+                                    &*ptr::addr_of!(INTERFACE_OBJECT_CLASS),
                                     {properties['static_methods']},
                                     {properties['static_attrs']},
                                     {properties['consts']},
@@ -4477,12 +4530,12 @@ class CGMemberJITInfo(CGThing):
         assert not movable or aliasSet != "AliasEverything"  # Can't move write-aliasing things
         assert not alwaysInSlot or movable  # Things always in slots had better be movable
 
-        def jitInfoInitializer(isTypedMethod):
+        def jitInfoInitializer(isTypedMethod, specialize):
             initializer = fill(
                 """
                 JSJitInfo {
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {
-                        ${opKind}: Some(${opName})
+                        ${opKind}: ${opValue}
                     },
                     __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {
                         protoID: PrototypeList::ID::${name} as u16,
@@ -4505,7 +4558,7 @@ class CGMemberJITInfo(CGThing):
                     ),
                 }
                 """,
-                opName=opName,
+                opValue=f"Some({opName})" if specialize else "None",
                 name=self.descriptor.name,
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
@@ -4531,17 +4584,29 @@ class CGMemberJITInfo(CGThing):
             return fill(
                 """
                 $*{argTypesDecl}
-                const ${infoName}: JSTypedMethodJitInfo = JSTypedMethodJitInfo {
+                static mut ${infoName}: JSTypedMethodJitInfo = JSTypedMethodJitInfo {
                     base: ${jitInfo},
                     argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
                 };
+
+                pub(crate) fn init_${infoName}() {
+                    unsafe { ${infoName}.base = ${jitInfoInit}; }
+                }
                 """,
                 argTypesDecl=argTypesDecl,
                 infoName=infoName,
-                jitInfo=indent(jitInfoInitializer(True)),
+                jitInfo=indent(jitInfoInitializer(True, False)),
+                jitInfoInit=indent(jitInfoInitializer(True, True)),
                 argTypes=argTypes)
 
-        return f"\nconst {infoName}: JSJitInfo = {jitInfoInitializer(False)};\n"
+        return f"""
+static mut {infoName}: JSJitInfo = {jitInfoInitializer(False, False)};
+
+pub(crate) fn init_{infoName}() {{
+    unsafe {{
+        {infoName} = {jitInfoInitializer(False, True)};
+    }}
+}}"""
 
     def define(self):
         if self.member.isAttr():
@@ -4815,9 +4880,9 @@ class CGStaticMethodJitinfo(CGGeneric):
         CGGeneric.__init__(
             self,
             f"""
-            const {method.identifier.name}_methodinfo: JSJitInfo = JSJitInfo {{
+            static mut {method.identifier.name}_methodinfo: JSJitInfo = JSJitInfo {{
                 __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
-                    staticMethod: Some({method.identifier.name})
+                    staticMethod: None
                 }},
                 __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
                     protoID: PrototypeList::ID::Last as u16,
@@ -4839,6 +4904,14 @@ class CGStaticMethodJitinfo(CGGeneric):
                     ).to_ne_bytes()
                 ),
             }};
+
+            pub(crate) fn init_{method.identifier.name}_methodinfo() {{
+                unsafe {{
+                    {method.identifier.name}_methodinfo.__bindgen_anon_1 = JSJitInfo__bindgen_ty_1 {{
+                        staticMethod: Some({method.identifier.name})
+                    }};
+                }}
+            }}
             """
         )
 
@@ -5772,7 +5845,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
-                        cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, desc, &mut *is_none
+                        cx, proxy, &*ptr::addr_of!(CROSS_ORIGIN_PROPERTIES), id, desc, &mut *is_none
                     ) {
                         return false;
                     }
@@ -5990,7 +6063,9 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             body += dedent(
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_own_property_keys(cx, proxy, &CROSS_ORIGIN_PROPERTIES, props);
+                    return proxyhandler::cross_origin_own_property_keys(
+                        cx, proxy, &*ptr::addr_of!(CROSS_ORIGIN_PROPERTIES), props
+                    );
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6112,7 +6187,9 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             indexed += dedent(
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_has_own(cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, bp);
+                    return proxyhandler::cross_origin_has_own(
+                        cx, proxy, &*ptr::addr_of!(CROSS_ORIGIN_PROPERTIES), id, bp
+                    );
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6625,6 +6702,95 @@ class CGWeakReferenceableTrait(CGThing):
         return self.code
 
 
+class CGInitStatics(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+
+        def internal(method):
+            return descriptor.internalNameFor(method.identifier.name)
+
+        properties = PropertyArrays(descriptor)
+        all_names = PropertyArrays.arrayNames()
+        arrays = [getattr(properties, name) for name in all_names]
+        nonempty = map(lambda x: x.variableName(), filter(lambda x: x.length() != 0, arrays))
+        specs = [[
+            f'init_{name}_specs();',
+            f'init_{name}_prefs();',
+        ] for name in nonempty]
+        flat_specs = [x for xs in specs for x in xs]
+        specs = '\n'.join(flat_specs)
+        module = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(descriptor)}"
+        relevantMethods = [
+            m for m in descriptor.interface.members if m.isMethod()
+        ] if not descriptor.interface.isCallback() else []
+        allOperations = descriptor.operations.keys()
+        relevantOperations = list(map(lambda x: f"__{x.lower()}", filter(lambda o: o != "Stringifier", allOperations)))
+        relevantMethods = filter(
+            lambda m: internal(m) not in relevantOperations,
+            relevantMethods,
+        )
+        relevantMethods = filter(
+            lambda x: (
+                not x.isStatic()
+                or any([r.isPromise() for r, _ in x.signatures()])
+            ),
+            relevantMethods
+        )
+
+        methods = [f'{module}::init_{internal(m)}_methodinfo();' for m in relevantMethods]
+        getters = [
+            f'init_{internal(m)}_getterinfo();'
+            for m in descriptor.interface.members if m.isAttr() and not m.isStatic()
+        ]
+        setters = [
+            f'init_{internal(m)}_setterinfo();'
+            for m in descriptor.interface.members
+            if m.isAttr() and (
+                not m.readonly
+                or m.getExtendedAttribute("PutForwards")
+                or m.getExtendedAttribute("Replaceable")
+            ) and not m.isStatic()
+        ]
+        methods = '\n'.join(methods)
+        getters = '\n'.join(getters)
+        setters = '\n'.join(setters)
+        crossorigin = [
+            "init_sCrossOriginMethods();",
+            "init_sCrossOriginAttributes();",
+            "init_cross_origin_properties();"
+        ] if descriptor.isMaybeCrossOriginObject() else []
+        crossorigin_joined = '\n'.join(crossorigin)
+        interface = (
+            "init_interface_object();"
+            if descriptor.interface.hasInterfaceObject()
+            and not descriptor.interface.isNamespace()
+            and not descriptor.interface.isCallback()
+            and not descriptor.interface.getExtendedAttribute("Inline")
+            else ""
+        )
+        nonproxy = (
+            "init_domjs_class();\ninit_class_ops();"
+            if not descriptor.proxy
+            and descriptor.concrete
+            else ""
+        )
+
+        self.code = f"""
+        pub(crate) fn init_statics() {{
+            {interface}
+            {nonproxy}
+            {methods}
+            {getters}
+            {setters}
+            {crossorigin_joined}
+            {specs}
+        }}
+        """
+
+    def define(self):
+        return self.code
+
+
 class CGDescriptor(CGThing):
     def __init__(self, descriptor, config, soleDescriptor):
         CGThing.__init__(self)
@@ -6818,6 +6984,8 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGConstructorEnabled(descriptor))
             cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables,
                                                            haveLegacyWindowAliases))
+
+        cgThings.append(CGInitStatics(descriptor))
 
         cgThings = CGList(cgThings, '\n')
 
@@ -7157,6 +7325,22 @@ class CGDictionary(CGThing):
         return deps
 
 
+class CGInitAllStatics(CGAbstractMethod):
+    def __init__(self, config):
+        docs = "Initialize the static data used by the SpiderMonkey DOM bindings to implement JS interfaces."
+        descriptors = config.getDescriptors()
+        CGAbstractMethod.__init__(self, None, 'InitAllStatics', 'void', [],
+                                  pub=True, docs=docs)
+        self.descriptors = descriptors
+
+    def definition_body(self):
+        return CGList([
+            CGGeneric(f"    Bindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
+                      "::init_statics();\n")
+            for desc in self.descriptors if desc.register and desc.interface.identifier.name != "EventListener"
+        ], "\n")
+
+
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
@@ -7190,6 +7374,7 @@ class CGRegisterProxyHandlers(CGThing):
                 f"{body}}}\n"
             ),
             CGRegisterProxyHandlersMethod(descriptors),
+            CGInitAllStatics(config),
         ], "\n")
 
     def define(self):

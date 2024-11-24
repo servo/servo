@@ -18,3 +18,13 @@ pub unsafe fn malloc_size_of_including_raw_self<T: MallocSizeOf>(
 ) -> usize {
     ops.malloc_size_of(obj) + (*(obj as *const T)).size_of(ops)
 }
+
+/// Used as a stub when statically initializing DOM class information when concrete types
+/// are not yet available.
+#[allow(unsafe_code)]
+pub(crate) unsafe fn malloc_size_of_including_raw_self_dummy(
+    _ops: &mut MallocSizeOfOps,
+    _obj: *const c_void,
+) -> usize {
+    0
+}
