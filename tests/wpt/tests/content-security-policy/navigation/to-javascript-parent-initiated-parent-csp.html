@@ -3,23 +3,75 @@
 <meta http-equiv="content-security-policy" content="script-src 'self' 'nonce-abc'">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
 </head>
 <body>
-<iframe src="support/frame-with-csp.sub.html"></iframe>
-<script nonce='abc'>
-  var t = async_test("Should not have executed the javascript url");
+<!-- <frame-with-csp.sub.html> without parameters corresponds to no csp.-->
+<iframe id="iframe" name="iframe" src="support/frame-with-csp.sub.html"></iframe>
 
-  frames[0].addEventListener('load', () => {
-    window.onmessage = t.step_func(function(e) {
+<a target="iframe" id="anchorElementWithTargetIframe">a</a>
+
+<a target="otherTab" id="anchorElementWithTargetOtherTab">a2</a>
+
+<map name="m">
+  <area target="iframe" id="areaElementWithTargetIframe" shape="default">
+  <area target="otherTab" id="areaElementWithTargetOtherTab" shape="default">
+</map>
+<img usemap="#m" alt="i">
+
+<script nonce='abc'>
+  function addSuccessAndFailureEventListeners(test, resolve) {
+    window.addEventListener("message", test.step_func(function(e) {
       if (e.data == "executed")
         assert_true(false, "Javascript url executed");
-    });
-    window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+    }), { once: true });
+    window.addEventListener('securitypolicyviolation', test.step_func_done(function(e) {
       assert_equals(e.blockedURI, 'inline');
       assert_equals(e.violatedDirective, 'script-src-elem');
-    }));
+      resolve();
+    }), { once: true });
+  }
 
-    frames[0].location.href = "javascript:parent.postMessage('executed', '*')";
-  });
+  const otherTab = window.open("about:blank", "otherTab");
+
+  const kTestCases = [
+    { elementId: "iframe",
+      propertySequence: ["contentWindow", "location", "href"],
+    },
+    { elementId: "iframe",
+      propertySequence: ["src"],
+    },
+    { targetWindow: otherTab,
+      propertySequence: ["location", "href"],
+    },
+    { elementId: "areaElementWithTargetIframe",
+      propertySequence: ["href"],
+      navigationFunction: "click",
+    },
+    { elementId: "areaElementWithTargetOtherTab",
+      propertySequence: ["href"],
+      navigationFunction: "click",
+    },
+    { elementId: "anchorElementWithTargetOtherTab",
+      propertySequence: ["href"],
+      navigationFunction: "click",
+    },
+    { elementId: "anchorElementWithTargetIframe",
+      propertySequence: ["href"],
+      navigationFunction: "click",
+    },
+  ]
+
+  for (const testCase of kTestCases) {
+    const injectionSinkDescription =
+      determineInjectionSinkDescription(testCase);
+
+    promise_test(t => new Promise(resolve => {
+      addSuccessAndFailureEventListeners(t, resolve);
+
+      assignJavascriptURLToInjectionSink(testCase);
+    }), `Should not have executed the javascript url for
+      ${injectionSinkDescription}`);
+  }
 </script>
 </body>

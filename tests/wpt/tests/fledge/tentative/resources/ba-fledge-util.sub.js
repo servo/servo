@@ -199,6 +199,8 @@ function _sortForCbor(input) {
       out[i] = _sortForCbor(input[i]);
     }
     return out;
+  } else if (input instanceof Uint8Array) {
+    return input;
   } else {
     let keys = Object.getOwnPropertyNames(input).sort((a, b) => {
       // CBOR order compares lengths before values.

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#invisible-line-boxes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1931466">
+<style>
+.container {
+  border: 1px solid;
+}
+
+.oa {
+  height: 100px;
+}
+
+.filler {
+  height: 100px;
+  box-sizing: border-box;
+  border: 1px solid;
+}
+
+ul {
+  margin: 0;
+}
+
+.button {
+  box-sizing: border-box;
+  border-left: 1px solid;
+  width: 1px;
+  height: 11px;
+  display: inline-block;
+  vertical-align: top;
+}
+</style>
+<div class="container"></div><br>
+<div class="container oa"><div class="filler"></div></div><br>
+<div class="container"><span style="border: 1px solid; border-right: 2px solid;"></span></div><br>
+<div class="container"><ul><li>&nbsp;</li><li>&nbsp;</li></ul></div><br>
+<div class="container"><div class="button"></div><span>&nbsp;</span></div><br>

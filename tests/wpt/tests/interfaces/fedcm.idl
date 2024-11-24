@@ -29,9 +29,15 @@ enum IdentityCredentialRequestOptionsContext {
   "continue"
 };
 
+enum IdentityCredentialRequestOptionsMode {
+  "active",
+  "passive"
+};
+
 dictionary IdentityCredentialRequestOptions {
   required sequence<IdentityProviderRequestOptions> providers;
   IdentityCredentialRequestOptionsContext context = "signin";
+  IdentityCredentialRequestOptionsMode mode = "passive";
 };
 
 dictionary IdentityProviderConfig {
@@ -85,8 +91,9 @@ dictionary IdentityProviderAccountList {
   sequence<IdentityProviderAccount> accounts;
 };
 
-dictionary IdentityProviderToken {
-  required USVString token;
+dictionary IdentityAssertionResponse {
+  USVString token;
+  USVString continue_on;
 };
 
 dictionary IdentityProviderClientMetadata {
@@ -101,7 +108,12 @@ dictionary IdentityUserInfo {
   USVString picture;
 };
 
+dictionary IdentityResolveOptions {
+  USVString accountId;
+};
+
 [Exposed=Window, SecureContext] interface IdentityProvider {
     static undefined close();
+    static undefined resolve(DOMString token, optional IdentityResolveOptions options = {});
     static Promise<sequence<IdentityUserInfo>> getUserInfo(IdentityProviderConfig config);
 };

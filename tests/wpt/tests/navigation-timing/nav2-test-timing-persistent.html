@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>PerformanceNavigationTiming timing remains after iframe removed</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <script>
+    const timingAttributes = [
+      'domComplete',
+      'domContentLoadedEventEnd',
+      'domContentLoadedEventStart',
+      'domInteractive',
+    ];
+    function verify_timing(pnt, description) {
+      for (const att of timingAttributes) {
+        assert_greater_than(pnt[att], 0, `${description} ${att}`);
+      }
+    }
+
+    promise_test(async function (t) {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+
+      iframe.src = "resources/blank_page_green.html";
+      await new Promise(resolve => {
+        iframe.onload = function () {
+          assert_equals(iframe.contentWindow.performance.getEntriesByType("navigation").length, 1, "Only one navigation time entry");
+          const pnt = iframe.contentWindow.performance.getEntriesByType("navigation")[0];
+          assert_equals(pnt.name, iframe.contentWindow.location.toString(), "navigation name matches the window.location");
+          assert_true(pnt.name.endsWith("blank_page_green.html"), "navigation name is blank_page_green.html");
+          verify_timing(pnt, "timing values should be positive number:");
+          iframe.remove();
+          verify_timing(pnt, "timing values should remain positive after iframe is removed:");
+          resolve();
+        }
+      });
+
+    }, "iframe navigation times are persistent after the iframe is removed.");
+  </script>
+</body>
+
+</html>

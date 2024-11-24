@@ -14,7 +14,11 @@ promise_test(_ => {
         testcases.forEach((testcase, index) => {
           test(_ => {
             const div = document.createElement("div");
-            div.setHTML(testcase.data);
+            let config = undefined;
+            try {
+              config = JSON.parse(testcase.config);
+            } catch { }
+            div.setHTML(testcase.data, { sanitizer: config });
             assert_testcase(div, testcase);
           }, `Testcase #${index}, "${testcase.data}".`);
         });

@@ -5,6 +5,7 @@
 <link rel="author" href="mailto:vmpstr@chromium.org">
 <link rel="match" href="nothing-captured-ref.html">
 <script src="/common/reftest-wait.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <style>
 :root { view-transition-name: none; }
 .target {
@@ -39,9 +40,14 @@ This text should appear unmodified, since the root isn't captured.
 failIfNot(document.startViewTransition, "Missing document.startViewTransition");
 
 async function runTest() {
-  document.startViewTransition(() =>
-    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot)));
+  await document.startViewTransition().ready;
+  requestAnimationFrame(takeScreenshot);
 }
-onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+
+onload = async () => {
+  await waitForCompositorReady();
+  runTest();
+}
+
 </script>
 

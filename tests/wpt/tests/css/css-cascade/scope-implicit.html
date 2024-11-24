@@ -229,3 +229,30 @@ test((t) => {
   assert_equals(getComputedStyle(outer).zIndex, '3');
 }, 'Proximity calculation of multiple implicit @scope');
 </script>
+
+<!-- https://issues.chromium.org/issues/377647716 -->
+<template id=test_implicit_sandwich>
+  <div id=outer>
+    <div class=foo>
+      <style>
+        @scope (#outer) {
+          @scope {
+            @scope (#inner) {
+              :scope {
+                z-index: 1;
+              }
+            }
+          }
+        }
+      </style>
+      <div id=inner></div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_implicit_sandwich.content.cloneNode(true));
+  assert_equals(getComputedStyle(inner).zIndex, '1');
+}, 'Implicit @scope sandwiched between non-implicit scopes');
+</script>

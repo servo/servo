@@ -27,18 +27,18 @@
     --match-combined: no;
   }
 
-  @container scroll-state(overflowing), --container scroll-state(overflowing) {
+  @container scroll-state(scrollable), --container scroll-state(scrollable) {
     #target { --match: yes; }
   }
-  @container scroll-state(overflowing) {
+  @container scroll-state(scrollable) {
     #target { --match: no-way; }
   }
 
-  @container scroll-state((overflowing:right) and (overflowing:bottom)),
-             (inline-size) and scroll-state((overflowing:right) and (overflowing:bottom)) {
+  @container scroll-state((scrollable:right) and (scrollable:bottom)),
+             (inline-size) and scroll-state((scrollable:right) and (scrollable:bottom)) {
     #target { --match-combined: yes; }
   }
-  @container scroll-state((overflowing:right) and (overflowing:bottom)) {
+  @container scroll-state((scrollable:right) and (scrollable:bottom)) {
     #target { --match-combined: no-way; }
   }
 </style>
@@ -57,7 +57,7 @@
 
   test(() => {
     assert_equals(getComputedStyle(target).getPropertyValue("--match"), "yes");
-  }, "Should match the named outer container for scroll-state(overflowing)");
+  }, "Should match the named outer container for scroll-state(scrollable)");
 
   test(() => {
     assert_equals(getComputedStyle(target).getPropertyValue("--match-combined"), "yes");

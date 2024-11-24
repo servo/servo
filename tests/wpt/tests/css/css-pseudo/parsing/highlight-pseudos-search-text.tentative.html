@@ -22,6 +22,9 @@
     test_invalid_selector(`${pseudo} div`);
     test_invalid_selector(`${pseudo}::after`);
     test_invalid_selector(`${pseudo}:hover`);
+    test_invalid_selector(`${pseudo}:current(*)`);
+    test_invalid_selector(`${pseudo}:past`);
+    test_invalid_selector(`${pseudo}:future`);
     test_invalid_selector(`:not(${pseudo})`);
   }
 </script>

@@ -14,16 +14,19 @@ select, select::picker(select) {
 
 <select>
   <button id=invoker>invoker</button>
-  <option>one</option>
+  <option id=option1>one</option>
   <option>two</option>
   <button id=popover>popover button</button>
+  <span id=other>other text</span>
 </select>
 
 <script>
+const select = document.querySelector('select');
+const option1 = document.getElementById('option1');
+const popoverButton = document.getElementById('popover');
+const otherContent = document.getElementById('other');
 promise_test(async () => {
-  const select = document.querySelector('select');
-  const popoverButton = document.getElementById('popover');
-
+  assert_false(select.matches(':open'));
   await test_driver.click(select);
   assert_true(select.matches(':open'),
     'Select should open after clicking the invoker button.');
@@ -35,5 +38,27 @@ promise_test(async () => {
     'Clicking the button should not have closed the popover.');
   assert_true(popoverButtonClicked,
     'The button in the popover should have gotten a click event when clicked.');
+
+  popoverButton.focus();
+  const ENTER_KEY = '\uE007';
+  await test_driver.send_keys(document.activeElement, ENTER_KEY);
+  assert_true(select.matches(':open'),
+    'Keyboard-activating the button should also not have closed the popover.');
+
+  await test_driver.click(option1);
+  assert_false(select.matches(':open'),'Picking an option should close select');
 }, 'Buttons in the popover should be rendered and should not close the popover when clicked.');
+
+promise_test(async () => {
+  assert_false(select.matches(':open'));
+  await test_driver.click(select);
+  assert_true(select.matches(':open'));
+
+  await test_driver.click(other);
+  assert_true(select.matches(':open'),
+    'Clicking non-interactive, non-option content should not close the popover.');
+
+  await test_driver.click(option1);
+  assert_false(select.matches(':open'),'Picking an option should close select');
+}, 'Non-interactive content in the popover should not close the popover when clicked.');
 </script>

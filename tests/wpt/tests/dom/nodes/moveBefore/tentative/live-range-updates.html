@@ -29,13 +29,13 @@ test(t => {
 
   // In an ordinary removal, when a node whose descendant is the start (or end)
   // of a live range is removed, the range's start is set to the removed node's
-  // parent. This does not happen during a `moveBefore()`.
-  assert_equals(range.startContainer, start, "startContainer does not update after move");
+  // parent. For now, the same thing happens during `moveBefore()`.
+  assert_equals(range.startContainer, old_parent, "startContainer updates during move");
   assert_equals(range.endContainer, end, "endContainer does not update after move");
-  assert_false(range.intersectsNode(middle), "range no longer intersects " +
+  assert_true(range.intersectsNode(middle), "adjusted range still intersects " +
       "middle node after move");
-}, "moveBefore does not cause range startContainer to snap up to parent when " +
-   "startContainer is moved");
+}, "moveBefore still results in range startContainer snapping up to parent " +
+   "when startContainer is moved");
 
 test(t => {
   document.body.innerHTML = `
@@ -55,13 +55,12 @@ test(t => {
   assert_true(range.intersectsNode(middle), "Intersection before move");
   new_parent.moveBefore(movable_div, null);
 
-  assert_not_equals(range.startContainer, old_parent, "startContainer does " +
-      "not snap up to moved ancestor node's parent");
-  assert_equals(range.startContainer, start, "startContainer does not update after move");
+  assert_equals(range.startContainer, old_parent, "startContainer still " +
+      "updates during move, to snap to parent");
   assert_equals(range.endContainer, end, "endContainer does not update after move");
   assert_false(range.intersectsNode(middle), "range no longer intersects " +
-      "middle node after move");
-}, "moveBefore does not cause range startContainer to snap up to parent, when " +
+      "middle node after move, since middle node was moved outside of the range");
+}, "moveBefore still causes range startContainer to snap up to parent, when " +
    "startContainer ancestor is moved");
 
 test(t => {
@@ -83,12 +82,13 @@ test(t => {
   assert_false(range.intersectsNode(middle), "No intersection before move");
   new_parent.moveBefore(movable_div, null);
 
-  assert_not_equals(range.endContainer, old_parent, "endContainer does not " +
-      "snap up to moved ancestor node's parent");
-  assert_equals(range.startContainer, start, "startContainer does not update after move");
-  assert_equals(range.endContainer, end, "endContainer does not update after move");
-  assert_true(range.intersectsNode(middle), "range intersects middle node after move");
-}, "moveBefore does not cause range endContainer to snap up to parent, when " +
+  assert_equals(range.startContainer, start, "startContainer does not update " +
+      "after move");
+  assert_equals(range.endContainer, old_parent, "endContainer still snaps up " +
+      "to parent after move");
+  assert_false(range.intersectsNode(middle), "adjusted range still does not " +
+      "intersect middle node after move");
+}, "moveBefore still causes range endContainer to snap up to parent, when " +
    "endContainer ancestor is moved");
 </script>
 </html>

@@ -67,13 +67,10 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite,
                     **kwargs):
-    sanitizer_enabled = kwargs.get("sanitizer_enabled")
-    if sanitizer_enabled:
-        test_type = "crashtest"
     executor_kwargs = base_executor_kwargs(test_type, test_environment, run_info_data,
                                            subsuite, **kwargs)
     executor_kwargs["close_after_done"] = True
-    executor_kwargs["sanitizer_enabled"] = sanitizer_enabled
+    executor_kwargs["sanitizer_enabled"] = kwargs.get("sanitizer_enabled", False)
     executor_kwargs["reuse_window"] = kwargs.get("reuse_window", False)
 
     capabilities = {

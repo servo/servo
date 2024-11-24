@@ -13,13 +13,13 @@
 
 test(t => {
   const styleMap = createInlineStyleMap(t, '--foo: auto');
-  assert_equals(styleMap.get('--Foo'), null);
-}, 'Getting a custom property not in the inline style returns null');
+  assert_equals(styleMap.get('--Foo'), undefined);
+}, 'Getting a custom property not in the inline style returns undefined');
 
 test(t => {
   const styleMap = createInlineStyleMap(t, '');
-  assert_equals(styleMap.get('width'), null);
-}, 'Getting a valid property not in the inline style returns null');
+  assert_equals(styleMap.get('width'), undefined);
+}, 'Getting a valid property not in the inline style returns undefined');
 
 test(t => {
   const styleMap = createInlineStyleMap(t, 'width: 10px; height: 20px');

@@ -2,19 +2,136 @@
 <head>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
 </head>
 <body>
-<iframe src="support/frame-with-csp.sub.html?csp=script-src%20%27unsafe-inline%27"></iframe>
-<div onclick="frames[0].location.href = 'javascript:parent.postMessage(\'executed\', \'*\')'" id="special_div"></div>
+<iframe id="iframeWithScriptSrcUnsafeInline" name="iframeWithScriptSrcUnsafeInline"></iframe>
+<iframe id="iframeWithScriptSrcNone" name="iframeWithScriptSrcNone"></iframe>
+<a target="iframeWithScriptSrcUnsafeInline" id="anchorWithTargetScriptSrcUnsafeInline">a</a>
+<a target="iframeWithScriptSrcNone" id="anchorWithTargetScriptSrcNone">a2</a>
+<map name="m">
+  <area target="iframeWithScriptSrcNone" id="areaWithTargetIframeWithScriptSrcNone" shape="default">
+  <area target="otherTabWithScriptSrcNone" id="areWithTargetOtherTabWithScriptSrcNone" shape="default">
+</map>
+<img usemap="#m" alt="i">
+
 <script>
-  var t = async_test("Should have executed the javascript url");
-  frames[0].addEventListener('load', () => {
-    window.onmessage = t.step_func(function(e) {
-      if (e.data == "executed")
-        t.done();
+  // Since another tab is opened, this test suite needs to explicitly signal
+  // when it's done. Otherwise, the tests which wait for the tab to finish
+  // loading aren't executed. See,
+  // https://web-platform-tests.org/writing-tests/testharness-api.html#determining-when-all-tests-are-complete.
+  setup({explicit_done: true});
+
+  function encodeURIWithApostrophes(uriWithApostrophes) {
+    const encodedURI = encodeURI(uriWithApostrophes);
+    // https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
+    return encodedURI.replaceAll("'","%27");
+  }
+
+  const kIframeURLPath = "support/frame-with-csp.sub.html";
+
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/Sources#unsafe-inline
+  document.getElementById("iframeWithScriptSrcUnsafeInline").src =
+    encodeURIWithApostrophes(kIframeURLPath + "?csp=script-src 'unsafe-inline'");
+  document.getElementById("iframeWithScriptSrcNone").src =
+    encodeURIWithApostrophes(kIframeURLPath + "?csp=script-src 'none'");
+
+  window.addEventListener('load', () => {
+    const kTestCasesWithoutCSPViolation = [
+      { elementId: "iframeWithScriptSrcUnsafeInline",
+        propertySequence: ["contentWindow", "location", "href"],
+      },
+      { elementId: "iframeWithScriptSrcUnsafeInline",
+        propertySequence: ["src"],
+      },
+      { elementId: "anchorWithTargetScriptSrcUnsafeInline",
+        propertySequence: ["href"],
+        navigationFunction: "click",
+      },
+    ];
+
+    for (const testCase of kTestCasesWithoutCSPViolation) {
+      const injectionSinkDescription = determineInjectionSinkDescription(testCase);
+
+      promise_test(t => { return new Promise(resolve => {
+        window.addEventListener("message", t.step_func(function(e) {
+          if (e.data == "executed") {
+            resolve();
+          }
+        }), { once: true });
+
+        window.addEventListener('securitypolicyviolation',
+          t.unreached_func("Should not have raised a violation event"),
+          { once: true }
+        );
+
+        assignJavascriptURLToInjectionSink(testCase);
+      })}, `Should have executed the javascript url for
+        ${injectionSinkDescription} with child's CSP "script-src 'unsafe-inline'"`);
+    }
+
+    const otherTabWithScriptSrcNone = window.open(
+      encodeURIWithApostrophes(kIframeURLPath + "?csp=script-src 'none'"),
+      "otherTabWithScriptSrcNone");
+
+    const iframeWithScriptSrcNoneContentWindow =
+      document.getElementById("iframeWithScriptSrcNone").contentWindow;
+
+    otherTabWithScriptSrcNone.addEventListener("load", () => {
+      const kTestCasesWithCSPViolation = [
+        { elementId: "iframeWithScriptSrcNone",
+          propertySequence: ["contentWindow", "location", "href"],
+          targetWindow: iframeWithScriptSrcNoneContentWindow,
+        },
+        { elementId: "iframeWithScriptSrcNone",
+          propertySequence: ["src"],
+          targetWindow: iframeWithScriptSrcNoneContentWindow,
+        },
+        { targetWindow: otherTabWithScriptSrcNone,
+          propertySequence: ["location", "href"],
+        },
+        { elementId: "anchorWithTargetScriptSrcNone",
+          propertySequence: ["href"],
+          targetWindow: iframeWithScriptSrcNoneContentWindow,
+          navigationFunction: "click",
+        },
+        { elementId: "areaWithTargetIframeWithScriptSrcNone",
+          propertySequence: ["href"],
+          targetWindow: iframeWithScriptSrcNoneContentWindow,
+          navigationFunction: "click",
+        },
+        { elementId: "areWithTargetOtherTabWithScriptSrcNone",
+          propertySequence: ["href"],
+          targetWindow: otherTabWithScriptSrcNone,
+          navigationFunction: "click",
+        },
+      ];
+
+      for (const testCase of kTestCasesWithCSPViolation) {
+        const injectionSinkDescription = determineInjectionSinkDescription(testCase);
+
+        promise_test(t => { return new Promise(resolve => {
+          const targetWindow = ("targetWindow" in testCase) ?
+            testCase.targetWindow : window;
+
+          targetWindow.addEventListener("message",
+            t.unreached_func("Should not have received a message"),
+            { once: true }
+          );
+
+          targetWindow.addEventListener("securitypolicyviolation", e => {
+            assert_equals(e.violatedDirective, "script-src-elem");
+            assert_equals(e.blockedURI, "inline");
+            resolve();
+          }, { once : true });
+
+          assignJavascriptURLToInjectionSink(testCase);
+        })}, `Should not have executed the javascript URL for
+        ${injectionSinkDescription} with child's CSP "script-src 'none'"`);
+      }
+
+      done();
     });
-    window.addEventListener('securitypolicyviolation', t.unreached_func("Should not have raised a violation event"));
-    document.getElementById('special_div').click();
   });
 </script>
 </body>

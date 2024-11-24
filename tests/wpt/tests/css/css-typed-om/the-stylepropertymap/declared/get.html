@@ -13,13 +13,13 @@
 
 test(t => {
   const styleMap = createDeclaredStyleMap(t, '--foo: auto');
-  assert_equals(styleMap.get('--Foo'), null);
-}, 'Getting a custom property not in the CSS rule returns null');
+  assert_equals(styleMap.get('--Foo'), undefined);
+}, 'Getting a custom property not in the CSS rule returns undefined');
 
 test(t => {
   const styleMap = createDeclaredStyleMap(t, '');
-  assert_equals(styleMap.get('width'), null);
-}, 'Getting a valid property not in the CSS rule returns null');
+  assert_equals(styleMap.get('width'), undefined);
+}, 'Getting a valid property not in the CSS rule returns undefined');
 
 test(t => {
   const styleMap = createDeclaredStyleMap(t, 'width: 10px; height: 20px');

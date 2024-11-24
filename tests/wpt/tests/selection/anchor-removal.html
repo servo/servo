@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+
+<body>
+</body>
+
+<script>
+async function select_range(t, anchorNode, focusNode) {
+  await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: anchorNode})
+      .pointerDown()
+      .pointerMove(focusNode.clientWidth, focusNode.clientHeight, {origin: focusNode})
+      .pointerUp()
+      .send();
+}
+
+const kHTML = `
+  <div id=parentDiv>
+    <span id=parentParagraph>Parent paragraph</span>
+    <div id=childDiv>
+      <span id=childParagraph1>Child paragraph one</span>
+      <span id=childParagraph2>Paragraph two</span>
+    </div>
+  </div>
+`;
+
+// The two tests below are semantically identical, however after the selection
+// is made but before `remove()`:
+//  - The first test does nothing
+//  - The second test runs asserts on `getSelection()` (before `remove()` is
+//    run).
+//
+// The existence of the `getSelection()` asserts before `remove()` appears to
+// have a side-effect in Chromium browsers. See https://crbug.com/379275917.
+promise_test(async t => {
+  document.body.innerHTML = kHTML;
+  getSelection().removeAllRanges();
+  await select_range(t, parentParagraph, childParagraph1);
+
+  parentParagraph.remove();
+  assert_equals(getSelection().anchorNode, parentDiv, "anchorNode snaps up to parent");
+}, "anchorNode snaps up to parent when removed (no asserts)");
+
+promise_test(async t => {
+  document.body.innerHTML = kHTML;
+  getSelection().removeAllRanges();
+  await select_range(t, parentParagraph, childParagraph1);
+
+  assert_equals(getSelection().anchorNode, parentParagraph.firstChild, "anchorNode before move");
+  parentParagraph.remove();
+  assert_equals(getSelection().anchorNode, parentDiv, "anchorNode snaps up to parent");
+}, "anchorNode snaps up to parent when removed (with asserts)");
+</script>

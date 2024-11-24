@@ -20,6 +20,8 @@
 // META: variant=?45-48
 // META: variant=?49-52
 // META: variant=?53-56
+// META: variant=?57-60
+// META: variant=?61-64
 
 // These tests focus on the serverResponse field in AuctionConfig, e.g.
 // auctions involving bidding and auction services.
@@ -425,8 +427,8 @@ subsetTest(promise_test, async test => {
 
 // Runs responseMutator on a minimal correct server response, and expects
 // either success/failure based on expectWin.
-async function testWithMutatedServerResponse(test, expectWin, responseMutator,
-                                             igMutator = undefined) {
+async function testWithMutatedServerResponse(
+    test, expectWin, responseMutator, igMutator = undefined) {
   const uuid = generateUuid(test);
   const adA = createTrackerURL(window.location.origin, uuid, 'track_get', 'a');
   const adB = createTrackerURL(window.location.origin, uuid, 'track_get', 'b');
@@ -648,11 +650,14 @@ subsetTest(promise_test, async test => {
 }, 'Basic B&A auction - ad component URL not in ad');
 
 subsetTest(promise_test, async test => {
-  await testWithMutatedServerResponse(test, /*expectSuccess=*/ true, msg => {
-    msg.components = ['https://example.org'];
-  }, ig => {
-    ig.adComponents = [{renderURL: 'https://example.org/'}];
-  });
+  await testWithMutatedServerResponse(
+      test, /*expectSuccess=*/ true,
+      msg => {
+        msg.components = ['https://example.org'];
+      },
+      ig => {
+        ig.adComponents = [{renderURL: 'https://example.org/'}];
+      });
 }, 'Basic B&A auction - ad component URL in ad');
 
 subsetTest(promise_test, async test => {
@@ -1040,9 +1045,8 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   await testWithMutatedServerResponse(test, /*expectSuccess=*/ true, msg => {
-    msg.updateGroups = {
-      [window.location.origin]: [
-        {index: 2048, updateIfOlderThanMs: 1000}]};
+    msg.updateGroups =
+        {[window.location.origin]: [{index: 2048, updateIfOlderThanMs: 1000}]};
   });
 }, 'Basic B&A auction - updateIfOlderThanMs - invalid index');
 
@@ -1052,9 +1056,311 @@ subsetTest(promise_test, async test => {
     msg.updateGroups = {
       [window.location.origin]: [
         {index: 0, updateIfOlderThanMs: 1000},
-        {index: 1, updateIfOlderThanMs: 10000}]};
+        {index: 1, updateIfOlderThanMs: 10000}
+      ]
+    };
   });
 }, 'Basic B&A auction - updateIfOlderThanMs');
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// K-anonymity support tests
+//
+/////////////////////////////////////////////////////////////////////////////
+
+// Runs responseMutator on a minimal correct server response, and expects
+// either success/failure based on expectWin.
+async function kAnonTestWithMutatedServerResponse(
+    test, expectWin, responseMutator, igMutator = undefined) {
+  const uuid = generateUuid(test);
+  const adA = createTrackerURL(window.location.origin, uuid, 'track_get', 'a');
+  const adB = createTrackerURL(window.location.origin, uuid, 'track_get', 'b');
+  const adsArray =
+      [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
+  let ig = {
+    owner: window.location.origin,
+    name: DEFAULT_INTEREST_GROUP_NAME,
+    ads: adsArray,
+    biddingLogicURL: createBiddingScriptURL({allowComponentAuction: true})
+  };
+  if (igMutator) {
+    igMutator(ig, uuid);
+  }
+
+  const encoder = new TextEncoder();
+  const adARenderKAnonKey =
+      encoder.encode(`AdBid\n${ig.owner}/\n${ig.biddingLogicURL}\n${adA}`);
+  const adBRenderKAnonKey =
+      encoder.encode(`AdBid\n${ig.owner}/\n${ig.biddingLogicURL}\n${adB}`);
+  const adARenderKAnonKeyHash = new Uint8Array(
+      await window.crypto.subtle.digest('SHA-256', adARenderKAnonKey));
+  const adBRenderKAnonKeyHash = new Uint8Array(
+      await window.crypto.subtle.digest('SHA-256', adBRenderKAnonKey));
+
+  const adANameReportingIdKAnonKey = encoder.encode(
+      `NameReport\n${ig.owner}/\n${ig.biddingLogicURL}\n${adA}\n${ig.name}`);
+  const adBNameReportingIdKAnonKey = encoder.encode(
+      `NameReport\n${ig.owner}/\n${ig.biddingLogicURL}\n${adB}\n${ig.name}`);
+  const adANameReportingIdKAnonKeyHash = new Uint8Array(
+      await window.crypto.subtle.digest('SHA-256', adANameReportingIdKAnonKey));
+  const adBNameReportingIdKAnonKeyHash = new Uint8Array(
+      await window.crypto.subtle.digest('SHA-256', adBNameReportingIdKAnonKey));
+
+  const adABuyerReportingIdKAnonKey = encoder.encode(`BuyerReportId\n${
+      ig.owner}/\n${ig.biddingLogicURL}\n${adA}\n${adA.buyerReportingId}`);
+  const adBBuyerReportingIdKAnonKey = encoder.encode(`BuyerReportId\n${
+      ig.owner}/\n${ig.biddingLogicURL}\n${adB}\n${adB.buyerReportingId}`);
+  const adABuyerReportingIdKAnonKeyHash =
+      new Uint8Array(await window.crypto.subtle.digest(
+          'SHA-256', adABuyerReportingIdKAnonKey));
+  const adBBuyerReportingIdKAnonKeyHash =
+      new Uint8Array(await window.crypto.subtle.digest(
+          'SHA-256', adBBuyerReportingIdKAnonKey));
+
+  const adABASReportingIdKAnonKey =
+      encoder.encode(`BuyerAndSellerReportId\n${ig.owner}/\n${
+          ig.biddingLogicURL}\n${adA}\n${adA.buyerAndSellerReportingId}`);
+  const adBBASReportingIdKAnonKey =
+      encoder.encode(`BuyerAndSellerReportId\n${ig.owner}/\n${
+          ig.biddingLogicURL}\n${adB}\n${adB.buyerAndSellerReportingId}`);
+  const adABASReportingIdKAnonKeyHash = new Uint8Array(
+      await window.crypto.subtle.digest('SHA-256', adABASReportingIdKAnonKey));
+  const adBBASReportingIdKAnonKeyHash = new Uint8Array(
+      await window.crypto.subtle.digest('SHA-256', adBBASReportingIdKAnonKey));
+
+  const hashes = {
+    adARenderKAnonKeyHash: adARenderKAnonKeyHash,
+    adBRenderKAnonKeyHash: adBRenderKAnonKeyHash,
+    adANameReportingIdKAnonKeyHash: adANameReportingIdKAnonKeyHash,
+    adBNameReportingIdKAnonKeyHash: adBNameReportingIdKAnonKeyHash,
+    adABuyerReportingIdKAnonKeyHash: adABuyerReportingIdKAnonKeyHash,
+    adBBuyerReportingIdKAnonKeyHash: adBBuyerReportingIdKAnonKeyHash,
+    adABASReportingIdKAnonKeyHash: adABASReportingIdKAnonKeyHash,
+    adBBASReportingIdKAnonKeyHash: adBBASReportingIdKAnonKeyHash
+  };
+
+  await joinInterestGroup(test, uuid, ig);
+
+  const result = await navigator.getInterestGroupAdAuctionData(
+      {seller: window.location.origin});
+  assert_true(result.requestId !== null);
+  assert_true(result.request.length > 0);
+
+  let decoded = await BA.decodeInterestGroupData(result.request);
+
+  let serverResponseMsg = {
+    'biddingGroups': {},
+    'adRenderURL': ig.ads[0].renderURL,
+    'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
+    'interestGroupOwner': window.location.origin,
+  };
+  serverResponseMsg.biddingGroups[window.location.origin] = [0];
+
+  await responseMutator(serverResponseMsg, ig, hashes, uuid);
+
+  let serverResponse =
+      await BA.encodeServerResponse(serverResponseMsg, decoded);
+
+  let hashString = await BA.payloadHash(serverResponse);
+  await BA.authorizeServerResponseHashes([hashString]);
+
+  let auctionResult = await navigator.runAdAuction({
+    'seller': window.location.origin,
+    'interestGroupBuyers': [window.location.origin],
+    'requestId': result.requestId,
+    'serverResponse': serverResponse,
+    'resolveToConfig': true,
+  });
+  if (expectWin) {
+    expectSuccess(auctionResult);
+    return auctionResult;
+  } else {
+    expectNoWinner(auctionResult);
+  }
+}
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ true, (msg, ig, hashes) => {
+        msg.kAnonWinnerJoinCandidates = {
+          adRenderURLHash: hashes.adARenderKAnonKeyHash,
+          reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+        };
+      });
+}, 'Basic B&A auction - winner with candidates');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, (msg, ig, hashes) => {
+        msg.kAnonWinnerJoinCandidates = {
+          adRenderURLHash: new Uint8Array(),
+          reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+        };
+      });
+}, 'Basic B&A auction - winner with bad render hash');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, (msg, ig, hashes) => {
+        msg.kAnonWinnerJoinCandidates = {
+          adRenderURLHash: hashes.adARenderKAnonKeyHash,
+          reportingIdHash: new Uint8Array(),
+        };
+      });
+}, 'Basic B&A auction - winner with bad reporting hash');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, (msg, ig, hashes) => {
+        delete msg.adRenderURL;
+        delete msg.interestGroupName;
+        delete msg.interestGroupOwner;
+        msg.kAnonGhostWinners = [{
+          kAnonJoinCandidates: {
+            // missing adRenderURLHash
+            reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+          },
+          interestGroupIndex: 0,
+          owner: window.location.origin,
+        }]
+      });
+}, 'Basic B&A auction - invalid ghost winner');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, (msg, ig, hashes) => {
+        delete msg.adRenderURL;
+        delete msg.interestGroupName;
+        delete msg.interestGroupOwner;
+        msg.kAnonGhostWinners = [{
+          kAnonJoinCandidates: {
+            adRenderURLHash: hashes.adARenderKAnonKeyHash,
+            reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+          },
+          interestGroupIndex: 0,
+          owner: window.location.origin,
+        }]
+      });
+}, 'Basic B&A auction - only ghost winner');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, (msg, ig, hashes) => {
+        delete msg.adRenderURL;
+        delete msg.interestGroupName;
+        delete msg.interestGroupOwner;
+        msg.kAnonGhostWinners = [
+          {
+            kAnonJoinCandidates: {
+              adRenderURLHash: hashes.adARenderKAnonKeyHash,
+              reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+            },
+            interestGroupIndex: 0,
+            owner: window.location.origin,
+          },
+          {
+            kAnonJoinCandidates: {
+              adRenderURLHash: hashes.adBRenderKAnonKeyHash,
+              reportingIdHash: hashes.adBNameReportingIdKAnonKeyHash,
+            },
+            interestGroupIndex: 0,
+            owner: window.location.origin,
+          }
+        ]
+      });
+}, 'Basic B&A auction - multiple ghost winners');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, (msg, ig, hashes) => {
+        delete msg.adRenderURL;
+        delete msg.interestGroupName;
+        delete msg.interestGroupOwner;
+        msg.kAnonGhostWinners = [
+          {
+            kAnonJoinCandidates: {
+              adRenderURLHash: hashes.adARenderKAnonKeyHash,
+              reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+            },
+            interestGroupIndex: 0,
+            owner: window.location.origin,
+          },
+          {
+            kAnonJoinCandidates: {
+              // missing adRenderURLHash
+              reportingIdHash: hashes.adBNameReportingIdKAnonKeyHash,
+            },
+            interestGroupIndex: 0,
+            owner: window.location.origin,
+          }
+        ]
+      });
+}, 'Basic B&A auction - second ghost winner invalid');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ true, (msg, ig, hashes) => {
+        msg.kAnonWinnerJoinCandidates = {
+          adRenderURLHash: hashes.adARenderKAnonKeyHash,
+          reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+        };
+        msg.kAnonGhostWinners = [{
+          kAnonJoinCandidates: {
+            adRenderURLHash: hashes.adBRenderKAnonKeyHash,
+            reportingIdHash: hashes.adBNameReportingIdKAnonKeyHash,
+          },
+          interestGroupIndex: 0,
+          owner: window.location.origin,
+        }];
+      });
+}, 'Basic B&A auction - winner with ghost winner');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ true, (msg, ig, hashes) => {
+        msg.kAnonWinnerJoinCandidates = {
+          adRenderURLHash: hashes.adARenderKAnonKeyHash,
+          reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+        };
+        msg.kAnonGhostWinners = [{
+          kAnonJoinCandidates: {
+            adRenderURLHash: hashes.adBRenderKAnonKeyHash,
+            reportingIdHash: hashes.adBNameReportingIdKAnonKeyHash,
+          },
+          interestGroupIndex: 0,
+          owner: window.location.origin,
+          ghostWinnerForTopLevelAuction: {
+            // missing adRenderURL
+            modifiedBid: 100,
+          },
+        }];
+      });
+}, 'Basic B&A auction - invalid GhostWinnerForTopLevelAuction');
+
+subsetTest(promise_test, async test => {
+  await kAnonTestWithMutatedServerResponse(
+      test, /*expectSuccess=*/ true, (msg, ig, hashes) => {
+        msg.kAnonWinnerJoinCandidates = {
+          adRenderURLHash: hashes.adARenderKAnonKeyHash,
+          reportingIdHash: hashes.adANameReportingIdKAnonKeyHash,
+        };
+        msg.kAnonGhostWinners = [{
+          kAnonJoinCandidates: {
+            adRenderURLHash: hashes.adBRenderKAnonKeyHash,
+            reportingIdHash: hashes.adBNameReportingIdKAnonKeyHash,
+          },
+          interestGroupIndex: 0,
+          owner: window.location.origin,
+          ghostWinnerForTopLevelAuction: {
+            adRenderURL: ig.ads[1].renderURL,
+            modifiedBid: 100,
+          },
+        }];
+      });
+}, 'Basic B&A auction - winner with full ghost winner');
+
+// TODO(behamilton): Add Multi-seller k-anon tests.
+// TODO(behamilton): Add k-anon tests with different reporting IDs.
 
 /* Some things that are not currently tested that probably should be; this is
    not exhaustive, merely to keep track of things that come to mind as tests are

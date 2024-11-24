@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<hello><world>",
+      { sanitizer: { elements: ["b", "em"] } });
+  assert_equals(d.innerHTML, "");
+}, "Unknown element names get blocked without being allowed.");
+
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<hello><world>",
+      { sanitizer: { elements: ["hello", "world"] } });
+  assert_equals(d.innerHTML, "<hello><world></world></hello>");
+}, "Unknown element names pass when allowed.");
+
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<b hello='1' world>",
+    { sanitizer: { attributes: ["name", "href"] } });
+  assert_equals(d.innerHTML, "<b></b>");
+}, "Unknown attributes names get blocked without being allowed.");
+
+test(t => {
+  d = document.createElement("div")
+  d.setHTML("<b hello='1' world>",
+    { sanitizer: { attributes: ["hello", "world"] } });
+  assert_equals(d.innerHTML, `<b hello="1" world=""></b>`);
+}, "Unknown attribute names pass when allowed.");
+</script>
+</body>
+</html>

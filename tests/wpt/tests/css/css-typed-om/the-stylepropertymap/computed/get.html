@@ -13,8 +13,8 @@
 
 test(t => {
   const styleMap = createComputedStyleMap(t, '--foo: auto');
-  assert_equals(styleMap.get('--Foo'), null);
-}, 'Getting a custom property not in the computed style returns null');
+  assert_equals(styleMap.get('--Foo'), undefined);
+}, 'Getting a custom property not in the computed style returns undefined');
 
 test(t => {
   const styleMap = createComputedStyleMap(t, 'width: 10px; height: 20px');

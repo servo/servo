@@ -569,3 +569,18 @@ subsetTest(promise_test, async test => {
   assert_equals(decoded.message.interestGroups[OTHER_ORIGIN3].length, 1);
   assert_equals(decoded.message.interestGroups[OTHER_ORIGIN3][0].name, 'o3');
 }, 'getInterestGroupAdAuctionData() uses perBuyerConfig to select buyers');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await joinInterestGroup(test, uuid);
+
+  const result = await navigator.getInterestGroupAdAuctionData(
+      {seller: window.location.origin});
+  assert_true(result.requestId !== null);
+  assert_true(result.request.length > 0);
+
+  let decoded = await BA.decodeInterestGroupData(result.request);
+
+  assert_own_property(decoded.message, 'enforceKAnon');
+  assert_equals(decoded.message.enforceKAnon, true);
+}, 'getInterestGroupAdAuctionData() requests k-anon.');
