@@ -632,8 +632,18 @@ impl HoistedAbsolutelyPositionedBox {
 
             let pb = pbm.padding + pbm.border;
             let margin_rect_size = content_size + pbm.padding_border_sums + margin.sum();
-            let inline_origin = inline_axis_solver.origin_for_margin_box(margin_rect_size.inline);
-            let block_origin = block_axis_solver.origin_for_margin_box(margin_rect_size.block);
+            let inline_origin = inline_axis_solver.origin_for_margin_box(
+                AxisDirection::Inline,
+                margin_rect_size.inline,
+                containing_block_writing_mode,
+                style.writing_mode,
+            );
+            let block_origin = block_axis_solver.origin_for_margin_box(
+                AxisDirection::Block,
+                margin_rect_size.block,
+                containing_block_writing_mode,
+                style.writing_mode,
+            );
 
             let content_rect = LogicalRect {
                 start_corner: LogicalVec2 {
@@ -868,7 +878,13 @@ impl<'a> AbsoluteAxisSolver<'a> {
         result
     }
 
-    fn origin_for_margin_box(&self, size: Au) -> Au {
+    fn origin_for_margin_box(
+        &self,
+        axis: AxisDirection,
+        size: Au,
+        container_writing_mode: WritingMode,
+        abspos_writing_mode: WritingMode,
+    ) -> Au {
         let (alignment_container, flip_anchor) = match (
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
@@ -892,21 +908,41 @@ impl<'a> AbsoluteAxisSolver<'a> {
             },
         };
 
+        assert_eq!(
+            container_writing_mode.is_horizontal(),
+            abspos_writing_mode.is_horizontal(),
+            "Mixed horizontal and vertical writing modes are not supported yet"
+        );
+
+        let self_value_matches_container = axis == AxisDirection::Block ||
+            container_writing_mode.is_bidi_ltr() == abspos_writing_mode.is_bidi_ltr();
+
         // Here we resolve the alignment to either start, center, or end.
         // Note we need to handle both self-alignment values (when some inset isn't auto)
         // and distributed alignment values (when both insets are auto).
         // The latter are treated as their fallback alignment.
         let alignment = match self.alignment.value() {
-            // https://drafts.csswg.org/css-align/#valdef-self-position-end
-            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
-            AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
             // https://drafts.csswg.org/css-align/#valdef-self-position-center
-            // https://drafts.csswg.org/css-align/#valdef-align-content-space-around
-            // https://drafts.csswg.org/css-align/#valdef-align-content-space-evenly
             AlignFlags::CENTER | AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => {
                 AlignFlags::CENTER
             },
-            // TODO(#34282): handle missing values: self-start, self-end, left, right.
+            // https://drafts.csswg.org/css-align/#valdef-self-position-self-start
+            AlignFlags::SELF_START if self_value_matches_container => AlignFlags::START,
+            AlignFlags::SELF_START => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-self-end
+            AlignFlags::SELF_END if self_value_matches_container => AlignFlags::END,
+            AlignFlags::SELF_END => AlignFlags::START,
+            // https://drafts.csswg.org/css-align/#valdef-justify-content-left
+            AlignFlags::LEFT if container_writing_mode.is_bidi_ltr() => AlignFlags::START,
+            AlignFlags::LEFT => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-justify-content-right
+            AlignFlags::RIGHT if container_writing_mode.is_bidi_ltr() => AlignFlags::END,
+            AlignFlags::RIGHT => AlignFlags::START,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-end
+            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
+            AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-start
+            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-start
             _ => AlignFlags::START,
         };
 
