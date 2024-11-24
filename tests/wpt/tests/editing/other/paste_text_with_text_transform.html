@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      span {
+        text-transform: capitalize;
+      }
+      p::first-letter {
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div contenteditable>
+      <span id="test1"> this should not be capitalized </span>
+      <p id="test2">this should be copied as plain text</p>
+      <span id="test3"> this    should be    copied as plain text </span>
+      <div id="secure" style="-webkit-text-security: disc">example</div>
+    </div>
+    <div contenteditable id="target"></div>
+  </body>
+  <script>
+    assert_not_equals(
+      window.testRunner,
+      undefined,
+      "This test requires testRunner to read/write clipboard."
+    );
+    function testCopyAndPasteTexts(testId, expectedHTML) {
+      const selection = document.getSelection();
+      const range = document.createRange();
+      const element = document.getElementById(testId);
+      range.selectNode(element.firstChild);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand("copy");
+      let target = document.getElementById("target");
+      target.focus();
+      document.execCommand("pasteAndMatchStyle");
+      assert_equals(
+        target.innerHTML,
+        expectedHTML,
+        "HTML content matches the expected structure after copy"
+      );
+      target.innerHTML = "";
+    }
+    test(() => {
+      testCopyAndPasteTexts("test1", "this should not be capitalized");
+    }, "text-transform should not affect plain text copy");
+    test(() => {
+      testCopyAndPasteTexts(
+        "test2",
+        "this should be copied as plain text"
+      );
+    }, "text-transform of first letter should not affect plain text copy");
+    test(() => {
+      testCopyAndPasteTexts(
+        "test3",
+        "this should be copied as plain text"
+      );
+    }, "white space collapsing should be preserved");
+    test(() => {
+      testCopyAndPasteTexts(
+        "secure",
+        "\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+      );
+    }, "secured string should be masked");
+  </script>
+</html>

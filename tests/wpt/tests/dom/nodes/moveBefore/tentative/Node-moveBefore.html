@@ -237,4 +237,58 @@ test(() => {
   assert_equals(a.moveBefore(c, c), c);
   assert_array_equals(a.childNodes, [b, c]);
 }, "Inserting a node before itself should not move the node");
+
+test(() => {
+  const disconnectedOrigin = document.createElement('div');
+  const disconnectedDestination = document.createElement('div');
+  const p = disconnectedOrigin.appendChild(document.createElement('p'));
+
+  disconnectedDestination.moveBefore(p, null);
+
+  assert_equals(disconnectedDestination.firstChild, p, "<p> Was successfully moved");
+}, "Moving a node from a disconnected container to a disconnected new parent succeeds");
+
+test(() => {
+  const disconnectedOrigin = document.createElement('div');
+  const connectedDestination = document.body.appendChild(document.createElement('div'));
+  const p = disconnectedOrigin.appendChild(document.createElement('p'));
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => connectedDestination.moveBefore(p, null));
+}, "Moving a node from disconnected->connected throws a HIERARCHY_REQUEST_ERR");
+
+test(() => {
+  const connectedOrigin = document.body.appendChild(document.createElement('div'));
+  const disconnectedDestination = document.createElement('div');
+  const p = connectedOrigin.appendChild(document.createElement('p'));
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => disconnectedDestination.moveBefore(p, null));
+}, "Moving a node from connected->disconnected throws a HIERARCHY_REQUEST_ERR");
+
+promise_test(async t => {
+  let reactions = [];
+  const element_name = `ce-${performance.now()}`;
+  customElements.define(element_name,
+    class MockCustomElement extends HTMLElement {
+      connectedMoveCallback() { reactions.push("connectedMove"); }
+      connectedCallback() { reactions.push("connected"); }
+      disconnectedCallback() { reactions.push("disconnected"); }
+    });
+
+  const oldParent = document.createElement('div');
+  const newParent = document.createElement('div');
+  const element = oldParent.appendChild(document.createElement(element_name));
+  t.add_cleanup(() => {
+    element.remove();
+    newParent.remove();
+    oldParent.remove();
+  });
+
+  // Wait a microtask to let any custom element reactions run (should be none,
+  // since the initial parent is disconnected).
+  await Promise.resolve();
+
+  newParent.moveBefore(element, null);
+  await Promise.resolve();
+  assert_array_equals(reactions, []);
+}, "No custom element callbacks are run during disconnected moveBefore()");
 </script>

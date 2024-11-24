@@ -23,13 +23,14 @@ promise_test(async t => {
 
   // This is not a scalability mode test (see wpt/webrtc-svc/ for those) but a
   // VP9 simulcast test. Setting `scalabilityMode` should not be needed, however
-  // many browsers interprets multiple VP9 encodings to mean multiple spatial
+  // some browsers interpret multiple VP9 encodings to mean multiple spatial
   // layers by default. During a transition period, Chromium-based browsers
   // requires explicitly specifying the scalability mode as a way to opt-in to
   // spec-compliant simulcast. See also wpt/webrtc/simulcast/vp9.https.html for
   // a version of this test that does not set the scalability mode.
   const scalabilityMode = 'L1T2';
   return negotiateSimulcastAndWaitForVideo(
-      t, rids, pc1, pc2, {mimeType: 'video/VP9'}, scalabilityMode);
+      t, await getCameraStream(t), rids, pc1, pc2, {mimeType: 'video/VP9'},
+      scalabilityMode);
 }, 'VP9 simulcast setup with two streams and L1T2 set');
 </script>

@@ -11,7 +11,7 @@
 <script>
 test(() => {
   assert_equals(
-    getComputedStyle(document.querySelector('option'), '::check').content,
+    getComputedStyle(document.querySelector('option'), '::checkmark').content,
     `"\u2713" / ""`);
 }, 'appearance:base-select options should have a checkmark with empty alt text.');
 </script>

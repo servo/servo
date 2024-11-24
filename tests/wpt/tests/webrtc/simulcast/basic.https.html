@@ -18,6 +18,6 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  return negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+  await negotiateSimulcastAndWaitForVideo(t, await getCameraStream(t), rids, pc1, pc2);
 }, 'Basic simulcast setup with two spatial layers');
 </script>

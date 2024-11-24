@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<head>
+<title>Testcases from the previous Sanitizer API</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/html5lib-testcase-support.js"></script>
+<!--
+  This is a set of basic Sanitizer test cases that will use every feature in
+  the configuration at least once. This suite tries to go for completeness, and
+  not so much for tricky edge cases.
+
+  These tests deliberately stay clear of any "unsafe" features, so that we can
+  use the same test data with safe and unsafe methods.
+
+  The testcases are grouped into several groups (one group per <script> element)
+  to make them easier to use when debugging.
+-->
+<script id="text" type="html5lib-testcases">
+#data
+text
+#document
+| "text"
+
+</script>
+<script id="elements" type="html5lib-testcases">
+#data
+<div><p>Hello <b>World!</b>
+#config
+{}
+#document
+| <div>
+|   <p>
+|     "Hello "
+|     <b>
+|       "World!"
+
+#data
+<div><p>Hello <b>World!</b>
+#config
+{ "elements": ["div", "p"]}
+#document
+| <div>
+|   <p>
+|     "Hello "
+
+#data
+<div><p>Hello <b>World!</b>
+#config
+{ "elements": ["div", "b"]}
+#document
+| <div>
+
+#data
+<div><p>Hello <b>World!</b>
+#config
+{ "removeElements": ["b"]}
+#document
+| <div>
+|   <p>
+|     "Hello "
+
+#data
+<div><p>Hello <b>World!</b>
+#config
+{ "replaceWithChildrenElements": ["p"]}
+#document
+| <div>
+|   "Hello "
+|   <b>
+|     "World!"
+
+</script>
+<script id="attributes" type="html5lib-testcases">
+#data
+<p id="hello" style="font-weight: bold">x
+#config
+{}
+#document
+| <p>
+|   id="hello"
+|   style="font-weight: bold"
+|   "x"
+
+#data
+<p id="hello" style="font-weight: bold">x
+#config
+{ "attributes": ["style"]}
+#document
+| <p>
+|   style="font-weight: bold"
+|   "x"
+
+#data
+<p id="hello" style="font-weight: bold">x
+#config
+{ "removeAttributes": ["style"]}
+#document
+| <p>
+|   id="hello"
+|   "x"
+
+</script>
+<script id="attributes-per-element" type="html5lib-testcases">
+#data
+<div style="font-weight: bold" class="bourgeoisie">
+#config
+{ "elements": [{ "name": "div", "attributes": ["style"]}]}
+#document
+| <div>
+|   style="font-weight: bold"
+
+#data
+<div style="font-weight: bold" class="bourgeoisie">
+#config
+{ "elements": [{ "name": "div", "removeAttributes": ["style"]}]}
+#document
+| <div>
+|   class="bourgeoisie"
+
+</script>
+<script id="comments" type="html5lib-testcases">
+#data
+a <!-- comment --> b
+#config
+{ "comments": true}
+#document
+| "a "
+| <!-- comment -->
+| " b"
+
+#data
+a <!-- comment --> b
+#config
+{ "comments": false}
+#document
+| "a "
+| " b"
+
+</script>
+<script id="dataAttributes" type="html5lib-testcases">
+#data
+<p data-x="1" data-y="2" data-z="3">
+#document
+| <p>
+|   data-x="1"
+|   data-y="2"
+|   data-z="3"
+
+#data
+<p data-x="1" data-y="2" data-z="3">
+#config
+{
+  "attributes": [ "data-x" ],
+  "removeAttributes": [ "data-y" ],
+  "dataAttributes": true
+}
+#document
+| <p>
+|   data-x="1"
+|   data-z="3"
+
+#data
+<p data-x="1" data-y="2" data-z="3">
+#config
+{
+  "attributes": [ "data-x" ],
+  "removeAttributes": [ "data-y" ],
+  "dataAttributes": false
+}
+#document
+| <p>
+|   data-x="1"
+
+</script>
+<script id="namespaces" type="html5lib-testcases">
+#data
+<svg><rect></svg><math><mi>x
+#document
+| <svg svg>
+|   <svg rect>
+| <math math>
+|   <math mi>
+|     "x"
+
+#data
+<svg><rect>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }]}
+#document
+| <svg svg>
+
+#data
+<svg><rect>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "rect", "namespace": "http://www.w3.org/2000/svg" }]}
+#document
+| <svg svg>
+|   <svg rect>
+
+#data
+<svg><rect>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }],
+  "removeElements": [{ "name": "rect", "namespace": "http://www.w3.org/2000/svg" }]}
+#document
+| <svg svg>
+
+#data
+<math><mi>x
+#config
+{ "elements": [{ "name": "math", "namespace": "http://www.w3.org/1998/Math/MathML" }]}
+#document
+| <math math>
+
+#data
+<math><mi>x
+#config
+{ "elements": [{ "name": "math", "namespace": "http://www.w3.org/1998/Math/MathML" },
+               { "name": "mi", "namespace": "http://www.w3.org/1998/Math/MathML" }]}
+#document
+| <math math>
+|   <math mi>
+|     "x"
+
+#data
+<math><mi>x
+#config
+{ "elements": [{ "name": "math", "namespace": "http://www.w3.org/1998/Math/MathML" }],
+  "removeElements": [{ "name": "mi", "namespace": "http://www.w3.org/1998/Math/MathML" }]}
+#document
+| <math math>
+
+#data
+<svg xml:space="default" xlink:href="about:blank" xmlns:foo="barspace">
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }]}
+#document
+| <svg svg>
+|   xml space="default"
+|   xlink href="about:blank"
+|   xmlns:foo="barspace"
+
+#data
+<svg xml:space="default" xlink:href="about:blank" xmlns:foo="barspace">
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }],
+  "attributes": [{"name": "space", "namespace": "http://www.w3.org/XML/1998/namespace" }],
+  "removeAttributes": [{"name": "href", "namespace": "http://www.w3.org/1999/xlink" }] }
+#document
+| <svg svg>
+|   xml space="default"
+
+#data
+<svg xml:space="default" xlink:href="about:blank" xmlns:foo="barspace">
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }],
+  "attributes": [{"name": "href", "namespace": "http://www.w3.org/1999/xlink" }] ,
+  "removeAttributes": [{"name": "space", "namespace": "http://www.w3.org/XML/1998/namespace" }] }
+#document
+| <svg svg>
+|   xlink href="about:blank"
+
+</script>
+<script>
+for(const group of
+    document.querySelectorAll("script[type='html5lib-testcases']")) {
+  parse_html5lib_testcases(group.textContent).forEach((testcase, index) => {
+    let config = undefined;
+    try {
+      config = { sanitizer: JSON.parse(testcase.config) };
+    } catch { /* config remains undefined */ }
+
+    test(_ => {
+      const div = document.createElement("div");
+      div.setHTML(testcase.data, config);
+      assert_testcase(div, testcase);
+    }, `setHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+    test(_ => {
+      const div = document.createElement("div");
+      div.setHTMLUnsafe(testcase.data, config);
+      assert_testcase(div, testcase);
+    }, `setHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+    test(_ => {
+      assert_testcase(
+        Document.parseHTML(testcase.data, config).body, testcase);
+    }, `parseHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+    test(_ => {
+      assert_testcase(
+        Document.parseHTMLUnsafe(testcase.data, config).body, testcase);
+    }, `parseHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+  });
+}
+</script>
+</head>
+<body>
+</body>

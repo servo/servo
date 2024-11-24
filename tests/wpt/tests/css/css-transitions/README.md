@@ -47,6 +47,102 @@ To make individual tests a bit more readable, a lot of the test-functionality ha
 2. disable final cleanup by commenting out `done` and `teardown` callbacks
 3. possibly increase the `duration` and disable the `#offscreen` (by simply naming it `#off-screen`)
 
+## Tips to avoid test flakes ##
+
+### Making style update deterministic ####
+
+Timing characteristics vary widely across testing environments, and we need to
+be careful about making assumptions about the state of the testing environment
+to avoid race conditions.
+
+Here is an example of a test with a race condition.
+
+```css
+# target {
+  color: green;
+  transition: color 300ms;
+  transition-delay: -150ms;
+}
+```
+
+```javascript
+  test(() => {
+    target.style.color = 'pink';
+    assert_equals(getComputedStyle(target).color, ...);
+  }, ...);
+```
+The value of color will differ depending on whether the color "change" was
+captured as part of the initial style update. We cannot assume style and
+layout are clean at the start of a test.
+
+One way to fix this with the benefit of testing that a transition started is
+as follows:
+
+```javascript
+  test(() => {
+    assert_equals(document.getAnimations().length, 0,
+                  'Initially no running animations');
+    target.style.color = 'pink';
+    assert_equals(document.getAnimations().length, 1,
+                  'Color change triggers a CSS transition');
+    assert_equals(getComputedStyle(target).color, ...);
+  }, ...);
+````
+
+### Reftests and paint holding ###
+
+To avoid the flash of white when a navigating between pages, browsers may
+elect to freeze the contents until ready to render the page. All animations,
+CSS transitions included, have a ready promise that is resolved when the
+user agent has completed any set up and is ready to rendering the animation.
+
+Rather than simply creating the transition and calling takeScreenshot, a safer
+approach is as follows:
+
+```javascript
+window.onload = async () => {
+   ... test setup including starting  any transitions ...
+
+   const promises = document.getAnimations().map(anim => anim.ready);
+   await Promise.all(promises);
+   requestAnimationFrame(takeScreenshot);
+};
+```
+
+### Reftests and avoiding animation drift ###
+
+The animation API is largely asynchronous and an extra animation frame can
+easily cause misalignment of a reftest with its reference image. One
+approach to address the issue is to use a long duration animation with a
+negative transition delay to set the position. If using this approach, we can
+further reduce the potential for animation drift by using a step easing function
+or freeze at the midpoint by using cubic-bezier(0, 1, 1, 0) combined with a
+negative transition delay with a magnitude equal to half the duration.  Unless
+critical for the test to be performed on running transitions, a safe alternative
+is to pause the transitions.
+
+```javascript
+document.getAnimations().forEach(anim => anim.pause());
+```
+
+## Tips to reduce test runtime ##
+
+When testing for transitionend, it is not necessary to let the animation run its
+course. It may be tempting just to use a short duration animation, but safer is
+to accelerate the animation via the web-animations API. This gives us precise
+control over the test conditions.
+
+```javascript
+function fastForward(anim, progress) {
+  anim.currentTime = anim.effect.getTiming().duration * progress;
+}
+```
+
+If simply wanting to jump to the end of the transition, then calling
+anim.finish() does the trick.  This fast forwarding trick is also really
+useful for sampling a transition curve (testing whether a transition is
+discrete or continuous for example).
+
 
 ## Unspecified Behavior ##
 

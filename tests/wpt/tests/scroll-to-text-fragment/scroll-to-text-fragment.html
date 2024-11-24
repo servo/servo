@@ -31,6 +31,16 @@ let test_cases = [
     description: 'Text directive with invalid syntax (context terms without "-") should not parse as a text directive'
   },
   {
+    fragment: '#:~:text=foo-',
+    expect_position: 'top',
+    description: 'Text directive with invalid syntax (only prefix, no start text) should not parse as a text directive'
+  },
+  {
+    fragment: '#:~:text=-foo',
+    expect_position: 'top',
+    description: 'Text directive with invalid syntax (only suffix, no start text) should not parse as a text directive'
+  },
+  {
     fragment: '#element:~:directive',
     expect_position: 'element',
     description: 'Generic fragment directive with existing element fragment should scroll to element'

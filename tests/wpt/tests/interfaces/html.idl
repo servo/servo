@@ -133,10 +133,18 @@ interface HTMLElement : Element {
   ElementInternals attachInternals();
 
   // The popover API
-  undefined showPopover();
+  undefined showPopover(optional ShowPopoverOptions options = {});
   undefined hidePopover();
-  boolean togglePopover(optional boolean force);
+  boolean togglePopover(optional (TogglePopoverOptions or boolean) options = {});
   [CEReactions] attribute DOMString? popover;
+};
+
+dictionary ShowPopoverOptions {
+  HTMLElement source;
+};
+
+dictionary TogglePopoverOptions : ShowPopoverOptions {
+  boolean force;
 };
 
 HTMLElement includes GlobalEventHandlers;

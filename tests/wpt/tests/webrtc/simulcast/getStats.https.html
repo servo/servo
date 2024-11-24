@@ -18,7 +18,7 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+  await negotiateSimulcastAndWaitForVideo(t, await getCameraStream(t), rids, pc1, pc2);
 
   const outboundStats = [];
   const senderStats = await pc1.getSenders()[0].getStats();

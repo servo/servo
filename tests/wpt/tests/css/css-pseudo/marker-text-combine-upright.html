@@ -26,7 +26,12 @@ ul {
   content: "3. ";
 }
 ::marker {
+  /* Try to undo whatever styles browsers might have set on ::marker. */
   all: unset;
+  /* However, Blink still enforces `white-space: pre` on markers with outside position.
+     As a workaround, the reference expects `white-space: pre` too, but then we need
+     to set it here for Firefox. */
+  white-space: pre;
   text-combine-upright: all;
 }
 </style>

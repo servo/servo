@@ -34,7 +34,7 @@ promise_test(async test => {
   const htmlBlob = await items[0].getType("text/html");
   const html = await htmlBlob.text();
 
-  assert_equals(html, '<img src="https://example.com/oops">');
+  assert_true(html.includes('<img src="https://example.com/oops">'));
 
   // Allow resource loading to start asynchronously
   await new Promise(resolve => test.step_timeout(resolve, 100));

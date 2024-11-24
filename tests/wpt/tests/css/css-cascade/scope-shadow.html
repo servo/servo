@@ -159,3 +159,75 @@
     assert_equals(getComputedStyle(a).zIndex, '2');
   }, 'Implicit @scope in construted stylesheet');
 </script>
+
+<div id=scope_via_parent_pseudo_subject>
+  <div class=host>
+    <template shadowrootmode=open>
+      <style>
+          @scope (:host) {
+            :scope {
+              & {
+                z-index: 1;
+              }
+            }
+          }
+      </style>
+    </template>
+  </div>
+</div>
+<script>
+  test(() => {
+    let host = scope_via_parent_pseudo_subject.querySelector('.host');
+    assert_equals(getComputedStyle(host).zIndex, '1');
+  }, 'Matching :host via &, :scope (subject)');
+</script>
+
+<div id=scope_via_parent_pseudo_non_subject>
+  <div class=host>
+    <template shadowrootmode=open>
+      <style>
+          @scope (:host) {
+            :scope .a {
+              & {
+                z-index: 1;
+              }
+            }
+          }
+      </style>
+      <div class=a>
+      </div>
+    </template>
+  </div>
+</div>
+<script>
+  test(() => {
+    let host = scope_via_parent_pseudo_non_subject.querySelector('.host');
+    let a = host.shadowRoot.querySelector('.a');
+    assert_equals(getComputedStyle(a).zIndex, '1');
+  }, 'Matching :host via &, :scope (non-subject)');
+</script>
+
+<div id=scope_via_parent_pseudo_non_subject_child>
+  <div class=host>
+    <template shadowrootmode=open>
+      <style>
+          @scope (:host) {
+            :scope > .a {
+              & {
+                z-index: 1;
+              }
+            }
+          }
+      </style>
+      <div class=a>
+      </div>
+    </template>
+  </div>
+</div>
+<script>
+  test(() => {
+    let host = scope_via_parent_pseudo_non_subject_child.querySelector('.host');
+    let a = host.shadowRoot.querySelector('.a');
+    assert_equals(getComputedStyle(a).zIndex, '1');
+  }, 'Matching :host via &, :scope (non-subject, >)');
+</script>

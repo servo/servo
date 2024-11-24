@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>SVGMarkerElement.orientType synchronization</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/painting.html#InterfaceSVGMarkerElement">
+<link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGAngle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE, 'initial');
+
+  marker.orientType.baseVal = SVGMarkerElement.SVG_MARKER_ORIENT_AUTO;
+  assert_equals(marker.getAttribute('orient'), 'auto');
+  assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_AUTO, `to 'auto'`);
+}, `${document.title}, setting orientType to 'auto'`);
+
+test(function() {
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  assert_false(marker.hasAttribute('orient'));
+
+  marker.setOrientToAuto();
+  assert_equals(marker.getAttribute('orient'), 'auto');
+
+  marker.orientAngle.baseVal.valueInSpecifiedUnits = 1;
+  assert_true(marker.hasAttribute('orient'));
+  assert_equals(marker.getAttribute('orient'), '1');
+  assert_equals(marker.orientType.baseVal, SVGMarkerElement.SVG_MARKER_ORIENT_ANGLE);
+}, `${document.title}, setting orientAngle using valueInSpecifiedUnits`);
+</script>

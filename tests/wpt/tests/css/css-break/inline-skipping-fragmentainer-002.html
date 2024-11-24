@@ -4,14 +4,26 @@
 <link rel="help" href="https://issues.chromium.org/issues/40287080">
 <meta name="assert" content="The SPAN starts in the first fragmentainer, and ends in the fourth. The second fragmentainer has no inline content, due to a tall float">
 <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .ib {
+    display: inline-block;
+    vertical-align: top;
+    width: 100%;
+    height: 50px;
+    background: green;
+  }
+</style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
-<div style="width:100px; height:100px; background:red;">
-  <div style="width:50px; columns:1; column-fill:auto; gap:0; height:100px; orphans:1; widows:1; background:green">
-  <div style="height:5px;"></div>
-  <div id="inner" style="columns:2; width:11px; gap:0; column-fill:auto;">
+<div style="columns:4; column-fill:auto; gap:0; width:100px; height:100px; line-height:50px; orphans:1; widows:1; background:red;">
+  <div style="height:50px; background:green;"></div>
+  <div style="break-inside:avoid; float:left; width:100%; height:100px; background:green;"></div>
+  <div>
     <span style="position:relative;">
-      &nbsp;
-      <div style="display:inline-block; width:50px; height:100px; background:green;"></div>
+      <div class="ib"></div>
+      <div class="ib"></div>
+      <div class="ib"></div>
+      <div class="ib"></div>
+      <div class="ib"></div>
     </span>
   </div>
 </div>

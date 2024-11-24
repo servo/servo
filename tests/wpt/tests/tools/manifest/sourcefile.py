@@ -85,7 +85,26 @@ _any_variants: Dict[Text, VariantData] = {
     "dedicatedworker-module": {"suffix": ".any.worker-module.html"},
     "worker": {"longhand": {"dedicatedworker", "sharedworker", "serviceworker"}},
     "worker-module": {},
-    "shadowrealm": {},
+    "shadowrealm-in-window": {},
+    "shadowrealm-in-shadowrealm": {},
+    "shadowrealm-in-dedicatedworker": {},
+    "shadowrealm-in-sharedworker": {},
+    "shadowrealm-in-serviceworker": {
+        "force_https": True,
+        "suffix": ".https.any.shadowrealm-in-serviceworker.html",
+    },
+    "shadowrealm-in-audioworklet": {
+        "force_https": True,
+        "suffix": ".https.any.shadowrealm-in-audioworklet.html",
+    },
+    "shadowrealm": {"longhand": {
+        "shadowrealm-in-window",
+        "shadowrealm-in-shadowrealm",
+        "shadowrealm-in-dedicatedworker",
+        "shadowrealm-in-sharedworker",
+        "shadowrealm-in-serviceworker",
+        "shadowrealm-in-audioworklet",
+    }},
     "jsshell": {"suffix": ".any.js"},
 }
 

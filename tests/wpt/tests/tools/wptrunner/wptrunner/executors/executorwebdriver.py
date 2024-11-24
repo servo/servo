@@ -763,7 +763,8 @@ class WebDriverRun(TimedRunner):
                 # TODO(https://github.com/w3c/webdriver/issues/1308): The http
                 # status and status code below are chromium specific. Replace
                 # that with a standarded code once the issue is resolved.
-                if e.http_status == 500 and e.status_code == "disconnected":
+                if e.http_status == 500 and (e.status_code == "disconnected" or
+                        e.status_code == "tab crashed"):
                     status = "CRASH"
             if status is None:
                 status = "INTERNAL-ERROR" if self.protocol.is_alive() else "CRASH"

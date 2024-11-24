@@ -3,31 +3,25 @@
 import os
 
 from .executorwebdriver import (
-    WebDriverCrashtestExecutor,
     WebDriverRefTestExecutor,
     WebDriverRun,
     WebDriverTestharnessExecutor,
 )
 
-from .executorchrome import (
-    ChromeDriverProtocol,
-    make_sanitizer_mixin,
-)
+from .executorchrome import ChromeDriverProtocol
 
 here = os.path.dirname(__file__)
-
-_SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
 
 
 class EdgeDriverProtocol(ChromeDriverProtocol):
     vendor_prefix = "ms"
 
 
-class EdgeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
+class EdgeDriverRefTestExecutor(WebDriverRefTestExecutor):
     protocol_cls = EdgeDriverProtocol
 
 
-class EdgeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixin):  # type: ignore
+class EdgeDriverTestharnessExecutor(WebDriverTestharnessExecutor):
     protocol_cls = EdgeDriverProtocol
 
 

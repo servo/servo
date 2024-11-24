@@ -6,14 +6,10 @@ import os
 import re
 import time
 import uuid
-from typing import Mapping, MutableMapping, Type
+from typing import Mapping, MutableMapping
 
 from webdriver import error
 
-from .base import (
-    CrashtestExecutor,
-    TestharnessExecutor,
-)
 from .executorwebdriver import (
     WebDriverBaseProtocolPart,
     WebDriverCrashtestExecutor,
@@ -27,41 +23,6 @@ from .executorwebdriver import (
 from .protocol import LeakProtocolPart, ProtocolPart
 
 here = os.path.dirname(__file__)
-
-
-def make_sanitizer_mixin(crashtest_executor_cls: Type[CrashtestExecutor]):  # type: ignore[no-untyped-def]
-    class SanitizerMixin:
-        def __new__(cls, logger, browser, **kwargs):
-            # Overriding `__new__` is the least worst way we can force tests to run
-            # as crashtests at runtime while still supporting:
-            #   * Class attributes (e.g., `extra_timeout`)
-            #   * Pickleability for `multiprocessing` transport
-            #   * The `__wptrunner__` product interface
-            #
-            # These requirements rule out approaches with `functools.partial(...)`
-            # or global variables.
-            if kwargs.get("sanitizer_enabled"):
-                executor = crashtest_executor_cls(logger, browser, **kwargs)
-
-                def convert_from_crashtest_result(test, result):
-                    if issubclass(cls, TestharnessExecutor):
-                        status = result["status"]
-                        if status == "PASS":
-                            status = "OK"
-                        harness_result = test.make_result(status, result["message"])
-                        # Don't report subtests.
-                        return harness_result, []
-                    # `crashtest` statuses are a subset of `(print-)reftest`
-                    # ones, so no extra conversion necessary.
-                    return cls.convert_result(executor, test, result)
-
-                executor.convert_result = convert_from_crashtest_result
-                return executor
-            return super().__new__(cls)
-    return SanitizerMixin
-
-
-_SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
 
 
 class ChromeDriverBaseProtocolPart(WebDriverBaseProtocolPart):
@@ -211,7 +172,7 @@ class ChromeDriverProtocol(WebDriverProtocol):
         super().__init__(executor, browser, capabilities, **kwargs)
 
 
-def _evaluate_leaks(executor_cls):
+def _evaluate_sanitized_result(executor_cls):
     if hasattr(executor_cls, "base_convert_result"):
         # Don't wrap more than once, which can cause unbounded recursion.
         return executor_cls
@@ -226,28 +187,42 @@ def _evaluate_leaks(executor_cls):
                                            test_result.extra,
                                            test_result.stack,
                                            test_result.known_intermittent)
+        if self.sanitizer_enabled:
+            # Coerce functional failures to OK/PASS, and discard any subtest results.
+            if test_result.status in {"ERROR", "FAIL", "INTERNAL-ERROR", "PRECONDITION_FAILED"}:
+                test_result.status = test_result.default_expected
+            return test_result, []
         return test_result, subtest_results
 
     executor_cls.convert_result = convert_result
     return executor_cls
 
 
-@_evaluate_leaks
+@_evaluate_sanitized_result
 class ChromeDriverCrashTestExecutor(WebDriverCrashtestExecutor):
     protocol_cls = ChromeDriverProtocol
 
-
-@_evaluate_leaks
-class ChromeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
-    protocol_cls = ChromeDriverProtocol
-
-
-@_evaluate_leaks
-class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixin):  # type: ignore
-    protocol_cls = ChromeDriverProtocol
-
-    def __init__(self, *args, reuse_window=False, **kwargs):
+    def __init__(self, *args, sanitizer_enabled=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.sanitizer_enabled = sanitizer_enabled
+
+
+@_evaluate_sanitized_result
+class ChromeDriverRefTestExecutor(WebDriverRefTestExecutor):
+    protocol_cls = ChromeDriverProtocol
+
+    def __init__(self, *args, sanitizer_enabled=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sanitizer_enabled = sanitizer_enabled
+
+
+@_evaluate_sanitized_result
+class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor):
+    protocol_cls = ChromeDriverProtocol
+
+    def __init__(self, *args, sanitizer_enabled=False, reuse_window=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sanitizer_enabled = sanitizer_enabled
         self.reuse_window = reuse_window
 
     def get_or_create_test_window(self, protocol):
@@ -284,7 +259,10 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
             raise
 
 
-@_evaluate_leaks
-class ChromeDriverPrintRefTestExecutor(WebDriverPrintRefTestExecutor,
-                                       _SanitizerMixin):  # type: ignore
+@_evaluate_sanitized_result
+class ChromeDriverPrintRefTestExecutor(WebDriverPrintRefTestExecutor):
     protocol_cls = ChromeDriverProtocol
+
+    def __init__(self, *args, sanitizer_enabled=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sanitizer_enabled = sanitizer_enabled

@@ -122,17 +122,27 @@ async def test_iframe(
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, type_hint):
+async def test_new_context_not_emitted(bidi_session, subscribe_events,
+      wait_for_event, wait_for_future_safe, type_hint):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
-    on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
-    new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
-    event = await wait_for_future_safe(on_entry)
+    # Track all received "browsingContext.load" events in the events array
+    events = []
 
-    assert_navigation_info(
-        event, {"context": new_context["context"], "url": "about:blank"}
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        CONTEXT_LOAD_EVENT, on_event
     )
-    assert event["navigation"] is not None
+
+    await bidi_session.browsing_context.create(type_hint=type_hint)
+
+    wait = AsyncPoll(bidi_session, timeout=0.5)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 0)
+
+    remove_listener()
 
 
 @pytest.mark.parametrize("sandbox", [None, "sandbox_1"])

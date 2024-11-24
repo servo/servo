@@ -4,8 +4,9 @@
 
 'use strict';
 
-const kQuotaPerOrigin = 64 * 1024;  // 64 kilobytes per spec.
+const QUOTA_PER_ORIGIN = 64 * 1024;  // 64 kilobytes per spec.
 const {ORIGIN, HTTPS_NOTSAMESITE_ORIGIN} = get_host_info();
+const TEST_ENDPOINT = '/fetch-later';
 
 // Runs a test case that cover a single fetchLater() call with `body` in its
 // request payload. The call is not expected to throw any errors.
@@ -13,8 +14,7 @@ function fetchLaterPostTest(body, description) {
   test(() => {
     const controller = new AbortController();
     const result = fetchLater(
-        '/fetch-later',
-        {method: 'POST', signal: controller.signal, body: body});
+        TEST_ENDPOINT, {method: 'POST', signal: controller.signal, body: body});
     assert_false(result.activated);
     // Release quota taken by the pending request for subsequent tests.
     controller.abort();
@@ -30,19 +30,25 @@ for (const [dataType, skipCharset] of Object.entries(
 }
 
 // Test various size of payloads for the same origin.
-for (const dataType in BeaconDataType) {
-  if (dataType !== BeaconDataType.FormData &&
-      dataType !== BeaconDataType.URLSearchParams) {
-    // Skips FormData & URLSearchParams, as browser adds extra bytes to them
-    // in addition to the user-provided content. It is difficult to test a
-    // request right at the quota limit.
-    fetchLaterPostTest(
-        // Generates data that is exactly 64 kilobytes.
-        makeBeaconData(generatePayload(kQuotaPerOrigin), dataType),
-        `A single fetchLater() call takes up the per-origin quota for its ` +
-            `body of ${dataType}.`);
-  }
-}
+
+// Test max possible size of payload.
+// Length of absolute URL to the endpoint.
+const POST_TEST_REQUEST_URL_SIZE = (ORIGIN + TEST_ENDPOINT).length;
+// Total size of the request header.
+const POST_TEST_REQUEST_HEADER_SIZE = 36;
+// Runs this test only for String type beacon, as browser adds extra bytes to
+// body for some other types (FormData & URLSearchParams), and the request
+// header sizes varies for every other types. It is difficult to test a request
+// right at the quota limit.
+fetchLaterPostTest(
+    // Generates data that is exactly 64 kilobytes.
+    makeBeaconData(
+        generatePayload(
+            QUOTA_PER_ORIGIN - POST_TEST_REQUEST_URL_SIZE -
+            POST_TEST_REQUEST_HEADER_SIZE),
+        BeaconDataType.String),
+    `A single fetchLater() call takes up the per-origin quota for its ` +
+        `body of String.`);
 
 // Test empty payload.
 for (const dataType in BeaconDataType) {
@@ -64,8 +70,8 @@ for (const dataType in BeaconDataType) {
             () => fetchLater('/fetch-later', {
               method: 'POST',
               // Generates data that exceeds 64 kilobytes.
-              body:
-                  makeBeaconData(generatePayload(kQuotaPerOrigin + 1), dataType)
+              body: makeBeaconData(
+                  generatePayload(QUOTA_PER_ORIGIN + 1), dataType)
             }));
       },
       `A single fetchLater() call is not allowed to exceed per-origin quota ` +
@@ -81,7 +87,7 @@ for (const dataType in BeaconDataType) {
         fetchLater('/fetch-later', {
           method: 'POST',
           signal: controller.signal,
-          body: makeBeaconData(generatePayload(kQuotaPerOrigin / 2), dataType)
+          body: makeBeaconData(generatePayload(QUOTA_PER_ORIGIN / 2), dataType)
         });
 
         // Makes the 2nd call that sends half+1 of allowed quota.
@@ -90,7 +96,7 @@ for (const dataType in BeaconDataType) {
             method: 'POST',
             signal: controller.signal,
             body: makeBeaconData(
-                generatePayload(kQuotaPerOrigin / 2 + 1), dataType)
+                generatePayload(QUOTA_PER_ORIGIN / 2 + 1), dataType)
           });
         });
         // Release quota taken by the pending requests for subsequent tests.
@@ -109,7 +115,7 @@ for (const dataType in BeaconDataType) {
         fetchLater('/fetch-later', {
           method: 'POST',
           signal: controller.signal,
-          body: makeBeaconData(generatePayload(kQuotaPerOrigin / 2), dataType)
+          body: makeBeaconData(generatePayload(QUOTA_PER_ORIGIN / 2), dataType)
         });
 
         // Makes the 2nd call that sends half+1 of allowed quota, but to a
@@ -117,8 +123,8 @@ for (const dataType in BeaconDataType) {
         fetchLater(`${HTTPS_NOTSAMESITE_ORIGIN}/fetch-later`, {
           method: 'POST',
           signal: controller.signal,
-          body:
-              makeBeaconData(generatePayload(kQuotaPerOrigin / 2 + 1), dataType)
+          body: makeBeaconData(
+              generatePayload(QUOTA_PER_ORIGIN / 2 + 1), dataType)
         });
         // Release quota taken by the pending requests for subsequent tests.
         controller.abort();
