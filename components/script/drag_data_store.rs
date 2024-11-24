@@ -15,11 +15,13 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
+#[derive(Clone)]
 pub enum Kind {
     Text(PlainString),
     File(Binary),
 }
 
+#[derive(Clone)]
 pub struct PlainString {
     data: DOMString,
     type_: DOMString,
@@ -31,6 +33,7 @@ impl PlainString {
     }
 }
 
+#[derive(Clone)]
 pub struct Binary {
     bytes: Vec<u8>,
     name: DOMString,
@@ -246,8 +249,8 @@ impl DragDataStore {
         self.item_list.len()
     }
 
-    pub fn get_item(&self, index: usize) -> Option<&Kind> {
-        self.item_list.get(index)
+    pub fn get_item(&self, index: usize) -> Option<Kind> {
+        self.item_list.get(index).cloned()
     }
 
     pub fn remove(&mut self, index: usize) {
