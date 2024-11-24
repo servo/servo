@@ -77,7 +77,6 @@ impl WebGLTexture {
         id: WebGLTextureId,
         #[cfg(feature = "webxr")] owner: Option<&XRSession>,
     ) -> Self {
-
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id,
@@ -110,7 +109,12 @@ impl WebGLTexture {
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(WebGLTexture::new_inherited(context, id, #[cfg(feature = "webxr")] None)),
+            Box::new(WebGLTexture::new_inherited(
+                context,
+                id,
+                #[cfg(feature = "webxr")]
+                None,
+            )),
             &*context.global(),
         )
     }
