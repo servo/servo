@@ -535,6 +535,15 @@ impl LogicalRect<Au> {
     }
 }
 
+impl<T: Copy> From<T> for LogicalVec2<T> {
+    fn from(value: T) -> Self {
+        Self {
+            inline: value,
+            block: value,
+        }
+    }
+}
+
 impl From<LogicalVec2<CSSPixelLength>> for LogicalVec2<Au> {
     fn from(value: LogicalVec2<CSSPixelLength>) -> Self {
         LogicalVec2 {
