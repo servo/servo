@@ -738,9 +738,12 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-close>
     fn Close(&self) -> Fallible<()> {
         if !self.can_close_or_enqueue() {
-            return Err(Error::NotFound);
+            // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, 
+            // throw a TypeError exception.
+            return Err(Error::Type("Stream cannot be closed.".to_string()));
         }
 
+        // Perform ! ReadableStreamDefaultControllerClose(this).
         self.close();
 
         Ok(())
