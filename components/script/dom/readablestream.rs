@@ -189,6 +189,7 @@ impl ReadableStream {
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
     #[allow(unsafe_code)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_with_external_underlying_source(
         global: &GlobalScope,
         source: UnderlyingSourceType,
@@ -197,14 +198,14 @@ impl ReadableStream {
         assert!(source.is_native());
         let stream =
             ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)));
-        let _controller = ReadableStreamDefaultController::new(
+        let controller = ReadableStreamDefaultController::new(
             global,
-            stream.clone(),
             source,
             1.0,
             extract_size_algorithm(&QueuingStrategy::empty()),
             can_gc,
         );
+        controller.setup(stream.clone(), can_gc);
         stream
     }
 
@@ -632,15 +633,21 @@ impl ReadableStreamMethods for ReadableStream {
             // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
             let size_algorithm = extract_size_algorithm(strategy);
 
-            // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
-            let _ = ReadableStreamDefaultController::new(
+            let controller = ReadableStreamDefaultController::new(
                 global,
-                stream.clone(),
-                UnderlyingSourceType::Js(underlying_source_dict),
+                UnderlyingSourceType::Js(underlying_source_dict, Heap::default()),
                 high_water_mark,
                 size_algorithm,
                 can_gc,
             );
+
+            // Note: this must be done before `setup`,
+            // otherwise `thisOb` is null in the start callback.
+            rooted!(in(*cx) let obj = underlying_source_obj.get());
+            controller.set_underlying_source_this_object(obj.handle());
+
+            // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
+            controller.setup(stream.clone(), can_gc);
         };
 
         Ok(stream)
