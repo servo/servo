@@ -6,9 +6,9 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{IsPromiseObject, JSObject, JS_NewObject};
+use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::JSVal;
-use js::rust::{HandleValue as SafeHandleValue, IntoHandle};
+use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -24,6 +24,7 @@ use crate::script_runtime::CanGc;
 /// the JavaScript object representing the underlying source.
 /// The other variants are native sources in Rust.
 #[derive(JSTraceable)]
+#[crown::unrooted_must_root_lint::must_root]
 pub enum UnderlyingSourceType {
     /// Facilitate partial integration with sources
     /// that are currently read into memory.
@@ -32,8 +33,9 @@ pub enum UnderlyingSourceType {
     Blob(usize),
     /// A fetch response as underlying source.
     FetchResponse,
-    /// A JS object as underlying source.
-    Js(JsUnderlyingSource),
+    /// A struct representing a JS object as underlying source,
+    /// and the actual JS object for use as `thisArg` in callbacks.
+    Js(JsUnderlyingSource, Heap<*mut JSObject>),
 }
 
 impl UnderlyingSourceType {
@@ -63,6 +65,7 @@ pub struct UnderlyingSourceContainer {
 }
 
 impl UnderlyingSourceContainer {
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(underlying_source_type: UnderlyingSourceType) -> UnderlyingSourceContainer {
         UnderlyingSourceContainer {
             reflector_: Reflector::new(),
@@ -70,6 +73,7 @@ impl UnderlyingSourceContainer {
         }
     }
 
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -88,24 +92,27 @@ impl UnderlyingSourceContainer {
         )
     }
 
+    /// Setting the JS object after the heap has settled down.
+    pub fn set_underlying_source_this_object(&self, object: HandleObject) {
+        if let UnderlyingSourceType::Js(_source, this_obj) = &self.underlying_source_type {
+            this_obj.set(*object);
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
     #[allow(unsafe_code)]
     pub fn call_cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Rc<Promise>> {
-        if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
-            if let Some(pull) = &source.cancel {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
-                // TODO: move this into `bindings`.
+        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
+            if let Some(algo) = &source.cancel {
                 unsafe {
-                    let obj = JS_NewObject(*cx, ptr::null_mut());
-                    assert!(!obj.is_null());
-                    this_object.set(obj);
-                    source.to_jsobject(*cx, this_object.handle_mut());
+                    return algo
+                        .Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            Some(reason),
+                            ExceptionHandling::Report,
+                        )
+                        .ok();
                 }
-                let this_handle = this_object.handle();
-                return pull
-                    .Call_(&this_handle, Some(reason), ExceptionHandling::Report)
-                    .ok();
             }
         }
         None
@@ -114,21 +121,17 @@ impl UnderlyingSourceContainer {
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
     #[allow(unsafe_code)]
     pub fn call_pull_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
-        if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
+        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
             if let Some(pull) = &source.pull {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
-                // TODO: move this into `bindings`.
                 unsafe {
-                    let obj = JS_NewObject(*cx, ptr::null_mut());
-                    assert!(!obj.is_null());
-                    this_object.set(obj);
-                    source.to_jsobject(*cx, this_object.handle_mut());
+                    return pull
+                        .Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            controller,
+                            ExceptionHandling::Report,
+                        )
+                        .ok();
                 }
-                let this_handle = this_object.handle();
-                return pull
-                    .Call_(&this_handle, controller, ExceptionHandling::Report)
-                    .ok();
             }
         }
         // Note: other source type have no pull steps for now.
@@ -148,31 +151,23 @@ impl UnderlyingSourceContainer {
         controller: Controller,
         can_gc: CanGc,
     ) -> Option<Rc<Promise>> {
-        if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
+        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
             if let Some(start) = &source.start {
                 let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
-                // TODO: move this into `bindings`.
-                unsafe {
-                    let obj = JS_NewObject(*cx, ptr::null_mut());
-                    assert!(!obj.is_null());
-                    this_object.set(obj);
-                    source.to_jsobject(*cx, this_object.handle_mut());
-                }
-                let this_handle = this_object.handle();
                 rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
                 rooted!(in(*cx) let mut result: JSVal);
-
-                if start
-                    .Call_(
-                        &this_handle,
-                        controller,
-                        result.handle_mut(),
-                        ExceptionHandling::Report,
-                    )
-                    .is_err()
-                {
-                    return None;
+                unsafe {
+                    if start
+                        .Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            controller,
+                            result.handle_mut(),
+                            ExceptionHandling::Report,
+                        )
+                        .is_err()
+                    {
+                        return None;
+                    }
                 }
                 let is_promise = unsafe {
                     if result.is_object() {
