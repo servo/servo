@@ -9,7 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{HandleValue as SafeHandleValue, HandleValue};
+use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -245,9 +245,9 @@ pub struct ReadableStreamDefaultController {
 }
 
 impl ReadableStreamDefaultController {
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(
         global: &GlobalScope,
-        stream: DomRoot<ReadableStream>,
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
@@ -256,7 +256,7 @@ impl ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
             queue: RefCell::new(Default::default()),
-            stream: MutNullableDom::new(Some(&stream)),
+            stream: MutNullableDom::new(None),
             underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
                 global,
                 underlying_source_type,
@@ -271,19 +271,37 @@ impl ReadableStreamDefaultController {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
-        stream: DomRoot<ReadableStream>,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
         can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultController> {
+        reflect_dom_object(
+            Box::new(ReadableStreamDefaultController::new_inherited(
+                global,
+                underlying_source,
+                strategy_hwm,
+                strategy_size,
+                can_gc,
+            )),
+            global,
+        )
+    }
+
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    pub fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
 
         // Set controller.[[stream]] to stream.
+        self.stream.set(Some(&stream));
+
+        let global = &*self.global();
+        let rooted_default_controller = DomRoot::from_ref(self);
+
         // Perform ! ResetQueue(controller).
         // Set controller.[[started]], controller.[[closeRequested]],
         // controller.[[pullAgain]], and controller.[[pulling]] to false.
@@ -292,17 +310,8 @@ impl ReadableStreamDefaultController {
         // Set controller.[[strategySizeAlgorithm]] to sizeAlgorithm
         // and controller.[[strategyHWM]] to highWaterMark.
         // Set controller.[[cancelAlgorithm]] to cancelAlgorithm.
-        let rooted_default_controller = reflect_dom_object(
-            Box::new(ReadableStreamDefaultController::new_inherited(
-                global,
-                stream.clone(),
-                underlying_source,
-                strategy_hwm,
-                strategy_size,
-                can_gc,
-            )),
-            global,
-        );
+
+        // Note: the above steps are done in `new`.
 
         // Set stream.[[controller]] to controller.
         stream.set_default_controller(&rooted_default_controller);
@@ -336,8 +345,13 @@ impl ReadableStreamDefaultController {
                 promise.resolve_native(&());
             }
         };
+    }
 
-        rooted_default_controller
+    /// Setting the JS object after the heap has settled down.
+    pub fn set_underlying_source_this_object(&self, this_object: HandleObject) {
+        if let Some(underlying_source) = self.underlying_source.get() {
+            underlying_source.set_underlying_source_this_object(this_object);
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
@@ -738,7 +752,7 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-close>
     fn Close(&self) -> Fallible<()> {
         if !self.can_close_or_enqueue() {
-            // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, 
+            // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false,
             // throw a TypeError exception.
             return Err(Error::Type("Stream cannot be closed.".to_string()));
         }
