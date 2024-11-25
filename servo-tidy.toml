@@ -63,12 +63,6 @@ packages = [
     "phf_generator",
     "phf_shared",
 
-    # petgraph uses old version
-    "fixedbitset",
-
-    # servo-media-audio uses old version
-    "petgraph",
-
     # icu (from mozjs) uses old version
     # tracing-subscriber (tokio-rs/tracing#3033) uses old version
     # regex -> regex-automata 0.4.7
