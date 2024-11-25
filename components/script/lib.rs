@@ -96,6 +96,7 @@ mod window_named_properties;
 
 mod unminify;
 
+mod drag_data_store;
 mod links;
 
 pub use init::init;
