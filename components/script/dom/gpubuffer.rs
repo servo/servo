@@ -44,8 +44,13 @@ pub struct ActiveBufferMapping {
 }
 
 impl ActiveBufferMapping {
+    #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-initialize-an-active-buffer-mapping>
-    pub fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Fallible<Self> {
+    pub fn new(
+        mode: GPUMapModeFlags,
+        range: Range<u64>,
+        data: Option<IpcSharedMemory>,
+    ) -> Fallible<Self> {
         // Step 1
         let size = range.end - range.start;
         // Step 2
@@ -55,11 +60,16 @@ impl ActiveBufferMapping {
         let size: usize = size
             .try_into()
             .map_err(|_| Error::Range("Over usize".to_string()))?;
-        Ok(Self {
-            data: DataBlock::new_zeroed(size),
-            mode,
-            range,
-        })
+        let data = if let Some(data) = data {
+            unsafe { DataBlock::from(data) }
+        } else {
+            DataBlock::new_zeroed(size)
+        };
+        Ok(Self { data, mode, range })
+    }
+
+    pub fn unmap(self) -> IpcSharedMemory {
+        self.data.consume()
     }
 }
 
@@ -160,6 +170,7 @@ impl GPUBuffer {
             Some(ActiveBufferMapping::new(
                 GPUMapModeConstants::WRITE,
                 0..descriptor.size,
+                None,
             )?)
         } else {
             None
@@ -193,8 +204,8 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             promise.reject_error(Error::Abort);
         }
         // Step 2
-        let mut mapping = self.mapping.borrow_mut().take();
-        let mapping = if let Some(mapping) = mapping.as_mut() {
+        let mapping = self.mapping.borrow_mut().take();
+        let mut mapping = if let Some(mapping) = mapping {
             mapping
         } else {
             return;
@@ -207,8 +218,8 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             buffer_id: self.id().0,
             mapping: if mapping.mode >= GPUMapModeConstants::WRITE {
                 Some(Mapping {
-                    data: IpcSharedMemory::from_bytes(mapping.data.data()),
                     range: mapping.range.clone(),
+                    data: mapping.unmap(),
                     mode: HostMap::Write,
                 })
             } else {
@@ -388,13 +399,14 @@ impl GPUBuffer {
         // Step 2
         assert!(p.is_pending());
 
-        // Step 4
+        // Step 4&5
         let mapping = ActiveBufferMapping::new(
             match wgpu_mapping.mode {
                 HostMap::Read => GPUMapModeConstants::READ,
                 HostMap::Write => GPUMapModeConstants::WRITE,
             },
             wgpu_mapping.range,
+            Some(wgpu_mapping.data),
         );
 
         match mapping {
@@ -402,9 +414,7 @@ impl GPUBuffer {
                 *pending_map = None;
                 p.reject_error(error.clone());
             },
-            Ok(mut mapping) => {
-                // Step 5
-                mapping.data.load(&wgpu_mapping.data);
+            Ok(mapping) => {
                 // Step 6
                 self.mapping.borrow_mut().replace(mapping);
                 // Step 7
