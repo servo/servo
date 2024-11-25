@@ -18,7 +18,7 @@ use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
 use euclid::default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D};
-use euclid::{rect, SideOffsets2D};
+use euclid::{rect, Scale, SideOffsets2D};
 use fnv::FnvHashMap;
 use fonts::ByteIndex;
 use ipc_channel::ipc;
@@ -907,7 +907,12 @@ impl Fragment {
                     .filter_map(|(name, id)| id.as_shorthand().err().map(|id| (name, id)))
                     .map(|(name, id)| (name.clone(), style.computed_value_to_string(id)))
                     .collect();
-                painter.draw_a_paint_image(size_in_px, device_pixel_ratio, properties, arguments)
+                painter.draw_a_paint_image(
+                    size_in_px,
+                    Scale::new(device_pixel_ratio.get()),
+                    properties,
+                    arguments,
+                )
             },
             None => {
                 debug!("Worklet {} called before registration.", name);

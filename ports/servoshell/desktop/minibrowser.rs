@@ -24,7 +24,7 @@ use servo::compositing::windowing::EmbedderEvent;
 use servo::script_traits::TraversalDirection;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
-use servo::style_traits::DevicePixel;
+use servo::webrender_api::units::DevicePixel;
 use servo::webrender_traits::RenderingContext;
 use servo::TopLevelBrowsingContextId;
 use winit::event::{ElementState, MouseButton, WindowEvent};

@@ -5,8 +5,7 @@
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, warn};
 use script_traits::{EventResult, TouchId};
-use style_traits::DevicePixel;
-use webrender_api::units::{DeviceIntPoint, LayoutVector2D};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
 
 use self::TouchState::*;
 

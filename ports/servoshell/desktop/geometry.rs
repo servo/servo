@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Size2D};
-use servo::style_traits::DevicePixel;
+use servo::webrender_api::units::DevicePixel;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 
 pub fn winit_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {

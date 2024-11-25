@@ -25,7 +25,7 @@ use servo::script_traits::{
     MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
 };
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::style_traits::DevicePixel;
+use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use servo::{gl, Servo, TopLevelBrowsingContextId};

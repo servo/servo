@@ -16,8 +16,7 @@ use servo::compositing::windowing::{
 };
 use servo::config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::style_traits::DevicePixel;
-use servo::webrender_api::units::DeviceIntSize;
+use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 
