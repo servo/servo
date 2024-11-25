@@ -119,6 +119,7 @@ impl History {
                     serialized: data,
                     ports: None,
                     blobs: None,
+                    coordinates: None,
                 };
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
