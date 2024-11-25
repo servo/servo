@@ -243,6 +243,10 @@ impl InProgressLoad {
             .unwrap_or_default();
         let navigation_start = duration.as_millis();
         let navigation_start_precise = precise_time_ns();
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(name: "Navigation start", servo_profiling = true, url = url.to_string());
+
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id,
