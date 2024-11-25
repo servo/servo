@@ -19,14 +19,11 @@ webxr = ["dep:webxr"]
 
 [dependencies]
 base = { workspace = true }
-canvas = { path = "../canvas" }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-fonts = { path = "../fonts" }
-fonts_traits = { workspace = true }
 gleam = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
@@ -34,12 +31,10 @@ keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 net = { path = "../net" }
-net_traits = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
 servo_config = { path = "../config" }
-servo-media = { workspace = true }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_traits = { workspace = true }

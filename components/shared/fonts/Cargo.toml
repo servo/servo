@@ -12,9 +12,7 @@ name = "fonts_traits"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 range = { path = "../../range" }
 serde = { workspace = true }
-webrender_api = { workspace = true }

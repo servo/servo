@@ -369,11 +369,7 @@ version = "0.0.1"
 dependencies = [
  "base",
  "ipc-channel",
- "malloc_size_of_derive",
- "parking_lot",
  "serde",
- "servo_malloc_size_of",
- "webrender_api",
 ]
 
 [[package]]
@@ -708,14 +704,11 @@ dependencies = [
  "lyon_geom",
  "net_traits",
  "num-traits",
- "parking_lot",
- "pathfinder_geometry",
  "pixels",
  "range",
  "raqote",
  "servo_arc",
  "style",
- "style_traits",
  "surfman",
  "unicode-script",
  "webrender",
@@ -991,14 +984,11 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "base",
- "canvas",
  "compositing_traits",
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "fnv",
- "fonts",
- "fonts_traits",
  "gleam",
  "image",
  "ipc-channel",
@@ -1006,11 +996,9 @@ dependencies = [
  "libc",
  "log",
  "net",
- "net_traits",
  "pixels",
  "profile_traits",
  "script_traits",
- "servo-media",
  "servo_config",
  "servo_geometry",
  "servo_url",
@@ -1031,7 +1019,6 @@ dependencies = [
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
- "fonts_traits",
  "ipc-channel",
  "keyboard-types",
  "log",
@@ -1068,7 +1055,6 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "fonts",
- "fonts_traits",
  "gaol",
  "http",
  "ipc-channel",
@@ -2031,7 +2017,6 @@ dependencies = [
  "core-graphics",
  "core-text",
  "crossbeam-channel",
- "cssparser",
  "dwrote",
  "euclid",
  "fnv",
@@ -2058,16 +2043,13 @@ dependencies = [
  "servo_url",
  "smallvec",
  "style",
- "surfman",
  "tracing",
  "truetype",
- "unicode-bidi",
  "unicode-properties",
  "unicode-script",
  "url",
  "webrender_api",
  "webrender_traits",
- "xi-unicode",
  "xml-rs",
  "yeslogic-fontconfig-sys",
 ]
@@ -2076,12 +2058,10 @@ dependencies = [
 name = "fonts_traits"
 version = "0.0.1"
 dependencies = [
- "ipc-channel",
  "malloc_size_of_derive",
  "range",
  "serde",
  "servo_malloc_size_of",
- "webrender_api",
 ]
 
 [[package]]
@@ -3875,7 +3855,6 @@ dependencies = [
  "euclid",
  "fnv",
  "fonts",
- "fonts_traits",
  "html5ever",
  "ipc-channel",
  "log",
@@ -3935,7 +3914,6 @@ dependencies = [
  "range",
  "rayon",
  "script_layout_interface",
- "script_traits",
  "serde",
  "serde_json",
  "servo_arc",
@@ -4138,7 +4116,6 @@ dependencies = [
  "env_logger 0.10.2",
  "euclid",
  "fonts",
- "fonts_traits",
  "gaol",
  "gleam",
  "gstreamer",
@@ -4341,7 +4318,6 @@ dependencies = [
  "log",
  "serde",
  "servo-media",
- "servo_config",
  "webrender_api",
  "webrender_traits",
 ]
@@ -4404,7 +4380,6 @@ name = "metrics"
 version = "0.0.1"
 dependencies = [
  "base",
- "fonts_traits",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -4674,7 +4649,6 @@ dependencies = [
  "mime",
  "mime_guess",
  "net_traits",
- "percent-encoding",
  "pixels",
  "profile_traits",
  "rayon",
@@ -4715,7 +4689,6 @@ dependencies = [
  "http",
  "hyper",
  "hyper_serde",
- "image",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -4731,7 +4704,6 @@ dependencies = [
  "servo_url",
  "url",
  "uuid",
- "webrender_api",
  "webrender_traits",
 ]
 
@@ -6142,7 +6114,6 @@ dependencies = [
  "selectors",
  "serde",
  "servo_arc",
- "servo_atoms",
  "servo_malloc_size_of",
  "servo_url",
  "style",
@@ -6175,7 +6146,6 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "euclid",
- "fonts_traits",
  "http",
  "hyper_serde",
  "ipc-channel",
@@ -6191,7 +6161,6 @@ dependencies = [
  "servo_atoms",
  "servo_malloc_size_of",
  "servo_url",
- "smallvec",
  "style_traits",
  "uuid",
  "webdriver",
@@ -6670,7 +6639,6 @@ dependencies = [
  "ohos-vsync",
  "raw-window-handle",
  "serde_json",
- "servo-media",
  "servo_allocator",
  "shellwords",
  "sig",
@@ -8320,7 +8288,6 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "base",
- "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "ipc-channel",
