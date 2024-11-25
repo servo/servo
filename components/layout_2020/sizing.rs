@@ -40,13 +40,6 @@ pub(crate) struct ContentSizes {
 
 /// <https://drafts.csswg.org/css-sizing/#intrinsic-sizes>
 impl ContentSizes {
-    pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
-        Self {
-            min_content: f(self.min_content),
-            max_content: f(self.max_content),
-        }
-    }
-
     pub fn max(&self, other: Self) -> Self {
         Self {
             min_content: self.min_content.max(other.min_content),

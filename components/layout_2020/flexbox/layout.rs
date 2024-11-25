@@ -1882,12 +1882,20 @@ impl FlexItem<'_> {
         } else {
             (
                 cross_size.auto_is(|| {
+                    let style = self.box_.style();
+                    let stretch_size =
+                        Au::zero().max(containing_block.inline_size - self.pbm_auto_is_zero.cross);
+                    if flex_context
+                        .config
+                        .item_with_auto_cross_size_stretches_to_container_size(style, &self.margin)
+                    {
+                        return stretch_size;
+                    }
                     let constraint_space = ConstraintSpace::new(
                         SizeConstraint::Definite(used_main_size),
                         item_writing_mode,
                     );
-                    let content_contributions = self
-                        .box_
+                    self.box_
                         .independent_formatting_context
                         .inline_content_sizes(
                             flex_context.layout_context,
@@ -1895,22 +1903,11 @@ impl FlexItem<'_> {
                             &containing_block.into(),
                         )
                         .sizes
-                        .map(|size| {
-                            size.clamp_between_extremums(
-                                self.content_min_size.cross,
-                                self.content_max_size.cross,
-                            )
-                        });
-                    let stretch_size = containing_block.inline_size - self.pbm_auto_is_zero.cross;
-                    let style = self.box_.style();
-                    if flex_context
-                        .config
-                        .item_with_auto_cross_size_stretches_to_container_size(style, &self.margin)
-                    {
-                        stretch_size
-                    } else {
-                        content_contributions.shrink_to_fit(stretch_size)
-                    }
+                        .shrink_to_fit(stretch_size)
+                        .clamp_between_extremums(
+                            self.content_min_size.cross,
+                            self.content_max_size.cross,
+                        )
                 }),
                 // The main size of a flex item is considered to be definite if its flex basis is definite
                 // or the flex container has a definite main size.
