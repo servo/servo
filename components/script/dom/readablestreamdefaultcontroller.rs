@@ -538,8 +538,14 @@ impl ReadableStreamDefaultController {
         // Let result be the result of performing controller.[[strategySizeAlgorithm]],
         // passing in chunk, and interpreting the result as a completion record.
         // Note: the clone is necessary to prevent potential re-borrow panics.
-        let size = if let Some(strategy_size) = self.strategy_size.borrow().clone() {
-            let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
+        let strategy_size = {
+            let reference = self.strategy_size.borrow();
+            reference.clone()
+        };
+        let size = if let Some(strategy_size) = strategy_size {
+            // Note: the Rethrow exception handling is necessary,
+            // otherwise returning JSFailed will panic because no exception is pending.
+            let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
             match result {
                 // Let chunkSize be result.[[Value]].
                 Ok(size) => size,
@@ -547,12 +553,19 @@ impl ReadableStreamDefaultController {
                     // If result is an abrupt completion,
                     rooted!(in(*cx) let mut rval = UndefinedValue());
 
-                    // TODO: check if this is the right globalscope.
-                    unsafe {
-                        error
-                            .clone()
-                            .to_jsval(*cx, &self.global(), rval.handle_mut())
-                    };
+                    match error {
+                        // Note: `to_jsval` on JSFailed panics,
+                        // so result.[[Value]] is left undefined in this case.
+                        Error::JSFailed => {},
+                        _ => {
+                            // TODO: check if `self.global()` is the right globalscope.
+                            unsafe {
+                                error
+                                    .clone()
+                                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+                            };
+                        },
+                    }
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
                     self.error(rval.handle());
