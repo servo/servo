@@ -56,10 +56,9 @@ fn set_metric<U: ProgressiveWebMetric>(
     metric_type: ProgressiveWebMetricType,
     category: ProfilerCategory,
     attr: &Cell<Option<CrossProcessInstant>>,
-    metric_time: Option<CrossProcessInstant>,
+    metric_time: CrossProcessInstant,
     url: &ServoUrl,
 ) {
-    let metric_time = metric_time.unwrap_or_else(CrossProcessInstant::now);
     attr.set(Some(metric_time));
 
     // Queue performance observer notification.
@@ -211,7 +210,7 @@ impl InteractiveMetrics {
             ProgressiveWebMetricType::TimeToInteractive,
             ProfilerCategory::TimeToInteractive,
             &self.time_to_interactive,
-            Some(metric_time),
+            metric_time,
             &self.url,
         );
     }
@@ -285,25 +284,6 @@ impl PaintTimeMetrics {
         }
     }
 
-    pub fn maybe_set_first_paint<T>(&self, profiler_metadata_factory: &T)
-    where
-        T: ProfilerMetadataFactory,
-    {
-        if self.first_paint.get().is_some() {
-            return;
-        }
-
-        set_metric(
-            self,
-            profiler_metadata_factory.new_metadata(),
-            ProgressiveWebMetricType::FirstPaint,
-            ProfilerCategory::TimeToFirstPaint,
-            &self.first_paint,
-            None,
-            &self.url,
-        );
-    }
-
     pub fn maybe_observe_paint_time<T>(
         &self,
         profiler_metadata_factory: &T,
@@ -348,7 +328,7 @@ impl PaintTimeMetrics {
                 ProgressiveWebMetricType::FirstPaint,
                 ProfilerCategory::TimeToFirstPaint,
                 &self.first_paint,
-                Some(paint_time),
+                paint_time,
                 &self.url,
             );
 
@@ -359,7 +339,7 @@ impl PaintTimeMetrics {
                     ProgressiveWebMetricType::FirstContentfulPaint,
                     ProfilerCategory::TimeToFirstContentfulPaint,
                     &self.first_contentful_paint,
-                    Some(paint_time),
+                    paint_time,
                     &self.url,
                 );
             }
