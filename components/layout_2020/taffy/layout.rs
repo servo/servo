@@ -170,8 +170,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                 },
                                 pbm.padding_border_sums,
                                 LogicalVec2 {
-                                    inline: AlignFlags::START,
-                                    block: AlignFlags::START,
+                                    inline: Size::FitContent,
+                                    block: Size::FitContent,
                                 },
                             )
                             .to_physical_size(self.style.writing_mode);

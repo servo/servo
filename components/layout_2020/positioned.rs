@@ -476,6 +476,10 @@ impl HoistedAbsolutelyPositionedBox {
             true => style.clone_justify_self().0 .0,
             false => shared_fragment.resolved_alignment.inline,
         };
+        let inline_behaviour = match inline_alignment.value() {
+            AlignFlags::STRETCH => Size::Stretch,
+            _ => Size::FitContent,
+        };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
         // against this containing block.
@@ -486,6 +490,10 @@ impl HoistedAbsolutelyPositionedBox {
         let block_alignment = match block_box_offsets.either_specified() {
             true => style.clone_align_self().0 .0,
             false => shared_fragment.resolved_alignment.block,
+        };
+        let block_behaviour = match block_alignment.value() {
+            AlignFlags::STRETCH => Size::Stretch,
+            _ => Size::FitContent,
         };
 
         let (computed_size, computed_min_size, computed_max_size) = match context {
@@ -501,8 +509,8 @@ impl HoistedAbsolutelyPositionedBox {
                         &style,
                         &content_box_sizes_and_pbm,
                         LogicalVec2 {
-                            inline: inline_alignment,
-                            block: block_alignment,
+                            inline: inline_behaviour,
+                            block: block_behaviour,
                         },
                     )
                     .map(|size| Size::Numeric(*size));

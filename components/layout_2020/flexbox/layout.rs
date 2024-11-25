@@ -1942,8 +1942,8 @@ impl FlexItem<'_> {
                             .map(|size| size.map_or(Size::Initial, Size::Numeric)),
                         flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
                         LogicalVec2 {
-                            inline: AlignFlags::START,
-                            block: AlignFlags::START,
+                            inline: Size::FitContent,
+                            block: Size::FitContent,
                         },
                     );
                 let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
@@ -2740,8 +2740,8 @@ impl FlexItemBox {
                         padding_border_margin.padding_border_sums +
                             padding_border_margin.margin.auto_is(Au::zero).sum(),
                         LogicalVec2 {
-                            inline: AlignFlags::START,
-                            block: AlignFlags::START,
+                            inline: Size::FitContent,
+                            block: Size::FitContent,
                         },
                     )
                     .block

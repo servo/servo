@@ -20,7 +20,6 @@ use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::computed::image::Image as ComputedImage;
-use style::values::specified::align::AlignFlags;
 use style::values::CSSFloat;
 use style::Zero;
 use url::Url;
@@ -456,7 +455,7 @@ impl ReplacedContent {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
-        alignment: LogicalVec2<AlignFlags>,
+        initial_size_behavior: LogicalVec2<Size<Au>>,
     ) -> LogicalVec2<Au> {
         let pbm = &content_box_sizes_and_pbm.pbm;
         self.used_size_as_if_inline_element_from_content_box_sizes(
@@ -466,7 +465,7 @@ impl ReplacedContent {
             content_box_sizes_and_pbm.content_min_box_size,
             content_box_sizes_and_pbm.content_max_box_size,
             pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
-            alignment,
+            initial_size_behavior,
         )
     }
 
@@ -514,7 +513,7 @@ impl ReplacedContent {
         min_box_size: LogicalVec2<Size<Au>>,
         max_box_size: LogicalVec2<Size<Au>>,
         pbm_sums: LogicalVec2<Au>,
-        alignment: LogicalVec2<AlignFlags>,
+        initial_size_behavior: LogicalVec2<Size<Au>>,
     ) -> LogicalVec2<Au> {
         // <https://drafts.csswg.org/css-sizing-4/#preferred-aspect-ratio>
         let ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
@@ -543,6 +542,9 @@ impl ReplacedContent {
             .non_auto()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
+        let inline_behaviour = initial_size_behavior.inline;
+        let block_behaviour = initial_size_behavior.block;
+
         // First, compute the inline size. Intrinsic values depend on the block sizing properties
         // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
         // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
@@ -552,14 +554,14 @@ impl ReplacedContent {
                 SizeConstraint::new(
                     box_size
                         .block
-                        .maybe_resolve_extrinsic(Size::FitContent, Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(block_behaviour, Some(block_stretch_size)),
                     min_box_size
                         .block
-                        .maybe_resolve_extrinsic(Size::FitContent, Some(block_stretch_size))
+                        .maybe_resolve_extrinsic(block_behaviour, Some(block_stretch_size))
                         .unwrap_or_default(),
                     max_box_size
                         .block
-                        .maybe_resolve_extrinsic(Size::FitContent, Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(block_behaviour, Some(block_stretch_size)),
                 )
             };
             self.content_size(
@@ -570,10 +572,6 @@ impl ReplacedContent {
             )
             .into()
         });
-        let inline_behaviour = match alignment.inline.value() {
-            AlignFlags::STRETCH => Size::Stretch,
-            _ => Size::FitContent,
-        };
         let preferred_inline =
             box_size
                 .inline
@@ -590,8 +588,8 @@ impl ReplacedContent {
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                if box_size.inline.is_initial() {
-                    // TODO: do we really need to special-case `auto`?
+                if box_size.inline.is_initial() && inline_behaviour == Size::FitContent {
+                    // TODO: do we really need to special-case intrinsic `auto`?
                     // https://github.com/w3c/csswg-drafts/issues/11236
                     SizeConstraint::MinMax(min_inline, max_inline)
                 } else {
@@ -608,10 +606,6 @@ impl ReplacedContent {
         });
         let block_stretch_size =
             block_stretch_size.unwrap_or_else(|| block_content_size.max_content);
-        let block_behaviour = match alignment.block.value() {
-            AlignFlags::STRETCH => Size::Stretch,
-            _ => Size::FitContent,
-        };
         let preferred_block =
             box_size
                 .block
