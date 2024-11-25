@@ -51,7 +51,7 @@ fn set_metric<U: ProgressiveWebMetric>(
     metric_type: ProgressiveWebMetricType,
     category: ProfilerCategory,
     attr: &Cell<Option<u64>>,
-    metric_time: Option<u64>,
+    metric_time: u64,
     url: &ServoUrl,
 ) {
     let navigation_start = match pwm.get_navigation_start() {
@@ -61,14 +61,7 @@ fn set_metric<U: ProgressiveWebMetric>(
             return;
         },
     };
-    let now = match metric_time {
-        Some(time) => time,
-        None => SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64,
-    };
-    let time = now - navigation_start;
+    let time = metric_time - navigation_start;
     attr.set(Some(time));
 
     // Queue performance observer notification.
@@ -220,7 +213,7 @@ impl InteractiveMetrics {
             ProgressiveWebMetricType::TimeToInteractive,
             ProfilerCategory::TimeToInteractive,
             &self.time_to_interactive,
-            Some(metric_time),
+            metric_time,
             &self.url,
         );
     }
@@ -289,25 +282,6 @@ impl PaintTimeMetrics {
         }
     }
 
-    pub fn maybe_set_first_paint<T>(&self, profiler_metadata_factory: &T)
-    where
-        T: ProfilerMetadataFactory,
-    {
-        if self.first_paint.get().is_some() {
-            return;
-        }
-
-        set_metric(
-            self,
-            profiler_metadata_factory.new_metadata(),
-            ProgressiveWebMetricType::FirstPaint,
-            ProfilerCategory::TimeToFirstPaint,
-            &self.first_paint,
-            None,
-            &self.url,
-        );
-    }
-
     pub fn maybe_observe_paint_time<T>(
         &self,
         profiler_metadata_factory: &T,
@@ -352,7 +326,7 @@ impl PaintTimeMetrics {
                 ProgressiveWebMetricType::FirstPaint,
                 ProfilerCategory::TimeToFirstPaint,
                 &self.first_paint,
-                Some(paint_time),
+                paint_time,
                 &self.url,
             );
 
@@ -363,7 +337,7 @@ impl PaintTimeMetrics {
                     ProgressiveWebMetricType::FirstContentfulPaint,
                     ProfilerCategory::TimeToFirstContentfulPaint,
                     &self.first_contentful_paint,
-                    Some(paint_time),
+                    paint_time,
                     &self.url,
                 );
             }
