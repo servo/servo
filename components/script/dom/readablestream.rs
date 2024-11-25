@@ -102,7 +102,6 @@ pub struct ReadableStream {
     controller: ControllerType,
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
-    /// TODO: check correctness of this.
     #[ignore_malloc_size_of = "mozjs"]
     stored_error: Heap<JSVal>,
 
