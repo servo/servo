@@ -4009,6 +4009,7 @@ dependencies = [
  "layout_thread_2020",
  "log",
  "media",
+ "metrics",
  "mozangle",
  "net",
  "net_traits",
@@ -4290,6 +4291,7 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_url",
+ "tracing",
 ]
 
 [[package]]

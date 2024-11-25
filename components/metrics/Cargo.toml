@@ -10,6 +10,9 @@ publish.workspace = true
 name = "metrics"
 path = "lib.rs"
 
+[features]
+tracing = ["dep:tracing"]
+
 [dependencies]
 base = { workspace = true }
 fonts_traits = { workspace = true }
@@ -21,3 +24,4 @@ profile_traits = { workspace = true }
 script_traits = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
+tracing = { workspace = true, optional = true }
