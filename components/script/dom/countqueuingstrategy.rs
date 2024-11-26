@@ -15,7 +15,6 @@ use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
 };
 use super::bindings::import::module::{DomObject, DomRoot, Error, Fallible, Reflector};
 use super::bindings::reflector::reflect_dom_object_with_proto;
-use super::bytelengthqueuingstrategy::byte_length_queuing_strategy_size;
 use super::types::GlobalScope;
 use crate::script_runtime::CanGc;
 use crate::{native_fn, native_raw_obj_fn};
@@ -74,7 +73,7 @@ impl CountQueuingStrategyMethods for CountQueuingStrategy {
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = native_fn!(byte_length_queuing_strategy_size, c"size", 0, 0);
+        let fun = native_fn!(count_queuing_strategy_size, c"size", 0, 0);
         // Step 3. Set globalObject’s count queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject’s relevant settings object.
