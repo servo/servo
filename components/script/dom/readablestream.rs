@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{ObjectValue, UndefinedValue, JSVal};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
@@ -26,8 +26,8 @@ use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
@@ -37,7 +37,7 @@ use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
-use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::underlyingsourcecontainer::{UnderlyingSourceType, TeeUnderlyingSource};
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -107,6 +107,45 @@ pub enum ReaderType {
     BYOB(MutNullableDom<ReadableStreamBYOBReader>),
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader>
     Default(MutNullableDom<ReadableStreamDefaultReader>),
+}
+
+/// <https://streams.spec.whatwg.org/#create-readable-stream>
+fn create_readable_stream(
+    global: &GlobalScope,
+    underlying_source_type: UnderlyingSourceType,
+    queuing_strategy: QueuingStrategy,
+    can_gc: CanGc,
+) -> DomRoot<ReadableStream> {
+    // If highWaterMark was not passed, set it to 1.
+    let high_water_mark = queuing_strategy.highWaterMark.unwrap_or(1.0);
+
+    // If sizeAlgorithm was not passed, set it to an algorithm that returns 1.
+    let size_algorithm = queuing_strategy
+        .size
+        .unwrap_or(extract_size_algorithm(&QueuingStrategy::empty()));
+
+    // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
+    assert!(high_water_mark >= 0.0);
+
+    // Let stream be a new ReadableStream.
+    // Perform ! InitializeReadableStream(stream).
+    let stream = ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)));
+
+    // Let controller be a new ReadableStreamDefaultController.
+    let controler = ReadableStreamDefaultController::new(
+        global,
+        underlying_source_type,
+        high_water_mark,
+        size_algorithm,
+        can_gc,
+    );
+
+    // Perform ? SetUpReadableStreamDefaultController(stream, controller, startAlgorithm,
+    // pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm).
+    controler.setup(stream.clone(), can_gc);
+
+    // Return stream.
+    stream
 }
 
 /// <https://streams.spec.whatwg.org/#rs-class>
@@ -404,15 +443,31 @@ impl ReadableStream {
     /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
     pub fn start_reading(&self) -> Result<(), ()> {
+        let reader = self.acquire_default_reader(CanGc::note()).map_err(|_| ())?;
+        self.set_reader(Some(&reader));
+        Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
+    fn acquire_default_reader(
+        &self,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // Let reader be a new ReadableStreamDefaultReader.
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
         // Return reader.
-        let reader = ReadableStreamDefaultReader::set_up(&self.global(), self, CanGc::note())
-            .map_err(|_| ())?;
+        ReadableStreamDefaultReader::set_up(&self.global(), self, can_gc)
+    }
 
-        self.set_reader(Some(&reader));
-
-        Ok(())
+    pub fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
+        match self.controller {
+            ControllerType::Default(ref controller) => {
+                controller.get().expect("Stream should have controller.")
+            },
+            ControllerType::Byte(_) => unreachable!(
+                "Getting default controller for a stream with a non-default controller"
+            ),
+        }
     }
 
     /// Read a chunk from the stream,
@@ -627,6 +682,91 @@ impl ReadableStream {
             },
         }
     }
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
+    fn default_tee(&self, clone_for_branch2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+        // Assert: stream implements ReadableStream.
+
+        // Assert: cloneForBranch2 is a boolean.
+        let clon_for_branch2 = Rc::new(Cell::new(clone_for_branch2));
+
+        // Let reader be ? AcquireReadableStreamDefaultReader(stream).
+        let reader = self.acquire_default_reader(CanGc::note())?;
+
+        // Let reading be false.
+        let reading = Rc::new(Cell::new(false));
+        // Let readAgain be false.
+        let read_again = Rc::new(Cell::new(false));
+        // Let canceled1 be false.
+        let canceled1 = Rc::new(Cell::new(false));
+        // Let canceled2 be false.
+        let canceled2 = Rc::new(Cell::new(false));
+        // // Let reason1 be undefined.
+        let reason1 = RefCell::new(None);
+        // // Let reason2 be undefined.
+        let reason2 = RefCell::new(None);
+        // // Let branch1 be undefined.
+        let mut branch1: Option<DomRoot<ReadableStream>> = None;
+        // // Let branch2 be undefined.
+        let mut branch2: Option<DomRoot<ReadableStream>> = None;
+        // Let cancelPromise be a new promise.
+        let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
+
+        let underlying_sourc_type = UnderlyingSourceType::Tee {
+            tee_underlyin_source: TeeUnderlyingSource::new(
+                reader,
+                Dom::from_ref(self),
+                branch1.clone(),
+                branch2.clone(),
+                reading,
+                read_again,
+                canceled1,
+                canceled2,
+                clon_for_branch2,
+                reason1,
+                reason2,
+                cancel_promise,
+            ),
+        };
+
+        // Set branch1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
+        branch1 = Some(create_readable_stream(
+            &self.reflector_.global(),
+            underlying_sourc_type,
+            QueuingStrategy::empty(),
+            CanGc::note(),
+        ));
+
+        // Set branch2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
+        branch2 = Some(create_readable_stream(
+            &self.reflector_.global(),
+            underlying_sourc_type,
+            QueuingStrategy::empty(),
+            CanGc::note(),
+        ));
+
+        // Return « branch1, branch2 ».
+        Ok(vec![
+            // branch1.expect("Branch1 should be set."),
+            branch2.expect("Branch2 should be set."),
+        ])
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-tee>
+    fn tee(&self, clone_for_branch2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+        // Assert: stream implements ReadableStream.
+        // Assert: cloneForBranch2 is a boolean.
+
+        match self.controller {
+            ControllerType::Default(ref _controller) => {
+                // Return ? ReadableStreamDefaultTee(stream, cloneForBranch2).
+                return self.default_tee(clone_for_branch2);
+            },
+            ControllerType::Byte(ref _controller) => {
+                // If stream.[[controller]] implements ReadableByteStreamController, return ? ReadableByteStreamTee(stream).
+                todo!()
+            },
+        }
+    }
 }
 
 impl ReadableStreamMethods for ReadableStream {
@@ -732,11 +872,9 @@ impl ReadableStreamMethods for ReadableStream {
         if options.mode.is_none() {
             match self.reader {
                 ReaderType::Default(ref reader) => {
-                    reader.set(Some(&*ReadableStreamDefaultReader::set_up(
-                        &self.global(),
-                        self,
-                        can_gc,
-                    )?));
+                    // return ? AcquireReadableStreamDefaultReader(this).
+                    let acquired_reader = self.acquire_default_reader(can_gc)?;
+                    reader.set(Some(&*acquired_reader));
                     return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
                         reader.get().unwrap(),
                     ));
@@ -751,6 +889,12 @@ impl ReadableStreamMethods for ReadableStream {
         Err(Error::Type(
             "AcquireReadableStreamBYOBReader is not implemented".to_owned(),
         ))
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-tee>
+    fn Tee(&self) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+        // Return ? ReadableStreamTee(this, false).
+        self.tee(false)
     }
 }
 

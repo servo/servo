@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::mem;
 use std::rc::Rc;
@@ -9,9 +10,12 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, HandleValue};
 
+use super::bindings::refcounted::Trusted;
 use super::bindings::root::MutNullableDom;
+use super::bindings::structuredclone;
+use super::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
@@ -19,11 +23,13 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding:
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-request>
@@ -32,6 +38,199 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 pub enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     Read(Rc<Promise>),
+    /// Tee
+    Tee { tee_read_request: TeeReadRequest },
+}
+
+#[derive(JSTraceable)]
+pub struct TeeReadRequest {
+    stream: Dom<ReadableStream>,
+    branch1: Option<DomRoot<ReadableStream>>,
+    branch2: Option<DomRoot<ReadableStream>>,
+    reading: Rc<Cell<bool>>,
+    read_again: Rc<Cell<bool>>,
+    canceled1: Rc<Cell<bool>>,
+    canceled2: Rc<Cell<bool>>,
+    clon_for_branch2: Rc<Cell<bool>>,
+    cancel_promise: Rc<Promise>,
+    #[no_trace]
+    pull_algorithm: Box<dyn Fn()>,
+}
+
+impl TeeReadRequest {
+    pub fn new(
+        stream: Dom<ReadableStream>,
+        branch1: Option<DomRoot<ReadableStream>>,
+        branch2: Option<DomRoot<ReadableStream>>,
+        reading: Rc<Cell<bool>>,
+        read_again: Rc<Cell<bool>>,
+        canceled1: Rc<Cell<bool>>,
+        canceled2: Rc<Cell<bool>>,
+        clon_for_branch2: Rc<Cell<bool>>,
+        cancel_promise: Rc<Promise>,
+        pull_algorithm: impl Fn() + 'static,
+    ) -> Self {
+        TeeReadRequest {
+            stream,
+            branch1,
+            branch2,
+            reading,
+            read_again,
+            canceled1,
+            canceled2,
+            clon_for_branch2,
+            cancel_promise,
+            pull_algorithm: Box::new(pull_algorithm),
+        }
+    }
+
+    /// Call into error of the default controller of branch1,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
+    pub fn branch1_default_controller_error(&self, error: SafeHandleValue) {
+        self.branch1
+            .as_ref()
+            .expect("branch1 must be set")
+            .get_default_controller()
+            .error(error);
+    }
+
+    /// Call into error of the default controller of branch2,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
+    pub fn branch2_default_controller_error(&self, error: SafeHandleValue) {
+        self.branch2
+            .as_ref()
+            .expect("branch2 must be set")
+            .get_default_controller()
+            .error(error);
+    }
+
+    /// Call into cancel of the stream,
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
+    pub fn stream_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) {
+        self.stream.cancel(reason, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
+    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+        // Set readAgain to false.
+        self.read_again.set(false);
+        // Let chunk1 and chunk2 be chunk.
+        let chunk1 = &chunk;
+        let chunk2 = &chunk;
+
+        // If canceled2 is false and cloneForBranch2 is true,
+        if !self.canceled2.get() && self.clon_for_branch2.get() {
+            let cx = GlobalScope::get_cx();
+            // Let cloneResult be StructuredClone(chunk2).
+            rooted!(in(*cx) let mut clone_result = UndefinedValue());
+            let data = structuredclone::write(cx, chunk2.handle(), None).unwrap();
+
+            // If cloneResult is an abrupt completion,
+            if let Err(_) =
+                structuredclone::read(&self.stream.global(), data, clone_result.handle_mut())
+            {
+                // Perform ! ReadableStreamDefaultControllerError(branch1.[[controller]], cloneResult.[[Value]]).
+                self.branch1_default_controller_error(clone_result.handle());
+                // Perform ! ReadableStreamDefaultControllerError(branch2.[[controller]], cloneResult.[[Value]]).
+                self.branch2_default_controller_error(clone_result.handle());
+                // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
+                self.stream_cancel(clone_result.handle(), CanGc::note());
+
+                // Return.
+                return;
+            } else {
+                // Otherwise, set chunk2 to cloneResult.[[Value]].
+                chunk2.set(*clone_result);
+            }
+        }
+
+        // If canceled1 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch1.[[controller]], chunk1).
+        if !self.canceled1.get() {
+            self.branch1_default_controller_enqueue(chunk1.handle());
+        }
+        // If canceled2 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch2.[[controller]], chunk2).
+        if !self.canceled2.get() {
+            self.branch2_default_controller_enqueue(chunk2.handle());
+        }
+        // Set reading to false.
+        self.reading.set(false);
+
+        // If readAgain is true, perform pullAlgorithm.
+        if self.read_again.get() {
+            self.pull_algorithm();
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#read-request-close-steps>
+    pub fn close_steps(&self) {
+        // Set reading to false.
+        self.reading.set(false);
+
+        // If canceled1 is false, perform ! ReadableStreamDefaultControllerClose(branch1.[[controller]]).
+        if !self.canceled1.get() {
+            self.branch1_default_controller_close();
+        }
+        // If canceled2 is false, perform ! ReadableStreamDefaultControllerClose(branch2.[[controller]]).
+        if !self.canceled2.get() {
+            self.branch2_default_controller_close();
+        }
+        // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
+        if !self.canceled1.get() || !self.canceled2.get() {
+            self.cancel_promise.resolve_native(&());
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#read-request-error-steps>
+    pub fn error_steps(&self) {
+        // Set reading to false.
+        self.reading.set(false);
+    }
+
+    /// Call into enqueue of the default controller of branch1,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
+    pub fn branch1_default_controller_enqueue(&self, chunk: SafeHandleValue) {
+        let _ = self
+            .branch1
+            .as_ref()
+            .expect("branch1 must be set")
+            .get_default_controller()
+            .enqueue(GlobalScope::get_cx(), chunk, CanGc::note());
+    }
+
+    /// Call into enqueue of the default controller of branch2,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
+    pub fn branch2_default_controller_enqueue(&self, chunk: SafeHandleValue) {
+        let _ = self
+            .branch2
+            .as_ref()
+            .expect("branch2 must be set")
+            .get_default_controller()
+            .enqueue(GlobalScope::get_cx(), chunk, CanGc::note());
+    }
+
+    /// Call into close of the default controller of branch1,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
+    pub fn branch1_default_controller_close(&self) {
+        self.branch1
+            .as_ref()
+            .expect("branch1 must be set")
+            .get_default_controller()
+            .close();
+    }
+
+    /// Call into close of the default controller of branch2,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
+    pub fn branch2_default_controller_close(&self) {
+        self.branch2
+            .as_ref()
+            .expect("branch2 must be set")
+            .get_default_controller()
+            .close();
+    }
+
+    pub fn pull_algorithm(&self) {
+        (self.pull_algorithm)();
+    }
 }
 
 impl ReadRequest {
@@ -44,6 +243,9 @@ impl ReadRequest {
                     done: Some(false),
                     value: chunk,
                 });
+            },
+            ReadRequest::Tee { tee_read_request } => {
+                tee_read_request.chunk_steps(chunk);
             },
         }
     }
@@ -61,6 +263,9 @@ impl ReadRequest {
                     value: result,
                 });
             },
+            ReadRequest::Tee { tee_read_request } => {
+                tee_read_request.close_steps();
+            },
         }
     }
 
@@ -68,6 +273,45 @@ impl ReadRequest {
     pub fn error_steps(&self, e: SafeHandleValue) {
         match self {
             ReadRequest::Read(promise) => promise.reject_native(&e),
+            ReadRequest::Tee { tee_read_request } => {
+                tee_read_request.error_steps();
+            },
+        }
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#readable-stream-tee>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct ClosedPromiseRejectionHandler {
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    branch1_controller: Trusted<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    branch2_controller: Trusted<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Rc"]
+    canceled1: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
+    canceled2: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
+    cancel_promise: Rc<Promise>,
+}
+
+impl Callback for ClosedPromiseRejectionHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    /// Upon rejection of reader.[[closedPromise]] with reason r,
+    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+        let branch1_controller = self.branch1_controller.root();
+        let branch2_controller = self.branch1_controller.root();
+
+        // Perform ! ReadableStreamDefaultControllerError(branch1.[[controller]], r).
+        branch1_controller.error(v);
+        // Perform ! ReadableStreamDefaultControllerError(branch2.[[controller]], r).
+        branch2_controller.error(v);
+
+        // If canceled1 is false or canceled2 is false, resolve cancelPromise with undefined.
+        if !self.canceled1.get() || !self.canceled2.get() {
+            self.cancel_promise.resolve_native(&());
         }
     }
 }
@@ -292,7 +536,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    fn read(&self, read_request: ReadRequest) {
+    pub fn read(&self, read_request: ReadRequest) {
         // step 1 & 2
         assert!(self.stream.get().is_some());
 
@@ -314,6 +558,42 @@ impl ReadableStreamDefaultReader {
                 stream.perform_pull_steps(read_request);
             }
         }
+    }
+
+    pub fn append_native_handler_to_closed_promise(
+        &self,
+        branch1: Option<DomRoot<ReadableStream>>,
+        branch2: Option<DomRoot<ReadableStream>>,
+        canceled1: Rc<Cell<bool>>,
+        canceled2: Rc<Cell<bool>>,
+        cancel_promise: Rc<Promise>,
+    ) {
+        let branch1_controller = branch1
+            .as_ref()
+            .expect("branch1 must be set")
+            .get_default_controller();
+
+        let branch2_controller = branch2
+            .as_ref()
+            .expect("branch2 must be set")
+            .get_default_controller();
+
+        let global = self.global();
+        let rejection_handler = Box::new(ClosedPromiseRejectionHandler {
+            branch1_controller: Trusted::new(&branch1_controller),
+            branch2_controller: Trusted::new(&branch2_controller),
+            canceled1,
+            canceled2,
+            cancel_promise,
+        });
+        let handler = PromiseNativeHandler::new(&global, None, Some(rejection_handler));
+
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+
+        self.closed_promise
+            .borrow()
+            .append_native_handler(&handler, comp, CanGc::note());
     }
 }
 

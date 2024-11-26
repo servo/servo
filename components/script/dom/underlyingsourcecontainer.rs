@@ -2,22 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
+use super::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::readablestreamdefaultreader::{ReadRequest, TeeReadRequest};
 use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
@@ -37,6 +40,10 @@ pub enum UnderlyingSourceType {
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
+    /// Tee
+    Tee {
+        tee_underlyin_source: TeeUnderlyingSource,
+    },
 }
 
 impl UnderlyingSourceType {
@@ -44,15 +51,117 @@ impl UnderlyingSourceType {
     pub fn is_native(&self) -> bool {
         matches!(
             self,
-            UnderlyingSourceType::Memory(_) |
-                UnderlyingSourceType::Blob(_) |
-                UnderlyingSourceType::FetchResponse
+            UnderlyingSourceType::Memory(_)
+                | UnderlyingSourceType::Blob(_)
+                | UnderlyingSourceType::FetchResponse
         )
     }
 
     /// Does the source have all data in memory?
     pub fn in_memory(&self) -> bool {
         matches!(self, UnderlyingSourceType::Memory(_))
+    }
+}
+
+#[derive(JSTraceable)]
+pub struct TeeUnderlyingSource {
+    reader: DomRoot<ReadableStreamDefaultReader>,
+    stream: Dom<ReadableStream>,
+    branch1: Option<DomRoot<ReadableStream>>,
+    branch2: Option<DomRoot<ReadableStream>>,
+    reading: Rc<Cell<bool>>,
+    read_again: Rc<Cell<bool>>,
+    canceled1: Rc<Cell<bool>>,
+    canceled2: Rc<Cell<bool>>,
+    clon_for_branch2: Rc<Cell<bool>>,
+    #[no_trace]
+    reason1: RefCell<Option<JSVal>>,
+    #[no_trace]
+    reason2: RefCell<Option<JSVal>>,
+    cancel_promise: Rc<Promise>,
+}
+
+impl TeeUnderlyingSource {
+    pub fn new(
+        reader: DomRoot<ReadableStreamDefaultReader>,
+        stream: Dom<ReadableStream>,
+        branch1: Option<DomRoot<ReadableStream>>,
+        branch2: Option<DomRoot<ReadableStream>>,
+        reading: Rc<Cell<bool>>,
+        read_again: Rc<Cell<bool>>,
+        canceled1: Rc<Cell<bool>>,
+        canceled2: Rc<Cell<bool>>,
+        clon_for_branch2: Rc<Cell<bool>>,
+        reason1: RefCell<Option<JSVal>>,
+        reason2: RefCell<Option<JSVal>>,
+        cancel_promise: Rc<Promise>,
+    ) -> TeeUnderlyingSource {
+        TeeUnderlyingSource {
+            reader,
+            stream,
+            branch1,
+            branch2,
+            reading,
+            read_again,
+            canceled1,
+            canceled2,
+            clon_for_branch2,
+            reason1,
+            reason2,
+            cancel_promise,
+        }
+    }
+
+    pub fn pull_algorithm(&self) -> Option<Rc<Promise>> {
+        // If reading is true,
+        if self.reading.get() {
+            // Set readAgain to true.
+            self.read_again.set(true);
+            // Return a promise resolved with undefined.
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            return Some(Promise::new_resolved(&self.stream.global(), cx, rval.handle()).unwrap());
+        }
+
+        // Set reading to true.
+        self.reading.set(true);
+
+        // Let readRequest be a read request with the following items:
+        let read_request = ReadRequest::Tee {
+            tee_read_request: TeeReadRequest::new(
+                self.stream.clone(),
+                self.branch1.clone(),
+                self.branch2.clone(),
+                self.reading.clone(),
+                self.read_again.clone(),
+                self.canceled1.clone(),
+                self.canceled2.clone(),
+                self.clon_for_branch2.clone(),
+                self.cancel_promise.clone(),
+                || {
+                    // self.pull_algorithm()
+                },
+            ),
+        };
+
+        self.reader.append_native_handler_to_closed_promise(
+            self.branch1.clone(),
+            self.branch2.clone(),
+            self.canceled1.clone(),
+            self.canceled2.clone(),
+            self.cancel_promise.clone(),
+        );
+
+        // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
+        self.reader.read(read_request);
+
+        // Return a promise resolved with undefined.
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        match Promise::new_resolved(&self.stream.global(), GlobalScope::get_cx(), rval.handle()) {
+            Ok(promise) => Some(promise),
+            Err(_) => None,
+        }
     }
 }
 
