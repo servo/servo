@@ -91,8 +91,18 @@ pub unsafe fn byte_length_queuing_strategy_size(
     vp: *mut JSVal,
 ) -> bool {
     let args = CallArgs::from_vp(vp, argc);
+
     // Step 1.1: Return ? GetV(chunk, "byteLength").
-    rooted!(in(cx) let object = HandleValue::from_raw(args.get(0)).to_object());
+    let val = HandleValue::from_raw(args.get(0));
+
+    // https://tc39.es/ecma262/multipage/abstract-operations.html#sec-getv
+    // Let O be ? ToObject(V).
+    if !val.is_object() {
+        return false;
+    }
+    rooted!(in(cx) let object = val.to_object());
+
+    // Return ? O.[[Get]](P, V).
     get_dictionary_property(
         cx,
         object.handle(),
