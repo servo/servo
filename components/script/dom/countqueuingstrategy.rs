@@ -44,7 +44,7 @@ impl CountQueuingStrategy {
     }
 }
 
-impl CountQueuingStrategyMethods for CountQueuingStrategy {
+impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy {
     /// <https://streams.spec.whatwg.org/#cqs-constructor>
     fn Constructor(
         global: &GlobalScope,
