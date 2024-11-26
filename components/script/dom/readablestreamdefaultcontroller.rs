@@ -492,9 +492,10 @@ impl ReadableStreamDefaultController {
 
                 // Perform ! ReadableStreamClose(stream).
                 stream.close();
+            } else {
+                // Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
+                self.call_pull_if_needed(CanGc::note());
             }
-            // Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
-            self.call_pull_if_needed(CanGc::note());
 
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -508,6 +509,7 @@ impl ReadableStreamDefaultController {
                 },
             }
             result.set(*rval);
+            // Perform readRequest’s chunk steps, given chunk.
             read_request.chunk_steps(result);
         } else {
             // Perform ! ReadableStreamAddReadRequest(stream, readRequest).
@@ -546,79 +548,81 @@ impl ReadableStreamDefaultController {
         // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             stream.fulfill_read_request(chunk, false);
-            return Ok(());
-        }
+        } else {
+            // Otherwise,
+            // Let result be the result of performing controller.[[strategySizeAlgorithm]],
+            // passing in chunk, and interpreting the result as a completion record.
+            // Note: the clone is necessary to prevent potential re-borrow panics.
+            let strategy_size = {
+                let reference = self.strategy_size.borrow();
+                reference.clone()
+            };
+            let size = if let Some(strategy_size) = strategy_size {
+                // Note: the Rethrow exception handling is necessary,
+                // otherwise returning JSFailed will panic because no exception is pending.
+                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
+                match result {
+                    // Let chunkSize be result.[[Value]].
+                    Ok(size) => size,
+                    Err(error) => {
+                        // If result is an abrupt completion,
+                        rooted!(in(*cx) let mut rval = UndefinedValue());
 
-        // Let result be the result of performing controller.[[strategySizeAlgorithm]],
-        // passing in chunk, and interpreting the result as a completion record.
-        // Note: the clone is necessary to prevent potential re-borrow panics.
-        let strategy_size = {
-            let reference = self.strategy_size.borrow();
-            reference.clone()
-        };
-        let size = if let Some(strategy_size) = strategy_size {
-            // Note: the Rethrow exception handling is necessary,
-            // otherwise returning JSFailed will panic because no exception is pending.
-            let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
-            match result {
-                // Let chunkSize be result.[[Value]].
-                Ok(size) => size,
-                Err(error) => {
-                    // If result is an abrupt completion,
+                        match error {
+                            // Note: `to_jsval` on JSFailed panics,
+                            // so result.[[Value]] is left undefined in this case.
+                            Error::JSFailed => {},
+                            _ => {
+                                // TODO: check if `self.global()` is the right globalscope.
+                                unsafe {
+                                    error
+                                        .clone()
+                                        .to_jsval(*cx, &self.global(), rval.handle_mut())
+                                };
+                            },
+                        }
+
+                        // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
+                        self.error(rval.handle());
+
+                        // Return result.
+                        return Err(error);
+                    },
+                }
+            } else {
+                0.
+            };
+
+            // We create the value-with-size created inside
+            // EnqueueValueWithSize here.
+            let value_with_size = ValueWithSize {
+                value: Heap::default(),
+                size,
+            };
+            value_with_size.value.set(chunk.get());
+
+            {
+                // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
+                let mut queue = self.queue.borrow_mut();
+                if let Err(error) =
+                    queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size))
+                {
+                    // If enqueueResult is an abrupt completion,
+
                     rooted!(in(*cx) let mut rval = UndefinedValue());
+                    // TODO: check if this is the right globalscope.
+                    unsafe {
+                        error
+                            .clone()
+                            .to_jsval(*cx, &self.global(), rval.handle_mut())
+                    };
 
-                    match error {
-                        // Note: `to_jsval` on JSFailed panics,
-                        // so result.[[Value]] is left undefined in this case.
-                        Error::JSFailed => {},
-                        _ => {
-                            // TODO: check if `self.global()` is the right globalscope.
-                            unsafe {
-                                error
-                                    .clone()
-                                    .to_jsval(*cx, &self.global(), rval.handle_mut())
-                            };
-                        },
-                    }
-
-                    // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
+                    // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
                     self.error(rval.handle());
 
-                    // Return result.
+                    // Return enqueueResult.
                     return Err(error);
-                },
-            }
-        } else {
-            0.
-        };
-
-        // We create the value-with-size created inside
-        // EnqueueValueWithSize here.
-        let value_with_size = ValueWithSize {
-            value: Heap::default(),
-            size,
-        };
-        value_with_size.value.set(chunk.get());
-
-        {
-            // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
-            let mut queue = self.queue.borrow_mut();
-            if let Err(error) = queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size)) {
-                // If enqueueResult is an abrupt completion,
-
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                // TODO: check if this is the right globalscope.
-                unsafe {
-                    error
-                        .clone()
-                        .to_jsval(*cx, &self.global(), rval.handle_mut())
-                };
-
-                // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
-                self.error(rval.handle());
-
-                // Return enqueueResult.
-                return Err(error);
+                }
             }
         }
 
