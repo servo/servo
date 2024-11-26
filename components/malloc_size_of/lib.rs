@@ -146,7 +146,7 @@ impl MallocSizeOf for keyboard_types::Key {
     }
 }
 
-impl MallocSizeOf for xml5ever::QualName {
+impl MallocSizeOf for markup5ever::QualName {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.prefix.size_of(ops) + self.ns.size_of(ops) + self.local.size_of(ops)
     }

@@ -19,6 +19,7 @@ euclid = { workspace = true }
 http = { workspace = true }
 indexmap = { workspace = true }
 keyboard-types = { workspace = true }
+markup5ever = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 servo_allocator = { path = "../allocator" }
@@ -34,4 +35,3 @@ url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
 wr_malloc_size_of = { workspace = true }
-xml5ever = { workspace = true }
