@@ -560,7 +560,7 @@ impl ReadableStreamDefaultController {
             let size = if let Some(strategy_size) = strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
-                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
+                let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
                 match result {
                     // Let chunkSize be result.[[Value]].
                     Ok(size) => size,
@@ -586,7 +586,10 @@ impl ReadableStreamDefaultController {
                         self.error(rval.handle());
 
                         // Return result.
-                        return Err(error);
+                        // Note: we need to return a type error, because no exception is pending.
+                        return Err(Error::Type(
+                            "Couldn't convert result from strategy size call.".to_string(),
+                        ));
                     },
                 }
             } else {
