@@ -446,6 +446,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
+    #[allow(unsafe_code)]
     pub fn perform_cancel_steps(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
         self.queue.borrow_mut().reset();
@@ -462,14 +463,27 @@ impl ReadableStreamDefaultController {
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
                 promise.resolve_native(&());
-                promise
+                Ok(promise)
             });
+        let promise = result.unwrap_or_else(|error| {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if `self.global()` is the right globalscope.
+            unsafe {
+                error
+                    .clone()
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+            };
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&rval.handle());
+            promise
+        });
 
         // Perform ! ReadableStreamDefaultControllerClearAlgorithms(this).
         self.clear_algorithms();
 
-        // Return result
-        result
+        // Return result(the promise).
+        promise
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>

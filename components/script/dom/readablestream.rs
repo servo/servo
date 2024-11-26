@@ -61,6 +61,24 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
     }
 }
 
+/// The rejection handler for the reacting to sourceCancelPromise part of
+/// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct SourceCancelPromiseRejectionHandler {
+    #[ignore_malloc_size_of = "Rc are hard"]
+    result: Rc<Promise>,
+}
+
+impl Callback for SourceCancelPromiseRejectionHandler {
+    /// The rejection handler for the reacting to sourceCancelPromise part of
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
+    /// An implementation of <https://webidl.spec.whatwg.org/#dfn-perform-steps-once-promise-is-settled>
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        self.result.reject_native(&v);
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#readablestream-state>
 #[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ReadableStreamState {
@@ -567,7 +585,11 @@ impl ReadableStream {
         let fulfillment_handler = Box::new(SourceCancelPromiseFulfillmentHandler {
             result: result_promise.clone(),
         });
-        let handler = PromiseNativeHandler::new(&global, Some(fulfillment_handler), None);
+        let rejection_handler = Box::new(SourceCancelPromiseRejectionHandler {
+            result: result_promise.clone(),
+        });
+        let handler =
+            PromiseNativeHandler::new(&global, Some(fulfillment_handler), Some(rejection_handler));
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         source_cancel_promise.append_native_handler(&handler, comp, can_gc);

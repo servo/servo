@@ -12,6 +12,7 @@ use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValu
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
+use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -101,18 +102,20 @@ impl UnderlyingSourceContainer {
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
     #[allow(unsafe_code)]
-    pub fn call_cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Rc<Promise>> {
+    pub fn call_cancel_algorithm(
+        &self,
+        reason: SafeHandleValue,
+    ) -> Option<Result<Rc<Promise>, Error>> {
         if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
             if let Some(algo) = &source.cancel {
-                unsafe {
-                    return algo
-                        .Call_(
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            Some(reason),
-                            ExceptionHandling::Report,
-                        )
-                        .ok();
-                }
+                let result = unsafe {
+                    algo.Call_(
+                        &SafeHandle::from_raw(this_obj.handle()),
+                        Some(reason),
+                        ExceptionHandling::Rethrow,
+                    )
+                };
+                return Some(result);
             }
         }
         None
