@@ -123,18 +123,20 @@ impl UnderlyingSourceContainer {
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
     #[allow(unsafe_code)]
-    pub fn call_pull_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
+    pub fn call_pull_algorithm(
+        &self,
+        controller: Controller,
+    ) -> Option<Result<Rc<Promise>, Error>> {
         if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(pull) = &source.pull {
-                unsafe {
-                    return pull
-                        .Call_(
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            controller,
-                            ExceptionHandling::Report,
-                        )
-                        .ok();
-                }
+            if let Some(algo) = &source.pull {
+                let result = unsafe {
+                    algo.Call_(
+                        &SafeHandle::from_raw(this_obj.handle()),
+                        controller,
+                        ExceptionHandling::Rethrow,
+                    )
+                };
+                return Some(result);
             }
         }
         // Note: other source type have no pull steps for now.

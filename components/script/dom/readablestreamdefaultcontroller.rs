@@ -398,6 +398,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    #[allow(unsafe_code)]
     fn call_pull_if_needed(&self, can_gc: CanGc) {
         if !self.should_call_pull() {
             return;
@@ -436,13 +437,27 @@ impl ReadableStreamDefaultController {
 
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
-        if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
-            promise.append_native_handler(&handler, comp, can_gc);
-        } else {
+        let result = underlying_source
+            .call_pull_algorithm(controller)
+            .unwrap_or_else(|| {
+                let promise = Promise::new(&global, can_gc);
+                promise.resolve_native(&());
+                Ok(promise)
+            });
+        let promise = result.unwrap_or_else(|error| {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if `self.global()` is the right globalscope.
+            unsafe {
+                error
+                    .clone()
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+            };
             let promise = Promise::new(&global, can_gc);
-            promise.append_native_handler(&handler, comp, can_gc);
-            promise.resolve_native(&());
-        }
+            promise.reject_native(&rval.handle());
+            promise
+        });
+        promise.append_native_handler(&handler, comp, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
