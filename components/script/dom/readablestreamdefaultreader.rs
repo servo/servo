@@ -317,7 +317,7 @@ impl ReadableStreamDefaultReader {
     }
 }
 
-impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
+impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     fn Constructor(
         global: &GlobalScope,
