@@ -1399,21 +1399,28 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
     make_setter!(SetFormAction, "formaction");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
-    make_enumerated_getter!(
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
+    make_enumerated_getter_new!(
         FormEnctype,
         "formenctype",
-        "application/x-www-form-urlencoded",
-        "text/plain" | "multipart/form-data"
+        "application/x-www-form-urlencoded" | "text/plain" | "multipart/form-data",
+        missing => "",
+        invalid => "application/x-www-form-urlencoded"
     );
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
-    make_enumerated_getter!(FormMethod, "formmethod", "get", "post" | "dialog");
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
+    make_enumerated_getter_new!(
+        FormMethod,
+        "formmethod",
+        "get" | "post" | "dialog",
+        missing => "get",
+        invalid => "get"
+    );
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_setter!(SetFormMethod, "formmethod");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formtarget

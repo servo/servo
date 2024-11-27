@@ -217,17 +217,24 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     make_setter!(SetAction, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_enumerated_getter!(Autocomplete, "autocomplete", "on", "off");
+    make_enumerated_getter_new!(
+        Autocomplete,
+        "autocomplete",
+        "on" | "off",
+        missing => "on",
+        invalid => "on"
+    );
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
-    make_enumerated_getter!(
+    make_enumerated_getter_new!(
         Enctype,
         "enctype",
-        "application/x-www-form-urlencoded",
-        "text/plain" | "multipart/form-data"
+        "application/x-www-form-urlencoded" | "text/plain" | "multipart/form-data",
+        missing => "application/x-www-form-urlencoded",
+        invalid => "application/x-www-form-urlencoded"
     );
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
@@ -244,7 +251,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
-    make_enumerated_getter!(Method, "method", "get", "post" | "dialog");
+    make_enumerated_getter_new!(
+        Method,
+        "method",
+        "get" | "post" | "dialog",
+        missing => "get",
+        invalid => "get"
+    );
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
     make_setter!(SetMethod, "method");
