@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::ptr;
 use std::rc::Rc;
 
@@ -63,22 +63,36 @@ impl UnderlyingSourceType {
     }
 }
 
-#[derive(JSTraceable)]
+pub enum TeeCancelAlgorithm {
+    Cancel1Algorithm,
+    Cancel2Algorithm,
+}
+
+#[dom_struct]
 pub struct TeeUnderlyingSource {
     reader: DomRoot<ReadableStreamDefaultReader>,
     stream: Dom<ReadableStream>,
     branch1: Option<DomRoot<ReadableStream>>,
     branch2: Option<DomRoot<ReadableStream>>,
+    #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     read_again: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     canceled1: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     canceled2: Rc<Cell<bool>>,
-    clon_for_branch2: Rc<Cell<bool>>,
-    #[no_trace]
-    reason1: RefCell<Option<JSVal>>,
-    #[no_trace]
-    reason2: RefCell<Option<JSVal>>,
+    #[ignore_malloc_size_of = "Rc"]
+    clone_for_branch2: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
+    reason1: Rc<Heap<*mut JSObject>>,
+    #[ignore_malloc_size_of = "Rc"]
+    reason2: Rc<Heap<*mut JSObject>>,
+    #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
+    #[ignore_malloc_size_of = "TeeCancelAlgorithm"]
+    #[no_trace]
+    tee_cancel_algorithm: TeeCancelAlgorithm,
 }
 
 impl TeeUnderlyingSource {
@@ -91,10 +105,11 @@ impl TeeUnderlyingSource {
         read_again: Rc<Cell<bool>>,
         canceled1: Rc<Cell<bool>>,
         canceled2: Rc<Cell<bool>>,
-        clon_for_branch2: Rc<Cell<bool>>,
-        reason1: RefCell<Option<JSVal>>,
-        reason2: RefCell<Option<JSVal>>,
+        clone_for_branch2: Rc<Cell<bool>>,
+        reason1: Rc<Heap<*mut JSObject>>,
+        reason2: Rc<Heap<*mut JSObject>>,
         cancel_promise: Rc<Promise>,
+        tee_cancel_algorithm: TeeCancelAlgorithm,
     ) -> TeeUnderlyingSource {
         TeeUnderlyingSource {
             reader,
@@ -105,13 +120,16 @@ impl TeeUnderlyingSource {
             read_again,
             canceled1,
             canceled2,
-            clon_for_branch2,
+            clone_for_branch2,
             reason1,
             reason2,
             cancel_promise,
+            tee_cancel_algorithm,
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
+    /// Let pullAlgorithm be the following steps:
     pub fn pull_algorithm(&self) -> Option<Rc<Promise>> {
         // If reading is true,
         if self.reading.get() {
@@ -136,11 +154,9 @@ impl TeeUnderlyingSource {
                 self.read_again.clone(),
                 self.canceled1.clone(),
                 self.canceled2.clone(),
-                self.clon_for_branch2.clone(),
+                self.clone_for_branch2.clone(),
                 self.cancel_promise.clone(),
-                || {
-                    // self.pull_algorithm()
-                },
+                Dom::from_ref(self),
             ),
         };
 
@@ -162,6 +178,47 @@ impl TeeUnderlyingSource {
             Ok(promise) => Some(promise),
             Err(_) => None,
         }
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
+    /// Let cancel1Algorithm be the following steps, taking a reason argument
+    /// and
+    /// Let cancel2Algorithm be the following steps, taking a reason argument
+    fn cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Rc<Promise>> {
+        match self.tee_cancel_algorithm {
+            TeeCancelAlgorithm::Cancel1Algorithm => {
+                // Set canceled1 to true.
+                self.canceled1.set(true);
+                // Set reason1 to reason.
+                self.reason1.set(reason.to_object());
+                // If canceled2 is true,
+                if self.canceled2.get() {
+                    // Let compositeReason be ! CreateArrayFromList(« reason1, reason2 »).
+
+                    // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
+                    let _cancel_result = self.stream.cancel(reason, CanGc::note());
+                    // Resolve cancelPromise with cancelResult.
+                }
+                // Return cancelPromise.
+                return Some(self.cancel_promise.clone());
+            },
+            TeeCancelAlgorithm::Cancel2Algorithm => {
+                // Set canceled2 to true.
+                self.canceled2.set(true);
+                // Set reason2 to reason.
+                self.reason2.set(reason.to_object());
+                // If canceled1 is true,
+                if self.canceled1.get() {
+                    // Let compositeReason be ! CreateArrayFromList(« reason1, reason2 »).
+
+                    // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
+                    let _cancel_result = self.stream.cancel(reason, CanGc::note());
+                    // Resolve cancelPromise with cancelResult.
+                }
+                // Return cancelPromise.
+                return Some(self.cancel_promise.clone());
+            },
+        };
     }
 }
 

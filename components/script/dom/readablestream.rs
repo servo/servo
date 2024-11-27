@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
@@ -42,6 +42,8 @@ use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+
+use super::underlyingsourcecontainer::TeeCancelAlgorithm;
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -687,7 +689,7 @@ impl ReadableStream {
         // Assert: stream implements ReadableStream.
 
         // Assert: cloneForBranch2 is a boolean.
-        let clon_for_branch2 = Rc::new(Cell::new(clone_for_branch2));
+        let clone_for_branch2 = Rc::new(Cell::new(clone_for_branch2));
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
         let reader = self.acquire_default_reader(CanGc::note())?;
@@ -701,9 +703,9 @@ impl ReadableStream {
         // Let canceled2 be false.
         let canceled2 = Rc::new(Cell::new(false));
         // // Let reason1 be undefined.
-        let reason1 = RefCell::new(None);
+        let reason1 = Rc::new(Heap::default());
         // // Let reason2 be undefined.
-        let reason2 = RefCell::new(None);
+        let reason2 = Rc::new(Heap::default());
         // // Let branch1 be undefined.
         let mut branch1: Option<DomRoot<ReadableStream>> = None;
         // // Let branch2 be undefined.
@@ -711,7 +713,25 @@ impl ReadableStream {
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
 
-        let underlying_sourc_type = UnderlyingSourceType::Tee {
+        let underlying_sourc_type_branch1 = UnderlyingSourceType::Tee {
+            tee_underlyin_source: TeeUnderlyingSource::new(
+                reader.clone(),
+                Dom::from_ref(self),
+                branch1.clone(),
+                branch2.clone(),
+                reading.clone(),
+                read_again.clone(),
+                canceled1.clone(),
+                canceled2.clone(),
+                clone_for_branch2.clone(),
+                reason1.clone(),
+                reason2.clone(),
+                cancel_promise.clone(),
+                TeeCancelAlgorithm::Cancel1Algorithm,
+            ),
+        };
+
+        let underlying_sourc_type_branch2 = UnderlyingSourceType::Tee {
             tee_underlyin_source: TeeUnderlyingSource::new(
                 reader,
                 Dom::from_ref(self),
@@ -721,17 +741,18 @@ impl ReadableStream {
                 read_again,
                 canceled1,
                 canceled2,
-                clon_for_branch2,
+                clone_for_branch2,
                 reason1,
                 reason2,
                 cancel_promise,
+                TeeCancelAlgorithm::Cancel2Algorithm,
             ),
         };
 
         // Set branch1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
         branch1 = Some(create_readable_stream(
             &self.reflector_.global(),
-            underlying_sourc_type,
+            underlying_sourc_type_branch1,
             QueuingStrategy::empty(),
             CanGc::note(),
         ));
@@ -739,14 +760,14 @@ impl ReadableStream {
         // Set branch2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
         branch2 = Some(create_readable_stream(
             &self.reflector_.global(),
-            underlying_sourc_type,
+            underlying_sourc_type_branch2,
             QueuingStrategy::empty(),
             CanGc::note(),
         ));
 
         // Return « branch1, branch2 ».
         Ok(vec![
-            // branch1.expect("Branch1 should be set."),
+            branch1.expect("Branch1 should be set."),
             branch2.expect("Branch2 should be set."),
         ])
     }

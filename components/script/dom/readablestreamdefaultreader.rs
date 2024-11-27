@@ -16,6 +16,7 @@ use super::bindings::refcounted::Trusted;
 use super::bindings::root::MutNullableDom;
 use super::bindings::structuredclone;
 use super::types::ReadableStreamDefaultController;
+use super::underlyingsourcecontainer::TeeUnderlyingSource;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
@@ -38,7 +39,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 pub enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     Read(Rc<Promise>),
-    /// Tee
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
     Tee { tee_read_request: TeeReadRequest },
 }
 
@@ -51,10 +52,9 @@ pub struct TeeReadRequest {
     read_again: Rc<Cell<bool>>,
     canceled1: Rc<Cell<bool>>,
     canceled2: Rc<Cell<bool>>,
-    clon_for_branch2: Rc<Cell<bool>>,
+    clone_for_branch2: Rc<Cell<bool>>,
     cancel_promise: Rc<Promise>,
-    #[no_trace]
-    pull_algorithm: Box<dyn Fn()>,
+    tee_underlying_source: Dom<TeeUnderlyingSource>,
 }
 
 impl TeeReadRequest {
@@ -66,9 +66,9 @@ impl TeeReadRequest {
         read_again: Rc<Cell<bool>>,
         canceled1: Rc<Cell<bool>>,
         canceled2: Rc<Cell<bool>>,
-        clon_for_branch2: Rc<Cell<bool>>,
+        clone_for_branch2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
-        pull_algorithm: impl Fn() + 'static,
+        tee_underlying_source: Dom<TeeUnderlyingSource>,
     ) -> Self {
         TeeReadRequest {
             stream,
@@ -78,9 +78,9 @@ impl TeeReadRequest {
             read_again,
             canceled1,
             canceled2,
-            clon_for_branch2,
+            clone_for_branch2,
             cancel_promise,
-            pull_algorithm: Box::new(pull_algorithm),
+            tee_underlying_source,
         }
     }
 
@@ -119,7 +119,7 @@ impl TeeReadRequest {
         let chunk2 = &chunk;
 
         // If canceled2 is false and cloneForBranch2 is true,
-        if !self.canceled2.get() && self.clon_for_branch2.get() {
+        if !self.canceled2.get() && self.clone_for_branch2.get() {
             let cx = GlobalScope::get_cx();
             // Let cloneResult be StructuredClone(chunk2).
             rooted!(in(*cx) let mut clone_result = UndefinedValue());
@@ -229,7 +229,7 @@ impl TeeReadRequest {
     }
 
     pub fn pull_algorithm(&self) {
-        (self.pull_algorithm)();
+        self.tee_underlying_source.pull_algorithm();
     }
 }
 
