@@ -18,7 +18,7 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
-use html5ever::{namespace_url, ns, Namespace, Prefix, QualName};
+use html5ever::{namespace_url, ns, serialize as html_serialize, Namespace, Prefix, QualName};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
@@ -43,6 +43,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
+use xml5ever::serialize as xml_serialize;
 
 use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
@@ -2448,9 +2449,55 @@ impl Node {
         }
         &*(conversions::private_from_object(object) as *const Self)
     }
+
+    pub fn html_serialize(&self, traversal_scope: html_serialize::TraversalScope) -> DOMString {
+        let mut writer = vec![];
+        html_serialize::serialize(
+            &mut writer,
+            &self,
+            html_serialize::SerializeOpts {
+                traversal_scope,
+                ..Default::default()
+            },
+        )
+        .expect("Cannot serialize node");
+
+        // FIXME(ajeffrey): Directly convert UTF8 to DOMString
+        DOMString::from(String::from_utf8(writer).unwrap())
+    }
+
+    pub fn xml_serialize(&self, traversal_scope: xml_serialize::TraversalScope) -> DOMString {
+        let mut writer = vec![];
+        xml_serialize::serialize(
+            &mut writer,
+            &self,
+            xml_serialize::SerializeOpts { traversal_scope },
+        )
+        .expect("Cannot serialize node");
+
+        // FIXME(ajeffrey): Directly convert UTF8 to DOMString
+        DOMString::from(String::from_utf8(writer).unwrap())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
+    pub fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
+        // Step 1. Let context document be node's node document.
+        let context_document = document_from_node(self);
+
+        // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
+        // with node, false, and « ».
+        if context_document.is_html_document() {
+            return self.html_serialize(html_serialize::TraversalScope::ChildrenOnly(None));
+        }
+
+        // Step 3. Return the XML serialization of node given require well-formed.
+        // TODO: xml5ever doesn't seem to want require_well_formed
+        let _ = require_well_formed;
+        self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
+    }
 }
 
-impl NodeMethods for Node {
+impl NodeMethods<crate::DomTypeHolder> for Node {
     /// <https://dom.spec.whatwg.org/#dom-node-nodetype>
     fn NodeType(&self) -> u16 {
         match self.type_id() {

@@ -47,7 +47,7 @@ impl DOMParser {
     }
 }
 
-impl DOMParserMethods for DOMParser {
+impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
     /// <https://html.spec.whatwg.org/multipage/#dom-domparser-constructor>
     fn Constructor(
         window: &Window,

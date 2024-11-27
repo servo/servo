@@ -36,22 +36,22 @@
     --match-registered: no;
     --match-registered-number: no;
   }
-  @container scroll-state(overflowing: var(--unknown)) {
+  @container scroll-state(scrollable: var(--unknown)) {
     #target { --match-unknown: yes; }
   }
-  @container (overflowing: var(--unknown, right)) {
+  @container (scrollable: var(--unknown, right)) {
     #target { --match-unknown-fallback: yes; }
   }
-  @container (overflowing: var(--unregistered)) {
+  @container (scrollable: var(--unregistered)) {
     #target { --match-unregistered: yes; }
   }
-  @container (overflowing: var(--unregistered-number)) {
+  @container (scrollable: var(--unregistered-number)) {
     #target { --match-unregistered-number: yes; }
   }
-  @container (overflowing: var(--registered)) {
+  @container (scrollable: var(--registered)) {
     #target { --match-registered: yes; }
   }
-  @container (overflowing: var(--registered-number)) {
+  @container (scrollable: var(--registered-number)) {
     #target { --match-registered-number: yes; }
   }
 </style>

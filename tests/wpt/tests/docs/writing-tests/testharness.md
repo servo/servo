@@ -167,9 +167,25 @@ are:
 * `jsshell`: to be run in a JavaScript shell, without access to the DOM
   (currently only supported in SpiderMonkey, and skipped in wptrunner)
 * `worker`: shorthand for the dedicated, shared, and service worker scopes
-* `shadowrealm`: runs the test code in a
+* `shadowrealm-in-window`: runs the test code in a
   [ShadowRealm](https://github.com/tc39/proposal-shadowrealm) context hosted in
-  an ordinary Window context; to be run at <code><var>x</var>.any.shadowrealm.html</code>
+  an ordinary Window context; to be run at <code><var>x</var>.any.shadowrealm-in-window.html</code>
+* `shadowrealm-in-shadowrealm`: runs the test code in a ShadowRealm context
+  hosted in another ShadowRealm context; to be run at
+  <code><var>x</var>.any.shadowrealm-in-shadowrealm.html</code>
+* `shadowrealm-in-dedicatedworker`: runs the test code in a ShadowRealm context
+  hosted in a dedicated worker; to be run at
+  <code><var>x</var>.any.shadowrealm-in-dedicatedworker.html</code>
+* `shadowrealm-in-sharedworker`: runs the test code in a ShadowRealm context
+  hosted in a shared worker; to be run at
+  <code><var>x</var>.any.shadowrealm-in-sharedworker.html</code>
+* `shadowrealm-in-serviceworker`: runs the test code in a ShadowRealm context
+  hosted in a service worker; to be run at
+  <code><var>x</var>.https.any.shadowrealm-in-serviceworker.html</code>
+* `shadowrealm-in-audioworklet`: runs the test code in a ShadowRealm context
+  hosted in an AudioWorklet processor; to be run at
+  <code><var>x</var>.https.any.shadowrealm-in-audioworklet.html</code>
+* `shadowrealm`: shorthand for all of the ShadowRealm scopes
 
 To check what scope your test is run from, you can use the following methods that will
 be made available by the framework:

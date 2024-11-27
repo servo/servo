@@ -32,8 +32,8 @@ use style::values::generics::NonNegative;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style::Zero;
-use style_traits::{CSSPixel, DevicePixel};
-use webrender_api::units::{LayoutPixel, LayoutSize};
+use style_traits::CSSPixel;
+use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
     ImageRendering, NinePatchBorder, NinePatchBorderSource,
@@ -250,14 +250,20 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Au>,
         section: StackingContextSection,
+        is_hit_test_for_scrollable_overflow: bool,
     ) {
         match self {
-            Fragment::Box(b) | Fragment::Float(b) => match b.style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    BuilderForBoxFragment::new(b, containing_block).build(builder, section)
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                match box_fragment.style.get_inherited_box().visibility {
+                    Visibility::Visible => BuilderForBoxFragment::new(
+                        box_fragment,
+                        containing_block,
+                        is_hit_test_for_scrollable_overflow,
+                    )
+                    .build(builder, section),
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
             },
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Positioning(positioning_fragment) => {
@@ -508,10 +514,15 @@ struct BuilderForBoxFragment<'a> {
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    is_hit_test_for_scrollable_overflow: bool,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
-    fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Au>) -> Self {
+    fn new(
+        fragment: &'a BoxFragment,
+        containing_block: &'a PhysicalRect<Au>,
+        is_hit_test_for_scrollable_overflow: bool,
+    ) -> Self {
         let border_rect = fragment
             .border_rect()
             .translate(containing_block.origin.to_vector());
@@ -550,6 +561,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
+            is_hit_test_for_scrollable_overflow,
         }
     }
 
@@ -635,25 +647,31 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
+        if self.is_hit_test_for_scrollable_overflow {
+            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
+            return;
+        }
+
         if section == StackingContextSection::Outline {
             self.build_outline(builder);
-        } else {
-            self.build_hit_test(builder);
-            if self
-                .fragment
-                .base
-                .flags
-                .contains(FragmentFlags::DO_NOT_PAINT)
-            {
-                return;
-            }
-            self.build_background(builder);
-            self.build_box_shadow(builder);
-            self.build_border(builder);
+            return;
         }
+
+        self.build_hit_test(builder, self.border_rect);
+        if self
+            .fragment
+            .base
+            .flags
+            .contains(FragmentFlags::DO_NOT_PAINT)
+        {
+            return;
+        }
+        self.build_background(builder);
+        self.build_box_shadow(builder);
+        self.build_border(builder);
     }
 
-    fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
+    fn build_hit_test(&self, builder: &mut DisplayListBuilder, rect: LayoutRect) {
         let hit_info = builder.hit_info(
             &self.fragment.style,
             self.fragment.base.tag,
@@ -664,7 +682,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             None => return,
         };
 
-        let mut common = builder.common_properties(self.border_rect, &self.fragment.style);
+        let mut common = builder.common_properties(rect, &self.fragment.style);
         if let Some(clip_chain_id) = self.border_edge_clip(builder, false) {
             common.clip_chain_id = clip_chain_id;
         }

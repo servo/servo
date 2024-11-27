@@ -37,6 +37,7 @@ webxr = [
     "compositing/webxr",
     "embedder_traits/webxr",
     "canvas/webxr",
+    "script/webxr",
 ]
 
 [dependencies]
@@ -57,7 +58,6 @@ embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { path = "../fonts" }
-fonts_traits = { workspace = true }
 gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 ipc-channel = { workspace = true }
@@ -92,5 +92,5 @@ webrender_traits = { workspace = true }
 webxr = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 
-[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"

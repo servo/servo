@@ -65,7 +65,7 @@ impl DOMPoint {
     }
 }
 
-impl DOMPointMethods for DOMPoint {
+impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
     // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-dompointreadonly
     fn Constructor(
         global: &GlobalScope,

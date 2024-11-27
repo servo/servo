@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1926015">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that the inner flex container's cross-size (height) serves as a percentage basis for its descendants. The img can transfer its height through the aspect-ratio to the inline axis when computing its intrinsic inline size contribution. This determines the .test div's intrinsic inline size.">
+
+<style>
+.outer {
+  display: flex;
+  flex-direction: column;
+}
+.inner {
+  display: flex;
+  width: 100%;
+  height: 100px;
+}
+.test {
+  height: 100%;
+  background: red;
+}
+.test > img {
+  height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="outer">
+  <div class="inner">
+    <div class="test">
+      <img src="aspect-ratio/support/200x200-green.png">
+    </div>
+  </div>
+</div>

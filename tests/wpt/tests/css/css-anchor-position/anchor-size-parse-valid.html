@@ -98,7 +98,9 @@ test_valid_value('width', 'anchor-size(--foo, 10px)');
 test_valid_value('width', 'anchor-size(10px)');
 
 // Tests that anchor-size() can be used in a calc tree
-test_valid_value('width', 'calc((anchor-size(--foo width) + anchor-size(--bar height)) / 2)');
+// Still follow the simplification process as outlined in https://drafts.csswg.org/css-values-4/#calc-simplification
+test_valid_value('width', 'calc((anchor-size(--foo width) + anchor-size(--bar height)) / 2)', 'calc(0.5 * (anchor-size(--foo width) + anchor-size(--bar height)))');
+test_valid_value('width', 'calc(0.5 * (anchor-size(--foo width) + anchor-size(--bar height)))');
 test_valid_value('width', 'anchor-size(--foo width, calc(anchor-size(--bar height) * 0.5))');
 test_valid_value('width', 'min(100px, 10%, anchor-size(--foo width), anchor-size(--bar height))');
 </script>

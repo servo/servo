@@ -67,7 +67,7 @@ impl ExtendableEvent {
     }
 }
 
-impl ExtendableEventMethods for ExtendableEvent {
+impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
     // https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,
@@ -100,11 +100,5 @@ impl ExtendableEventMethods for ExtendableEvent {
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
-    }
-}
-
-impl Default for ExtendableEventInit {
-    fn default() -> Self {
-        Self::empty()
     }
 }

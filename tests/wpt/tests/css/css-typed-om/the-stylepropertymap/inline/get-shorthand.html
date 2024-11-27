@@ -22,15 +22,15 @@ test(t => {
 test(t => {
   const styleMap = createInlineStyleMap(t, 'margin-top: 1px');
   const result = styleMap.get('margin');
-  assert_equals(result, null,
-    'Shorthand value must be null as it is not explicitly set');
+  assert_equals(result, undefined,
+    'Shorthand value must be undefined as it is not explicitly set');
 }, 'Getting a shorthand property that is partially set in inline style ' +
    'returns null');
 
 test(t => {
   const styleMap = createDivWithoutStyle(t).attributeStyleMap;
-  assert_equals(styleMap.get('margin'), null,
-    'Shorthand value must be null for element without style');
+  assert_equals(styleMap.get('margin'), undefined,
+    'Shorthand value must be undefined for element without style');
 }, 'Getting an attributeStyleMap shorthand property from an element without ' +
    'a style attribute');
 </script>

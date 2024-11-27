@@ -10,8 +10,7 @@ use servo::compositing::windowing::{EmbedderEvent, WindowMethods};
 use servo::config::opts;
 use servo::embedder_traits::Cursor;
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::style_traits::DevicePixel;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;

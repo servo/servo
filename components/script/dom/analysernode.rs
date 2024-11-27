@@ -137,7 +137,7 @@ impl AnalyserNode {
     }
 }
 
-impl AnalyserNodeMethods for AnalyserNode {
+impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
     fn Constructor(
         window: &Window,

@@ -2538,6 +2538,7 @@ impl Document {
         // TODO: should this only happen on the first document loaded?
         // https://immersive-web.github.io/webxr/#user-intention
         // https://github.com/immersive-web/navigation/issues/10
+        #[cfg(feature = "webxr")]
         if pref!(dom.webxr.sessionavailable) && self.window.is_top_level() {
             self.window.Navigator().Xr().dispatch_sessionavailable();
         }
@@ -4269,7 +4270,7 @@ impl ProfilerMetadataFactory for Document {
 }
 
 #[allow(non_snake_case)]
-impl DocumentMethods for Document {
+impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://dom.spec.whatwg.org/#dom-document-document
     fn Constructor(
         window: &Window,

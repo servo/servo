@@ -101,7 +101,7 @@ impl DOMTokenList {
 }
 
 /// <https://dom.spec.whatwg.org/#domtokenlist>
-impl DOMTokenListMethods for DOMTokenList {
+impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-length>
     fn Length(&self) -> u32 {
         self.attribute()

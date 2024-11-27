@@ -79,7 +79,7 @@ impl DissimilarOriginWindow {
     }
 }
 
-impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
+impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWindow {
     // https://html.spec.whatwg.org/multipage/#dom-window
     fn Window(&self) -> DomRoot<WindowProxy> {
         self.window_proxy()

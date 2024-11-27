@@ -78,7 +78,7 @@ impl ResizeObserverEntry {
     }
 }
 
-impl ResizeObserverEntryMethods for ResizeObserverEntry {
+impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-target>
     fn Target(&self) -> DomRoot<Element> {
         DomRoot::from_ref(&*self.target)

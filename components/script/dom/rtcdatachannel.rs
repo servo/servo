@@ -256,7 +256,7 @@ enum SendSource<'a, 'b> {
     ArrayBufferView(CustomAutoRooterGuard<'b, ArrayBufferView>),
 }
 
-impl RTCDataChannelMethods for RTCDataChannel {
+impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen
     event_handler!(open, GetOnopen, SetOnopen);
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onbufferedamountlow

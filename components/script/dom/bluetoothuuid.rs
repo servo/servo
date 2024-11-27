@@ -584,7 +584,7 @@ const CHARACTERISTIC_ERROR_MESSAGE: &str =
 const DESCRIPTOR_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/descriptors/Pages/\
      DescriptorsHomePage.aspx\ne.g. 'gatt.characteristic_presentation_format'.";
 
-impl BluetoothUUIDMethods for BluetoothUUID {
+impl BluetoothUUIDMethods<crate::DomTypeHolder> for BluetoothUUID {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
     fn CanonicalUUID(_: &Window, alias: u32) -> UUID {
         canonical_uuid(alias)
@@ -621,15 +621,6 @@ impl BluetoothUUID {
 
     pub fn descriptor(name: BluetoothDescriptorUUID) -> Fallible<UUID> {
         resolve_uuid_name(name, BLUETOOTH_ASSIGNED_DESCRIPTORS, DESCRIPTOR_PREFIX)
-    }
-}
-
-impl Clone for StringOrUnsignedLong {
-    fn clone(&self) -> StringOrUnsignedLong {
-        match self {
-            StringOrUnsignedLong::String(s) => StringOrUnsignedLong::String(s.clone()),
-            &StringOrUnsignedLong::UnsignedLong(ul) => StringOrUnsignedLong::UnsignedLong(ul),
-        }
     }
 }
 

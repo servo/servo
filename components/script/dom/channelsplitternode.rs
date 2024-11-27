@@ -86,7 +86,7 @@ impl ChannelSplitterNode {
     }
 }
 
-impl ChannelSplitterNodeMethods for ChannelSplitterNode {
+impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-channelsplitternode-channelsplitternode>
     fn Constructor(
         window: &Window,

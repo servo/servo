@@ -387,7 +387,7 @@ impl Event {
     }
 }
 
-impl EventMethods for Event {
+impl EventMethods<crate::DomTypeHolder> for Event {
     /// <https://dom.spec.whatwg.org/#dom-event-event>
     fn Constructor(
         global: &GlobalScope,
@@ -752,10 +752,4 @@ fn inner_invoke(
 
     // Step 3.
     found
-}
-
-impl Default for EventBinding::EventInit {
-    fn default() -> Self {
-        Self::empty()
-    }
 }

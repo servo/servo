@@ -26,7 +26,7 @@ async function select_range(t, anchorNode, focusNode) {
 promise_test(async t => {
   document.body.innerHTML = `
     <div id=old_parent>
-      <span>This text does not move</span>
+      <span id=notMove>This text does not move</span>
       <span id=text>Text</span>
     </div>
     <div id=new_parent></div>`;
@@ -53,24 +53,9 @@ promise_test(async t => {
   // the selection range *after*, which will accurately represent the internal
   // visual selection that the user sees, and we can run our assertions on it.
   new_parent.moveBefore(text, null);
-  assert_equals(getSelection().anchorNode, text.firstChild);
+  assert_equals(getSelection().anchorNode, notMove.firstChild);
+  assert_equals(getSelection().focusNode, notMove.firstChild);
 }, "moveBefore should not reset selection with preceding text");
-
-promise_test(async t => {
-  document.body.innerHTML = `
-    <div id=old_parent>
-      <span>This text does not move</span>
-      <span id=text>Text</span>
-      <span>This text ALSO does not move</span>
-    </div>
-    <div id=new_parent></div>`;
-  getSelection().removeAllRanges();
-
-  await select_range(t, text, text);
-
-  new_parent.moveBefore(text, null);
-  assert_equals(getSelection().anchorNode, text.firstChild);
-}, "moveBefore should not reset selection with preceding and following text");
 
 const kHTML = `
   <div id=grandparentDiv>
@@ -92,10 +77,10 @@ promise_test(async t => {
   await select_range(t, parentParagraph, childParagraph1);
 
   grandparentDiv.moveBefore(parentDiv, grandparentParagraph);
-  assert_equals(getSelection().anchorNode, parentParagraph.firstChild);
-  assert_equals(getSelection().focusNode, childParagraph1.firstChild);
-}, "moveBefore should not reset selection that enters a subtree, when the " +
-   "whole selection is moved");
+  assert_equals(getSelection().anchorNode, grandparentParagraph.firstChild);
+  assert_equals(getSelection().focusNode, grandparentParagraph.firstChild);
+}, "moveBefore resets selection that enters a subtree, when the whole " +
+   "selection is moved");
 
 // Selection anchor node is moved upwards in the DOM, to suddenly intersect more
 // nodes.
@@ -105,9 +90,9 @@ promise_test(async t => {
   await select_range(t, parentParagraph, childParagraph1);
 
   grandparentDiv.moveBefore(parentParagraph, grandparentParagraph);
-  assert_equals(getSelection().anchorNode, parentParagraph.firstChild);
+  assert_equals(getSelection().anchorNode, childParagraph1.firstChild);
   assert_equals(getSelection().focusNode, childParagraph1.firstChild);
-  assert_true(getSelection().getRangeAt(0).intersectsNode(grandparentParagraph));
+  assert_false(getSelection().getRangeAt(0).intersectsNode(grandparentParagraph));
 }, "moveBefore anchor node moved up to expand selection and absorb nodes");
 
 // Intersecting nodes are moved *out* of the selection.
@@ -131,9 +116,10 @@ promise_test(async t => {
 
   parentDiv.moveBefore(childDiv, parentParagraph);
   assert_equals(getSelection().anchorNode, grandparentParagraph.firstChild);
-  assert_equals(getSelection().focusNode, childParagraph2.firstChild);
-  assert_false(getSelection().getRangeAt(0).intersectsNode(parentParagraph));
-}, "moveBefore focus node moved up to shrink selection and exclude nodes");
+  assert_equals(getSelection().focusNode, parentParagraph.firstChild);
+  assert_true(getSelection().getRangeAt(0).intersectsNode(parentParagraph));
+}, "moveBefore focus node moved up to shrink selection and exclude nodes; " +
+   "focus node gets reset");
 
 // Selection focus node is moved upwards in the DOM, shrinking the selection and
 // excluding once-intersecting nodes.
@@ -149,13 +135,16 @@ promise_test(async t => {
   getSelection().removeAllRanges();
   await select_range(t, i3, i4);
 
-  // Move the last list item to the position before the first. This pulls the
-  // range upwards, suddenly intersecting both `i2` and `i3`.
+  // Move the last list item (the selection focus node) to the position before
+  // the first. This resets the range to be collapsed at `i3`.
   list.moveBefore(i4, i1);
-  assert_equals(getSelection().focusNode, i4.firstChild);
+  assert_equals(getSelection().focusNode, i3.firstChild);
   assert_equals(getSelection().anchorNode, i3.firstChild);
-  assert_true(getSelection().getRangeAt(0).intersectsNode(i2));
+  assert_true(getSelection().getRangeAt(0).collapsed, "Range is collased at `i3`");
+  assert_false(getSelection().getRangeAt(0).intersectsNode(i2),
+      "Range does not intersect node that comes before anchor");
   assert_true(getSelection().getRangeAt(0).intersectsNode(i3));
-}, "moveBefore selection is preserved when directionality changes");
+}, "moveBefore selection is not preserved, especially when underlying range " +
+   "gets inverted");
 </script>
 </html>

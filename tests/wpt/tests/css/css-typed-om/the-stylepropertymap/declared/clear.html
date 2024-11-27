@@ -21,11 +21,11 @@ test(t => {
   let styleMap = createInlineStyleMap(t, '--foo: auto; width: 10px; transition-duration: 1s, 2s');
 
   styleMap.clear();
-  assert_equals(styleMap.get('--foo'), null,
+  assert_equals(styleMap.get('--foo'), undefined,
     'Custom properties should be cleared');
-  assert_equals(styleMap.get('width'), null,
+  assert_equals(styleMap.get('width'), undefined,
     'CSS properties should be cleared');
-  assert_equals(styleMap.get('transition-duration'), null,
+  assert_equals(styleMap.get('transition-duration'), undefined,
     'List-valued properties should be cleared');
   assert_array_equals([...styleMap], []);
 }, 'Can clear a CSS rule containing properties');

@@ -51,7 +51,7 @@ impl FileReaderSync {
     }
 }
 
-impl FileReaderSyncMethods for FileReaderSync {
+impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     /// <https://w3c.github.io/FileAPI/#filereadersyncConstrctr>
     fn Constructor(
         global: &GlobalScope,

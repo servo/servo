@@ -38,7 +38,7 @@ impl GamepadButton {
     }
 }
 
-impl GamepadButtonMethods for GamepadButton {
+impl GamepadButtonMethods<crate::DomTypeHolder> for GamepadButton {
     // https://www.w3.org/TR/gamepad/#widl-GamepadButton-pressed
     fn Pressed(&self) -> bool {
         self.pressed.get()

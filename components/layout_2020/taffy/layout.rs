@@ -10,7 +10,7 @@ use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
 use style::Zero;
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
-use taffy::{AvailableSpace, MaybeMath};
+use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
 
 use super::{TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle};
 use crate::cell::ArcRefCell;
@@ -172,11 +172,15 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             )
                             .to_physical_size(self.style.writing_mode);
 
-                        child.child_fragments = replaced.contents.make_fragments(
-                            &replaced.style,
-                            containing_block,
-                            content_box_size,
-                        );
+                        // Create fragments if the RunMode if PerformLayout
+                        // If the RunMode is ComputeSize then only the returned size will be used
+                        if inputs.run_mode == RunMode::PerformLayout {
+                            child.child_fragments = replaced.contents.make_fragments(
+                                &replaced.style,
+                                containing_block,
+                                content_box_size,
+                            );
+                        }
 
                         let computed_size = taffy::Size {
                             width: inputs.known_dimensions.width.unwrap_or_else(|| {
@@ -235,6 +239,17 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
 
                             resolve_content_size(adjusted_available_space, result.sizes)
                         });
+
+                        // Return early if only inline content sizes are requested
+                        if inputs.run_mode == RunMode::ComputeSize &&
+                            inputs.axis == RequestedAxis::Horizontal
+                        {
+                            return taffy::LayoutOutput::from_outer_size(taffy::Size {
+                                width: inline_size + pbm.padding_border_sums.inline.to_f32_px(),
+                                // If RequestedAxis is Horizontal then height will be ignored.
+                                height: 0.0,
+                            });
+                        }
 
                         let maybe_block_size =
                             option_f32_to_lpa(content_box_known_dimensions.height);

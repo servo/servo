@@ -496,3 +496,110 @@ async def test_with_accepted_beforeunload_prompt(
     assert events[0]["url"] == target_url
 
     remove_listener()
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_new_context(bidi_session, subscribe_events, type_hint):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+
+    # Track all received browsingContext.navigationStarted events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        NAVIGATION_STARTED_EVENT, on_event
+    )
+
+    await bidi_session.browsing_context.create(type_hint=type_hint)
+
+    # In the future we can wait for "browsingContext.contextCreated" event instead.
+    wait = AsyncPoll(bidi_session, timeout=0.5)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 0)
+
+    remove_listener()
+
+
+async def test_navigate_to_about_blank(
+    bidi_session, subscribe_events, new_tab, wait_for_event, wait_for_future_safe
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+
+    on_entry = wait_for_event(NAVIGATION_STARTED_EVENT)
+    url = "about:blank"
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url
+    )
+    event = await wait_for_future_safe(on_entry)
+
+    assert_navigation_info(
+        event,
+        {
+            "context": new_tab["context"],
+            "navigation": result["navigation"],
+            "url": url,
+        },
+    )
+
+
+@pytest.mark.parametrize("url", ["", "about:blank", "about:blank?test"])
+async def test_window_open_with_about_blank(
+    bidi_session, subscribe_events, top_context, url
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+
+    # Track all received browsingContext.navigationStarted events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        NAVIGATION_STARTED_EVENT, on_event
+    )
+
+    await bidi_session.script.evaluate(
+        expression=f"window.open('{url}');",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    # In the future we can wait for "browsingContext.contextCreated" event instead.
+    wait = AsyncPoll(bidi_session, timeout=0.5)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 0)
+
+    remove_listener()
+
+
+async def test_window_open_with_url(
+    bidi_session,
+    subscribe_events,
+    top_context,
+    wait_for_event,
+    inline,
+    wait_for_future_safe,
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+    on_navigation_started = wait_for_event(NAVIGATION_STARTED_EVENT)
+    url = inline("<div>foo</div>")
+
+    await bidi_session.script.evaluate(
+        expression=f"window.open('{url}');",
+        target=ContextTarget(top_context["context"]),
+        await_promise=False,
+    )
+
+    event = await wait_for_future_safe(on_navigation_started)
+
+    result = await bidi_session.browsing_context.get_tree()
+
+    assert_navigation_info(
+        event,
+        {
+            "context": result[1]["context"],
+            "url": url,
+        },
+    )

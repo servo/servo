@@ -66,7 +66,7 @@ impl GPURenderBundle {
     }
 }
 
-impl GPURenderBundleMethods for GPURenderBundle {
+impl GPURenderBundleMethods<crate::DomTypeHolder> for GPURenderBundle {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

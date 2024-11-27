@@ -66,7 +66,6 @@ getopts = { workspace = true }
 hitrace = { workspace = true, optional = true }
 mime_guess = { workspace = true }
 url = { workspace = true }
-servo-media = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }

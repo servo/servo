@@ -134,7 +134,7 @@ impl StorageEvent {
 }
 
 #[allow(non_snake_case)]
-impl StorageEventMethods for StorageEvent {
+impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
     // https://html.spec.whatwg.org/multipage/#storageevent
     fn Constructor(
         global: &Window,

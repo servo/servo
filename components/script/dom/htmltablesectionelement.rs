@@ -70,7 +70,7 @@ impl CollectionFilter for RowsFilter {
     }
 }
 
-impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
+impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
         HTMLCollection::create(&window_from_node(self), self.upcast(), Box::new(RowsFilter))

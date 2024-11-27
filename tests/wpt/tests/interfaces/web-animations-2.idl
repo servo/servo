@@ -14,7 +14,7 @@ partial interface AnimationTimeline {
 partial interface Animation {
     attribute CSSNumberish?       startTime;
     attribute CSSNumberish?       currentTime;
-    readonly attribute double? progress;
+    readonly attribute double? overallProgress;
 };
 
 [Exposed=Window]

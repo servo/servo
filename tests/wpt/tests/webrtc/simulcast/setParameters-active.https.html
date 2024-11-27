@@ -33,7 +33,7 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+  await negotiateSimulcastAndWaitForVideo(t, await getCameraStream(t), rids, pc1, pc2);
 
   // Deactivate first sender.
   const parameters = pc1.getSenders()[0].getParameters();
@@ -58,7 +58,7 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+  await negotiateSimulcastAndWaitForVideo(t, await getCameraStream(t), rids, pc1, pc2);
 
   // Deactivate second sender.
   const parameters = pc1.getSenders()[0].getParameters();
@@ -83,7 +83,7 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+  await negotiateSimulcastAndWaitForVideo(t, await getCameraStream(t), rids, pc1, pc2);
 
   // Deactivate all senders.
   const parameters = pc1.getSenders()[0].getParameters();

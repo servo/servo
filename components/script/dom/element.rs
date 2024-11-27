@@ -18,10 +18,8 @@ use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever::serialize::{SerializeOpts, TraversalScope};
 use html5ever::{
-    local_name, namespace_prefix, namespace_url, ns, serialize, LocalName, Namespace, Prefix,
-    QualName,
+    local_name, namespace_prefix, namespace_url, ns, LocalName, Namespace, Prefix, QualName,
 };
 use js::jsapi::Heap;
 use js::jsval::JSVal;
@@ -61,11 +59,9 @@ use style::values::generics::NonNegative;
 use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
 use style::{dom_apis, thread_state, ArcSlice, CaseSensitivityExt};
 use style_dom::ElementState;
-use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
-use xml5ever::serialize::{SerializeOpts as XmlSerializeOpts, TraversalScope as XmlTraversalScope};
 
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
 use crate::dom::activation::Activatable;
@@ -1327,35 +1323,6 @@ impl Element {
         }
     }
 
-    pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
-        let mut writer = vec![];
-        match serialize(
-            &mut writer,
-            &self.upcast::<Node>(),
-            SerializeOpts {
-                traversal_scope,
-                ..Default::default()
-            },
-        ) {
-            // FIXME(ajeffrey): Directly convert UTF8 to DOMString
-            Ok(()) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
-            Err(_) => panic!("Cannot serialize element"),
-        }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn xmlSerialize(&self, traversal_scope: XmlTraversalScope) -> Fallible<DOMString> {
-        let mut writer = vec![];
-        match xmlSerialize::serialize(
-            &mut writer,
-            &self.upcast::<Node>(),
-            XmlSerializeOpts { traversal_scope },
-        ) {
-            Ok(()) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
-            Err(_) => panic!("Cannot serialize element"),
-        }
-    }
-
     pub fn root_element(&self) -> DomRoot<Element> {
         if self.node.is_in_doc() {
             self.upcast::<Node>()
@@ -1959,7 +1926,7 @@ impl Element {
         win.scroll_node(node, x, y, behavior, can_gc);
     }
 
-    // https://w3c.github.io/DOM-Parsing/#parsing
+    /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
     pub fn parse_fragment(
         &self,
         markup: DOMString,
@@ -2114,7 +2081,7 @@ impl Element {
     }
 }
 
-impl ElementMethods for Element {
+impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         Node::namespace_to_string(self.namespace.clone())
@@ -2743,21 +2710,26 @@ impl ElementMethods for Element {
         self.client_rect(can_gc).size.height
     }
 
-    /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
             self.local_name().clone(),
         );
-        if document_from_node(self).is_html_document() {
-            self.serialize(ChildrenOnly(Some(qname)))
+
+        let result = if document_from_node(self).is_html_document() {
+            self.upcast::<Node>()
+                .html_serialize(ChildrenOnly(Some(qname)))
         } else {
-            self.xmlSerialize(XmlChildrenOnly(Some(qname)))
-        }
+            self.upcast::<Node>()
+                .xml_serialize(XmlChildrenOnly(Some(qname)))
+        };
+
+        Ok(result)
     }
 
-    /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
     fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
@@ -2787,16 +2759,18 @@ impl ElementMethods for Element {
         Ok(())
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
-        if document_from_node(self).is_html_document() {
-            self.serialize(IncludeNode)
+        let result = if document_from_node(self).is_html_document() {
+            self.upcast::<Node>().html_serialize(IncludeNode)
         } else {
-            self.xmlSerialize(XmlIncludeNode)
-        }
+            self.upcast::<Node>().xml_serialize(XmlIncludeNode)
+        };
+
+        Ok(result)
     }
 
-    // https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
     fn SetOuterHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         let context_document = document_from_node(self);
         let context_node = self.upcast::<Node>();

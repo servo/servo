@@ -18,6 +18,9 @@ class Configuration:
         glbl = {}
         exec(compile(open(filename).read(), filename, 'exec'), glbl)
         config = glbl['DOMInterfaces']
+        self.enumConfig = glbl['Enums']
+        self.dictConfig = glbl['Dictionaries']
+        self.unionConfig = glbl['Unions']
 
         # Build descriptors for all the interfaces we have in the parse data.
         # This allows callers to specify a subset of interfaces by filtering
@@ -110,6 +113,9 @@ class Configuration:
     def getEnums(self, webIDLFile):
         return [e for e in self.enums if e.filename == webIDLFile]
 
+    def getEnumConfig(self, name):
+        return self.enumConfig.get(name, {})
+
     def getTypedefs(self, webIDLFile):
         return [e for e in self.typedefs if e.filename == webIDLFile]
 
@@ -121,8 +127,14 @@ class Configuration:
 
         return [x for x in items if x.filename == webIDLFile]
 
+    def getUnionConfig(self, name):
+        return self.unionConfig.get(name, {})
+
     def getDictionaries(self, webIDLFile=""):
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
+
+    def getDictConfig(self, name):
+        return self.dictConfig.get(name, {})
 
     def getCallbacks(self, webIDLFile=""):
         return self._filterForFile(self.callbacks, webIDLFile=webIDLFile)

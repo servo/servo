@@ -68,7 +68,7 @@ impl BluetoothRemoteGATTService {
     }
 }
 
-impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
+impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemoteGATTService {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device
     fn Device(&self) -> DomRoot<BluetoothDevice> {
         DomRoot::from_ref(&self.device)

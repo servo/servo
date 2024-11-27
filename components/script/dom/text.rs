@@ -52,7 +52,7 @@ impl Text {
     }
 }
 
-impl TextMethods for Text {
+impl TextMethods<crate::DomTypeHolder> for Text {
     // https://dom.spec.whatwg.org/#dom-text-text
     fn Constructor(
         window: &Window,

@@ -72,7 +72,7 @@ impl GPUError {
     }
 }
 
-impl GPUErrorMethods for GPUError {
+impl GPUErrorMethods<crate::DomTypeHolder> for GPUError {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuerror-message>
     fn Message(&self) -> DOMString {
         self.message.clone()

@@ -523,7 +523,7 @@ impl RTCPeerConnection {
     }
 }
 
-impl RTCPeerConnectionMethods for RTCPeerConnection {
+impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     // https://w3c.github.io/webrtc-pc/#dom-peerconnection
     fn Constructor(
         window: &Window,

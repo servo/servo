@@ -44,7 +44,7 @@ impl Comment {
     }
 }
 
-impl CommentMethods for Comment {
+impl CommentMethods<crate::DomTypeHolder> for Comment {
     /// <https://dom.spec.whatwg.org/#dom-comment-comment>
     fn Constructor(
         window: &Window,

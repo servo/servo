@@ -377,7 +377,7 @@ impl GPUDevice {
     }
 }
 
-impl GPUDeviceMethods for GPUDevice {
+impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-features>
     fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
         DomRoot::from_ref(&self.features)

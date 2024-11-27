@@ -15,14 +15,16 @@
 const mode = (new URLSearchParams(document.location.search)).get("mode");
 
 test(() => {
+  const sel = getSelection();
+
   container.innerHTML = 'a<div id="host"></div>b';
   const host = container.querySelector('#host');
   const shadowRoot = host.attachShadow({ mode });
   shadowRoot.innerHTML = 'hello, world';
-  getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
-  const rangeBefore = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
+  sel.setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
+  const rangeBefore = sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0];
   host.remove();
-  const rangeAfter = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
+  const rangeAfter = sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0];
 
   assert_equals(rangeBefore.startContainer, shadowRoot.firstChild, 'StaticRange does not update on new mutation.');
   assert_equals(rangeBefore.startOffset, 7);
@@ -36,15 +38,17 @@ test(() => {
 }, 'Range is fully in shadow tree. Removing shadow host collapses composed StaticRange. Note it does not update previously returned composed StaticRange.');
 
 test(() => {
+  const sel = getSelection();
+
   container.innerHTML = '<div id="wrapper">a<div id="host"></div>b</div>';
   const wrapper = container.querySelector('#wrapper');
   const host = container.querySelector('#host');
   const shadowRoot = host.attachShadow({ mode });
   shadowRoot.innerHTML = 'hello, world';
-  getSelection().setBaseAndExtent(shadowRoot.firstChild, 4, shadowRoot.firstChild, 7);
+  sel.setBaseAndExtent(shadowRoot.firstChild, 4, shadowRoot.firstChild, 7);
   wrapper.remove();
 
-  const rangeAfter = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
+  const rangeAfter = sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0];
   assert_equals(rangeAfter.startContainer, container, 'collapsed to parent of removed node');
   assert_equals(rangeAfter.startOffset, 0);
   assert_equals(rangeAfter.endContainer, container);
@@ -52,10 +56,12 @@ test(() => {
 }, 'Range is fully in shadow tree. Removing parent of shadow host collapses composed StaticRange.');
 
 test(() => {
+ const sel = getSelection();
+
   container.innerHTML = '<div id="hello">Hello,</div><div id="world"> World</div>';
-  getSelection().setBaseAndExtent(hello.firstChild, 1, world.firstChild, 3);
+  sel.setBaseAndExtent(hello.firstChild, 1, world.firstChild, 3);
   hello.firstChild.remove();
-  const rangeAfter = getSelection().getComposedRanges()[0];
+  const rangeAfter = sel.getComposedRanges()[0];
 
   assert_equals(rangeAfter.startContainer, hello);
   assert_equals(rangeAfter.startOffset, 0);
@@ -64,19 +70,41 @@ test(() => {
 }, 'Range is in light DOM. Removing startContainer rescopes new composed range to its parent.');
 
 test(() => {
-  container.innerHTML = 'a<div id="host"></div>b';
+ const sel = getSelection();
+
+ container.innerHTML = 'a<div id="host"></div>b';
   const host = container.querySelector('#host');
   const shadowRoot = host.attachShadow({ mode });
   shadowRoot.innerHTML = 'hello, world';
-  getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
+  sel.setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
   shadowRoot.innerHTML = '';
-  const rangeAfter = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
+  const rangeAfter = sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0];
 
   assert_equals(rangeAfter.startContainer, shadowRoot, 'collapsed to be at the parent shadow root');
   assert_equals(rangeAfter.startOffset, 0);
   assert_equals(rangeAfter.endContainer, container);
   assert_equals(rangeAfter.endOffset, 2);
 }, 'Range is across shadow trees. Replacing shadowRoot content rescopes new composed range to the shadowRoot.');
+
+test(() => {
+  const sel = getSelection();
+
+  container.innerHTML = 'a<div id="outerhost"></div>b';
+  const outerHost = container.querySelector('#outerhost');
+  const outerRoot = outerHost.attachShadow({ mode });
+  outerRoot.innerHTML = 'c<div id="innerHost"></div>d';
+  const innerHost = outerRoot.querySelector('#innerHost');
+  const innerRoot = innerHost.attachShadow({ mode });
+  innerRoot.innerHTML = 'hello, world';
+  sel.setBaseAndExtent(container.firstChild, 0, innerRoot.firstChild, 4);
+  outerHost.remove();
+  const rangeAfter = sel.getComposedRanges({ shadowRoots: [innerRoot, outerRoot] })[0];
+
+  assert_equals(rangeAfter.startContainer, container.firstChild);
+  assert_equals(rangeAfter.startOffset, 0);
+  assert_equals(rangeAfter.endContainer, container);
+  assert_equals(rangeAfter.endOffset, 1);
+}, 'Range is across shadow trees. Removing ancestor shadow host rescopes composed range end to parent.');
 
 test(() => {
   container.innerHTML = [
@@ -98,7 +126,7 @@ test(() => {
   sel.setBaseAndExtent(div1.firstChild, 2, div2.firstChild, 2);
   div1.remove();
 
-  const rangeAfter = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
+  const rangeAfter = sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0];
   assert_equals(rangeAfter.startContainer, host);
   assert_equals(rangeAfter.startOffset, 0);
   assert_equals(rangeAfter.endContainer, div2.firstChild);

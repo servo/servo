@@ -44,7 +44,7 @@ impl DissimilarOriginLocation {
     }
 }
 
-impl DissimilarOriginLocationMethods for DissimilarOriginLocation {
+impl DissimilarOriginLocationMethods<crate::DomTypeHolder> for DissimilarOriginLocation {
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn GetHref(&self) -> Fallible<USVString> {
         Err(Error::Security)

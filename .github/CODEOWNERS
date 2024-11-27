@@ -11,8 +11,8 @@
 /components/compositing @mrobinson
 
 # Reviewers for layout-related code
-/components/layout_2020 @mrobinson @Loirooriol
-/components/layout @mrobinson @Loirooriol
+/components/layout_2020 @mrobinson @Loirooriol @nicoburns
+/components/layout @mrobinson @Loirooriol @nicoburns
 
 # Reviewers for Minibrowser related code
 /ports/servoshell/desktop @atbrakhi

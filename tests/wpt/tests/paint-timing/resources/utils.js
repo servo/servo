@@ -22,8 +22,9 @@ async function assertNoFirstContentfulPaint(t) {
 async function assertFirstContentfulPaint(t) {
   return new Promise(resolve  => {
     function checkFCP() {
-      if (performance.getEntriesByName('first-contentful-paint').length === 1) {
-        resolve();
+      const entries = performance.getEntriesByName('first-contentful-paint');
+      if (entries.length === 1) {
+        resolve(entries[0]);
       } else {
         t.step_timeout(checkFCP, 0);
       }
@@ -43,10 +44,19 @@ async function test_fcp(label, before_assert_fcp_func) {
     await assertNoFirstContentfulPaint(t);
     main.className = 'preFCP';
     await assertNoFirstContentfulPaint(t);
+    const time_before_fcp_func = performance.now();
     if (before_assert_fcp_func) {
       await before_assert_fcp_func();
     }
     main.className = 'contentful';
-    await assertFirstContentfulPaint(t);
+    const entry = await assertFirstContentfulPaint(t);
+    if ("paintTime" in entry) {
+      if ("presentationTime" in entry) {
+        assert_greater_than(entry.presentationTime, entry.paintTime);
+        assert_equals(entry.startTime, entry.presentationTime);
+      } else {
+        assert_equals(entry.startTime, entry.paintTime);
+      }
+    }
   }, label);
 }

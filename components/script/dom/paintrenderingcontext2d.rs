@@ -9,7 +9,8 @@ use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use ipc_channel::ipc::IpcSender;
 use servo_url::ServoUrl;
-use style_traits::{CSSPixel, DevicePixel};
+use style_traits::CSSPixel;
+use webrender_api::units::DevicePixel;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -85,7 +86,7 @@ impl PaintRenderingContext2D {
     }
 }
 
-impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
+impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
     fn Save(&self) {
         self.context.Save()

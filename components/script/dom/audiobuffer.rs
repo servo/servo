@@ -183,7 +183,7 @@ impl AudioBuffer {
     }
 }
 
-impl AudioBufferMethods for AudioBuffer {
+impl AudioBufferMethods<crate::DomTypeHolder> for AudioBuffer {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
     fn Constructor(
         window: &Window,

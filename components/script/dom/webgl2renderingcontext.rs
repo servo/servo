@@ -913,7 +913,7 @@ impl WebGL2RenderingContext {
     }
 }
 
-impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
+impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingContext {
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.base.Canvas()
@@ -4569,6 +4569,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible>
+    #[cfg(feature = "webxr")]
     fn MakeXRCompatible(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
         let p = Promise::new(&self.global(), can_gc);

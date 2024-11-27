@@ -97,12 +97,20 @@ impl File {
         )
     }
 
+    pub fn file_bytes(&self) -> Result<Vec<u8>, ()> {
+        self.blob.get_bytes()
+    }
+
     pub fn name(&self) -> &DOMString {
         &self.name
     }
+
+    pub fn file_type(&self) -> String {
+        self.blob.type_string()
+    }
 }
 
-impl FileMethods for File {
+impl FileMethods<crate::DomTypeHolder> for File {
     // https://w3c.github.io/FileAPI/#file-constructor
     #[allow(non_snake_case)]
     fn Constructor(

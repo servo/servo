@@ -118,7 +118,7 @@ impl ServiceWorker {
     }
 }
 
-impl ServiceWorkerMethods for ServiceWorker {
+impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
     // https://w3c.github.io/ServiceWorker/#service-worker-state-attribute
     fn State(&self) -> ServiceWorkerState {
         self.state.get()

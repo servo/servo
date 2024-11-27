@@ -39,60 +39,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
 
-// TODO: make all this derivables available via new Bindings.conf option
-impl Clone for GPUCanvasConfiguration {
-    fn clone(&self) -> Self {
-        Self {
-            alphaMode: self.alphaMode,
-            device: self.device.clone(),
-            format: self.format,
-            usage: self.usage,
-            viewFormats: self.viewFormats.clone(),
-        }
-    }
-}
-
-impl Clone for HTMLCanvasElementOrOffscreenCanvas {
-    fn clone(&self) -> Self {
-        match self {
-            Self::HTMLCanvasElement(arg0) => Self::HTMLCanvasElement(arg0.clone()),
-            Self::OffscreenCanvas(arg0) => Self::OffscreenCanvas(arg0.clone()),
-        }
-    }
-}
-
-impl malloc_size_of::MallocSizeOf for GPUTextureDescriptor {
-    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        let Self {
-            parent,
-            dimension,
-            format,
-            mipLevelCount,
-            sampleCount,
-            size,
-            usage,
-            viewFormats,
-        } = self;
-        parent.size_of(ops) +
-            dimension.size_of(ops) +
-            format.size_of(ops) +
-            mipLevelCount.size_of(ops) +
-            sampleCount.size_of(ops) +
-            size.size_of(ops) +
-            usage.size_of(ops) +
-            viewFormats.size_of(ops)
-    }
-}
-
-impl malloc_size_of::MallocSizeOf for HTMLCanvasElementOrOffscreenCanvas {
-    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        match self {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.size_of(ops),
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.size_of(ops),
-        }
-    }
-}
-
 impl HTMLCanvasElementOrOffscreenCanvas {
     fn size(&self) -> Size2D<u64> {
         match self {
@@ -341,7 +287,7 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     }
 }
 
-impl GPUCanvasContextMethods for GPUCanvasContext {
+impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.canvas.clone()

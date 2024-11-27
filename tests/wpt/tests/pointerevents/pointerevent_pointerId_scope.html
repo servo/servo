@@ -1,116 +1,170 @@
 <!doctype html>
 <html>
-    <!--
-Test cases for Pointer Events v1 spec
-This document references Test Assertions (abbrev TA below) written by Cathy Chan
-http://www.w3.org/wiki/PointerEvents/TestAssertions
--->
-    <head>
-        <title>Pointer Events pointerdown tests</title>
-        <meta name="viewport" content="width=device-width">
-        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
-        <script src="/resources/testharness.js"></script>
-        <script src="/resources/testharnessreport.js"></script>
-        <script src="/resources/testdriver.js"></script>
-        <script src="/resources/testdriver-actions.js"></script>
-        <script src="/resources/testdriver-vendor.js"></script>
-        <!-- Additional helper script for common checks across event types -->
-        <script type="text/javascript" src="pointerevent_support.js"></script>
-        <script>
-            var detected_pointertypes = {};
-            var test_pointerEvent = async_test("pointerId of an active pointer is the same across iframes");
-            // showPointerTypes is defined in pointerevent_support.js
-            // Requirements: the callback function will reference the test_pointerEvent object and
-            // will fail unless the async_test is created with the var name "test_pointerEvent".
-            add_completion_callback(showPointerTypes);
-            var detected_pointertypes = {};
+<head>
+  <title>Pointer Events pointerdown tests</title>
+  <meta name="viewport" content="width=device-width">
+  <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+  <link rel="help" href="https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <!-- Additional helper script for common checks across event types -->
+  <script type="text/javascript" src="pointerevent_support.js"></script>
+  <script>
+    "use strict"
 
-            function loadFrame() {
-                return new Promise(resolve => {
-                    const innerframe = document.getElementById("innerframe");
-                    innerframe.onload = resolve;
-                    innerframe.src =
-                        "resources/pointerevent_pointerId_scope-iframe.html";
-                });
-            }
+    function loadFrame() {
+      return new Promise(resolve => {
+        const innerframe = document.getElementById("innerframe");
+        innerframe.onload = resolve;
+        innerframe.src =
+            "resources/pointerevent_pointerId_scope-iframe.html";
+      });
+    }
 
-            async function run() {
-                await loadFrame();
+    const eventList = [
+      'pointerenter',
+      'pointerover',
+      'pointermove',
+      'pointerout',
+      'pointerleave'
+    ];
 
-                var target0 = document.getElementById("target0");
-                var innerframe = document.getElementById("innerframe");
-                var target1 = innerframe.contentWindow.document.getElementsByTagName("div")[0];
-                var pointerover_pointerId = null;
-                var pointerover_pointerType = null;
+    function recordEvents(test) {
+      const target0 = document.getElementById("target0");
+      const innerframe = document.getElementById("innerframe");
+      let activePointerId = undefined;
+      let activePointerType = undefined;
+      const eventsReceived = {
+        'inner': {},
+        'outer': {},
+      };
 
-                var eventList = ['pointerenter', 'pointerover', 'pointermove', 'pointerout', 'pointerleave'];
-                var receivedEvents = {};
-                var receivedEventsInnerFrame = {};
+      // Records the last event of a given type in the case of multiple
+      // events.
+      const recordEvent = (event, context) => {
+        if (activePointerId === undefined) {
+          activePointerId = event.pointerId;
+        }
+        if (activePointerType == undefined) {
+          activePointerType= event.pointerType;
+        }
+        eventsReceived[context][event.type] = {
+          pointerId: event.pointerId,
+          pointerType: event.pointerType
+        };
+      }
 
+      const listener = (event) => {
+        recordEvent(event, 'outer');
+      };
+      eventList.forEach(eventType => {
+        target0.addEventListener(eventType, listener);
+      });
 
-                function checkPointerId(event, inner) {
-                    detected_pointertypes[event.pointerType] = true;
-                    var eventName = (inner ? "inner frame " : "" ) + event.type;
-                    test_pointerEvent.step(function() {
-                        assert_equals(event.pointerId, pointerover_pointerId, "PointerId of " + eventName + " is not correct");
-                        assert_equals(event.pointerType, pointerover_pointerType, "PointerType of " + eventName + " is not correct");
-                    }, eventName + ".pointerId were the same as first pointerover");
-                }
+      const messageListener = (event) => {
+        if (event.source != innerframe.contentWindow) {
+          return;
+        }
+        recordEvent(event.data, 'inner');
+      };
+      window.addEventListener('message', messageListener);
 
-                on_event(window, "message", function(event) {
-                    if (event.source != innerframe.contentWindow) {
-                      return;
-                    }
-                    receivedEventsInnerFrame[event.data.type] = 1;
-                    checkPointerId(event.data, true);
-                    if (Object.keys(receivedEvents).length == eventList.length && Object.keys(receivedEventsInnerFrame).length == eventList.length)
-                        test_pointerEvent.done();
-                });
+      test.add_cleanup(() => {
+        eventList.forEach(eventType => {
+          target0.removeEventListener(eventType, listener);
+        });
+        window.removeEventListener('message', messageListener);
+      });
 
-                eventList.forEach(function(eventName) {
-                    on_event(target0, eventName, function (event) {
-                        if (pointerover_pointerId === null && event.type == 'pointerover') {
-                            pointerover_pointerId = event.pointerId;
-                            pointerover_pointerType = event.pointerType;
-                        } else {
-                            checkPointerId(event, false);
-                        }
-                        receivedEvents[event.type] = 1;
-                    });
-                });
+      return new Promise(resolve => {
+        document.addEventListener('pointerup', () => {
+          // As pointer events for the inner frame are routed via a post
+          // message, the outer frame won't see the event until the following
+          // event processing loop. Allow 2 additional animation frames to
+          // ensure adequate time to receive the events.
+          waitForAnimationFrames(2).then(() => {
+            eventsReceived.activePointerId = activePointerId;
+            eventsReceived.activePointerType = activePointerType;
+            resolve(eventsReceived);
+          });
+        }, { once: true });
+      });
 
-                var iframeRect = innerframe.getClientRects()[0];
-                var rect = target1.getClientRects()[0];
-                var center_x = Math.round(iframeRect.left + (rect.left + rect.right) / 2);
-                var center_y = Math.round(iframeRect.top + (rect.top + rect.bottom) / 2);
-                await new test_driver.Actions()
-                      .pointerMove(0, 0, {origin: target0})
-                      .pointerMove(center_x, center_y)
-                      .pointerMove(center_y, center_y + 100)
-                      .send();
-            }
-        </script>
-    </head>
-    <body onload="run()">
-        <h1>Pointer Events pointerdown tests</h1>
-        Complete the following actions:
-        <ol>
-            <li>Start with your pointing device outside of black box, then move it into black box. If using touch just press in black box and don't release.
-            <li>Move your pointing device into purple box (without leaving the digitizer range if you are using hover supported pen or without releasing touch if using touch). Then move it out of the purple box.
-        </ol>
-        <div id="target0" class="touchActionNone">
-        </div>
-        <!-- Document onload does not guarantee that child iframes have loaded.
-             Force synchronization by deferring setting the iframe's source
-             until a promise is set up to capture its load event. The root
-             document will load first, then the iframe.  This ordering ensures
-             deterministic behavior.
-          -->
-        <iframe id="innerframe"></iframe>
-        <div id="complete-notice">
-            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
-            <p>Refresh the page to run the tests again with a different pointer type.</p>
-        </div>
-        <div id="log"></div>
-    </body>
+    };
+
+    async function run() {
+      await loadFrame();
+
+      const target0 = document.getElementById("target0");
+      const innerframe = document.getElementById("innerframe");
+      const target1 =
+          innerframe.contentWindow.document.getElementsByTagName("div")[0];
+
+      promise_test(async t => {
+        const results = recordEvents(t);
+        // Move from the target in the outer-frame to a target in the inner-
+        // frame, click on second target, move back to the first and click.
+        // The inner target is not centered in the iframe, thus its position
+        // needs to be calculated.
+        const iframeRect = innerframe.getClientRects()[0];
+        const rect = target1.getClientRects()[0];
+        const center_x =
+            Math.round(iframeRect.left + (rect.left + rect.right) / 2);
+        const center_y =
+            Math.round(iframeRect.top + (rect.top + rect.bottom) / 2);
+
+        await new test_driver.Actions()
+            .pointerMove(0, 0, { origin: target0 })
+            .pointerMove(center_x, center_y)
+            .pointerDown()
+            .pointerUp()
+            .pointerMove(0, 0, { origin: target0 })
+            .pointerDown()
+            .pointerUp()
+            .send();
+
+        const events = await results;
+
+        assert_equals(
+            Object.keys(events.outer).length, eventList.length,
+            "Missing events for outer target");
+        assert_equals(
+            Object.keys(events.inner).length, eventList.length,
+            "Missing events for inner target");
+
+        const activePointerId = events.activePointerId;
+        const activePointerType = events.activePointerType;
+        eventList.forEach(eventName => {
+          assert_equals(
+              events.inner[eventName].pointerId, activePointerId,
+              `PointerId of ${eventName} in the inner frame is not correct`);
+          assert_equals(
+              events.outer[eventName].pointerId, activePointerId,
+              `PointerId of ${eventName} in the outer frame is not correct`);
+          assert_equals(
+              events.inner[eventName].pointerType, activePointerType,
+              `PointerType of ${eventName} in the inner frame is not correct`);
+          assert_equals(
+              events.outer[eventName].pointerType, activePointerType,
+              `PointerType of ${eventName} in the outer frame is not correct`);
+        });
+      }, 'pointerId of an active pointer is the same across same origin ' +
+         'frames');
+    }
+    </script>
+</head>
+<body onload="run()">
+    <h1>Pointer Events pointer ID tests</h1>
+    <div id="target0" class="touchActionNone"></div>
+    <!-- Document onload does not guarantee that child iframes have loaded.
+         Force synchronization by deferring setting the iframe's source
+         until a promise is set up to capture its load event. The root
+         document will load first, then the iframe.  This ordering ensures
+         deterministic behavior.
+      -->
+    <iframe id="innerframe"></iframe>
+</body>
 </html>

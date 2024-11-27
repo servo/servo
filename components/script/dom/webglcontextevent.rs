@@ -25,7 +25,7 @@ pub struct WebGLContextEvent {
     status_message: DOMString,
 }
 
-impl WebGLContextEventMethods for WebGLContextEvent {
+impl WebGLContextEventMethods<crate::DomTypeHolder> for WebGLContextEvent {
     // https://registry.khronos.org/webgl/specs/latest/1.0/#5.15
     fn Constructor(
         window: &Window,

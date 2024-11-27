@@ -28,7 +28,8 @@ use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_atoms::Atom;
 use servo_config::pref;
 use servo_url::ServoUrl;
-use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
+use style_traits::{CSSPixel, SpeculativePainter};
+use webrender_api::units::DevicePixel;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::callback::CallbackContainer;
@@ -491,7 +492,7 @@ impl PaintDefinition {
     }
 }
 
-impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
+impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     #[allow(crown::unrooted_must_root)]
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>

@@ -31,8 +31,9 @@ function reformatHtml(html) {
 const html_with_script =
   '<title>Title of the document</title> <script>const a = 5;</scr'
   + 'ipt> <p>Hello World</p>';
-const html_without_script =
-  '<title>Title of the document</title> <p>Hello World</p>';
+const html_script =
+  '<script>const a = 5;</scr'
+  + 'ipt>';
 promise_test(async t => {
   await tryGrantReadPermission();
   await tryGrantWritePermission();
@@ -53,8 +54,7 @@ promise_test(async t => {
   const blobText = await (new Response(blobOutput)).text();
 
   const outputHtml = reformatHtml(blobText);
-  const inputHtml = reformatHtml(html_without_script);
-  assert_equals(outputHtml, inputHtml);
-}, 'Verify write and read clipboard with scripts removed given text/html: '
-    + html_with_script);
+  const html_script_no_spaces = reformatHtml(html_script);
+  assert_true(!outputHtml.includes(html_script_no_spaces));
+}, 'Verify write and read clipboard with scripts removed given text/html. The string "' + html_script + '" has been removed.');
 </script>

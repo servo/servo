@@ -156,7 +156,7 @@ fn request_is_locked(input: &Request) -> bool {
     input.is_locked()
 }
 
-impl RequestMethods for Request {
+impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-request
     fn Constructor(
         global: &GlobalScope,
@@ -854,19 +854,6 @@ impl From<NetTraitsRequestRedirect> for RequestRedirect {
             NetTraitsRequestRedirect::Follow => RequestRedirect::Follow,
             NetTraitsRequestRedirect::Error => RequestRedirect::Error,
             NetTraitsRequestRedirect::Manual => RequestRedirect::Manual,
-        }
-    }
-}
-
-impl Clone for HeadersInit {
-    fn clone(&self) -> HeadersInit {
-        match self {
-            HeadersInit::ByteStringSequenceSequence(b) => {
-                HeadersInit::ByteStringSequenceSequence(b.clone())
-            },
-            HeadersInit::ByteStringByteStringRecord(m) => {
-                HeadersInit::ByteStringByteStringRecord(m.clone())
-            },
         }
     }
 }

@@ -55,7 +55,7 @@ impl CSSKeyframeRule {
     }
 }
 
-impl CSSKeyframeRuleMethods for CSSKeyframeRule {
+impl CSSKeyframeRuleMethods<crate::DomTypeHolder> for CSSKeyframeRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframerule-style
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {

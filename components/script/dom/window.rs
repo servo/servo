@@ -75,9 +75,9 @@ use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
-use style_traits::{CSSPixel, DevicePixel, ParsingMode};
+use style_traits::{CSSPixel, ParsingMode};
 use url::Position;
-use webrender_api::units::LayoutPixel;
+use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 use webrender_traits::CrossProcessCompositorApi;
 
@@ -287,6 +287,7 @@ pub struct Window {
 
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
+    #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,
 
     /// All of the elements that have an outstanding image request that was
@@ -495,6 +496,7 @@ impl Window {
             .map(|chan| WebGLCommandSender::new(chan.clone()))
     }
 
+    #[cfg(feature = "webxr")]
     pub fn webxr_registry(&self) -> Option<webxr_api::Registry> {
         self.webxr_registry.clone()
     }
@@ -625,7 +627,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 
-impl WindowMethods for Window {
+impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert_(&self) {
         self.Alert(DOMString::new());
@@ -2545,12 +2547,18 @@ impl Window {
         self.webrender_document
     }
 
+    #[cfg(feature = "webxr")]
     pub fn in_immersive_xr_session(&self) -> bool {
         self.navigator
             .get()
             .as_ref()
             .and_then(|nav| nav.xr())
             .is_some_and(|xr| xr.pending_or_active_session())
+    }
+
+    #[cfg(not(feature = "webxr"))]
+    pub fn in_immersive_xr_session(&self) -> bool {
+        false
     }
 }
 
@@ -2579,7 +2587,7 @@ impl Window {
         creator_url: ServoUrl,
         navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
-        webxr_registry: Option<webxr_api::Registry>,
+        #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
@@ -2661,6 +2669,7 @@ impl Window {
             media_query_lists: DOMTracker::new(),
             test_runner: Default::default(),
             webgl_chan,
+            #[cfg(feature = "webxr")]
             webxr_registry,
             pending_layout_images: Default::default(),
             unminified_css_dir: Default::default(),

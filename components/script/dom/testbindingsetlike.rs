@@ -45,7 +45,7 @@ impl TestBindingSetlike {
     }
 }
 
-impl TestBindingSetlikeMethods for TestBindingSetlike {
+impl TestBindingSetlikeMethods<crate::DomTypeHolder> for TestBindingSetlike {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

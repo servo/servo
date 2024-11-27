@@ -530,7 +530,7 @@ impl Drop for EventSource {
     }
 }
 
-impl EventSourceMethods for EventSource {
+impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
     fn Constructor(
         global: &GlobalScope,

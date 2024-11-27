@@ -161,7 +161,7 @@ impl ResizeObserver {
     }
 }
 
-impl ResizeObserverMethods for ResizeObserver {
+impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
     fn Constructor(
         window: &Window,

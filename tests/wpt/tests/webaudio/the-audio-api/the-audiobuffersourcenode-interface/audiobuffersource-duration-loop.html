@@ -42,7 +42,7 @@
                   audioBuffer.getChannelData(0), 'audioBuffer.getChannelData')
                   .beEqualToArray(expected);
             })
-            .then(task.done());
+            .then(task.done.bind(task));
       });
 
       audit.run();

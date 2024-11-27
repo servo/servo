@@ -23,7 +23,6 @@ headers = { workspace = true }
 http = { workspace = true }
 hyper = { workspace = true }
 hyper_serde = { workspace = true }
-image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
@@ -39,5 +38,4 @@ servo_rand = { path = "../../rand" }
 servo_url = { path = "../../url" }
 url = { workspace = true }
 uuid = { workspace = true }
-webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

@@ -34,7 +34,7 @@ impl GPUAdapterInfo {
 }
 
 // TODO: wgpu does not expose right fields right now
-impl GPUAdapterInfoMethods for GPUAdapterInfo {
+impl GPUAdapterInfoMethods<crate::DomTypeHolder> for GPUAdapterInfo {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor>
     fn Vendor(&self) -> DOMString {
         DOMString::new()

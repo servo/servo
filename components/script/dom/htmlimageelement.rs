@@ -200,6 +200,10 @@ impl HTMLImageElement {
             State::PartiallyAvailable | State::Unavailable => Ok(false),
         }
     }
+
+    pub fn image_data(&self) -> Option<Arc<Image>> {
+        self.current_request.borrow().image.clone()
+    }
 }
 
 /// The context required for asynchronously loading an external image.
@@ -1534,7 +1538,7 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
 }
 
 #[allow(non_snake_case)]
-impl HTMLImageElementMethods for HTMLImageElement {
+impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-image
     fn Image(
         window: &Window,

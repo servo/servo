@@ -22,7 +22,6 @@ crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fonts_traits = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
@@ -38,7 +37,6 @@ profile_traits = { workspace = true }
 serde = { workspace = true }
 servo_atoms = { workspace = true }
 servo_url = { path = "../../url" }
-smallvec = { workspace = true }
 style_traits = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }

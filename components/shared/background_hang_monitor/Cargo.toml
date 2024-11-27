@@ -16,8 +16,4 @@ doctest = false
 [dependencies]
 base = { workspace = true }
 ipc-channel = { workspace = true }
-malloc_size_of = { workspace = true }
-malloc_size_of_derive = { workspace = true }
-parking_lot = { workspace = true }
 serde = { workspace = true }
-webrender_api = { workspace = true }

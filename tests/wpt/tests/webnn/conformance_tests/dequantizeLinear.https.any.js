@@ -530,7 +530,52 @@ const dequantizeLinearTests = [
         }
       }
     }
-  }
+  },
+  {
+    'name': 'per-tensor dequantizeLinear for int4 4D constant',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [0, -1, 10, -15],
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'int4'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [
+            1.1202747821807861,
+            -4.617084980010986,
+            6.2405495643615723,
+            3.841923713684082
+          ],
+          'descriptor': {shape: [2, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [2, -3, -5, 4],
+          'descriptor': {shape: [2, 2], dataType: 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [
+            -2.2405495643615723, -9.234169960021973, -6.240549564361572,
+            -11.525771141052246
+          ],
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
 ];
 
 if (navigator.ml) {

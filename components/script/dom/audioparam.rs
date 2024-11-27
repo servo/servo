@@ -110,7 +110,7 @@ impl AudioParam {
     }
 }
 
-impl AudioParamMethods for AudioParam {
+impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
     fn AutomationRate(&self) -> AutomationRate {
         self.automation_rate.get()

@@ -98,7 +98,7 @@ impl OfflineAudioContext {
     }
 }
 
-impl OfflineAudioContextMethods for OfflineAudioContext {
+impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext
     fn Constructor(
         window: &Window,

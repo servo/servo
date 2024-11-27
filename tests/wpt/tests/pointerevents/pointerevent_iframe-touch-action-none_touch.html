@@ -1,66 +1,67 @@
 <html>
   <head>
-        <title>iframe touch-action:none attribute</title>
-        <meta name="viewport" content="width=device-width">
-        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
-        <script src="/resources/testharness.js"></script>
-        <script src="/resources/testharnessreport.js"></script>
-        <script src="pointerevent_support.js"></script>
-        <script src="/resources/testdriver.js"></script>
-        <script src="/resources/testdriver-actions.js"></script>
-        <script src="/resources/testdriver-vendor.js"></script>
+    <title>iframe touch-action:none does not prevent panning or zooming inside
+    the iframe</title>
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="pointerevent_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
   </head>
-  <body onload="run()">
+  <style>
+    iframe {
+      touch-action: none;
+    }
+  </style>
+  <body>
     <h1>iframe touch-action:none attribute</h1>
     <h2 id="pointerTypeDescription"></h2>
-    <h4>Test Description: Drag your finger in the green rectangle below then tap the "Done" button.</h4>
     <br>
-    <iframe id="target"
-            style="touch-action:none;"
-            src="resources/iframe-touch-action-none-subframe.html">
-    </iframe>
-    <input type="button" id="btnDone" value="Done">
+    <iframe id="target"></iframe>
   </body>
   <script>
-    var event_log = [];
+    'use strict';
 
-    function resetTestState() {
-        event_log = [];
+    function loadFrame() {
+      return new Promise(resolve => {
+        const frame = document.getElementById('target');
+        frame.onload = resolve;
+        frame.src = 'resources/iframe-touch-action-none-subframe.html';
+      });
     }
 
-    function run() {
-        var test_pointerEvent = setup_pointerevent_test("iframe received pointercancel",
-                                                        ["touch"]);
-        var actions_promise;
-        var target = document.getElementById("target");
-
-        on_event(document.getElementById("btnDone"), "click", () => {
-            test_pointerEvent.step(() => {
-                assert_equals(event_log.join(", "), "pointercancel",
-                              "exactly one pointercancel received");
-            });
-            actions_promise.then(() => test_pointerEvent.done());
+    function messageReceived() {
+      return new Promise(resolve => {
+        window.addEventListener('message', (event) => {
+          if (event.source != target.contentWindow) {
+            return;
+          }
+          if (event.data && event.data.type == "subframe-event") {
+            resolve(event.data.eventType);
+          }
         });
+      });
+    }
 
-        on_event(window, "message",  function(event) {
-            if (event.source != target.contentWindow) {
-              return;
-            }
-            if (event.data && event.data.type == "subframe-event") {
-              event_log.push(event.data.eventType);
-            }
-        });
+    promise_test(async t => {
+      const target = document.getElementById("target");
+      await loadFrame();
 
-        actions_promise = new test_driver.Actions()
+      const messagePromise = messageReceived();
+
+      await new test_driver.Actions()
             .addPointer("pointer1", "touch")
             .pointerMove(0, 0, {origin: target})
             .pointerDown()
             .pointerMove(25, 25, {origin: target})
             .pointerUp()
-            .pointerMove(0, 0, {origin: btnDone})
-            .pointerDown()
-            .pointerUp()
             .send();
-    }
+
+      const eventType = await messagePromise;
+      assert_equals(eventType, 'pointercancel');
+    }, 'touch iframe received pointercancel');
   </script>
 </html>

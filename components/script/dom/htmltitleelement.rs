@@ -63,7 +63,7 @@ impl HTMLTitleElement {
     }
 }
 
-impl HTMLTitleElementMethods for HTMLTitleElement {
+impl HTMLTitleElementMethods<crate::DomTypeHolder> for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
         self.upcast::<Node>().child_text_content()

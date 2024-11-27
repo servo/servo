@@ -3,3 +3,6 @@ features:
   files:
   - animation-composition.html
   - animation-composition-*
+- name: display-animation
+  files:
+  - display-interpolation.html

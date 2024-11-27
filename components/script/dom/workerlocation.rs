@@ -39,7 +39,7 @@ impl WorkerLocation {
     }
 }
 
-impl WorkerLocationMethods for WorkerLocation {
+impl WorkerLocationMethods<crate::DomTypeHolder> for WorkerLocation {
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url)

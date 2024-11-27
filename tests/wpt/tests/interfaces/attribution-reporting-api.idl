@@ -8,6 +8,7 @@ interface mixin HTMLAttributionSrcElementUtils {
 };
 
 HTMLAnchorElement includes HTMLAttributionSrcElementUtils;
+HTMLAreaElement includes HTMLAttributionSrcElementUtils;
 HTMLImageElement includes HTMLAttributionSrcElementUtils;
 HTMLScriptElement includes HTMLAttributionSrcElementUtils;
 

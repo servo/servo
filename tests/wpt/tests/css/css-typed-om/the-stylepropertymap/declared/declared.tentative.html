@@ -40,8 +40,8 @@ test(() => {
 }, 'Declared StylePropertyMap contains CSS property declarations in style rules');
 
 test(() => {
-  assert_equals(styleMap.get('top'), null);
-  assert_equals(styleMap.get('--bar'), null);
+  assert_equals(styleMap.get('top'), undefined);
+  assert_equals(styleMap.get('--bar'), undefined);
 }, 'Declared StylePropertyMap does not contain inline styles');
 
 test(() => {
@@ -49,7 +49,7 @@ test(() => {
 }, 'Declared StylePropertyMap contains custom property declarations');
 
 test(() => {
-  assert_equals(styleMap.get('color'), null);
+  assert_equals(styleMap.get('color'), undefined);
 }, 'Declared StylePropertyMap does not contain properties with invalid values');
 
 test(() => {

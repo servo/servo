@@ -26,7 +26,6 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fonts = { path = "../fonts" }
-fonts_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }

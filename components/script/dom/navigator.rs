@@ -28,6 +28,7 @@ use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
+#[cfg(feature = "webxr")]
 use crate::dom::xrsystem::XRSystem;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -44,6 +45,7 @@ pub struct Navigator {
     plugins: MutNullableDom<PluginArray>,
     mime_types: MutNullableDom<MimeTypeArray>,
     service_worker: MutNullableDom<ServiceWorkerContainer>,
+    #[cfg(feature = "webxr")]
     xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepads>
@@ -63,6 +65,7 @@ impl Navigator {
             plugins: Default::default(),
             mime_types: Default::default(),
             service_worker: Default::default(),
+            #[cfg(feature = "webxr")]
             xr: Default::default(),
             mediadevices: Default::default(),
             gamepads: Default::default(),
@@ -77,6 +80,7 @@ impl Navigator {
         reflect_dom_object(Box::new(Navigator::new_inherited()), window)
     }
 
+    #[cfg(feature = "webxr")]
     pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
         self.xr.get()
     }
@@ -136,7 +140,7 @@ impl Navigator {
     }
 }
 
-impl NavigatorMethods for Navigator {
+impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-product
     fn Product(&self) -> DOMString {
         navigatorinfo::Product()
@@ -250,6 +254,7 @@ impl NavigatorMethods for Navigator {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
+    #[cfg(feature = "webxr")]
     fn Xr(&self) -> DomRoot<XRSystem> {
         self.xr.or_init(|| XRSystem::new(self.global().as_window()))
     }

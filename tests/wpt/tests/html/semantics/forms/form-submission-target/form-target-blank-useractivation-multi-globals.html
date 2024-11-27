@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Multi-globals: which userActivation should be consumed when submitting a target=_blank form?</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-form-submit">
+<link rel="help" href="https://html.spec.whatwg.org/#the-rules-for-choosing-a-navigable">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<div id=log></div>
+<script>
+
+function waitForNewWindow(aChannelName) {
+  return new Promise(resolve => {
+    let channel = new BroadcastChannel(aChannelName);
+    channel.addEventListener("message", () => {
+      assert_true(true, "new window is opened");
+      resolve(channel);
+    }, {once: true});
+  });
+}
+
+function testFormSubmission(aChannelName, aSubmitFun, aMsg) {
+  promise_test(async (t) => {
+    await test_driver.bless('active main test window to open popup test window');
+    let popupPromise = waitForNewWindow("popup");
+    let popup = window.open("resources/endpoint.html?channelname=popup");
+    t.add_cleanup(() => { popup.close(); });
+    await popupPromise;
+
+    popup.document.documentElement.innerHTML += `
+      <form action=endpoint.html target=_blank>
+        <input type=hidden name=channelname value=${aChannelName}>
+      </form>
+    `;
+
+    await test_driver.bless('active main test window again');
+    assert_true(navigator.userActivation.isActive, 'main test window should have user activation');
+
+    await test_driver.bless('active popup test window', () => {}, popup);
+    assert_true(popup.navigator.userActivation.isActive, 'popup test window should have user activation');
+
+    let newWindowPromise = waitForNewWindow(aChannelName);
+    aSubmitFun(popup.document.querySelector("form"));
+    let newWindowChannel = await newWindowPromise;
+    t.add_cleanup(() => {  newWindowChannel.postMessage("close"); });
+
+    assert_true(navigator.userActivation.isActive, 'main test window should still have user activation');
+    assert_false(popup.navigator.userActivation.isActive, 'popup test window should not have user activation');
+  }, aMsg);
+}
+
+testFormSubmission(`${Date.now()}_script_submit`, (form) => {
+  form.submit();
+}, `<form target=_blank>.submit()`);
+
+testFormSubmission(`${Date.now()}_script_requestSubmit`, (form) => {
+  form.requestSubmit();
+}, `<form target=_blank>.requestSubmit()`);
+
+</script>
