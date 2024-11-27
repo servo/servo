@@ -6553,6 +6553,7 @@ dependencies = [
  "indexmap",
  "keyboard-types",
  "malloc_size_of",
+ "markup5ever",
  "serde",
  "serde_bytes",
  "servo_allocator",
@@ -6566,7 +6567,6 @@ dependencies = [
  "uuid",
  "webrender_api",
  "wr_malloc_size_of",
- "xml5ever",
 ]
 
 [[package]]
