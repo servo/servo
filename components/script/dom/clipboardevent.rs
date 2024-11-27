@@ -62,7 +62,7 @@ impl ClipboardEvent {
     }
 }
 
-impl ClipboardEventMethods for ClipboardEvent {
+impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
     /// <https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboardevent>
     fn Constructor(
         window: &Window,

@@ -163,10 +163,6 @@ skip = [
     "http",
     "http-body",
     "hyper",
-    
-    # required for testing
-    "image",
-    "arboard",
 ]
 
 # github.com organizations to allow git sources for

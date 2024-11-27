@@ -545,18 +545,7 @@ pub enum ClipboardEventType {
     /// Cut
     Cut,
     /// Paste
-    Paste(Vec<ClipboardItem>),
-}
-
-/// Data types supported by Servo
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ClipboardItem {
-    /// Text/Plain
-    Text(String),
-    /// Text/Html
-    Html(String),
-    /// Image/Png
-    Png(Vec<u8>),
+    Paste(String),
 }
 
 impl ClipboardEventType {
@@ -626,7 +615,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
             CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
-            CompositorEvent::ClipboardEvent(..) => todo!(),
+            CompositorEvent::ClipboardEvent(..) => CompositorEventVariant::ClipboardEvent,
         }
     }
 }

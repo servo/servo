@@ -138,13 +138,13 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin,
-    LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, NavigationHistoryBehavior,
-    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
-    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
+    BroadcastMsg, ClipboardEventType, CompositorEvent, ConstellationControlMsg,
+    DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    NavigationHistoryBehavior, PortMessageTask, SWManagerMsg, SWManagerSenders,
+    ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
