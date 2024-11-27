@@ -217,7 +217,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     make_setter!(SetAction, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         Autocomplete,
         "autocomplete",
         "on" | "off",
@@ -229,7 +229,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         Enctype,
         "enctype",
         "application/x-www-form-urlencoded" | "text/plain" | "multipart/form-data",
@@ -251,7 +251,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         Method,
         "method",
         "get" | "post" | "dialog",

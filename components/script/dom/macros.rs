@@ -160,8 +160,7 @@ macro_rules! make_labels_getter(
 
 /// Implements the `To determine the state of an attribute` steps from
 /// <https://html.spec.whatwg.org/multipage/#keywords-and-enumerated-attributes>
-#[macro_export]
-macro_rules! make_enumerated_getter_new(
+macro_rules! make_enumerated_getter(
     ($attr:ident,
         $htmlname:tt,
         $($choices:literal)|+,
@@ -205,7 +204,7 @@ macro_rules! make_enumerated_getter_new(
         $htmlname:tt,
         $($choices:literal)|+,
     ) => (
-        make_enumerated_getter_new!(
+        make_enumerated_getter!(
             $attr,
             $htmlname,
             $($choices)|+,
@@ -218,7 +217,7 @@ macro_rules! make_enumerated_getter_new(
         $($choices:literal)|+,
         invalid => $invalid:literal
     ) => (
-        make_enumerated_getter_new!(
+        make_enumerated_getter!(
             $attr,
             $htmlname,
             $($choices)|+,
@@ -231,31 +230,13 @@ macro_rules! make_enumerated_getter_new(
         $($choices:literal)|+,
         missing => $missing:literal,
     ) => (
-        make_enumerated_getter_new!(
+        make_enumerated_getter!(
             $attr,
             $htmlname,
             $($choices)|+,
             missing => $missing,
             invalid => ""
         );
-    );
-);
-
-#[macro_export]
-macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:tt, $default:expr, $($choices:pat_param)|+) => (
-        fn $attr(&self) -> DOMString {
-            use $crate::dom::bindings::inheritance::Castable;
-            use $crate::dom::element::Element;
-            let element = self.upcast::<Element>();
-            let mut val = element.get_string_attribute(&html5ever::local_name!($htmlname));
-            val.make_ascii_lowercase();
-            // https://html.spec.whatwg.org/multipage/#attr-fs-method
-            match &*val {
-                $($choices)|+ => val,
-                _ => DOMString::from($default)
-            }
-        }
     );
 );
 

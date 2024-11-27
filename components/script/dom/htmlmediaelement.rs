@@ -2160,7 +2160,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
     // Missing/Invalid values are user-agent defined.
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         Preload,
         "preload",
         "none" | "metadata" | "auto",

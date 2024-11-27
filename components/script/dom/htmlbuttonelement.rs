@@ -106,7 +106,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-button-type>
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         Type,
         "type",
         "submit" | "reset" | "button",
@@ -124,7 +124,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         FormEnctype,
         "formenctype",
         "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain",
@@ -135,7 +135,7 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         FormMethod,
         "formmethod",
         "get" | "post" | "dialog",

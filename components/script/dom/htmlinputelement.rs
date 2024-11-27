@@ -1400,7 +1400,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         FormEnctype,
         "formenctype",
         "application/x-www-form-urlencoded" | "text/plain" | "multipart/form-data",
@@ -1412,7 +1412,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_enumerated_getter_new!(
+    make_enumerated_getter!(
         FormMethod,
         "formmethod",
         "get" | "post" | "dialog",
