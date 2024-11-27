@@ -185,9 +185,9 @@ macro_rules! make_enumerated_getter(
                 Some(attr) => {
                     // Step 2. If the attribute's value is an ASCII case-insensitive match for one of the keywords
                     // defined for the attribute, then return the state represented by that keyword.
-                    let value: DOMString = attr.Value();
+                    let value: DOMString = attr.Value().to_ascii_lowercase().into();
                     $(
-                        if $choices.eq_ignore_ascii_case(&value) {
+                        if value.str() == $choices {
                             return value;
                         }
                     )+
