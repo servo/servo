@@ -31,6 +31,10 @@ impl PlainString {
     pub fn new(data: DOMString, type_: DOMString) -> Self {
         Self { data, type_ }
     }
+
+    pub fn data(&self) -> String {
+        self.data.to_string()
+    }
 }
 
 #[derive(Clone)]
@@ -253,6 +257,10 @@ impl DragDataStore {
 
     pub fn list_len(&self) -> usize {
         self.item_list.len()
+    }
+
+    pub fn iter_item_list(&self) -> std::slice::Iter<'_, Kind> {
+        self.item_list.iter()
     }
 
     pub fn get_item(&self, index: usize) -> Option<Kind> {
