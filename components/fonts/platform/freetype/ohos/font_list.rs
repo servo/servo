@@ -539,12 +539,20 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             UnicodeBlock::HangulJamoExtendedA |
             UnicodeBlock::HangulJamoExtendedB |
             UnicodeBlock::HangulSyllables => {
+                families.push("Noto Sans CJK");
+                families.push("Noto Serif CJK");
                 families.push("Noto Sans KR");
             },
             UnicodeBlock::Hiragana |
             UnicodeBlock::Katakana |
             UnicodeBlock::KatakanaPhoneticExtensions => {
+                families.push("Noto Sans CJK");
+                families.push("Noto Serif CJK");
                 families.push("Noto Sans JP");
+            },
+            UnicodeBlock::HalfwidthandFullwidthForms => {
+                families.push("HarmonyOS Sans SC");
+                families.push("Noto Sans CJK");
             },
             _ => {},
         }
