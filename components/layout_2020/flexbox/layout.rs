@@ -359,7 +359,7 @@ impl FlexContainer {
         tracing::instrument(
             name = "FlexContainer::layout",
             skip_all,
-            fields(servo_profiling = true),
+            fields(servo_profiling = true, self_address = self as *const _ as usize),
             level = "trace",
         )
     )]
@@ -1575,6 +1575,20 @@ impl FlexItem<'_> {
     /// From <https://drafts.csswg.org/css-flexbox/#algo-cross-item>:
     /// > performing layout as if it were an in-flow block-level box with the used main
     /// > size and the given available space, treating `auto` as `fit-content`.
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "FlexItem::layout",
+            skip_all,
+            fields(
+                servo_profiling = true,
+                self_address = self as *const _ as usize,
+                box_address = self.box_ as *const _ as usize,
+            ),
+            level = "trace",
+        )
+    )]
+    #[allow(clippy::too_many_arguments)]
     fn layout(
         &mut self,
         used_main_size: Au,
