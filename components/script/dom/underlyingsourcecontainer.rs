@@ -155,23 +155,20 @@ impl UnderlyingSourceContainer {
         &self,
         controller: Controller,
         can_gc: CanGc,
-    ) -> Option<Rc<Promise>> {
+    ) -> Option<Result<Rc<Promise>, Error>> {
         if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
             if let Some(start) = &source.start {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
                 rooted!(in(*cx) let mut result: JSVal);
                 unsafe {
-                    if start
-                        .Call_(
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            controller,
-                            result.handle_mut(),
-                            ExceptionHandling::Report,
-                        )
-                        .is_err()
-                    {
-                        return None;
+                    if let Err(error) = start.Call_(
+                        &SafeHandle::from_raw(this_obj.handle()),
+                        controller,
+                        result.handle_mut(),
+                        ExceptionHandling::Rethrow,
+                    ) {
+                        return Some(Err(error));
                     }
                 }
                 let is_promise = unsafe {
@@ -182,8 +179,6 @@ impl UnderlyingSourceContainer {
                         false
                     }
                 };
-                // Let startPromise be a promise resolved with startResult.
-                // from #set-up-readable-stream-default-controller.
                 let promise = if is_promise {
                     let promise = Promise::new_with_js_promise(result_object.handle(), cx);
                     promise
@@ -192,7 +187,7 @@ impl UnderlyingSourceContainer {
                     promise.resolve_native(&result.get());
                     promise
                 };
-                return Some(promise);
+                return Some(Ok(promise));
             }
         }
         None

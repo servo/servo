@@ -292,7 +292,8 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    pub fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) {
+    #[allow(unsafe_code)]
+    pub fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) -> Result<(), Error> {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
 
@@ -317,9 +318,27 @@ impl ReadableStreamDefaultController {
         stream.set_default_controller(&rooted_default_controller);
 
         if let Some(underlying_source) = rooted_default_controller.underlying_source.get() {
+            // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
+            let start_result = underlying_source
+                .call_start_algorithm(
+                    Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
+                    can_gc,
+                )
+                .unwrap_or_else(|| {
+                    let promise = Promise::new(global, can_gc);
+                    promise.resolve_native(&());
+                    Ok(promise)
+                });
+
+            // Let startPromise be a promise resolved with startResult.
+            let start_promise = start_result?;
+
+            // Upon fulfillment of startPromise,
             let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
                 controller: Trusted::new(&*rooted_default_controller),
             });
+
+            // Upon rejection of startPromise with reason r,
             let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
                 controller: Trusted::new(&*rooted_default_controller),
             });
@@ -328,23 +347,12 @@ impl ReadableStreamDefaultController {
                 Some(fulfillment_handler),
                 Some(rejection_handler),
             );
-
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
-            // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
-            if let Some(promise) = underlying_source.call_start_algorithm(
-                Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
-                can_gc,
-            ) {
-                promise.append_native_handler(&handler, comp, can_gc);
-            } else {
-                let promise = Promise::new(global, can_gc);
-                promise.append_native_handler(&handler, comp, can_gc);
-                // Let startPromise be a promise resolved with startResult.
-                // Note: where is startResult?
-                promise.resolve_native(&());
-            }
+            start_promise.append_native_handler(&handler, comp, can_gc);
         };
+
+        Ok(())
     }
 
     /// Setting the JS object after the heap has settled down.

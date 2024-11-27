@@ -223,7 +223,9 @@ impl ReadableStream {
             extract_size_algorithm(&QueuingStrategy::empty()),
             can_gc,
         );
-        controller.setup(stream.clone(), can_gc);
+        controller
+            .setup(stream.clone(), can_gc)
+            .expect("Setup of controller with external underlying source cannot fail");
         stream
     }
 
@@ -669,7 +671,7 @@ impl ReadableStreamMethods for ReadableStream {
             controller.set_underlying_source_this_object(obj.handle());
 
             // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
-            controller.setup(stream.clone(), can_gc);
+            controller.setup(stream.clone(), can_gc)?;
         };
 
         Ok(stream)
