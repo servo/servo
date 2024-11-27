@@ -121,12 +121,26 @@ struct FlexItemLayoutResult {
 
 impl FlexItemLayoutResult {
     fn compatible_with_containing_block_size(&self, containing_block: &ContainingBlock) -> bool {
-        if containing_block.inline_size != self.containing_block_inline_size {
-            return false;
+        if containing_block.inline_size == self.containing_block_inline_size &&
+            (containing_block.block_size == self.containing_block_block_size ||
+                (!self.depends_on_block_constraints &&
+                    !self.has_child_which_depends_on_block_constraints))
+        {
+            return true;
         }
-        containing_block.block_size == self.containing_block_block_size ||
-            (!self.depends_on_block_constraints &&
-                !self.has_child_which_depends_on_block_constraints)
+
+        #[cfg(feature = "tracing")]
+        tracing::warn!(
+            name: "NonReplaced stretch cache miss",
+            cached_inline = ?self.containing_block_inline_size,
+            cached_block = ?self.containing_block_block_size,
+            required_inline = ?containing_block.inline_size,
+            required_block = ?containing_block.block_size,
+            depends_on_block_constraints = self.depends_on_block_constraints,
+            has_child_which_depends_on_block_constraints = self.has_child_which_depends_on_block_constraints,
+        );
+
+        false
     }
 
     fn compatible_with_containing_block_size_and_content_size(
@@ -608,7 +622,7 @@ impl FlexContainer {
         tracing::instrument(
             name = "FlexContainer::layout",
             skip_all,
-            fields(servo_profiling = true),
+            fields(servo_profiling = true, self_address = self as *const _ as usize),
             level = "trace",
         )
     )]
@@ -1833,6 +1847,20 @@ impl FlexItem<'_> {
     /// From <https://drafts.csswg.org/css-flexbox/#algo-cross-item>:
     /// > performing layout as if it were an in-flow block-level box with the used main
     /// > size and the given available space, treating `auto` as `fit-content`.
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "FlexItem::layout",
+            skip_all,
+            fields(
+                servo_profiling = true,
+                self_address = self as *const _ as usize,
+                box_address = self.box_ as *const _ as usize,
+                for_stretch = non_stretch_layout_result.is_some(),
+            ),
+            level = "trace",
+        )
+    )]
     #[allow(clippy::too_many_arguments)]
     fn layout(
         &self,
@@ -2774,7 +2802,17 @@ impl FlexItemBox {
                     if let Some(cache) = &*self.block_content_size_cache.borrow() {
                         if inline_size == cache.containing_block_inline_size {
                             return cache.content_block_size;
+                        } else {
+                            #[cfg(feature = "tracing")]
+                            tracing::warn!(
+                                name: "NonReplaced cache miss",
+                                cached = ?cache.containing_block_inline_size,
+                                required = ?inline_size,
+                            );
                         }
+                    } else {
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(name: "NonReplaced no cache", required = ?inline_size);
                     }
 
                     let layout = non_replaced.layout(
