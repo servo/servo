@@ -158,6 +158,89 @@ macro_rules! make_labels_getter(
     );
 );
 
+/// Implements the `To determine the state of an attribute` steps from
+/// <https://html.spec.whatwg.org/multipage/#keywords-and-enumerated-attributes>
+#[macro_export]
+macro_rules! make_enumerated_getter_new(
+    ($attr:ident,
+        $htmlname:tt,
+        $($choices:literal)|+,
+        missing => $missing:literal,
+        invalid => $invalid:literal
+    ) => (
+        fn $attr(&self) -> DOMString {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
+
+            let attr_or_none = self.upcast::<Element>()
+                .get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
+            match attr_or_none  {
+                // Step 1. If the attribute is not specified:
+                None => {
+                    // Step 1.1. If the attribute has a missing value default state defined, then return that
+                    // missing value default state.
+                    // Step 1.2 Otherwise, return no state.
+                    return DOMString::from($missing);
+                },
+                Some(attr) => {
+                    // Step 2. If the attribute's value is an ASCII case-insensitive match for one of the keywords
+                    // defined for the attribute, then return the state represented by that keyword.
+                    let value: DOMString = attr.Value();
+                    $(
+                        if $choices.eq_ignore_ascii_case(&value) {
+                            return value;
+                        }
+                    )+
+
+                    // Step 3. If the attribute has an invalid value default state defined, then return that invalid
+                    // value default state.
+                    // Step 4. Return no state.
+                    return DOMString::from($invalid);
+                }
+            }
+        }
+    );
+    ($attr:ident,
+        $htmlname:tt,
+        $($choices:literal)|+,
+    ) => (
+        make_enumerated_getter_new!(
+            $attr,
+            $htmlname,
+            $($choices)|+,
+            missing => "",
+            invalid => ""
+        );
+    );
+    ($attr:ident,
+        $htmlname:tt,
+        $($choices:literal)|+,
+        invalid => $invalid:literal
+    ) => (
+        make_enumerated_getter_new!(
+            $attr,
+            $htmlname,
+            $($choices)|+,
+            missing => "",
+            invalid => $invalid
+        );
+    );
+    ($attr:ident,
+        $htmlname:tt,
+        $($choices:literal)|+,
+        missing => $missing:literal,
+    ) => (
+        make_enumerated_getter_new!(
+            $attr,
+            $htmlname,
+            $($choices)|+,
+            missing => $missing,
+            invalid => ""
+        );
+    );
+);
+
 #[macro_export]
 macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:tt, $default:expr, $($choices:pat_param)|+) => (

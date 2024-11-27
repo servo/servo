@@ -118,11 +118,11 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_enumerated_getter!(
+    make_enumerated_getter_new!(
         FormEnctype,
         "formenctype",
-        "application/x-www-form-urlencoded",
-        "text/plain" | "multipart/form-data"
+        "application/x-www-form-urlencoded" | "multipart/form-data" | "text/plain",
+        invalid => "application/x-www-form-urlencoded"
     );
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
