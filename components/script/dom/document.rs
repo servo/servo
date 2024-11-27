@@ -82,7 +82,6 @@ use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
-use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
 };
@@ -121,8 +120,7 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
-use crate::dom::datatransfer::{DataTransfer, Mode};
-use crate::dom::datatransferitem::Kind;
+use crate::dom::datatransfer::DataTransfer;
 use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
@@ -191,6 +189,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
+use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::messaging::MainThreadScriptMsg;
@@ -1458,8 +1457,7 @@ impl Document {
         // Step 1
         let _clear_was_called = false;
         // Step 2 let types_to_clear an empty list
-        // Step 3
-        let clipboard_event_data = DataTransfer::new(&self.window);
+        let mut drag_data_store = DragDataStore::new();
 
         // Step 4 let clipboard-entry be the sequence number of clipboard content, null if the OS doesn't support it.
 
@@ -1481,53 +1479,53 @@ impl Document {
         match event {
             ClipboardEventType::Copy | ClipboardEventType::Cut => {
                 // Step 7.2.1
-                clipboard_event_data.set_mode(Mode::ReadWrite);
+                drag_data_store.set_mode(Mode::ReadWrite);
             },
             ClipboardEventType::Paste(ref contents) => {
                 // Step 7.1.1
-                clipboard_event_data.set_mode(Mode::ReadOnly);
+                drag_data_store.set_mode(Mode::ReadOnly);
                 // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
                 if trusted {
                     // Step 7.1.2.1
                     for content in contents {
                         match content {
                             ClipboardItem::Text(data) => {
-                                clipboard_event_data.Items().add_item(
-                                    Kind::Text(DOMString::from_string(data.to_string())),
+                                let plain_string = PlainString::new(
+                                    DOMString::from_string(data.to_string()),
                                     DOMString::from("text/plain"),
                                 );
+                                let _ = drag_data_store.add(Kind::Text(plain_string));
                             },
                             ClipboardItem::Html(data) => {
                                 // For now do the same of above
                                 // See https://www.w3.org/TR/clipboard-apis/#process-an-html-paste-event
-                                clipboard_event_data.Items().add_item(
-                                    Kind::Text(DOMString::from_string(data.to_string())),
+                                let plain_string = PlainString::new(
+                                    DOMString::from_string(data.to_string()),
                                     DOMString::from("text/html"),
                                 );
+                                let _ = drag_data_store.add(Kind::Text(plain_string));
                             },
                             ClipboardItem::Png(data) => {
                                 // We don't have access to filename
-                                let file = File::new(
-                                    &self.global(),
-                                    BlobImpl::new_from_bytes(
-                                        data.to_vec(),
-                                        "image/png".to_string(),
-                                    ),
+                                let binary = Binary::new(
+                                    data.to_vec(),
                                     DOMString::from("servo-img"),
-                                    None,
-                                    CanGc::note(),
+                                    "image/png".to_string(),
                                 );
-                                clipboard_event_data
-                                    .Items()
-                                    .add_item(Kind::File(&file), DOMString::from("image/png"));
+                                let _ = drag_data_store.add(Kind::File(binary));
                             },
                         }
                     }
-                    // Step 7.1.4 Update DataTransfer's types to match the items added.
+                    // Step 7.1.3 Update clipboard-event-data’s files to match entries in clipboard-event-data’s items
+                    // Step 7.1.4 Update clipboard-event-data’s types to match entries in clipboard-event-data’s items
                 }
             },
             ClipboardEventType::Change => (),
         }
+
+        // Step 3
+        let clipboard_event_data =
+            DataTransfer::new(&self.window, Rc::new(RefCell::new(Some(drag_data_store))));
 
         let event = ClipboardEvent::new(
             &self.window,
@@ -1554,21 +1552,20 @@ impl Document {
         items: DomRoot<DataTransferItemList>,
         clear_was_called: bool,
     ) {
+        let drag_data_store = items.data().expect("This shouldn't fail");
         // TODO figure out how to handle clear_was_called, types_to_clear require FrozenArray
         // Step 1
-        if !items.is_empty() {
+        if drag_data_store.list_len() > 0 {
             // Step 1.1 Clear the clipboard.
             self.send_to_embedder(EmbedderMsg::ClearClipboardContents);
             // Step 1.2
-            for item in items.iter() {
-                match item.kind() {
+            for item in drag_data_store.iter_item_list() {
+                match item {
                     Kind::Text(string) => {
                         // Step 1.2.1.1 Ensure encoding is correct per OS and locale conventions
                         // Step 1.2.1.2 Normalize line endings according to platform conventions
                         // Step 1.2.1.3
-                        self.send_to_embedder(EmbedderMsg::SetClipboardContents(
-                            string.to_string(),
-                        ));
+                        self.send_to_embedder(EmbedderMsg::SetClipboardContents(string.data()));
                     },
                     Kind::File(_) => {
                         // Step 1.2.2 If data is of a type listed in the mandatory data types list, then
