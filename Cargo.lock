@@ -7837,9 +7837,9 @@ dependencies = [
 
 [[package]]
 name = "vergen-git2"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e771aff771c0d7c2f42e434e2766d304d917e29b40f0424e8faaaa936bbc3f29"
+checksum = "5e63e069d8749fead1e3bab7a9d79e8fb90516b2ec66fc2243a798ecdc1a31d7"
 dependencies = [
  "anyhow",
  "derive_builder",
