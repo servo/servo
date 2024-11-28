@@ -1969,6 +1969,7 @@ impl FlexItem<'_> {
                             .vec2_to_flow_relative(self.content_max_size)
                             .map(|size| size.map_or(Size::Initial, Size::Numeric)),
                         flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
+                        Size::FitContent.into(),
                     );
                 let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
 
@@ -2762,6 +2763,7 @@ impl FlexItemBox {
                         max_size.map(|size| size.map_or(Size::Initial, Size::Numeric)),
                         padding_border_margin.padding_border_sums +
                             padding_border_margin.margin.auto_is(Au::zero).sum(),
+                        Size::FitContent.into(),
                     )
                     .block
             },

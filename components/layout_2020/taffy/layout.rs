@@ -169,6 +169,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                     block: Size::Initial,
                                 },
                                 pbm.padding_border_sums,
+                                Size::FitContent.into(),
                             )
                             .to_physical_size(self.style.writing_mode);
 

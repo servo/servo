@@ -445,6 +445,7 @@ impl ReplacedContent {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
+        initial_size_behavior: LogicalVec2<Size<Au>>,
     ) -> LogicalVec2<Au> {
         let pbm = &content_box_sizes_and_pbm.pbm;
         self.used_size_as_if_inline_element_from_content_box_sizes(
@@ -454,6 +455,7 @@ impl ReplacedContent {
             content_box_sizes_and_pbm.content_min_box_size,
             content_box_sizes_and_pbm.content_max_box_size,
             pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
+            initial_size_behavior,
         )
     }
 
@@ -492,6 +494,7 @@ impl ReplacedContent {
     ///
     /// <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
     /// <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
         &self,
         containing_block: &ContainingBlock,
@@ -500,6 +503,7 @@ impl ReplacedContent {
         min_box_size: LogicalVec2<Size<Au>>,
         max_box_size: LogicalVec2<Size<Au>>,
         pbm_sums: LogicalVec2<Au>,
+        initial_size_behavior: LogicalVec2<Size<Au>>,
     ) -> LogicalVec2<Au> {
         // <https://drafts.csswg.org/css-sizing-4/#preferred-aspect-ratio>
         let ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
@@ -528,6 +532,9 @@ impl ReplacedContent {
             .non_auto()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 
+        let inline_behaviour = initial_size_behavior.inline;
+        let block_behaviour = initial_size_behavior.block;
+
         // First, compute the inline size. Intrinsic values depend on the block sizing properties
         // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
         // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
@@ -537,14 +544,14 @@ impl ReplacedContent {
                 SizeConstraint::new(
                     box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(block_behaviour, Some(block_stretch_size)),
                     min_box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size))
+                        .maybe_resolve_extrinsic(block_behaviour, Some(block_stretch_size))
                         .unwrap_or_default(),
                     max_box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(block_behaviour, Some(block_stretch_size)),
                 )
             };
             self.content_size(
@@ -558,7 +565,7 @@ impl ReplacedContent {
         let preferred_inline =
             box_size
                 .inline
-                .resolve(Size::FitContent, inline_stretch_size, &inline_content_size);
+                .resolve(inline_behaviour, inline_stretch_size, &inline_content_size);
         let min_inline = min_box_size
             .inline
             .resolve_non_initial(inline_stretch_size, &inline_content_size)
@@ -571,8 +578,8 @@ impl ReplacedContent {
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                if box_size.inline.is_initial() {
-                    // TODO: do we really need to special-case `auto`?
+                if box_size.inline.is_initial() && inline_behaviour == Size::FitContent {
+                    // TODO: do we really need to special-case intrinsic `auto`?
                     // https://github.com/w3c/csswg-drafts/issues/11236
                     SizeConstraint::MinMax(min_inline, max_inline)
                 } else {
@@ -592,7 +599,7 @@ impl ReplacedContent {
         let preferred_block =
             box_size
                 .block
-                .resolve(Size::FitContent, block_stretch_size, &block_content_size);
+                .resolve(block_behaviour, block_stretch_size, &block_content_size);
         let min_block = min_box_size
             .block
             .resolve_non_initial(block_stretch_size, &block_content_size)

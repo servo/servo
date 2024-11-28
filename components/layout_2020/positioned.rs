@@ -459,29 +459,6 @@ impl HoistedAbsolutelyPositionedBox {
         let containing_block = &containing_block.into();
         let pbm = style.padding_border_margin(containing_block);
 
-        let (computed_size, computed_min_size, computed_max_size) = match context {
-            IndependentFormattingContext::Replaced(replaced) => {
-                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let content_box_sizes_and_pbm =
-                    style.content_box_sizes_and_padding_border_margin(&containing_block.into());
-                let used_size = replaced
-                    .contents
-                    .used_size_as_if_inline_element(
-                        containing_block,
-                        &style,
-                        &content_box_sizes_and_pbm,
-                    )
-                    .map(|size| Size::Numeric(*size));
-                (used_size, Default::default(), Default::default())
-            },
-            IndependentFormattingContext::NonReplaced(_) => (
-                style.content_box_size(containing_block, &pbm),
-                style.content_min_box_size(containing_block, &pbm),
-                style.content_max_box_size(containing_block, &pbm),
-            ),
-        };
-
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
             .static_position_rect
@@ -498,6 +475,52 @@ impl HoistedAbsolutelyPositionedBox {
         let inline_alignment = match inline_box_offsets.either_specified() {
             true => style.clone_justify_self().0 .0,
             false => shared_fragment.resolved_alignment.inline,
+        };
+        let inline_behaviour = match inline_alignment.value() {
+            AlignFlags::STRETCH => Size::Stretch,
+            _ => Size::FitContent,
+        };
+
+        // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
+        // against this containing block.
+        let block_box_offsets = AbsoluteBoxOffsets {
+            start: box_offset.block_start,
+            end: box_offset.block_end,
+        };
+        let block_alignment = match block_box_offsets.either_specified() {
+            true => style.clone_align_self().0 .0,
+            false => shared_fragment.resolved_alignment.block,
+        };
+        let block_behaviour = match block_alignment.value() {
+            AlignFlags::STRETCH => Size::Stretch,
+            _ => Size::FitContent,
+        };
+
+        let (computed_size, computed_min_size, computed_max_size) = match context {
+            IndependentFormattingContext::Replaced(replaced) => {
+                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                let content_box_sizes_and_pbm =
+                    style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+                let used_size = replaced
+                    .contents
+                    .used_size_as_if_inline_element(
+                        containing_block,
+                        &style,
+                        &content_box_sizes_and_pbm,
+                        LogicalVec2 {
+                            inline: inline_behaviour,
+                            block: block_behaviour,
+                        },
+                    )
+                    .map(|size| Size::Numeric(*size));
+                (used_size, Default::default(), Default::default())
+            },
+            IndependentFormattingContext::NonReplaced(_) => (
+                style.content_box_size(containing_block, &pbm),
+                style.content_min_box_size(containing_block, &pbm),
+                style.content_max_box_size(containing_block, &pbm),
+            ),
         };
 
         let mut inline_axis_solver = AbsoluteAxisSolver {
@@ -517,16 +540,6 @@ impl HoistedAbsolutelyPositionedBox {
                 containing_block_writing_mode.is_bidi_ltr(),
         };
 
-        // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
-        // against this containing block.
-        let block_box_offsets = AbsoluteBoxOffsets {
-            start: box_offset.block_start,
-            end: box_offset.block_end,
-        };
-        let block_alignment = match block_box_offsets.either_specified() {
-            true => style.clone_align_self().0 .0,
-            false => shared_fragment.resolved_alignment.block,
-        };
         let mut block_axis_solver = AbsoluteAxisSolver {
             axis: AxisDirection::Block,
             containing_size: cbbs,
@@ -799,15 +812,15 @@ impl<'a> AbsoluteAxisSolver<'a> {
             } else {
                 let preferred_size = self
                     .computed_size
-                    .maybe_resolve_extrinsic(Some(stretch_size))
+                    .maybe_resolve_extrinsic(Size::FitContent, Some(stretch_size))
                     .or(initial_is_stretch.then_some(stretch_size));
                 let min_size = self
                     .computed_min_size
-                    .maybe_resolve_extrinsic(Some(stretch_size))
+                    .maybe_resolve_extrinsic(Size::FitContent, Some(stretch_size))
                     .unwrap_or_default();
                 let max_size = self
                     .computed_max_size
-                    .maybe_resolve_extrinsic(Some(stretch_size));
+                    .maybe_resolve_extrinsic(Size::FitContent, Some(stretch_size));
                 SizeConstraint::new(preferred_size, min_size, max_size)
             }
         };
