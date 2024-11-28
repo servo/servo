@@ -20,9 +20,10 @@ use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::positioned::AbsolutelyPositionedBox;
+use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::ContainingBlock;
 
 mod geom;
 mod layout;
@@ -180,5 +181,16 @@ impl FlexItemBox {
 
 struct CachedBlockSizeContribution {
     containing_block_inline_size: Au,
-    content_block_size: Au,
+    layout: IndependentLayout,
+    positioning_context: PositioningContext,
+}
+
+impl CachedBlockSizeContribution {
+    fn compatible_with_item_as_containing_block(
+        &self,
+        item_as_containing_block: &ContainingBlock,
+    ) -> bool {
+        item_as_containing_block.inline_size == self.containing_block_inline_size &&
+            item_as_containing_block.block_size.is_auto()
+    }
 }
