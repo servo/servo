@@ -11,20 +11,17 @@ use webgpu::wgc::pipeline::ProgrammableStageDescriptor;
 use webgpu::wgc::resource::TextureDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUProgrammableStage, GPUTextureDescriptor, GPUTextureDimension,
-};
-use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
     GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
     GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase,
-    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUSamplerBindingType,
-    GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp, GPUTextureAspect, GPUTextureFormat,
+    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUProgrammableStage,
+    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
+    GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
     GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::types::GPUDevice;
 
 impl From<GPUTextureFormat> for wgt::TextureFormat {

@@ -6,9 +6,9 @@
 
 use dom_struct::dom_struct;
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUQuerySetMethods;
-use super::bindings::str::USVString;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUQuerySetMethods;
 use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::str::USVString;
 
 #[dom_struct]
 pub struct GPUQuerySet {

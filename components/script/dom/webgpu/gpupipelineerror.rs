@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUPipelineErrorInit, GPUPipelineErrorMethods, GPUPipelineErrorReason,
 };
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;

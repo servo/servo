@@ -8,13 +8,13 @@ use dom_struct::dom_struct;
 use webgpu::wgc::resource;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
-use super::bindings::error::Fallible;
 use super::gpuconvert::convert_texture_descriptor;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
     GPUTextureMethods, GPUTextureViewDescriptor,
 };
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
