@@ -1,0 +1,102 @@
+[package]
+name = "kun"
+build = "build.rs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+
+[lib]
+name = "servo"
+path = "lib.rs"
+bench = false
+
+[[bin]]
+name = "servo_kun"
+path = "main.rs"
+bench = false
+
+[package.metadata.docs.rs]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+    "x86_64-apple-darwin",
+]
+
+[features]
+default = []
+
+[build-dependencies]
+cfg_aliases = "0.2"
+
+[dependencies]
+arboard = "3.4.0"
+crossbeam-channel = { workspace = true }
+env_logger = { workspace = true }
+euclid = { workspace = true }
+getopts = { workspace = true }
+gleam = { workspace = true }
+glutin = "0.32.0"
+glutin-winit = "0.5.0"
+headers = { workspace = true }
+ipc-channel = { workspace = true }
+keyboard-types = { workspace = true }
+log = { workspace = true }
+raw-window-handle = { version = "0.6", features = ["std"] }
+thiserror = "1.0"
+url = { workspace = true }
+winit = { version = "0.30", features = ["rwh_06"] }
+# Servo repo crates
+base = { workspace = true }
+bluetooth = { path = "../../components/bluetooth" }
+bluetooth_traits = { workspace = true }
+canvas = { path = "../../components/canvas" }
+compositing_traits = { workspace = true }
+constellation = { path = "../../components/constellation" }
+devtools = { path = "../../components/devtools" }
+embedder_traits = { workspace = true }
+fonts = { path = "../../components/fonts" }
+layout_thread_2020 = { path = "../../components/layout_thread_2020" }
+media = { path = "../../components/media" }
+net = { path = "../../components/net" }
+net_traits = { workspace = true }
+profile = { path = "../../components/profile" }
+profile_traits = { workspace = true }
+script = { path = "../../components/script" }
+script_traits = { workspace = true }
+servo_config = { path = "../../components/config" }
+servo_geometry = { path = "../../components/geometry" }
+servo_url = { path = "../../components/url" }
+webdriver_server = { path = "../../components/webdriver_server" }
+webrender_traits = { workspace = true }
+webgpu = { path = "../../components/webgpu" }
+# Servo org crates
+servo-media = { workspace = true }
+servo-media-dummy = { workspace = true }
+style = { workspace = true }
+style_traits = { workspace = true }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
+
+[target.'cfg(all(unix, not(apple), not(android)))'.dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+muda = "0.15"
+
+[target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
+objc2 = "0.5"
+objc2-foundation = { version = "0.2.2", features = ["NSThread"] }
+objc2-app-kit = { version = "0.2", features = [
+    "NSView",
+    "NSResponder",
+    "NSWindow",
+] }
+
+# Tell clippy to allow e.g. #[cfg(macos)]
+[lints.clippy]
+mismatched_target_os = "allow"

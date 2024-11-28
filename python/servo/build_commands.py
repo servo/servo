@@ -49,6 +49,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--no-package',
                      action='store_true',
                      help='For Android, disable packaging into a .apk after building')
+    @CommandArgument('--servo-kun',
+                     action='store_true',
+                     help='Build servo_kun crate instead of servoshell')
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
@@ -59,7 +62,7 @@ class MachCommands(CommandBase):
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True, package_configuration=True)
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
-              verbose=False, very_verbose=False, with_asan=False, flavor=None, **kwargs):
+              verbose=False, very_verbose=False, with_asan=False, flavor=None, servo_kun=False, **kwargs):
         opts = params or []
 
         if build_type.is_release():
@@ -127,10 +130,17 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
+        if servo_kun:
+            opts += [
+                "--manifest-path",
+                path.join(self.context.topdir, "ports", "kun", "Cargo.toml"),
+            ]
+            self.enable_media = False
+
         status = self.run_cargo_build_like_command(
             "rustc", opts, env=env, verbose=verbose, **kwargs)
 
-        if status == 0:
+        if status == 0 and not servo_kun:
             built_binary = self.get_binary_path(build_type, asan=with_asan)
 
             if not no_package and self.target.needs_packaging():

@@ -10,6 +10,7 @@ check-ordered-json-keys = ["./resources/prefs.json"]
 [blocked-packages]
 num = []
 rand = [
+    "rav1e", # The image crate that depends it has disabled this feature
     "ipc-channel",
     "phf_generator",
     "quickcheck", # Only used in tests
@@ -80,6 +81,20 @@ packages = [
 
     # some non-servo crates still use 0.14
     "glow",
+
+    # These are conflicted crates used by muda on Linux.
+    # But we only use muda on macOS and Windows.
+    # We use custom webview for context menu on Linux.
+    "gio-sys",
+    "glib",
+    "glib-macros",
+    "glib-sys",
+    "gobject-sys",
+    "heck",
+    "proc-macro-crate",
+    "syn",
+    "toml_edit",
+    "winnow",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
