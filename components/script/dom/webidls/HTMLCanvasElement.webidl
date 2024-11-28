@@ -19,6 +19,13 @@ interface HTMLCanvasElement : HTMLElement {
 
   [Throws]
   USVString toDataURL(optional DOMString type, optional any quality);
-  
-  MediaStream CaptureStream(optional double frameRequestRate);
+  //void toBlob(BlobCallback _callback, optional DOMString type, optional any quality);
+  //OffscreenCanvas transferControlToOffscreen();
 };
+
+partial interface HTMLCanvasElement {
+    [Pref="dom.canvas_capture.enabled"]
+    MediaStream captureStream (optional double frameRequestRate);
+};
+
+//callback BlobCallback = void (Blob? blob);
