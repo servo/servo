@@ -124,6 +124,7 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
+#[cfg(feature = "webgpu")]
 use crate::dom::identityhub::IdentityHub;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
@@ -1875,6 +1876,7 @@ impl Window {
         // If this reflow is for display, ensure webgl canvases are composited with
         // up-to-date contents.
         if for_display {
+            #[cfg(feature = "webgpu")]
             document.flush_dirty_webgpu_canvases();
             document.flush_dirty_webgl_canvases();
         }
@@ -2601,6 +2603,7 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
+        #[cfg(feature = "webgpu")]
         gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
@@ -2628,6 +2631,7 @@ impl Window {
                 microtask_queue,
                 is_headless,
                 user_agent,
+                #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,

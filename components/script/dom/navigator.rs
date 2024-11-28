@@ -19,6 +19,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadevent::GamepadEventType;
+#[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
@@ -53,6 +54,7 @@ pub struct Navigator {
     gamepads: DomRefCell<Vec<MutNullableDom<Gamepad>>>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
+    #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
     has_gamepad_gesture: Cell<bool>,
@@ -72,6 +74,7 @@ impl Navigator {
             gamepads: Default::default(),
             permissions: Default::default(),
             mediasession: Default::default(),
+            #[cfg(feature = "webgpu")]
             gpu: Default::default(),
             has_gamepad_gesture: Cell::new(false),
         }
@@ -283,6 +286,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(&self.global()))
     }

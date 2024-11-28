@@ -67,6 +67,7 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::Host;
 use uuid::Uuid;
+#[cfg(feature = "webgpu")]
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
@@ -126,6 +127,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
+#[cfg(feature = "webgpu")]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
@@ -446,6 +448,7 @@ pub struct Document {
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// List of all WebGPU context IDs that need flushing.
+    #[cfg(feature = "webgpu")]
     dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
@@ -3026,6 +3029,7 @@ impl Document {
         receiver.recv().unwrap();
     }
 
+    #[cfg(feature = "webgpu")]
     pub fn add_dirty_webgpu_canvas(&self, context: &GPUCanvasContext) {
         self.dirty_webgpu_contexts
             .borrow_mut()
@@ -3034,6 +3038,7 @@ impl Document {
     }
 
     #[allow(crown::unrooted_must_root)]
+    #[cfg(feature = "webgpu")]
     pub fn flush_dirty_webgpu_canvases(&self) {
         self.dirty_webgpu_contexts
             .borrow_mut()
@@ -3424,6 +3429,7 @@ impl Document {
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            #[cfg(feature = "webgpu")]
             dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {

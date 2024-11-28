@@ -46,6 +46,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
+#[cfg(feature = "webgpu")]
 use crate::dom::identityhub::IdentityHub;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
@@ -140,6 +141,7 @@ impl WorkerGlobalScope {
         runtime: Runtime,
         devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
+        #[cfg(feature = "webgpu")]
         gpu_id_hub: Arc<IdentityHub>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
@@ -164,6 +166,7 @@ impl WorkerGlobalScope {
                 runtime.microtask_queue.clone(),
                 init.is_headless,
                 init.user_agent,
+                #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 init.inherited_secure_context,
                 false,

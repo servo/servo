@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// skip-unless CARGO_FEATURE_WEBXR
+
 // Source: WebGPU (https://gpuweb.github.io/gpuweb/)
 // Direct source: https://github.com/w3c/webref/blob/curated/ed/idl/webgpu.idl
 

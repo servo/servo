@@ -40,7 +40,8 @@ use crate::dom::canvasrenderingcontext2d::{
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpucanvascontext::GPUCanvasContext;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
@@ -59,6 +60,7 @@ pub enum CanvasContext {
     Context2d(Dom<CanvasRenderingContext2D>),
     WebGL(Dom<WebGLRenderingContext>),
     WebGL2(Dom<WebGL2RenderingContext>),
+    #[cfg(feature = "webgpu")]
     WebGPU(Dom<GPUCanvasContext>),
 }
 
@@ -107,6 +109,7 @@ impl HTMLCanvasElement {
                 },
                 CanvasContext::WebGL(ref context) => context.recreate(size),
                 CanvasContext::WebGL2(ref context) => context.recreate(size),
+                #[cfg(feature = "webgpu")]
                 CanvasContext::WebGPU(ref context) => context.resize(),
             }
         }
@@ -143,6 +146,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                 },
                 Some(CanvasContext::WebGL(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
+                #[cfg(feature = "webgpu")]
                 Some(CanvasContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
                 None => HTMLCanvasDataSource::Empty,
             }
@@ -248,6 +252,7 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
+    #[cfg(feature = "webgpu")]
     fn get_or_init_webgpu_context(&self) -> Option<DomRoot<GPUCanvasContext>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
@@ -370,6 +375,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options, can_gc)
                 .map(RenderingContext::WebGL2RenderingContext),
+            #[cfg(feature = "webgpu")]
             "webgpu" => self
                 .get_or_init_webgpu_context()
                 .map(RenderingContext::GPUCanvasContext),
@@ -412,6 +418,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 }
             },
             //TODO: Add method get_image_data to GPUCanvasContext
+            #[cfg(feature = "webgpu")]
             Some(CanvasContext::WebGPU(_)) => return Ok(USVString("data:,".into())),
             None => {
                 // Each pixel is fully-transparent black.

@@ -62,9 +62,11 @@ use script_traits::{
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
+#[cfg(feature = "webgpu")]
 use webgpu::{DeviceLostReason, WebGPUDevice};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
+#[cfg(feature = "webgpu")]
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
 use super::bindings::error::Fallible;
 use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
@@ -104,8 +106,10 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::gamepad::{contains_user_gesture, Gamepad};
 use crate::dom::gamepadevent::GamepadEventType;
-use crate::dom::gpudevice::GPUDevice;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
+#[cfg(feature = "webgpu")]
 use crate::dom::identityhub::IdentityHub;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
@@ -331,9 +335,11 @@ pub struct GlobalScope {
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
+    #[cfg(feature = "webgpu")]
     gpu_id_hub: Arc<IdentityHub>,
 
     /// WebGPU devices
+    #[cfg(feature = "webgpu")]
     gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
@@ -767,6 +773,7 @@ impl GlobalScope {
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
+        #[cfg(feature = "webgpu")]
         gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
@@ -803,7 +810,9 @@ impl GlobalScope {
             consumed_rejections: Default::default(),
             is_headless,
             user_agent,
+            #[cfg(feature = "webgpu")]
             gpu_id_hub,
+            #[cfg(feature = "webgpu")]
             gpu_devices: DomRefCell::new(HashMapTracedValues::new()),
             frozen_supported_performance_entry_types: CachedFrozenArray::new(),
             https_state: Cell::new(HttpsState::None),
@@ -3148,16 +3157,19 @@ impl GlobalScope {
         None
     }
 
+    #[cfg(feature = "webgpu")]
     pub fn wgpu_id_hub(&self) -> Arc<IdentityHub> {
         self.gpu_id_hub.clone()
     }
 
+    #[cfg(feature = "webgpu")]
     pub fn add_gpu_device(&self, device: &GPUDevice) {
         self.gpu_devices
             .borrow_mut()
             .insert(device.id(), WeakRef::new(device));
     }
 
+    #[cfg(feature = "webgpu")]
     pub fn remove_gpu_device(&self, device: WebGPUDevice) {
         let device = self
             .gpu_devices
@@ -3167,6 +3179,7 @@ impl GlobalScope {
         assert!(device.root().is_none())
     }
 
+    #[cfg(feature = "webgpu")]
     pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
@@ -3184,6 +3197,7 @@ impl GlobalScope {
         }
     }
 
+    #[cfg(feature = "webgpu")]
     pub fn handle_uncaptured_gpu_error(
         &self,
         device: WebGPUDevice,

@@ -2,20 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "webgpu")]
 use webgpu::identity::{ComputePass, ComputePassId, RenderPass, RenderPassId};
+#[cfg(feature = "webgpu")]
 use webgpu::wgc::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandEncoder, ComputePipeline, Device,
     PipelineLayout, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture,
     TextureView,
 };
+#[cfg(feature = "webgpu")]
 use webgpu::wgc::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
     DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId, SamplerId,
     ShaderModuleId, TextureId, TextureViewId,
 };
+#[cfg(feature = "webgpu")]
 use webgpu::wgc::identity::IdentityManager;
 
 #[derive(Debug)]
+#[cfg(feature = "webgpu")]
 pub struct IdentityHub {
     adapters: IdentityManager<Adapter>,
     devices: IdentityManager<Device>,
@@ -36,6 +41,7 @@ pub struct IdentityHub {
     render_passes: IdentityManager<RenderPass>,
 }
 
+#[cfg(feature = "webgpu")]
 impl Default for IdentityHub {
     fn default() -> Self {
         IdentityHub {
@@ -60,6 +66,7 @@ impl Default for IdentityHub {
     }
 }
 
+#[cfg(feature = "webgpu")]
 impl IdentityHub {
     pub fn create_device_id(&self) -> DeviceId {
         self.devices.process()
