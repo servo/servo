@@ -12,6 +12,10 @@ use webgpu::wgc::resource::TextureDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUProgrammableStage, GPUTextureDescriptor, GPUTextureDimension,
+};
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
     GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,

@@ -18,6 +18,13 @@ use webgpu::{
 use webrender_api::units::DeviceIntSize;
 use webrender_api::ImageKey;
 
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUCanvasAlphaMode, GPUTextureFormat, GPUTextureUsageConstants,
+};
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::bindings::str::USVString;
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;

@@ -10,6 +10,7 @@ use webgpu::wgc::command::{
 };
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,

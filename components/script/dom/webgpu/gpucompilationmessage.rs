@@ -10,6 +10,8 @@ use webgpu::ShaderCompilationInfo;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,
 };
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::types::GlobalScope;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::types::GlobalScope;

@@ -6,8 +6,9 @@ use dom_struct::dom_struct;
 use webgpu::wgt::AdapterInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::globalscope::GlobalScope;
 use crate::test::DOMString;
 

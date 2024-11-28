@@ -9,6 +9,7 @@ use webgpu::{
     WebGPURenderPass, WebGPURequest,
 };
 
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,

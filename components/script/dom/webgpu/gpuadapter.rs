@@ -10,8 +10,10 @@ use webgpu::wgc::instance::RequestDeviceError;
 use webgpu::wgt::MemoryHints;
 use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
 
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
+use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor, GPUDeviceLostReason,
 };
@@ -20,6 +22,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::webgpu::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::dom::promise::Promise;
