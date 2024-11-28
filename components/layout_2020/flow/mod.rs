@@ -1377,7 +1377,7 @@ fn layout_in_flow_replaced_block_level(
 
     let containing_block_writing_mode = containing_block.style.writing_mode;
     let physical_content_size = content_size.to_physical_size(containing_block_writing_mode);
-    let fragments = replaced.make_fragments(style, containing_block, physical_content_size);
+    let fragments = replaced.make_fragments(style, physical_content_size);
 
     let clearance;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -2022,11 +2022,9 @@ impl IndependentFormattingContext {
                         &content_box_sizes_and_pbm,
                     )
                     .to_physical_size(container_writing_mode);
-                let fragments = replaced.contents.make_fragments(
-                    &replaced.style,
-                    containing_block,
-                    content_size,
-                );
+                let fragments = replaced
+                    .contents
+                    .make_fragments(&replaced.style, content_size);
 
                 let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
                 (fragments, content_rect, None)

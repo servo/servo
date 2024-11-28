@@ -1986,7 +1986,6 @@ impl FlexItem<'_> {
 
                 let fragments = replaced.contents.make_fragments(
                     &replaced.style,
-                    containing_block,
                     size.to_physical_size(container_writing_mode),
                 );
 
