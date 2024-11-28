@@ -6,13 +6,12 @@ use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
 use webgpu::ShaderCompilationInfo;
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
-use super::bindings::import::module::DomRoot;
-use super::bindings::reflector::reflect_dom_object_with_proto;
-use super::bindings::utils::to_frozen_array;
-use super::types::GPUCompilationMessage;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
+use crate::dom::bindings::import::module::DomRoot;
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::GPUCompilationMessage;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]

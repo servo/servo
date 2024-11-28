@@ -5,20 +5,20 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
-use super::types::GPUError;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUInternalError_Binding::GPUInternalErrorMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUValidationError_Binding::GPUValidationErrorMethods;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::GPUError;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUInternalError {
+pub struct GPUValidationError {
     gpu_error: GPUError,
 }
 
-impl GPUInternalError {
+impl GPUValidationError {
     fn new_inherited(message: DOMString) -> Self {
         Self {
             gpu_error: GPUError::new_inherited(message),
@@ -40,8 +40,8 @@ impl GPUInternalError {
     }
 }
 
-impl GPUInternalErrorMethods<crate::DomTypeHolder> for GPUInternalError {
-    /// <https://gpuweb.github.io/gpuweb/#dom-GPUInternalError-GPUInternalError>
+impl GPUValidationErrorMethods<crate::DomTypeHolder> for GPUValidationError {
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-gpuvalidationerror>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

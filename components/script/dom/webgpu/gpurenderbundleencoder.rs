@@ -10,10 +10,10 @@ use webgpu::wgc::command::{
 };
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor, GPURenderBundleEncoderMethods,
+    GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
+    GPURenderBundleEncoderMethods,
 };
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};

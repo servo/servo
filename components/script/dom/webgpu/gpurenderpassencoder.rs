@@ -5,12 +5,11 @@
 use dom_struct::dom_struct;
 use webgpu::{wgt, RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
-use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUColor, GPURenderPassEncoderMethods,
+    GPUColor, GPUIndexFormat, GPURenderPassEncoderMethods,
 };
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};

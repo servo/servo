@@ -19,33 +19,29 @@ use webgpu::{
     WebGPUResponse,
 };
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{GPUPipelineErrorReason, GPUTextureFormat};
-use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
-use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
-use super::types::GPUError;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
-    GPUDeviceMethods, GPUErrorFilter, GPUPipelineLayoutDescriptor,
+    GPUDeviceMethods, GPUErrorFilter, GPUPipelineErrorReason, GPUPipelineLayoutDescriptor,
     GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
-    GPUShaderModuleDescriptor, GPUSupportedLimitsMethods, GPUTextureDescriptor,
+    GPUShaderModuleDescriptor, GPUSupportedLimitsMethods, GPUTextureDescriptor, GPUTextureFormat,
     GPUUncapturedErrorEventInit, GPUVertexStepMode,
 };
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpu::response_async;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
@@ -62,6 +58,8 @@ use crate::dom::gpusupportedfeatures::GPUSupportedFeatures;
 use crate::dom::gputexture::GPUTexture;
 use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::promise::Promise;
+use crate::dom::types::GPUError;
+use crate::dom::webgpu::gpu::response_async;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 

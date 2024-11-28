@@ -6,12 +6,12 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use webgpu::{Error, ErrorFilter};
 
-use super::types::{GPUInternalError, GPUOutOfMemoryError, GPUValidationError};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{GPUErrorFilter, GPUErrorMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::types::{GPUInternalError, GPUOutOfMemoryError, GPUValidationError};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

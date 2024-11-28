@@ -12,9 +12,8 @@ use script_traits::ScriptMsg;
 use webgpu::wgt::PowerPreference;
 use webgpu::{wgc, WebGPUResponse};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureFormat;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUMethods, GPUPowerPreference, GPURequestAdapterOptions,
+    GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};

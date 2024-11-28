@@ -7,12 +7,12 @@
 use dom_struct::dom_struct;
 use webgpu::ShaderCompilationInfo;
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,
 };
-use super::bindings::root::DomRoot;
-use super::types::GlobalScope;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::types::GlobalScope;
 use crate::test::DOMString;
 
 #[dom_struct]

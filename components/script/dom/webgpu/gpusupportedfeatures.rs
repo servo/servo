@@ -9,12 +9,12 @@ use indexmap::IndexSet;
 use js::rust::HandleObject;
 use webgpu::wgt::Features;
 
-use super::bindings::like::Setlike;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUFeatureName, GPUSupportedFeaturesMethods,
 };
 use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::like::Setlike;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
