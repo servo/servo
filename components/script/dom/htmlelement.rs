@@ -160,7 +160,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     make_setter!(SetLang, "lang");
 
     // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_enumerated_getter!(Dir, "dir", "", "ltr" | "rtl" | "auto");
+    make_enumerated_getter!(
+        Dir,
+        "dir",
+        "ltr" | "rtl" | "auto",
+        missing => "",
+        invalid => ""
+    );
+
     // https://html.spec.whatwg.org/multipage/#the-dir-attribute
     make_setter!(SetDir, "dir");
 
