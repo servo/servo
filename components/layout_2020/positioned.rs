@@ -551,8 +551,9 @@ impl HoistedAbsolutelyPositionedBox {
         // tentative block size.
         let mut inline_axis = inline_axis_solver.solve(Some(|| {
             let constraint_space = ConstraintSpace::new(block_axis.size, style.writing_mode);
+            let ratio = context.preferred_aspect_ratio(&pbm.padding_border_sums);
             context
-                .inline_content_sizes(layout_context, &constraint_space, &containing_block.into())
+                .inline_content_sizes(layout_context, &constraint_space, ratio)
                 .sizes
         }));
 

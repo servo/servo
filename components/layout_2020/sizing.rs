@@ -113,7 +113,7 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
-    get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
+    get_content_size: impl FnOnce(&ConstraintSpace, &LogicalVec2<Au>) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
     let ContentBoxSizesAndPBM {
         content_box_size,
@@ -150,10 +150,13 @@ pub(crate) fn outer_inline(
         let max_block_size = content_max_box_size
             .block
             .maybe_resolve_extrinsic(available_block_size);
-        get_content_size(&ConstraintSpace::new(
-            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
-            style.writing_mode,
-        ))
+        get_content_size(
+            &ConstraintSpace::new(
+                SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
+                style.writing_mode,
+            ),
+            &pbm.padding_border_sums,
+        )
     });
     let resolve_non_initial = |inline_size| {
         Some(match inline_size {

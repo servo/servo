@@ -156,6 +156,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             .used_size_as_if_inline_element_from_content_box_sizes(
                                 containing_block,
                                 &replaced.style,
+                                replaced.preferred_aspect_ratio(&pbm.padding_border_sums),
                                 LogicalVec2 {
                                     inline: option_f32_to_size(content_box_known_dimensions.width),
                                     block: option_f32_to_size(content_box_known_dimensions.height),

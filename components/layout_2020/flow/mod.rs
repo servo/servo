@@ -395,7 +395,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
-                    |constraint_space| {
+                    |constraint_space, _| {
                         contents.inline_content_sizes(layout_context, constraint_space)
                     },
                 );

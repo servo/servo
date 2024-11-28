@@ -31,7 +31,7 @@ use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFrag
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size};
 use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
-use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
+use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {
@@ -417,13 +417,13 @@ impl ReplacedContent {
 
     pub(crate) fn preferred_aspect_ratio(
         &self,
-        containing_block: &IndefiniteContainingBlock,
         style: &ComputedValues,
+        padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
         style
             .preferred_aspect_ratio(
                 self.inline_size_over_block_size_intrinsic_ratio(style),
-                containing_block,
+                padding_border_sums,
             )
             .or_else(|| {
                 matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {
@@ -450,6 +450,7 @@ impl ReplacedContent {
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,
+            self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
             content_box_sizes_and_pbm.content_box_size,
             content_box_sizes_and_pbm.content_min_box_size,
             content_box_sizes_and_pbm.content_max_box_size,
@@ -492,18 +493,17 @@ impl ReplacedContent {
     ///
     /// <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
     /// <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
+        preferred_aspect_ratio: Option<AspectRatio>,
         box_size: LogicalVec2<Size<Au>>,
         min_box_size: LogicalVec2<Size<Au>>,
         max_box_size: LogicalVec2<Size<Au>>,
         pbm_sums: LogicalVec2<Au>,
     ) -> LogicalVec2<Au> {
-        // <https://drafts.csswg.org/css-sizing-4/#preferred-aspect-ratio>
-        let ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
-
         // <https://drafts.csswg.org/css-images-3/#natural-dimensions>
         // <https://drafts.csswg.org/css-images-3/#default-object-size>
         let writing_mode = style.writing_mode;
@@ -549,7 +549,7 @@ impl ReplacedContent {
             };
             self.content_size(
                 Direction::Inline,
-                ratio,
+                preferred_aspect_ratio,
                 &get_block_size,
                 &get_inline_fallback_size,
             )
@@ -581,7 +581,7 @@ impl ReplacedContent {
             };
             self.content_size(
                 Direction::Block,
-                ratio,
+                preferred_aspect_ratio,
                 &get_inline_size,
                 &get_block_fallback_size,
             )
