@@ -567,7 +567,6 @@ impl HoistedAbsolutelyPositionedBox {
                     content_size = computed_size.map(|size| size.to_numeric().unwrap());
                     fragments = replaced.contents.make_fragments(
                         &style,
-                        containing_block,
                         content_size.to_physical_size(containing_block_writing_mode),
                     );
                 },

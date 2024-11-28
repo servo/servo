@@ -305,32 +305,22 @@ impl ReplacedContent {
     pub fn make_fragments(
         &self,
         style: &ServoArc<ComputedValues>,
-        containing_block: &ContainingBlock,
         size: PhysicalSize<Au>,
     ) -> Vec<Fragment> {
-        let aspect_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
         let natural_size = PhysicalSize::new(
             self.natural_size.width.unwrap_or(size.width),
             self.natural_size.height.unwrap_or(size.height),
         );
 
-        let object_fit_size = aspect_ratio.map_or(size, |aspect_ratio| {
+        let object_fit_size = self.natural_size.ratio.map_or(size, |width_over_height| {
             let preserve_aspect_ratio_with_comparison =
                 |size: PhysicalSize<Au>, comparison: fn(&Au, &Au) -> bool| {
-                    let (width_axis, height_axis) = if style.writing_mode.is_horizontal() {
-                        (Direction::Inline, Direction::Block)
-                    } else {
-                        (Direction::Block, Direction::Inline)
-                    };
-
-                    let candidate_width =
-                        aspect_ratio.compute_dependent_size(width_axis, size.height);
+                    let candidate_width = size.height.scale_by(width_over_height);
                     if comparison(&candidate_width, &size.width) {
                         return PhysicalSize::new(candidate_width, size.height);
                     }
 
-                    let candidate_height =
-                        aspect_ratio.compute_dependent_size(height_axis, size.width);
+                    let candidate_height = size.width.scale_by(1. / width_over_height);
                     debug_assert!(comparison(&candidate_height, &size.height));
                     PhysicalSize::new(size.width, candidate_height)
                 };
