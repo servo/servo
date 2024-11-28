@@ -685,11 +685,11 @@ impl ReadableStream {
         }
     }
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
-    fn default_tee(&self, clone_for_branch2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn default_tee(&self, clone_for_branch_2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
 
         // Assert: cloneForBranch2 is a boolean.
-        let clone_for_branch2 = Rc::new(Cell::new(clone_for_branch2));
+        let clone_for_branch_2 = Rc::new(Cell::new(clone_for_branch_2));
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
         let reader = self.acquire_default_reader(CanGc::note())?;
@@ -699,91 +699,91 @@ impl ReadableStream {
         // Let readAgain be false.
         let read_again = Rc::new(Cell::new(false));
         // Let canceled1 be false.
-        let canceled1 = Rc::new(Cell::new(false));
+        let canceled_1 = Rc::new(Cell::new(false));
         // Let canceled2 be false.
-        let canceled2 = Rc::new(Cell::new(false));
-        // // Let reason1 be undefined.
-        let reason1 = Rc::new(Heap::default());
-        // // Let reason2 be undefined.
-        let reason2 = Rc::new(Heap::default());
-        // // Let branch1 be undefined.
-        let mut branch1: Option<DomRoot<ReadableStream>> = None;
-        // // Let branch2 be undefined.
-        let mut branch2: Option<DomRoot<ReadableStream>> = None;
+        let canceled_2 = Rc::new(Cell::new(false));
+
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        // Let reason1 be undefined.
+        let reason_1 = Rc::new(Heap::boxed(rval.get()));
+        // Let reason2 be undefined.
+        let reason_2 = Rc::new(Heap::boxed(rval.get()));
+        // Let branch1 be undefined.
+        let mut branch_1: Option<Dom<ReadableStream>> = None;
+        // Let branch2 be undefined.
+        let mut branch_2: Option<Dom<ReadableStream>> = None;
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
 
-        let underlying_sourc_type_branch1 = UnderlyingSourceType::Tee {
-            tee_underlyin_source: TeeUnderlyingSource::new(
-                reader.clone(),
-                Dom::from_ref(self),
-                branch1.clone(),
-                branch2.clone(),
-                reading.clone(),
-                read_again.clone(),
-                canceled1.clone(),
-                canceled2.clone(),
-                clone_for_branch2.clone(),
-                reason1.clone(),
-                reason2.clone(),
-                cancel_promise.clone(),
-                TeeCancelAlgorithm::Cancel1Algorithm,
-            ),
-        };
-
-        let underlying_sourc_type_branch2 = UnderlyingSourceType::Tee {
-            tee_underlyin_source: TeeUnderlyingSource::new(
-                reader,
-                Dom::from_ref(self),
-                branch1.clone(),
-                branch2.clone(),
-                reading,
-                read_again,
-                canceled1,
-                canceled2,
-                clone_for_branch2,
-                reason1,
-                reason2,
-                cancel_promise,
-                TeeCancelAlgorithm::Cancel2Algorithm,
-            ),
-        };
-
-        // Set branch1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
-        branch1 = Some(create_readable_stream(
-            &self.reflector_.global(),
-            underlying_sourc_type_branch1,
-            QueuingStrategy::empty(),
-            CanGc::note(),
+        let underlying_sourc_type_branch_1 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
+            Dom::from_ref(&reader),
+            Dom::from_ref(self),
+            branch_1.clone(),
+            branch_2.clone(),
+            reading.clone(),
+            read_again.clone(),
+            canceled_1.clone(),
+            canceled_2.clone(),
+            clone_for_branch_2.clone(),
+            reason_1.clone(),
+            reason_2.clone(),
+            cancel_promise.clone(),
+            TeeCancelAlgorithm::Cancel1Algorithm,
         ));
 
-        // Set branch2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
-        branch2 = Some(create_readable_stream(
-            &self.reflector_.global(),
-            underlying_sourc_type_branch2,
-            QueuingStrategy::empty(),
-            CanGc::note(),
+        let underlying_sourc_type_branch_2 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
+            Dom::from_ref(&reader),
+            Dom::from_ref(self),
+            branch_1.clone(),
+            branch_2.clone(),
+            reading,
+            read_again,
+            canceled_1,
+            canceled_2,
+            clone_for_branch_2,
+            reason_1,
+            reason_2,
+            cancel_promise,
+            TeeCancelAlgorithm::Cancel2Algorithm,
         ));
 
-        // Return « branch1, branch2 ».
+        // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
+        branch_1 = Some(Dom::from_ref(&create_readable_stream(
+            &self.reflector_.global(),
+            underlying_sourc_type_branch_1,
+            QueuingStrategy::empty(),
+            CanGc::note(),
+        )));
+
+        // Set branch_2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
+        branch_2 = Some(Dom::from_ref(&create_readable_stream(
+            &self.reflector_.global(),
+            underlying_sourc_type_branch_2,
+            QueuingStrategy::empty(),
+            CanGc::note(),
+        )));
+
+        // Return « branch_1, branch_2 ».
         Ok(vec![
-            branch1.expect("Branch1 should be set."),
-            branch2.expect("Branch2 should be set."),
+            branch_1.expect("Branch1 should be set.").as_rooted(),
+            branch_2.expect("Branch2 should be set.").as_rooted(),
         ])
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
-    fn tee(&self, clone_for_branch2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn tee(&self, clone_for_branch_2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
         // Assert: cloneForBranch2 is a boolean.
 
         match self.controller {
             ControllerType::Default(ref _controller) => {
                 // Return ? ReadableStreamDefaultTee(stream, cloneForBranch2).
-                return self.default_tee(clone_for_branch2);
+                self.default_tee(clone_for_branch_2)
             },
             ControllerType::Byte(ref _controller) => {
-                // If stream.[[controller]] implements ReadableByteStreamController, return ? ReadableByteStreamTee(stream).
+                // If stream.[[controller]] implements ReadableByteStreamController,
+                // return ? ReadableByteStreamTee(stream).
                 todo!()
             },
         }
