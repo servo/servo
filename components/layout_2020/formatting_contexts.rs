@@ -207,17 +207,14 @@ impl IndependentFormattingContext {
         &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
-        preferred_aspect_ratio: Option<AspectRatio>,
     ) -> InlineContentSizesResult {
         match self {
             Self::NonReplaced(inner) => {
                 inner.inline_content_sizes(layout_context, constraint_space)
             },
-            Self::Replaced(inner) => inner.contents.inline_content_sizes(
-                layout_context,
-                constraint_space,
-                preferred_aspect_ratio,
-            ),
+            Self::Replaced(inner) => inner
+                .contents
+                .inline_content_sizes(layout_context, constraint_space),
         }
     }
 
@@ -240,12 +237,11 @@ impl IndependentFormattingContext {
                 containing_block,
                 auto_minimum,
                 auto_block_size_stretches_to_containing_block,
-                |constraint_space, padding_border_sums| {
-                    replaced.contents.inline_content_sizes(
-                        layout_context,
-                        constraint_space,
-                        replaced.preferred_aspect_ratio(padding_border_sums),
-                    )
+                |padding_border_sums| replaced.preferred_aspect_ratio(padding_border_sums),
+                |constraint_space| {
+                    replaced
+                        .contents
+                        .inline_content_sizes(layout_context, constraint_space)
                 },
             ),
         }
@@ -256,7 +252,7 @@ impl IndependentFormattingContext {
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
         match self {
-            Self::NonReplaced(_) => None,
+            Self::NonReplaced(non_replaced) => non_replaced.preferred_aspect_ratio(),
             Self::Replaced(replaced) => replaced.preferred_aspect_ratio(padding_border_sums),
         }
     }
@@ -297,6 +293,12 @@ impl NonReplacedFormattingContext {
         }
     }
 
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(&self) -> Option<AspectRatio> {
+        // TODO: support preferred aspect ratios on non-replaced boxes.
+        None
+    }
+
     pub(crate) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
@@ -331,7 +333,8 @@ impl NonReplacedFormattingContext {
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
-            |constraint_space, _| self.inline_content_sizes(layout_context, constraint_space),
+            |_| self.preferred_aspect_ratio(),
+            |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
         )
     }
 }

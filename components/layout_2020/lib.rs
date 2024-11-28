@@ -35,24 +35,38 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
 use crate::geom::{LogicalVec2, SizeConstraint};
+use crate::style_ext::AspectRatio;
 
 /// Represents the set of constraints that we use when computing the min-content
 /// and max-content inline sizes of an element.
 pub(crate) struct ConstraintSpace {
     pub block_size: SizeConstraint,
     pub writing_mode: WritingMode,
+    pub preferred_aspect_ratio: Option<AspectRatio>,
 }
 
 impl ConstraintSpace {
-    fn new(block_size: SizeConstraint, writing_mode: WritingMode) -> Self {
+    fn new(
+        block_size: SizeConstraint,
+        writing_mode: WritingMode,
+        preferred_aspect_ratio: Option<AspectRatio>,
+    ) -> Self {
         Self {
             block_size,
             writing_mode,
+            preferred_aspect_ratio,
         }
     }
 
-    fn new_for_style(style: &ComputedValues) -> Self {
-        Self::new(SizeConstraint::default(), style.writing_mode)
+    fn new_for_style_and_ratio(
+        style: &ComputedValues,
+        preferred_aspect_ratio: Option<AspectRatio>,
+    ) -> Self {
+        Self::new(
+            SizeConstraint::default(),
+            style.writing_mode,
+            preferred_aspect_ratio,
+        )
     }
 }
 

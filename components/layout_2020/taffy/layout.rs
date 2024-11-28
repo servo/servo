@@ -227,6 +227,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                     None,
                                 ),
                                 writing_mode: self.style.writing_mode,
+                                preferred_aspect_ratio: non_replaced.preferred_aspect_ratio(),
                             };
 
                             let result = non_replaced

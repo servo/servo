@@ -282,7 +282,6 @@ impl ReplacedContent {
         &self,
         _: &LayoutContext,
         constraint_space: &ConstraintSpace,
-        preferred_aspect_ratio: Option<AspectRatio>,
     ) -> InlineContentSizesResult {
         let get_inline_fallback_size = || {
             let writing_mode = constraint_space.writing_mode;
@@ -292,13 +291,13 @@ impl ReplacedContent {
         };
         let inline_content_size = self.content_size(
             Direction::Inline,
-            preferred_aspect_ratio,
+            constraint_space.preferred_aspect_ratio,
             &|| constraint_space.block_size,
             &get_inline_fallback_size,
         );
         InlineContentSizesResult {
             sizes: inline_content_size.into(),
-            depends_on_block_constraints: preferred_aspect_ratio.is_some(),
+            depends_on_block_constraints: constraint_space.preferred_aspect_ratio.is_some(),
         }
     }
 

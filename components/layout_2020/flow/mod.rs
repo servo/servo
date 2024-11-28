@@ -235,10 +235,13 @@ impl OutsideMarker {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
-        let content_sizes = self.block_container.inline_content_sizes(
-            layout_context,
-            &ConstraintSpace::new_for_style(&self.marker_style),
+        let constraint_space = ConstraintSpace::new_for_style_and_ratio(
+            &self.marker_style,
+            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         );
+        let content_sizes = self
+            .block_container
+            .inline_content_sizes(layout_context, &constraint_space);
         let containing_block_for_children = ContainingBlock {
             inline_size: content_sizes.sizes.max_content,
             block_size: AuOrAuto::auto(),
@@ -394,8 +397,9 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     style,
                     containing_block,
                     &LogicalVec2::zero(),
-                    false, /* auto_block_size_stretches_to_containing_block */
-                    |constraint_space, _| {
+                    false,    /* auto_block_size_stretches_to_containing_block */
+                    |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+                    |constraint_space| {
                         contents.inline_content_sizes(layout_context, constraint_space)
                     },
                 );
@@ -2054,7 +2058,11 @@ impl IndependentFormattingContext {
                     SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
 
                 let content_size = LazyCell::new(|| {
-                    let constraint_space = ConstraintSpace::new(tentative_block_size, writing_mode);
+                    let constraint_space = ConstraintSpace::new(
+                        tentative_block_size,
+                        writing_mode,
+                        non_replaced.preferred_aspect_ratio(),
+                    );
                     non_replaced
                         .inline_content_sizes(layout_context, &constraint_space)
                         .sizes

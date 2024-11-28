@@ -1924,13 +1924,10 @@ impl FlexItem<'_> {
                     let constraint_space = ConstraintSpace::new(
                         SizeConstraint::Definite(used_main_size),
                         item_writing_mode,
+                        self.preferred_aspect_ratio,
                     );
                     context
-                        .inline_content_sizes(
-                            flex_context.layout_context,
-                            &constraint_space,
-                            self.preferred_aspect_ratio,
-                        )
+                        .inline_content_sizes(flex_context.layout_context, &constraint_space)
                         .sizes
                         .shrink_to_fit(stretch_size)
                         .clamp_between_extremums(
@@ -2540,9 +2537,10 @@ impl FlexItemBox {
         // > aspect ratio.
         let main_content_size = if cross_axis_is_item_block_axis {
             let writing_mode = style.writing_mode;
-            let constraint_space = ConstraintSpace::new(cross_size, writing_mode);
+            let constraint_space =
+                ConstraintSpace::new(cross_size, writing_mode, preferred_aspect_ratio);
             self.independent_formatting_context
-                .inline_content_sizes(layout_context, &constraint_space, preferred_aspect_ratio)
+                .inline_content_sizes(layout_context, &constraint_space)
                 .sizes
                 .min_content
         } else {
@@ -2698,13 +2696,10 @@ impl FlexItemBox {
                             content_max_box_size.cross,
                         ),
                         writing_mode,
+                        preferred_aspect_ratio,
                     );
                     let max_content = flex_item
-                        .inline_content_sizes(
-                            layout_context,
-                            &constraint_space,
-                            preferred_aspect_ratio,
-                        )
+                        .inline_content_sizes(layout_context, &constraint_space)
                         .sizes
                         .max_content;
                     if let Some(ratio) = preferred_aspect_ratio {
@@ -2790,12 +2785,15 @@ impl FlexItemBox {
                         if item_with_auto_cross_size_stretches_to_container_size {
                             containing_block_inline_size_minus_pbm
                         } else {
-                            let containing_block_for_children =
-                                ConstraintSpace::new_for_style(&non_replaced.style);
+                            let constraint_space = ConstraintSpace::new(
+                                SizeConstraint::default(),
+                                non_replaced.style.writing_mode,
+                                non_replaced.preferred_aspect_ratio(),
+                            );
                             non_replaced
                                 .inline_content_sizes(
                                     flex_context.layout_context,
-                                    &containing_block_for_children,
+                                    &constraint_space,
                                 )
                                 .sizes
                                 .shrink_to_fit(containing_block_inline_size_minus_pbm)
