@@ -73,6 +73,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
+use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
@@ -570,6 +571,8 @@ impl LayoutThread {
             Scale::new(window_size.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider(font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
+            // TODO: obtain preferred color scheme from embedder
+            PrefersColorScheme::Light,
         );
 
         LayoutThread {
@@ -1121,6 +1124,8 @@ impl LayoutThread {
             Scale::new(window_size_data.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
+            // TODO: obtain preferred color scheme from embedder
+            PrefersColorScheme::Light,
         );
 
         // Preserve any previously computed root font size.

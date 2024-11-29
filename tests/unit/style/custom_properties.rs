@@ -15,6 +15,7 @@ use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
+use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
 use style::servo::media_queries::FontMetricsProvider;
@@ -72,6 +73,7 @@ fn cascade(
         Scale::new(1.0),
         Box::new(DummyMetricsProvider),
         initial_style,
+        PrefersColorScheme::Light,
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
