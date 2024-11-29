@@ -150,6 +150,29 @@ impl EnqueuedValue {
     }
 }
 
+/// <https://streams.spec.whatwg.org/#is-non-negative-number>
+fn is_non_negative_number(value: &EnqueuedValue) -> bool {
+    let value_with_size = match value {
+        EnqueuedValue::Native(_) => return true,
+        EnqueuedValue::Js(value_with_size) => value_with_size,
+    };
+
+    // If v is not a Number, return false.
+    // Checked as part of the WebIDL.
+
+    // If v is NaN, return false.
+    if value_with_size.size.is_nan() {
+        return false;
+    }
+
+    // If v < 0, return false.
+    if value_with_size.size.is_sign_negative() {
+        return false;
+    }
+
+    true
+}
+
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct QueueWithSizes {
@@ -172,8 +195,19 @@ impl QueueWithSizes {
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
     fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
-        // TODO: If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
-        // TODO: If size is +∞, throw a RangeError exception.
+        // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
+        if !is_non_negative_number(&value) {
+            return Err(Error::Range(
+                "The size of the enqueued chunk is not a non-negative number.".to_string(),
+            ));
+        }
+
+        // If size is +∞, throw a RangeError exception.
+        if value.size().is_infinite() {
+            return Err(Error::Range(
+                "The size of the enqueued chunk is infinite.".to_string(),
+            ));
+        }
 
         self.total_size += value.size();
         self.queue.push_back(value);
@@ -629,10 +663,11 @@ impl ReadableStreamDefaultController {
 
             {
                 // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
-                let mut queue = self.queue.borrow_mut();
-                if let Err(error) =
+                let res = {
+                    let mut queue = self.queue.borrow_mut();
                     queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size))
-                {
+                };
+                if let Err(error) = res {
                     // If enqueueResult is an abrupt completion,
 
                     rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -647,6 +682,7 @@ impl ReadableStreamDefaultController {
                     self.error(rval.handle());
 
                     // Return enqueueResult.
+                    // TODO: ensure returned error and the error used in `self.error` are the same JS object.
                     return Err(error);
                 }
             }
