@@ -14,7 +14,6 @@ Navigator includes NavigatorLanguage;
 //Navigator includes NavigatorStorageUtils;
 Navigator includes NavigatorPlugins;
 Navigator includes NavigatorCookies;
-Navigator includes NavigatorGPU;
 Navigator includes NavigatorConcurrentHardware;
 
 // https://html.spec.whatwg.org/multipage/#navigatorid

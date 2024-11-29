@@ -17,7 +17,3 @@ partial interface WorkerNavigator {
   [Pref="dom.permissions.enabled"] readonly attribute Permissions permissions;
 };
 
-[Exposed=DedicatedWorker]
-partial interface WorkerNavigator {
-    [SameObject, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
-};

@@ -6,7 +6,7 @@
 typedef (CanvasRenderingContext2D
   or WebGLRenderingContext
   or WebGL2RenderingContext
-  or GPUCanvasContext) RenderingContext;
+  or [Pref="dom.webgpu.enabled"] GPUCanvasContext) RenderingContext;
 
 [Exposed=Window]
 interface HTMLCanvasElement : HTMLElement {
@@ -19,13 +19,6 @@ interface HTMLCanvasElement : HTMLElement {
 
   [Throws]
   USVString toDataURL(optional DOMString type, optional any quality);
-  //void toBlob(BlobCallback _callback, optional DOMString type, optional any quality);
-  //OffscreenCanvas transferControlToOffscreen();
+  
+  MediaStream CaptureStream(optional double frameRequestRate);
 };
-
-partial interface HTMLCanvasElement {
-    [Pref="dom.canvas_capture.enabled"]
-    MediaStream captureStream (optional double frameRequestRate);
-};
-
-//callback BlobCallback = void (Blob? blob);
