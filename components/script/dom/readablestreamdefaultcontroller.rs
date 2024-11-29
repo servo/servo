@@ -9,6 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
@@ -597,36 +598,21 @@ impl ReadableStreamDefaultController {
             let size = if let Some(strategy_size) = strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
-                let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
+                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
                 match result {
                     // Let chunkSize be result.[[Value]].
                     Ok(size) => size,
                     Err(error) => {
                         // If result is an abrupt completion,
                         rooted!(in(*cx) let mut rval = UndefinedValue());
-
-                        match error {
-                            // Note: `to_jsval` on JSFailed panics,
-                            // so result.[[Value]] is left undefined in this case.
-                            Error::JSFailed => {},
-                            _ => {
-                                // TODO: check if `self.global()` is the right globalscope.
-                                unsafe {
-                                    error
-                                        .clone()
-                                        .to_jsval(*cx, &self.global(), rval.handle_mut())
-                                };
-                            },
-                        }
+                        unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                         // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
                         self.error(rval.handle());
 
                         // Return result.
                         // Note: we need to return a type error, because no exception is pending.
-                        return Err(Error::Type(
-                            "Couldn't convert result from strategy size call.".to_string(),
-                        ));
+                        return Err(error);
                     },
                 }
             } else {
