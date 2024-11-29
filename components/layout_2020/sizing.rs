@@ -13,7 +13,7 @@ use style::properties::ComputedValues;
 use style::Zero;
 
 use crate::geom::Size;
-use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2, SizeConstraint};
 
 #[derive(PartialEq)]
@@ -113,6 +113,7 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
+    get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
     get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
     let ContentBoxSizesAndPBM {
@@ -153,6 +154,7 @@ pub(crate) fn outer_inline(
         get_content_size(&ConstraintSpace::new(
             SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
             style.writing_mode,
+            get_preferred_aspect_ratio(&pbm.padding_border_sums),
         ))
     });
     let resolve_non_initial = |inline_size| {

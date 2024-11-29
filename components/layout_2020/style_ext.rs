@@ -281,10 +281,6 @@ pub(crate) trait ComputedValuesExt {
         containing_block: &IndefiniteContainingBlock,
     ) -> ContentBoxSizesAndPBM;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
-    fn padding_border_margin_for_intrinsic_size(
-        &self,
-        writing_mode: WritingMode,
-    ) -> PaddingBorderMargin;
     fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
         &self,
         writing_mode: WritingMode,
@@ -319,7 +315,7 @@ pub(crate) trait ComputedValuesExt {
     fn preferred_aspect_ratio(
         &self,
         natural_aspect_ratio: Option<CSSFloat>,
-        containing_block: &IndefiniteContainingBlock,
+        padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio>;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
@@ -576,16 +572,6 @@ impl ComputedValuesExt for ComputedValues {
         self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             containing_block.style.writing_mode,
             containing_block.inline_size,
-        )
-    }
-
-    fn padding_border_margin_for_intrinsic_size(
-        &self,
-        writing_mode: WritingMode,
-    ) -> PaddingBorderMargin {
-        self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-            writing_mode,
-            Au::zero(),
         )
     }
 
@@ -878,7 +864,7 @@ impl ComputedValuesExt for ComputedValues {
     fn preferred_aspect_ratio(
         &self,
         natural_aspect_ratio: Option<CSSFloat>,
-        containing_block: &IndefiniteContainingBlock,
+        padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
         let GenericAspectRatio {
             auto,
@@ -921,15 +907,7 @@ impl ComputedValuesExt for ComputedValues {
                 // border when calculating the aspect ratio.
                 let box_sizing_adjustment = match self.clone_box_sizing() {
                     BoxSizing::ContentBox => LogicalVec2::zero(),
-                    BoxSizing::BorderBox => containing_block.size.inline.non_auto().map_or_else(
-                        || self.padding_border_margin_for_intrinsic_size(containing_block.writing_mode),
-                        |containing_block_inline_size| self
-                            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-                                containing_block.writing_mode,
-                                containing_block_inline_size,
-                            )
-                    )
-                    .padding_border_sums,
+                    BoxSizing::BorderBox => *padding_border_sums,
                 };
                 Some(AspectRatio {
                     i_over_b: (preferred_ratio.0).0 / (preferred_ratio.1).0,

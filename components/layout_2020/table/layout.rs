@@ -296,12 +296,13 @@ impl<'a> TableLayout<'a> {
                     let mut inline_content_sizes = if is_in_fixed_mode {
                         ContentSizes::zero()
                     } else {
+                        let constraint_space = ConstraintSpace::new_for_style_and_ratio(
+                            &cell.style,
+                            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+                        );
                         cell.contents
                             .contents
-                            .inline_content_sizes(
-                                layout_context,
-                                &ConstraintSpace::new_for_style(&cell.style),
-                            )
+                            .inline_content_sizes(layout_context, &constraint_space)
                             .sizes
                     };
                     inline_content_sizes.min_content += padding_border_sums.inline;

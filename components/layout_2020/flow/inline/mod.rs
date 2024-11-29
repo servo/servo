@@ -1965,7 +1965,7 @@ impl IndependentFormattingContext {
 
         // Lay out absolutely positioned children if this new atomic establishes a containing block
         // for absolutes.
-        let positioning_context = if matches!(self, IndependentFormattingContext::Replaced(_)) {
+        let positioning_context = if self.is_replaced() {
             None
         } else {
             if fragment
