@@ -88,171 +88,278 @@ impl PointerEvent {
             can_gc,
         )
     }
-    //
-    // #[allow(clippy::too_many_arguments)]
-    // pub fn new(
-    //     window: &Window,
-    //     type_: DOMString,
-    //     can_bubble: EventBubbles,
-    //     cancelable: EventCancelable,
-    //     view: Option<&Window>,
-    //     detail: i32,
-    //     screen_x: i32,
-    //     screen_y: i32,
-    //     client_x: i32,
-    //     client_y: i32,
-    //     ctrl_key: bool,
-    //     alt_key: bool,
-    //     shift_key: bool,
-    //     meta_key: bool,
-    //     button: i16,
-    //     buttons: u16,
-    //     related_target: Option<&EventTarget>,
-    //     point_in_target: Option<Point2D<f32>>,
-    //     can_gc: CanGc,
-    // ) -> DomRoot<MouseEvent> {
-    //     Self::new_with_proto(
-    //         window,
-    //         None,
-    //         type_,
-    //         can_bubble,
-    //         cancelable,
-    //         view,
-    //         detail,
-    //         screen_x,
-    //         screen_y,
-    //         client_x,
-    //         client_y,
-    //         ctrl_key,
-    //         alt_key,
-    //         shift_key,
-    //         meta_key,
-    //         button,
-    //         buttons,
-    //         related_target,
-    //         point_in_target,
-    //         can_gc,
-    //     )
-    // }
-    //
-    // #[allow(clippy::too_many_arguments)]
-    // fn new_with_proto(
-    //     window: &Window,
-    //     proto: Option<HandleObject>,
-    //     type_: DOMString,
-    //     can_bubble: EventBubbles,
-    //     cancelable: EventCancelable,
-    //     view: Option<&Window>,
-    //     detail: i32,
-    //     screen_x: i32,
-    //     screen_y: i32,
-    //     client_x: i32,
-    //     client_y: i32,
-    //     ctrl_key: bool,
-    //     alt_key: bool,
-    //     shift_key: bool,
-    //     meta_key: bool,
-    //     button: i16,
-    //     buttons: u16,
-    //     related_target: Option<&EventTarget>,
-    //     point_in_target: Option<Point2D<f32>>,
-    //     can_gc: CanGc,
-    // ) -> DomRoot<MouseEvent> {
-    //     let ev = MouseEvent::new_uninitialized_with_proto(window, proto, can_gc);
-    //     ev.InitMouseEvent(
-    //         type_,
-    //         bool::from(can_bubble),
-    //         bool::from(cancelable),
-    //         view,
-    //         detail,
-    //         screen_x,
-    //         screen_y,
-    //         client_x,
-    //         client_y,
-    //         ctrl_key,
-    //         alt_key,
-    //         shift_key,
-    //         meta_key,
-    //         button,
-    //         related_target,
-    //     );
-    //     ev.buttons.set(buttons);
-    //     ev.point_in_target.set(point_in_target);
-    //     // TODO: Set proper values in https://github.com/servo/servo/issues/24415
-    //     ev.page_x.set(client_x);
-    //     ev.page_y.set(client_y);
-    //     ev
-    // }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        screen_x: i32,
+        screen_y: i32,
+        client_x: i32,
+        client_y: i32,
+        ctrl_key: bool,
+        alt_key: bool,
+        shift_key: bool,
+        meta_key: bool,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32>>,
+        pointer_id: i32,
+        width: i32,
+        height: i32,
+        pressure: f32,
+        tangential_pressure: f32,
+        tilt_x: i32,
+        tilt_y: i32,
+        twist: i32,
+        altitude_angle: f64,
+        azimuth_angle: f64,
+        pointer_type: DOMString,
+        is_primary: bool,
+        coalesced_events: Vec<DomRoot<PointerEvent>>,
+        predicted_events: Vec<DomRoot<PointerEvent>>,
+        can_gc: CanGc,
+    ) -> DomRoot<PointerEvent> {
+        Self::new_with_proto(
+            window,
+            proto,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            screen_x,
+            screen_y,
+            client_x,
+            client_y,
+            ctrl_key,
+            alt_key,
+            shift_key,
+            meta_key,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
+            pointer_id,
+            width,
+            height,
+            pressure,
+            tangential_pressure,
+            tilt_x,
+            tilt_y,
+            twist,
+            altitude_angle,
+            azimuth_angle,
+            pointer_type,
+            is_primary,
+            coalesced_events,
+            predicted_events,
+            can_gc,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new_with_proto(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        screen_x: i32,
+        screen_y: i32,
+        client_x: i32,
+        client_y: i32,
+        ctrl_key: bool,
+        alt_key: bool,
+        shift_key: bool,
+        meta_key: bool,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32>>,
+        pointer_id: i32,
+        width: i32,
+        height: i32,
+        pressure: f32,
+        tangential_pressure: f32,
+        tilt_x: i32,
+        tilt_y: i32,
+        twist: i32,
+        altitude_angle: f64,
+        azimuth_angle: f64,
+        pointer_type: DOMString,
+        is_primary: bool,
+        coalesced_events: Vec<DomRoot<PointerEvent>>,
+        predicted_events: Vec<DomRoot<PointerEvent>>,
+        can_gc: CanGc,
+    ) -> DomRoot<PointerEvent> {
+        let ev = PointerEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        ev.mouseevent.initialize_mouse_event(
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            screen_x,
+            screen_y,
+            client_x,
+            client_y,
+            ctrl_key,
+            alt_key,
+            shift_key,
+            meta_key,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
+        );
+        ev.pointer_id.set(pointer_id);
+        ev.width.set(width);
+        ev.height.set(height);
+        ev.pressure.set(pressure);
+        ev.tangential_pressure.set(tangential_pressure);
+        ev.tilt_x.set(tilt_x);
+        ev.tilt_y.set(tilt_y);
+        ev.twist.set(twist);
+        ev.altitude_angle.set(altitude_angle);
+        ev.azimuth_angle.set(azimuth_angle);
+        *ev.pointer_type.borrow_mut() = pointer_type;
+        ev.is_primary.set(is_primary);
+        *ev.coalesced_events.borrow_mut() = coalesced_events;
+        *ev.predicted_events.borrow_mut() = predicted_events;
+        ev
+    }
 }
 
 impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
-    fn PointerId(&self) -> i32 {
-        self.pointer_id.get()
-    }
-
-    fn Width(&self) -> i32 {
-        self.width.get()
-    }
-
-    fn Height(&self) -> i32 {
-        self.height.get()
-    }
-
-    fn Pressure(&self) -> Finite<f32> {
-        Finite::wrap(self.pressure.get())
-    }
-
-    fn TangentialPressure(&self) -> Finite<f32> {
-        Finite::wrap(self.tangential_pressure.get())
-    }
-
-    fn TiltX(&self) -> i32 {
-        self.tilt_x.get()
-    }
-
-    fn TiltY(&self) -> i32 {
-        self.tilt_y.get()
-    }
-
-    fn Twist(&self) -> i32 {
-        self.twist.get()
-    }
-
-    fn AltitudeAngle(&self) -> Finite<f64> {
-        Finite::wrap(self.altitude_angle.get())
-    }
-
-    fn AzimuthAngle(&self) -> Finite<f64> {
-        Finite::wrap(self.azimuth_angle.get())
-    }
-
-    fn PointerType(&self) -> DOMString {
-        self.pointer_type.borrow().clone()
-    }
-
-    fn IsPrimary(&self) -> bool {
-        self.is_primary.get()
-    }
-
-    fn GetCoalescedEvents(&self) -> Vec<DomRoot<PointerEvent>> {
-        self.coalesced_events.borrow().clone()
-    }
-
-    fn GetPredictedEvents(&self) -> Vec<DomRoot<PointerEvent>> {
-        self.predicted_events.borrow().clone()
-    }
-
-    fn IsTrusted(&self) -> bool {
-        self.mouseevent.IsTrusted()
-    }
-
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-constructor
     fn Constructor(
-        global: &Window,
+        window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
         type_: DOMString,
         init: &PointerEventInit,
     ) -> DomRoot<PointerEvent> {
-        todo!()
+        let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
+        let cancelable = EventCancelable::from(init.parent.parent.parent.parent.cancelable);
+        PointerEvent::new_with_proto(
+            window,
+            proto,
+            type_,
+            bubbles,
+            cancelable,
+            init.parent.parent.parent.view.as_deref(),
+            init.parent.parent.parent.detail,
+            init.parent.screenX,
+            init.parent.screenY,
+            init.parent.clientX,
+            init.parent.clientY,
+            init.parent.parent.ctrlKey,
+            init.parent.parent.altKey,
+            init.parent.parent.shiftKey,
+            init.parent.parent.metaKey,
+            init.parent.button,
+            init.parent.buttons,
+            init.parent.relatedTarget.as_deref(),
+            None,
+            init.pointerId,
+            init.width,
+            init.height,
+            *init.pressure,
+            *init.tangentialPressure,
+            init.tiltX.unwrap_or_default(),
+            init.tiltY.unwrap_or_default(),
+            init.twist,
+            *init.altitudeAngle.unwrap_or_default(),
+            *init.azimuthAngle.unwrap_or_default(),
+            init.pointerType.clone(),
+            init.isPrimary,
+            init.coalescedEvents.clone(),
+            init.predictedEvents.clone(),
+            can_gc,
+        )
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid
+    fn PointerId(&self) -> i32 {
+        self.pointer_id.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-width
+    fn Width(&self) -> i32 {
+        self.width.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-height
+    fn Height(&self) -> i32 {
+        self.height.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-pressure
+    fn Pressure(&self) -> Finite<f32> {
+        Finite::wrap(self.pressure.get())
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-tangentialpressure
+    fn TangentialPressure(&self) -> Finite<f32> {
+        Finite::wrap(self.tangential_pressure.get())
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-tiltx
+    fn TiltX(&self) -> i32 {
+        self.tilt_x.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-tilty
+    fn TiltY(&self) -> i32 {
+        self.tilt_y.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-twist
+    fn Twist(&self) -> i32 {
+        self.twist.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-altitudeangle
+    fn AltitudeAngle(&self) -> Finite<f64> {
+        Finite::wrap(self.altitude_angle.get())
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-azimuthangle
+    fn AzimuthAngle(&self) -> Finite<f64> {
+        Finite::wrap(self.azimuth_angle.get())
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-pointertype
+    fn PointerType(&self) -> DOMString {
+        self.pointer_type.borrow().clone()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-isprimary
+    fn IsPrimary(&self) -> bool {
+        self.is_primary.get()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-getcoalescedevents
+    fn GetCoalescedEvents(&self) -> Vec<DomRoot<PointerEvent>> {
+        self.coalesced_events.borrow().clone()
+    }
+
+    // https://w3c.github.io/pointerevents/#dom-pointerevent-getpredictedevents
+    fn GetPredictedEvents(&self) -> Vec<DomRoot<PointerEvent>> {
+        self.predicted_events.borrow().clone()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.mouseevent.IsTrusted()
     }
 }
