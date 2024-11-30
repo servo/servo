@@ -2985,7 +2985,7 @@ impl ScriptThread {
             load_data.inherited_secure_context,
         );
         if load_data.url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load, load_data.js_eval_result);
+            self.start_page_load_about_blank(new_load, load_data);
         } else if load_data.url.as_str() == "about:srcdoc" {
             self.page_load_about_srcdoc(new_load, load_data);
         } else {
@@ -4207,11 +4207,7 @@ impl ScriptThread {
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load_about_blank(
-        &self,
-        incomplete: InProgressLoad,
-        js_eval_result: Option<JsEvalResult>,
-    ) {
+    fn start_page_load_about_blank(&self, incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id;
 
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -4221,10 +4217,11 @@ impl ScriptThread {
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
+        meta.set_referrer_policy(load_data.referrer_policy);
 
         // If this page load is the result of a javascript scheme url, map
         // the evaluation result into a response.
-        let chunk = match js_eval_result {
+        let chunk = match load_data.js_eval_result {
             Some(JsEvalResult::Ok(content)) => content,
             Some(JsEvalResult::NoContent) => {
                 meta.status = http::StatusCode::NO_CONTENT.into();
