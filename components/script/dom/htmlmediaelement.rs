@@ -1985,7 +1985,8 @@ impl HTMLMediaElement {
 
     pub fn clear_current_frame_data(&self) {
         self.handle_resize(None, None);
-        self.video_renderer.lock().unwrap().current_frame = None
+        self.video_renderer.lock().unwrap().current_frame = None;
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
