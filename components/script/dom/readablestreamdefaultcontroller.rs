@@ -16,7 +16,7 @@ use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategyS
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
-use crate::dom::bindings::import::module::{Error, Fallible};
+use crate::dom::bindings::import::module::{throw_dom_exception, Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -670,20 +670,23 @@ impl ReadableStreamDefaultController {
                 if let Err(error) = res {
                     // If enqueueResult is an abrupt completion,
 
+                    // First, throw the exception.
+                    // Note: this must be done manually here,
+                    // because `enqueue_value_with_size` does not call into JS.
+                    throw_dom_exception(cx, &self.global(), error);
+
+                    // Then, get a handle to the JS val for the exception,
+                    // and use that to error the stream.
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-                    // TODO: check if this is the right globalscope.
-                    unsafe {
-                        error
-                            .clone()
-                            .to_jsval(*cx, &self.global(), rval.handle_mut())
-                    };
+                    unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
                     self.error(rval.handle());
 
                     // Return enqueueResult.
-                    // TODO: ensure returned error and the error used in `self.error` are the same JS object.
-                    return Err(error);
+                    // Note: because we threw the exception above,
+                    // there is a pending exception and we can return JSFailed.
+                    return Err(Error::JSFailed);
                 }
             }
         }
