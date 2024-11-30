@@ -833,7 +833,11 @@ impl<'a> AbsoluteAxisSolver<'a> {
             self.box_offsets.end.non_auto(),
         ) {
             (None, None) => solve_for_anchor(if self.flip_anchor {
-                Anchor::End(self.containing_size - self.static_position_rect_axis.origin)
+                Anchor::End(
+                    self.containing_size -
+                        self.static_position_rect_axis.origin -
+                        self.static_position_rect_axis.length,
+                )
             } else {
                 Anchor::Start(self.static_position_rect_axis.origin)
             }),
@@ -911,40 +915,58 @@ impl<'a> AbsoluteAxisSolver<'a> {
     }
 
     fn origin_for_alignment_or_justification(&self, margin_box_axis: RectAxis) -> Option<Au> {
-        let alignment_container = match (
+        let (alignment_container, flip_anchor) = match (
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
         ) {
-            (None, None) => self.static_position_rect_axis,
+            (None, None) => (self.static_position_rect_axis, self.flip_anchor),
             (Some(start), Some(end)) => {
                 let start = start.to_used_value(self.containing_size);
                 let end = end.to_used_value(self.containing_size);
-
-                RectAxis {
+                let alignment_container = RectAxis {
                     origin: start,
                     length: self.containing_size - (end + start),
-                }
+                };
+                (alignment_container, false)
             },
             _ => return None,
         };
 
-        let mut value_after_safety = self.alignment.value();
-        if self.alignment.flags() == AlignFlags::SAFE &&
-            margin_box_axis.length > alignment_container.length
+        // Here we resolve the alignment to either start, center, or end.
+        // Note we need to handle both self-alignment values (when some inset isn't auto)
+        // and distributed alignment values (when both insets are auto).
+        // The latter are treated as their fallback alignment.
+        let alignment = match self.alignment.value() {
+            // https://drafts.csswg.org/css-align/#valdef-self-position-end
+            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
+            AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-center
+            // https://drafts.csswg.org/css-align/#valdef-align-content-space-around
+            // https://drafts.csswg.org/css-align/#valdef-align-content-space-evenly
+            AlignFlags::CENTER | AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => {
+                AlignFlags::CENTER
+            },
+            // TODO(#34282): handle missing values: self-start, self-end, left, right.
+            _ => AlignFlags::START,
+        };
+
+        if alignment == AlignFlags::START ||
+            self.alignment.flags() == AlignFlags::SAFE &&
+                margin_box_axis.length > alignment_container.length
         {
-            value_after_safety = AlignFlags::START;
+            // Aligning to start is no-op, so just return `None`. This should be equivalent
+            // to returning `Some(alignment_container.origin + free_space)` if `flip_anchor`,
+            // or `Some(alignment_container.origin)` otherwise.
+            return None;
         }
 
-        match value_after_safety {
-            AlignFlags::CENTER | AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => Some(
-                alignment_container.origin +
-                    ((alignment_container.length - margin_box_axis.length) / 2),
-            ),
-            AlignFlags::FLEX_END | AlignFlags::END => Some(
-                alignment_container.origin + alignment_container.length - margin_box_axis.length,
-            ),
-            _ => None,
-        }
+        let free_space = alignment_container.length - margin_box_axis.length;
+        Some(match alignment {
+            AlignFlags::CENTER => alignment_container.origin + free_space / 2,
+            AlignFlags::END if flip_anchor => alignment_container.origin,
+            AlignFlags::END => alignment_container.origin + free_space,
+            _ => unreachable!(),
+        })
     }
 
     fn solve_alignment(
