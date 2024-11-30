@@ -928,9 +928,13 @@ impl<'a> AbsoluteAxisSolver<'a> {
             _ => return None,
         };
 
+        let default_overflow_rect = (alignment_container.origin.max(Au::zero())) +
+            (alignment_container.length.max(Au::zero()));
+
         let mut value_after_safety = self.alignment.value();
         if self.alignment.flags() == AlignFlags::SAFE &&
-            margin_box_axis.length > alignment_container.length
+            (margin_box_axis.length > alignment_container.length ||
+                alignment_container.origin < Au::zero())
         {
             value_after_safety = AlignFlags::START;
         }
@@ -940,9 +944,24 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 alignment_container.origin +
                     ((alignment_container.length - margin_box_axis.length) / 2),
             ),
-            AlignFlags::FLEX_END | AlignFlags::END => Some(
-                alignment_container.origin + alignment_container.length - margin_box_axis.length,
-            ),
+            AlignFlags::FLEX_END | AlignFlags::END => {
+                let end_position = alignment_container.origin + alignment_container.length -
+                    margin_box_axis.length;
+
+                if self.alignment.flags() == AlignFlags::UNSAFE ||
+                    margin_box_axis.length <= alignment_container.length
+                {
+                    Some(end_position)
+                } else if margin_box_axis.length <= default_overflow_rect {
+                    Some(
+                        alignment_container.origin.max(Au::zero()) + alignment_container.length -
+                            margin_box_axis.length,
+                    )
+                } else {
+                    Some(Au::zero())
+                }
+            },
+            AlignFlags::START => Some(alignment_container.origin),
             _ => None,
         }
     }
