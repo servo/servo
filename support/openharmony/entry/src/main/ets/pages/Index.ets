@@ -67,6 +67,13 @@ struct Index {
   @LocalStorageProp('CommandlineArgs') CommandlineArgs: string = ""
   @State urlToLoad: string = this.InitialURI
 
+  // Called when the user swipes from the right or left edge to the middle
+  // Default behavior is bringing the app to the background.
+  onBackPress(): boolean | void {
+    this.xComponentContext?.goBack()
+    return true;
+  }
+
   build() {
     Column() {
       Row() {
@@ -76,7 +83,7 @@ struct Index {
           .width('12%')
           .fontSize(12)
           .onClick(()=>{
-            this.xComponentContext?.goBack()
+            this.onBackPress()
           })
         Button('⇨').backgroundColor(Color.White)
           .fontColor(Color.Black)
