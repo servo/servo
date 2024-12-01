@@ -2,35 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Borrow;
 use std::cell::Cell;
-use std::default::Default;
 
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use js::rust::HandleObject;
-use servo_config::pref;
-
-use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::PointerEventBinding;
-use crate::dom::bindings::codegen::Bindings::PointerEventBinding::PointerEventInit;
-use crate::dom::bindings::codegen::Bindings::PointerEventBinding::PointerEventMethods;
-use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::Node;
-use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 use super::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::PointerEventBinding::{
+    PointerEventInit, PointerEventMethods,
+};
+use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::mouseevent::MouseEvent;
+use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct PointerEvent {
