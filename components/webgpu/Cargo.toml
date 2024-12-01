@@ -11,6 +11,10 @@ rust-version.workspace = true
 name = "webgpu"
 path = "lib.rs"
 
+[features]
+default = []
+webgpu = []
+
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }
 base = { workspace = true }

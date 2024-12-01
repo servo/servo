@@ -42,6 +42,8 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
+#[cfg(not(feature = "webgpu"))]
+use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
@@ -252,6 +254,11 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
+    #[cfg(not(feature = "webgpu"))]
+    fn get_or_init_webgpu_context(&self) -> Option<DomRoot<GPUCanvasContext>> {
+        return None;
+    }
+
     #[cfg(feature = "webgpu")]
     fn get_or_init_webgpu_context(&self) -> Option<DomRoot<GPUCanvasContext>> {
         if let Some(ctx) = self.context() {
@@ -333,6 +340,7 @@ impl HTMLCanvasElement {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
                 return None;
             },
+            #[cfg(feature = "webgpu")]
             Some(&CanvasContext::WebGPU(_)) => {
                 // TODO: add a method in GPUCanvasContext to get the pixels.
                 return None;

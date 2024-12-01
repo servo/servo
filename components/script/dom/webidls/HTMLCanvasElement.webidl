@@ -6,7 +6,7 @@
 typedef (CanvasRenderingContext2D
   or WebGLRenderingContext
   or WebGL2RenderingContext
-  or [Pref="dom.webgpu.enabled"] GPUCanvasContext) RenderingContext;
+  or GPUCanvasContext) RenderingContext;
 
 [Exposed=Window]
 interface HTMLCanvasElement : HTMLElement {

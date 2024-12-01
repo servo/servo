@@ -1925,6 +1925,7 @@ impl ScriptThread {
                                 },
                                 None => break,
                             },
+                            Err(_) => break,
                             Ok(ev) => event = FromImageCache(ev),
                         },
                         Ok(ev) => event = FromDevtools(ev),

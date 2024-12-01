@@ -585,6 +585,10 @@ pub use self::webxr::*;
 mod webgpu;
 #[cfg(feature = "webgpu")]
 pub use self::webgpu::*;
+#[cfg(not(feature = "webgpu"))]
+pub mod gpucanvascontext;
+#[cfg(not(feature = "webgpu"))]
+pub use gpucanvascontext::GPUCanvasContext;
 pub mod wheelevent;
 pub mod window;
 pub mod windowproxy;

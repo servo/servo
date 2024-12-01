@@ -241,6 +241,7 @@ impl ServiceWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
+                #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),

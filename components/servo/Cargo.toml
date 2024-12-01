@@ -39,7 +39,11 @@ webxr = [
     "canvas/webxr",
     "script/webxr",
 ]
-webgpu = ["dep:webgpu", "script/webgpu"]
+webgpu = [
+    "dep:webgpu",
+    "script/webgpu",
+    "constellation/webgpu",
+]
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }

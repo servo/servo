@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// skip-unless CARGO_FEATURE_WEBXR
+// skip-unless CARGO_FEATURE_WEBGPU
 
 // Source: WebGPU (https://gpuweb.github.io/gpuweb/)
 // Direct source: https://github.com/w3c/webref/blob/curated/ed/idl/webgpu.idl
@@ -1140,9 +1140,7 @@ enum GPUQueryType {
 };
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUCanvasContext {
-    readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
-
+partial interface GPUCanvasContext {
     // Calling configure() a second time invalidates the previous one,
     // and all of the textures it's produced.
     [Throws]
