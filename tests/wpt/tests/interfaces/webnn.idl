@@ -33,6 +33,7 @@ interface ML {
 };
 
 typedef record<USVString, ArrayBufferView> MLNamedArrayBufferViews;
+typedef record<USVString, MLTensor> MLNamedTensors;
 
 dictionary MLComputeResult {
   MLNamedArrayBufferViews inputs;
@@ -41,8 +42,17 @@ dictionary MLComputeResult {
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLContext {
+  // ISSUE(791): compute() will soon be removed in favor of dispatch().
   Promise<MLComputeResult> compute(
       MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
+  undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
+
+  Promise<MLTensor> createTensor(MLTensorDescriptor descriptor);
+
+  Promise<ArrayBuffer> readTensor(MLTensor tensor);
+  Promise<undefined> readTensor(MLTensor tensor, AllowSharedBufferSource outputData);
+
+  undefined writeTensor(MLTensor tensor, AllowSharedBufferSource inputData);
 
   MLOpSupportLimits opSupportLimits();
 };
@@ -104,6 +114,21 @@ dictionary MLOperatorOptions {
 };
 
 typedef (bigint or unrestricted double) MLNumber;
+
+dictionary MLTensorDescriptor : MLOperandDescriptor {
+  boolean readable = false;
+  boolean writable = false;
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLTensor {
+  readonly attribute MLOperandDataType dataType;
+  readonly attribute FrozenArray<unsigned long> shape;
+  readonly attribute boolean readable;
+  readonly attribute boolean writable;
+
+  undefined destroy();
+};
 
 typedef record<USVString, MLOperand> MLNamedOperands;
 

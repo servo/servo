@@ -15,7 +15,7 @@
 <output id="output"></output>
 <script>
 promise_test(async t => {
-  const [entry, script] = await expect_long_frame_with_script(async () => {
+  const [entry, script] = await expect_long_frame_with_script(async (t, busy_wait) => {
     const button = document.createElement("button");
     button.innerText = "click";
     button.addEventListener("click", () => busy_wait());

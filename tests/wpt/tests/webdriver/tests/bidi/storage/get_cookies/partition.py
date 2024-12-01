@@ -6,7 +6,7 @@ from webdriver.bidi.modules.storage import (
     StorageKeyPartitionDescriptor,
 )
 
-from .. import create_cookie, get_default_partition_key
+from .. import assert_partition_key, create_cookie
 from ... import recursive_compare
 
 pytestmark = pytest.mark.asyncio
@@ -38,9 +38,7 @@ async def test_default_partition(
 
     cookies = await bidi_session.storage.get_cookies()
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     # Provide consistent cookies order.
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["domain"])
@@ -103,10 +101,9 @@ async def test_partition_context(
         partition=BrowsingContextPartitionDescriptor(new_tab["context"])
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session, new_tab["context"])),
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"], expected={
         "userContext": "default"
-    }
+    }, context=new_tab["context"])
     assert len(cookies["cookies"]) == 1
     recursive_compare(
         {
@@ -127,10 +124,9 @@ async def test_partition_context(
         partition=BrowsingContextPartitionDescriptor(new_context["context"])
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session, new_context["context"])),
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"], expected={
         "userContext": user_context
-    }
+    }, context=new_context["context"])
     assert len(cookies["cookies"]) == 0
 
 

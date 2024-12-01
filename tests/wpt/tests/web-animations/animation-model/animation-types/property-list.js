@@ -107,7 +107,7 @@ const gCSSProperties1 = {
   'block-step-insert': {
     // https://drafts.csswg.org/css-rhythm/#block-step-insert
     types: [
-      { type: 'discrete', options: [ [ 'margin', 'padding' ] ] }
+      { type: 'discrete', options: [ [ 'margin-box', 'padding-box'], ['margin-box', 'content-box'], ['padding-box', 'content-box'] ] }
     ]
   },
   'block-step-size': {

@@ -13,7 +13,7 @@
 
 promise_test(async t => {
   const pause_duration = very_long_frame_duration / 2;
-  [entry, script] = await expect_long_frame_with_script(() => t.step_timeout(() => {
+  [entry, script] = await expect_long_frame_with_script((t, busy_wait) => t.step_timeout(() => {
     busy_wait(pause_duration);
     const sync_xhr = new XMLHttpRequest();
     sync_xhr.open("GET", `/xhr/resources/delay.py?ms=${pause_duration}`, /*async=*/false);

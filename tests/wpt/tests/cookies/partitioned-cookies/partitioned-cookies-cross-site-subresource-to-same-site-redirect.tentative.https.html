@@ -55,6 +55,7 @@
     .includes(partitionedCookie));
   assert_true(iframe.contentDocument.cookie
       .includes(partitionedCookie));
+  erase_cookie_from_js("ancestor", "Secure; Path=/; SameSite=None; Partitioned");
     }, "Partitioned cookies are sent in embedded cross-site to same-site redirects");
 </script>
 </body>
