@@ -501,7 +501,6 @@ impl HoistedAbsolutelyPositionedBox {
         };
 
         let mut inline_axis_solver = AbsoluteAxisSolver {
-            axis: AxisDirection::Inline,
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
@@ -528,7 +527,6 @@ impl HoistedAbsolutelyPositionedBox {
             false => shared_fragment.resolved_alignment.block,
         };
         let mut block_axis_solver = AbsoluteAxisSolver {
-            axis: AxisDirection::Block,
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
@@ -633,34 +631,17 @@ impl HoistedAbsolutelyPositionedBox {
             };
 
             let pb = pbm.padding + pbm.border;
-            let inline_start = match inline_axis.anchor {
-                Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-                Anchor::End(end) => {
-                    cbis - end - pb.inline_end - margin.inline_end - content_size.inline
-                },
-            };
-            let block_start = match block_axis.anchor {
-                Anchor::Start(start) => start + pb.block_start + margin.block_start,
-                Anchor::End(end) => {
-                    cbbs - end - pb.block_end - margin.block_end - content_size.block
-                },
-            };
+            let margin_rect_size = content_size + pbm.padding_border_sums + margin.sum();
+            let inline_origin = inline_axis_solver.origin_for_margin_box(margin_rect_size.inline);
+            let block_origin = block_axis_solver.origin_for_margin_box(margin_rect_size.block);
 
-            let mut content_rect = LogicalRect {
+            let content_rect = LogicalRect {
                 start_corner: LogicalVec2 {
-                    inline: inline_start,
-                    block: block_start,
+                    inline: inline_origin + margin.inline_start + pb.inline_start,
+                    block: block_origin + margin.block_start + pb.block_start,
                 },
                 size: content_size,
             };
-
-            let margin_box_rect = content_rect
-                .inflate(&pbm.padding)
-                .inflate(&pbm.border)
-                .inflate(&margin);
-            block_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
-            inline_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
-
             BoxFragment::new(
                 context.base_fragment_info(),
                 style,
@@ -727,29 +708,13 @@ impl AbsoluteBoxOffsets<'_> {
     }
 }
 
-enum Anchor {
-    Start(Au),
-    End(Au),
-}
-
-impl Anchor {
-    fn inset(&self) -> Au {
-        match self {
-            Self::Start(start) => *start,
-            Self::End(end) => *end,
-        }
-    }
-}
-
 struct AxisResult {
-    anchor: Anchor,
     size: SizeConstraint,
     margin_start: Au,
     margin_end: Au,
 }
 
 struct AbsoluteAxisSolver<'a> {
-    axis: AxisDirection,
     containing_size: Au,
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
@@ -812,17 +777,13 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 SizeConstraint::new(preferred_size, min_size, max_size)
             }
         };
-        let solve_for_anchor = |anchor: Anchor| {
+        let solve_for_inset = |inset| {
             let margin_start = self.computed_margin_start.auto_is(Au::zero);
             let margin_end = self.computed_margin_end.auto_is(Au::zero);
-            let stretch_size = self.containing_size -
-                anchor.inset() -
-                self.padding_border_sum -
-                margin_start -
-                margin_end;
+            let stretch_size =
+                self.containing_size - inset - self.padding_border_sum - margin_start - margin_end;
             let size = solve_size(Size::FitContent, stretch_size);
             AxisResult {
-                anchor,
                 size,
                 margin_start,
                 margin_end,
@@ -832,21 +793,15 @@ impl<'a> AbsoluteAxisSolver<'a> {
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
         ) {
-            (None, None) => solve_for_anchor(if self.flip_anchor {
-                Anchor::End(
-                    self.containing_size -
-                        self.static_position_rect_axis.origin -
-                        self.static_position_rect_axis.length,
-                )
+            (None, None) => solve_for_inset(if self.flip_anchor {
+                self.containing_size -
+                    self.static_position_rect_axis.origin -
+                    self.static_position_rect_axis.length
             } else {
-                Anchor::Start(self.static_position_rect_axis.origin)
+                self.static_position_rect_axis.origin
             }),
-            (Some(start), None) => {
-                solve_for_anchor(Anchor::Start(start.to_used_value(self.containing_size)))
-            },
-            (None, Some(end)) => {
-                solve_for_anchor(Anchor::End(end.to_used_value(self.containing_size)))
-            },
+            (Some(start), None) => solve_for_inset(start.to_used_value(self.containing_size)),
+            (None, Some(end)) => solve_for_inset(end.to_used_value(self.containing_size)),
             (Some(start), Some(end)) => {
                 let start = start.to_used_value(self.containing_size);
                 let end = end.to_used_value(self.containing_size);
@@ -885,7 +840,6 @@ impl<'a> AbsoluteAxisSolver<'a> {
                         },
                     };
                 AxisResult {
-                    anchor: Anchor::Start(start),
                     size,
                     margin_start,
                     margin_end,
@@ -914,7 +868,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
         result
     }
 
-    fn origin_for_alignment_or_justification(&self, margin_box_axis: RectAxis) -> Option<Au> {
+    fn origin_for_margin_box(&self, size: Au) -> Au {
         let (alignment_container, flip_anchor) = match (
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
@@ -929,7 +883,13 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 };
                 (alignment_container, false)
             },
-            _ => return None,
+            // If a single offset is auto, for alignment purposes it resolves to the amount
+            // that makes the inset-modified containing block be exactly as big as the abspos.
+            // Therefore the free space is zero and the alignment value is irrelevant.
+            (Some(start), None) => return start.to_used_value(self.containing_size),
+            (None, Some(end)) => {
+                return self.containing_size - size - end.to_used_value(self.containing_size)
+            },
         };
 
         // Here we resolve the alignment to either start, center, or end.
@@ -950,45 +910,24 @@ impl<'a> AbsoluteAxisSolver<'a> {
             _ => AlignFlags::START,
         };
 
-        if alignment == AlignFlags::START ||
-            self.alignment.flags() == AlignFlags::SAFE &&
-                margin_box_axis.length > alignment_container.length
-        {
-            // Aligning to start is no-op, so just return `None`. This should be equivalent
-            // to returning `Some(alignment_container.origin + free_space)` if `flip_anchor`,
-            // or `Some(alignment_container.origin)` otherwise.
-            return None;
-        }
-
-        let free_space = alignment_container.length - margin_box_axis.length;
-        Some(match alignment {
-            AlignFlags::CENTER => alignment_container.origin + free_space / 2,
-            AlignFlags::END if flip_anchor => alignment_container.origin,
-            AlignFlags::END => alignment_container.origin + free_space,
-            _ => unreachable!(),
-        })
-    }
-
-    fn solve_alignment(
-        &self,
-        margin_box_rect: LogicalRect<Au>,
-        content_box_rect: &mut LogicalRect<Au>,
-    ) {
-        let Some(new_origin) =
-            self.origin_for_alignment_or_justification(margin_box_rect.get_axis(self.axis))
-        else {
-            return;
+        let alignment = match alignment {
+            AlignFlags::START if flip_anchor => AlignFlags::END,
+            AlignFlags::END if flip_anchor => AlignFlags::START,
+            alignment => alignment,
         };
 
-        match self.axis {
-            AxisDirection::Block => {
-                content_box_rect.start_corner.block +=
-                    new_origin - margin_box_rect.start_corner.block
-            },
-            AxisDirection::Inline => {
-                content_box_rect.start_corner.inline +=
-                    new_origin - margin_box_rect.start_corner.inline
-            },
+        let free_space = alignment_container.length - size;
+        let alignment = if self.alignment.flags() == AlignFlags::SAFE && free_space < Au::zero() {
+            AlignFlags::START
+        } else {
+            alignment
+        };
+
+        match alignment {
+            AlignFlags::START => alignment_container.origin,
+            AlignFlags::CENTER => alignment_container.origin + free_space / 2,
+            AlignFlags::END => alignment_container.origin + free_space,
+            _ => unreachable!(),
         }
     }
 }
