@@ -12,18 +12,27 @@ export default class EntryAbility extends UIAbility {
     if (typeof want.parameters !== "undefined") {
       Object.entries(want.parameters).forEach((entry) => {
         let key = entry[0]
-        // Skip some default parameters, since servo is not interested in those
-        if (key.startsWith("ohos.")
-          || key.startsWith("component.")
-          || key.startsWith("send_to_erms_")
-          || key === "isCallBySCB"
-          || key === "moduleName"
-          || key === "debugApp"
-        ) {
-          return
+        // The commandline parameters we are interested in all start with `--`.
+        // OpenHarmony also adds quite a few default parameters to the wants.parameters
+        // dictionary, and servo currently fails with an error if it receives unknown
+        // options.
+        // On the commandline you can pass parameters via the `aa` tool.
+        // ```
+        // aa start -a EntryAbility -b org.servo.servoshell --ps=--screen-size 505x413
+        // ```
+        // Use `--ps=--arg_name value` for key-value parameters. Please note that
+        // `--ps` and `--<arg_name>` must be connected by an `=` and may not be seperated.
+        // the value must be space seperated, since `aa start` will expect it as a second parameter.
+        // Use `--psn=--arg_name` for flags that do not have a value.
+        // See the aa tool documentation for more details:
+        // https://docs.openharmony.cn/pages/v5.0/en/application-dev/tools/aa-tool.md
+        if (key.startsWith("--")) {
+            let value = entry[1].toString()
+            params.push(key)
+            if (value) {
+                params.push(value)
+            }
         }
-        let value = entry[1]
-        params.push("--" + key + "=" + value.toString())
       })
     }
     let servoshell_params = params.join("\u{001f}")
