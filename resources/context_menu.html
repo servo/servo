@@ -1,0 +1,81 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: #dfdfdf;
+        width: 184px;
+      }
+      .menu {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: start;
+      }
+      .menu-item {
+        cursor: pointer;
+        display: inline-block;
+        height: 30px;
+        width: 100%;
+        line-height: 30px;
+        padding-left: 5px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .menu-item:hover {
+        background: #cecece;
+        border-radius: 5px;
+      }
+      .menu-item.disabled {
+        cursor: default;
+        background: #dfdfdf;
+        color: #505050;
+        cursor: pointer;
+      }
+      .menu-item:hover.disabled {
+        background: #dfdfdf;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu" class="menu"></div>
+  </body>
+  <script>
+    const menuEl = document.getElementById('menu');
+
+    let url = URL.parse(window.location.href);
+    let params = url.searchParams;
+
+    const options = JSON.parse(params.get('items'));
+    for (option of options) {
+      createMenuItem(option.id, option.label, option.enabled);
+    }
+
+    function createMenuItem(id, label, enabled) {
+      const menuItem = document.createElement('div');
+      menuItem.classList.add('menu-item');
+      menuItem.id = id;
+      menuItem.innerText = label;
+
+      if (!enabled) {
+        menuItem.classList.add('disabled');
+      } else {
+        menuItem.onclick = (ev) => {
+          // accept left click only
+          if (ev.buttons !== 1) {
+            return;
+          }
+          const msg = JSON.stringify({
+            id,
+            close: true,
+          });
+          console.log(`CONTEXT_MENU:${msg}`);
+          window.prompt(`CONTEXT_MENU:${msg}`);
+        };
+      }
+
+      menuEl.appendChild(menuItem);
+    }
+  </script>
+</html>

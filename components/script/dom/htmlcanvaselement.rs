@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use image::codecs::png::PngEncoder;
-use image::{ColorType, ImageEncoder};
+use image::{ExtendedColorType, ImageEncoder};
 use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
@@ -428,7 +428,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // FIXME(nox): https://github.com/image-rs/image-png/issues/86
         // FIXME(nox): https://github.com/image-rs/image-png/issues/87
         PngEncoder::new(&mut encoder)
-            .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
+            .write_image(&file, self.Width(), self.Height(), ExtendedColorType::Rgba8)
             .unwrap();
         encoder.into_inner();
         Ok(USVString(url))
