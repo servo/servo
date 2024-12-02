@@ -26,7 +26,7 @@ use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
@@ -134,8 +134,18 @@ impl ReadableStream {
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn new(global: &GlobalScope, controller: ControllerType) -> DomRoot<ReadableStream> {
-        reflect_dom_object(Box::new(ReadableStream::new_inherited(controller)), global)
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<SafeHandleObject>,
+        controller: ControllerType,
+        can_gc: CanGc,
+    ) -> DomRoot<ReadableStream> {
+        reflect_dom_object_with_proto(
+            Box::new(ReadableStream::new_inherited(controller)),
+            global,
+            proto,
+            can_gc,
+        )
     }
 
     /// Used as part of
@@ -196,8 +206,12 @@ impl ReadableStream {
         can_gc: CanGc,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let stream =
-            ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)));
+        let stream = ReadableStream::new_with_proto(
+            global,
+            None,
+            ControllerType::Default(MutNullableDom::new(None)),
+            can_gc,
+        );
         let controller = ReadableStreamDefaultController::new(
             global,
             source,
@@ -594,7 +608,7 @@ impl ReadableStreamMethods for ReadableStream {
     fn Constructor(
         cx: SafeJSContext,
         global: &GlobalScope,
-        _proto: Option<SafeHandleObject>,
+        proto: Option<SafeHandleObject>,
         can_gc: CanGc,
         underlying_source: Option<*mut JSObject>,
         strategy: &QueuingStrategy,
@@ -618,9 +632,19 @@ impl ReadableStreamMethods for ReadableStream {
 
         // Perform ! InitializeReadableStream(this).
         let stream = if underlying_source_dict.type_.is_some() {
-            ReadableStream::new(global, ControllerType::Byte(MutNullableDom::new(None)))
+            ReadableStream::new_with_proto(
+                global,
+                proto,
+                ControllerType::Byte(MutNullableDom::new(None)),
+                can_gc,
+            )
         } else {
-            ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)))
+            ReadableStream::new_with_proto(
+                global,
+                proto,
+                ControllerType::Default(MutNullableDom::new(None)),
+                can_gc,
+            )
         };
 
         if underlying_source_dict.type_.is_some() {
