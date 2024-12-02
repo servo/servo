@@ -26,7 +26,7 @@ use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
@@ -43,6 +43,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 
+use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::underlyingsourcecontainer::TeeCancelAlgorithm;
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
@@ -131,7 +132,12 @@ fn create_readable_stream(
 
     // Let stream be a new ReadableStream.
     // Perform ! InitializeReadableStream(stream).
-    let stream = ReadableStream::new(global, ControllerType::Default(MutNullableDom::new(None)));
+    let stream = ReadableStream::new_with_proto(
+        global,
+        None,
+        ControllerType::Default(MutNullableDom::new(None)),
+        can_gc,
+    );
 
     // Let controller be a new ReadableStreamDefaultController.
     let controler = ReadableStreamDefaultController::new(
