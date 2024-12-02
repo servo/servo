@@ -1774,7 +1774,7 @@ impl ScriptThread {
             recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
         };
 
-        // Adding #[cfg(feature = "webgpu")] guard directly above webgpu recv() part doesn't prevent the macro from parsing the WebGPU arm when the feature is disabled. It's probably because crossbeam_channel::select! doesn't natively handle #[cfg()] directives and it parses all arms regardless of whether they are conditionally compiled
+        // select! macro parses all arms regardless of #[cfg], we need to add a separate block for WebGPU
         #[cfg(feature = "webgpu")]
         let mut event = select! {
             recv(self.task_queue.select()) -> msg => {
@@ -1923,8 +1923,8 @@ impl ScriptThread {
                                 },
                                 None => break,
                             },
-                            Err(_) => break,
                             Ok(ev) => event = FromImageCache(ev),
+                            Err(_) => break,
                         },
                         Ok(ev) => event = FromDevtools(ev),
                     },

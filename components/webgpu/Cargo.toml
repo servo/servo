@@ -13,7 +13,6 @@ path = "lib.rs"
 
 [features]
 default = []
-webgpu = []
 
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }

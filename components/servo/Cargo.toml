@@ -40,7 +40,6 @@ webxr = [
     "script/webxr",
 ]
 webgpu = [
-    "dep:webgpu",
     "script/webgpu",
     "constellation/webgpu",
 ]
@@ -90,7 +89,7 @@ style_traits = { workspace = true }
 surfman = { workspace = true }
 tracing = { workspace = true, optional = true }
 webdriver_server = { path = "../webdriver_server", optional = true }
-webgpu = { path = "../webgpu", optional = true }
+webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

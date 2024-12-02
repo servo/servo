@@ -140,9 +140,6 @@ pub enum ScriptMsg {
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastMsg),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
-    #[cfg(feature = "webgpu")]
-    /// Get WebGPU channel
-    GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Requests are sent to constellation and fetches are checked manually
     /// for cross-origin loads
     InitiateNavigateRequest(RequestBuilder, /* cancellation_chan */ IpcReceiver<()>),
@@ -258,6 +255,9 @@ pub enum ScriptMsg {
         wgc::instance::RequestAdapterOptions,
         wgc::id::AdapterId,
     ),
+    #[cfg(feature = "webgpu")]
+    /// Get WebGPU channel
+    GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
     TitleChanged(PipelineId, String),
 }
@@ -281,8 +281,6 @@ impl fmt::Debug for ScriptMsg {
             NewBroadcastChannelNameInRouter(..) => "NewBroadcastChannelNameInRouter",
             ScheduleBroadcast(..) => "ScheduleBroadcast",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
-            #[cfg(feature = "webgpu")]
-            GetWebGPUChan(..) => "GetWebGPUChan",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
@@ -319,6 +317,8 @@ impl fmt::Debug for ScriptMsg {
             MediaSessionEvent(..) => "MediaSessionEvent",
             #[cfg(feature = "webgpu")]
             RequestAdapter(..) => "RequestAdapter",
+            #[cfg(feature = "webgpu")]
+            GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
         };
         write!(formatter, "ScriptMsg::{}", variant)

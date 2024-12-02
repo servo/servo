@@ -39,7 +39,7 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webdriver", "webxr", "webgpu"]
+default = ["max_log_level", "webdriver", "webxr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
 layout_2013 = ["libservo/layout_2013"]
@@ -55,7 +55,7 @@ tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webxr = ["dep:webxr", "libservo/webxr"]
-webgpu = ["libservo/webgpu"]
+webgpu = []
 
 [dependencies]
 libc = { workspace = true }

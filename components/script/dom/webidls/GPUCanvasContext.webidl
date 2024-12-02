@@ -4,6 +4,7 @@
 
 // skip-if CARGO_FEATURE_WEBGPU
 
+// https://html.spec.whatwg.org/multipage/#htmlcanvaselement
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUCanvasContext {
     readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;

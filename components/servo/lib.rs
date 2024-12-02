@@ -426,6 +426,7 @@ where
         if pref!(dom.webxr.enabled) {
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
+
         #[cfg(feature = "webgpu")]
         let wgpu_image_handler = webgpu::WGPUExternalImages::default();
         #[cfg(feature = "webgpu")]

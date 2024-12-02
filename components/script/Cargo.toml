@@ -21,7 +21,7 @@ webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
 webxr = ["webxr-api"]
-webgpu = ["dep:webgpu", "script_traits/webgpu"]
+webgpu = ["script_traits/webgpu"]
 
 [build-dependencies]
 phf_codegen = "0.11"
@@ -125,7 +125,7 @@ url = { workspace = true }
 utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
-webgpu = { path = "../webgpu", optional = true }
+webgpu = { path = "../webgpu" }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }

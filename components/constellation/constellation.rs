@@ -211,6 +211,7 @@ struct MessagePortInfo {
     entangled_with: Option<MessagePortId>,
 }
 
+#[cfg(feature = "webgpu")]
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
     /// Webrender API.
@@ -220,7 +221,7 @@ struct WebrenderWGPU {
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 
     /// WebGPU data that supplied to Webrender for rendering
-    #[cfg(feature = "webgpu")]
+
     wgpu_image_map: WGPUImageMap,
 }
 
@@ -547,6 +548,7 @@ pub struct InitialConstellationState {
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
+
     #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WGPUImageMap,
 }
