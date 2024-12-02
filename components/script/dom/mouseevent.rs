@@ -179,7 +179,7 @@ impl MouseEvent {
         ev
     }
 
-    // https://w3c.github.io/uievents/#initialize-a-mouseevent
+    /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>
     #[allow(clippy::too_many_arguments)]
     pub fn initialize_mouse_event(
         &self,
@@ -201,6 +201,8 @@ impl MouseEvent {
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32>>,
     ) {
+        // TODO: InitMouseEvent has been deprecated. We should follow the link to create an UI
+        // Event instead.
         self.InitMouseEvent(
             type_,
             bool::from(can_bubble),

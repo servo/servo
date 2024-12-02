@@ -231,7 +231,7 @@ impl PointerEvent {
 }
 
 impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-constructor
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -279,77 +279,77 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
         )
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid>
     fn PointerId(&self) -> i32 {
         self.pointer_id.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-width
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-width>
     fn Width(&self) -> i32 {
         self.width.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-height
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-height>
     fn Height(&self) -> i32 {
         self.height.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-pressure
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-pressure>
     fn Pressure(&self) -> Finite<f32> {
         Finite::wrap(self.pressure.get())
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-tangentialpressure
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-tangentialpressure>
     fn TangentialPressure(&self) -> Finite<f32> {
         Finite::wrap(self.tangential_pressure.get())
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-tiltx
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-tiltx>
     fn TiltX(&self) -> i32 {
         self.tilt_x.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-tilty
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-tilty>
     fn TiltY(&self) -> i32 {
         self.tilt_y.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-twist
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-twist>
     fn Twist(&self) -> i32 {
         self.twist.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-altitudeangle
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-altitudeangle>
     fn AltitudeAngle(&self) -> Finite<f64> {
         Finite::wrap(self.altitude_angle.get())
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-azimuthangle
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-azimuthangle>
     fn AzimuthAngle(&self) -> Finite<f64> {
         Finite::wrap(self.azimuth_angle.get())
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-pointertype
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointertype>
     fn PointerType(&self) -> DOMString {
         self.pointer_type.borrow().clone()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-isprimary
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-isprimary>
     fn IsPrimary(&self) -> bool {
         self.is_primary.get()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-getcoalescedevents
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-getcoalescedevents>
     fn GetCoalescedEvents(&self) -> Vec<DomRoot<PointerEvent>> {
         self.coalesced_events.borrow().clone()
     }
 
-    // https://w3c.github.io/pointerevents/#dom-pointerevent-getpredictedevents
+    /// <https://w3c.github.io/pointerevents/#dom-pointerevent-getpredictedevents>
     fn GetPredictedEvents(&self) -> Vec<DomRoot<PointerEvent>> {
         self.predicted_events.borrow().clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.mouseevent.IsTrusted()
     }
