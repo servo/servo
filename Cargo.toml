@@ -159,8 +159,9 @@ debug-assertions = true
 [profile.production]
 inherits = "release"
 debug-assertions = false
-lto = "thin"
+lto = true
 codegen-units = 1
+opt-level = "s"
 
 [profile.production-stripped]
 inherits = "production"
