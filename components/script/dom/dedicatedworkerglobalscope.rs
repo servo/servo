@@ -254,8 +254,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
-        #[cfg(feature = "webgpu")]
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
@@ -294,8 +293,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
-        #[cfg(feature = "webgpu")]
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
@@ -335,8 +333,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
-        #[cfg(feature = "webgpu")]
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
     ) -> JoinHandle<()> {

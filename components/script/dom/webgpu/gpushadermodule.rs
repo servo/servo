@@ -9,8 +9,6 @@ use webgpu::{WebGPU, WebGPURequest, WebGPUResponse, WebGPUShaderModule};
 
 use super::gpu::AsyncWGPUListener;
 use super::gpucompilationinfo::GPUCompilationInfo;
-use crate::dom::promise::Promise;
-use crate::dom::types::GPUDevice;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUShaderModuleDescriptor, GPUShaderModuleMethods,
@@ -20,6 +18,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::types::GPUDevice;
 use crate::dom::webgpu::gpu::response_async;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;

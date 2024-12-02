@@ -13,9 +13,6 @@ use webgpu::wgc::device::HostMap;
 use webgpu::{wgt, Mapping, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
 
 use crate::dom::bindings::buffer_source::DataBlock;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBufferDescriptor, GPUBufferMapState, GPUFlagsConstant, GPUMapModeFlags,
-};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferDescriptor, GPUBufferMapState, GPUBufferMethods, GPUFlagsConstant,
@@ -26,7 +23,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::webgpu::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpu::{response_async, AsyncWGPUListener};

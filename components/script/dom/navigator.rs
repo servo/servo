@@ -19,8 +19,6 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadevent::GamepadEventType;
-#[cfg(feature = "webgpu")]
-use crate::dom::webgpu::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
 use crate::dom::mimetypearray::MimeTypeArray;
@@ -28,6 +26,7 @@ use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
+#[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
 #[cfg(feature = "webxr")]

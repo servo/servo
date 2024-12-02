@@ -8,9 +8,8 @@ use webgpu::wgt::Limits;
 use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUSupportedLimits_Binding;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::reflector::Reflector;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]

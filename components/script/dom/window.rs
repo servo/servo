@@ -2603,8 +2603,7 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
-        #[cfg(feature = "webgpu")]
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {

@@ -5,7 +5,6 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
-use crate::dom::types::GPUError;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUOutOfMemoryError_Binding::GPUOutOfMemoryErrorMethods;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;

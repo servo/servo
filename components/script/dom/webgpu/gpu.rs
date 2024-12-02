@@ -2,31 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- use std::rc::Rc;
+use std::rc::Rc;
 
- use dom_struct::dom_struct;
- use ipc_channel::ipc::{self, IpcSender};
- use ipc_channel::router::ROUTER;
- use js::jsapi::Heap;
- use script_traits::ScriptMsg;
- use webgpu::wgt::PowerPreference;
- use webgpu::{wgc, WebGPUResponse};
- 
- use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTextureFormat;
- use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-     GPUMethods, GPUPowerPreference, GPURequestAdapterOptions,
- };
- use crate::dom::bindings::error::Error;
- use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
- use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
- use crate::dom::bindings::root::DomRoot;
- use crate::dom::bindings::str::DOMString;
- use crate::dom::globalscope::GlobalScope;
- use crate::dom::gpuadapter::GPUAdapter;
- use crate::dom::promise::Promise;
- use crate::realms::InRealm;
- use crate::script_runtime::CanGc;
- use crate::task_source::{TaskSource, TaskSourceName};
+use dom_struct::dom_struct;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
+use js::jsapi::Heap;
+use script_traits::ScriptMsg;
+use webgpu::wgt::PowerPreference;
+use webgpu::{wgc, WebGPUResponse};
+
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat,
+};
+use crate::dom::bindings::error::Error;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuadapter::GPUAdapter;
+use crate::dom::promise::Promise;
+use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
 #[allow(clippy::upper_case_acronyms)]

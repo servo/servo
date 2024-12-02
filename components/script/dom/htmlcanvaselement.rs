@@ -40,8 +40,6 @@ use crate::dom::canvasrenderingcontext2d::{
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
-#[cfg(feature = "webgpu")]
-use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 #[cfg(not(feature = "webgpu"))]
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
@@ -51,6 +49,8 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::script_runtime::{CanGc, JSContext};
 
 const DEFAULT_WIDTH: u32 = 300;

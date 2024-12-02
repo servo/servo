@@ -8,7 +8,6 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

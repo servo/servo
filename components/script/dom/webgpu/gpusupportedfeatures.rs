@@ -9,7 +9,6 @@ use indexmap::IndexSet;
 use js::rust::HandleObject;
 use webgpu::wgt::Features;
 
-use crate::dom::bindings::like::Setlike;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUFeatureName, GPUSupportedFeaturesMethods,

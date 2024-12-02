@@ -7,17 +7,3 @@
 interface GPUCanvasContext {
     readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
 };
-
-// [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-// interface GPUCanvasContext {
-//     readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
-
-//     // Calling configure() a second time invalidates the previous one,
-//     // and all of the textures it's produced.
-//     [Throws]
-//     undefined configure(GPUCanvasConfiguration descriptor);
-//     undefined unconfigure();
-
-//     [Throws]
-//     GPUTexture getCurrentTexture();
-// };

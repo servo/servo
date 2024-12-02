@@ -106,8 +106,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::gamepad::{contains_user_gesture, Gamepad};
 use crate::dom::gamepadevent::GamepadEventType;
-#[cfg(feature = "webgpu")]
-use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 #[cfg(feature = "webgpu")]
 use crate::dom::identityhub::IdentityHub;
@@ -121,6 +119,8 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
@@ -773,8 +773,7 @@ impl GlobalScope {
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
-        #[cfg(feature = "webgpu")]
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
     ) -> Self {

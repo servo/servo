@@ -19,14 +19,10 @@ use webgpu::{
     WebGPUResponse,
 };
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{GPUPipelineErrorReason, GPUTextureFormat};
-use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
-use crate::dom::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
-use crate::dom::types::GPUError;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -46,10 +42,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-<<<<<<< HEAD
-=======
-use crate::dom::webgpu::gpu::response_async;
->>>>>>> 9c0dbd95c9 (Move script gpu files into webgpu folder)
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;

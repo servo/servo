@@ -12,6 +12,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 
+// This GPUCanvasContext is a dummy implementation for case #[cfg(not(feature = "webgpu"))]
 #[dom_struct]
 pub struct GPUCanvasContext {
     reflector_: Reflector,

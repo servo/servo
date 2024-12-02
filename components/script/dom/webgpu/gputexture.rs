@@ -8,7 +8,6 @@ use dom_struct::dom_struct;
 use webgpu::wgc::resource;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
-use crate::dom::bindings::error::Fallible;
 use super::gpuconvert::convert_texture_descriptor;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

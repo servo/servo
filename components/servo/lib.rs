@@ -89,6 +89,8 @@ use surfman::{GLApi, GLVersion};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
 #[cfg(feature = "webgpu")]
+pub use webgpu;
+#[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
@@ -96,8 +98,6 @@ use webrender_traits::{
     CrossProcessCompositorApi, RenderingContext, WebrenderExternalImageHandlers,
     WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
-#[cfg(feature = "webgpu")]
-pub use webgpu;
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
     constellation, devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel,
@@ -1064,8 +1064,7 @@ fn create_constellation(
     glplayer_threads: Option<GLPlayerThreads>,
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    #[cfg(feature = "webgpu")]
-    wgpu_image_map: WGPUImageMap,
+    #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.

@@ -1749,9 +1749,7 @@ impl ScriptThread {
     fn handle_msgs(&self, can_gc: CanGc) -> bool {
         #[cfg(feature = "webgpu")]
         use self::MixedMessage::FromWebGPUServer;
-        use self::MixedMessage::{
-            FromConstellation, FromDevtools, FromImageCache, FromScript,
-        };
+        use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache, FromScript};
 
         // Proritize rendering tasks and others, and gather all other events as `sequential`.
         let mut sequential = vec![];
