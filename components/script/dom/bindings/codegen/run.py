@@ -11,6 +11,7 @@ SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", "..", "..", ".."))
 
 FILTER_PATTERN = re.compile("// skip-unless ([A-Z_]+)\n")
+SKIP_IF_PATTERN = re.compile("// skip-if ([A-Z_]+)\n")
 
 
 def main():
@@ -42,6 +43,11 @@ def main():
                 if not os.environ.get(env_var):
                     continue
 
+            skip_if_match = SKIP_IF_PATTERN.search(contents)
+            if skip_if_match:
+                env_var = skip_if_match.group(1)
+                if os.environ.get(env_var):
+                    continue
             parser.parse(contents, filename)
 
     add_css_properties_attributes(css_properties_json, parser)
