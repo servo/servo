@@ -16,6 +16,30 @@ use rustc_span::{Span, DUMMY_SP};
 use rustc_trait_selection::infer::InferCtxtExt;
 use rustc_type_ir::{FloatTy, IntTy, UintTy};
 
+#[allow(dead_code)]
+pub fn def_path_ends_with(cx: &LateContext, def_id: DefId, sym: Symbol) -> bool {
+    let def_path = cx.tcx.def_path(def_id);
+    def_path
+        .data
+        .iter()
+        .last()
+        .map(|p| p.data.get_opt_name().as_ref() == Some(&sym))
+        .unwrap_or(false)
+}
+
+#[allow(dead_code)]
+pub fn debug_def_path(cx: &LateContext, def_id: DefId) {
+    let def_path = cx.tcx.def_path(def_id);
+    println!(
+        "{:?}",
+        def_path
+            .data
+            .iter()
+            .filter_map(|d| d.data.get_opt_name())
+            .collect::<Vec<_>>()
+    );
+}
+
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
