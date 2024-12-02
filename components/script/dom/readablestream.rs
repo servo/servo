@@ -704,15 +704,16 @@ impl ReadableStream {
         let canceled_2 = Rc::new(Cell::new(false));
 
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+        rooted!(in(*cx) let mut reason_1_rval = UndefinedValue());
+        rooted!(in(*cx) let mut reason_2_rval = UndefinedValue());
         // Let reason1 be undefined.
-        let reason_1 = Rc::new(Heap::boxed(rval.get()));
+        let reason_1 = Rc::new(Heap::boxed(reason_1_rval.get()));
         // Let reason2 be undefined.
-        let reason_2 = Rc::new(Heap::boxed(rval.get()));
+        let reason_2 = Rc::new(Heap::boxed(reason_2_rval.get()));
         // Let branch1 be undefined.
-        let mut branch_1: Option<Dom<ReadableStream>> = None;
+        let branch_1 = Rc::new(MutNullableDom::new(None));
         // Let branch2 be undefined.
-        let mut branch_2: Option<Dom<ReadableStream>> = None;
+        let branch_2 = Rc::new(MutNullableDom::new(None));
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
 
@@ -749,7 +750,7 @@ impl ReadableStream {
         ));
 
         // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
-        branch_1 = Some(Dom::from_ref(&create_readable_stream(
+        branch_1.set(Some(&create_readable_stream(
             &self.reflector_.global(),
             underlying_sourc_type_branch_1,
             QueuingStrategy::empty(),
@@ -757,7 +758,7 @@ impl ReadableStream {
         )));
 
         // Set branch_2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
-        branch_2 = Some(Dom::from_ref(&create_readable_stream(
+        branch_2.set(Some(&create_readable_stream(
             &self.reflector_.global(),
             underlying_sourc_type_branch_2,
             QueuingStrategy::empty(),
@@ -766,8 +767,8 @@ impl ReadableStream {
 
         // Return « branch_1, branch_2 ».
         Ok(vec![
-            branch_1.expect("Branch1 should be set.").as_rooted(),
-            branch_2.expect("Branch2 should be set.").as_rooted(),
+            branch_1.get().expect("Branch1 should be set."),
+            branch_2.get().expect("Branch2 should be set."),
         ])
     }
 

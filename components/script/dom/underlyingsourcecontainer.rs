@@ -11,6 +11,7 @@ use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
+use super::bindings::root::MutNullableDom;
 use super::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -70,8 +71,10 @@ pub enum TeeCancelAlgorithm {
 pub struct TeeUnderlyingSource {
     reader: Dom<ReadableStreamDefaultReader>,
     stream: Dom<ReadableStream>,
-    branch_1: Option<Dom<ReadableStream>>,
-    branch_2: Option<Dom<ReadableStream>>,
+    #[ignore_malloc_size_of = "Rc"]
+    branch_1: Rc<MutNullableDom<ReadableStream>>,
+    #[ignore_malloc_size_of = "Rc"]
+    branch_2: Rc<MutNullableDom<ReadableStream>>,
     #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
@@ -98,8 +101,8 @@ impl TeeUnderlyingSource {
     pub fn new(
         reader: Dom<ReadableStreamDefaultReader>,
         stream: Dom<ReadableStream>,
-        branch_1: Option<Dom<ReadableStream>>,
-        branch_2: Option<Dom<ReadableStream>>,
+        branch_1: Rc<MutNullableDom<ReadableStream>>,
+        branch_2: Rc<MutNullableDom<ReadableStream>>,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,

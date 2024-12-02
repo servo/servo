@@ -30,6 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
+use crate::microtask::Microtask;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -43,17 +44,39 @@ pub enum ReadRequest {
     Tee { tee_read_request: TeeReadRequest },
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct TeeReadRequestMicrotask {
+    #[ignore_malloc_size_of = "mozjs"]
+    chunk: RootedTraceableBox<Heap<JSVal>>,
+    tee_read_request: Dom<TeeReadRequest>,
+}
+
+impl TeeReadRequestMicrotask {
+    pub fn microtask_chunk_steps(&self) {
+        self.tee_read_request.chunk_steps(&self.chunk)
+    }
+}
+
+#[dom_struct]
 pub struct TeeReadRequest {
     stream: Dom<ReadableStream>,
-    branch_1: Option<Dom<ReadableStream>>,
-    branch_2: Option<Dom<ReadableStream>>,
+    #[ignore_malloc_size_of = "Rc"]
+    branch_1: Rc<MutNullableDom<ReadableStream>>,
+    #[ignore_malloc_size_of = "Rc"]
+    branch_2: Rc<MutNullableDom<ReadableStream>>,
+    #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     read_again: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     canceled_1: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     canceled_2: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     clone_for_branch_2: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
+    #[ignore_malloc_size_of = "Rc"]
     tee_underlying_source: Dom<TeeUnderlyingSource>,
 }
 
@@ -61,8 +84,8 @@ impl TeeReadRequest {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         stream: Dom<ReadableStream>,
-        branch_1: Option<Dom<ReadableStream>>,
-        branch_2: Option<Dom<ReadableStream>>,
+        branch_1: Rc<MutNullableDom<ReadableStream>>,
+        branch_2: Rc<MutNullableDom<ReadableStream>>,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
@@ -89,7 +112,7 @@ impl TeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
     pub fn branch_1_default_controller_error(&self, error: SafeHandleValue) {
         self.branch_1
-            .as_ref()
+            .get()
             .expect("branch_1 must be set")
             .get_default_controller()
             .error(error);
@@ -99,7 +122,7 @@ impl TeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
     pub fn branch_2_default_controller_error(&self, error: SafeHandleValue) {
         self.branch_2
-            .as_ref()
+            .get()
             .expect("branch_2 must be set")
             .get_default_controller()
             .error(error);
@@ -112,12 +135,29 @@ impl TeeReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+    pub fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
+        // Queue a microtask to perform the following steps:
+        let tee_read_request_chunk = TeeReadRequestMicrotask {
+            chunk,
+            tee_read_request: Dom::from_ref(self),
+        };
+        let global = self.stream.global();
+        let microtask_queue = global.microtask_queue();
+        let cx = GlobalScope::get_cx();
+
+        microtask_queue.enqueue(
+            Microtask::ReadableStreamTeeReadRequest(tee_read_request_chunk),
+            cx,
+        );
+    }
+
+    /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
+    pub fn chunk_steps(&self, chunk: &RootedTraceableBox<Heap<JSVal>>) {
         // Set readAgain to false.
         self.read_again.set(false);
         // Let chunk1 and chunk2 be chunk.
-        let chunk1 = &chunk;
-        let chunk2 = &chunk;
+        let chunk1 = chunk;
+        let chunk2 = chunk;
 
         // If canceled_2 is false and cloneForBranch2 is true,
         if !self.canceled_2.get() && self.clone_for_branch_2.get() {
@@ -192,7 +232,7 @@ impl TeeReadRequest {
     pub fn branch_1_default_controller_enqueue(&self, chunk: SafeHandleValue) {
         let _ = self
             .branch_1
-            .as_ref()
+            .get()
             .expect("branch_1 must be set")
             .get_default_controller()
             .enqueue(GlobalScope::get_cx(), chunk, CanGc::note());
@@ -203,7 +243,7 @@ impl TeeReadRequest {
     pub fn branch_2_default_controller_enqueue(&self, chunk: SafeHandleValue) {
         let _ = self
             .branch_2
-            .as_ref()
+            .get()
             .expect("branch_2 must be set")
             .get_default_controller()
             .enqueue(GlobalScope::get_cx(), chunk, CanGc::note());
@@ -213,7 +253,7 @@ impl TeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub fn branch_1_default_controller_close(&self) {
         self.branch_1
-            .as_ref()
+            .get()
             .expect("branch_1 must be set")
             .get_default_controller()
             .close();
@@ -223,7 +263,7 @@ impl TeeReadRequest {
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub fn branch_2_default_controller_close(&self) {
         self.branch_2
-            .as_ref()
+            .get()
             .expect("branch_2 must be set")
             .get_default_controller()
             .close();
@@ -246,7 +286,7 @@ impl ReadRequest {
                 });
             },
             ReadRequest::Tee { tee_read_request } => {
-                tee_read_request.chunk_steps(chunk);
+                tee_read_request.enqueue_chunk_steps(chunk);
             },
         }
     }
@@ -561,21 +601,22 @@ impl ReadableStreamDefaultReader {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
     pub fn append_native_handler_to_closed_promise(
         &self,
-        branch_1: Option<Dom<ReadableStream>>,
-        branch_2: Option<Dom<ReadableStream>>,
+        branch_1: Rc<MutNullableDom<ReadableStream>>,
+        branch_2: Rc<MutNullableDom<ReadableStream>>,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
     ) {
         let branch_1_controller = branch_1
-            .as_ref()
+            .get()
             .expect("branch_1 must be set")
             .get_default_controller();
 
         let branch_2_controller = branch_2
-            .as_ref()
+            .get()
             .expect("branch_2 must be set")
             .get_default_controller();
 

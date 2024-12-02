@@ -22,6 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
+use crate::dom::readablestreamdefaultreader::TeeReadRequestMicrotask;
 use crate::realms::enter_realm;
 use crate::script_runtime::{notify_about_rejected_promises, CanGc, JSContext};
 use crate::script_thread::ScriptThread;
@@ -41,6 +42,7 @@ pub enum Microtask {
     User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
+    ReadableStreamTeeReadRequest(TeeReadRequestMicrotask),
     CustomElementReaction,
     NotifyMutationObservers,
 }
@@ -139,6 +141,9 @@ impl MicrotaskQueue {
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();
+                    },
+                    Microtask::ReadableStreamTeeReadRequest(ref task) => {
+                        task.microtask_chunk_steps()
                     },
                 }
             }
