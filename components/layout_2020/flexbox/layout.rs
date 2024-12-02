@@ -636,8 +636,8 @@ impl FlexContainer {
         containing_block: &ContainingBlock,
         containing_block_for_container: &ContainingBlock,
     ) -> IndependentLayout {
-        let (container_min_cross_size, container_max_cross_size, depends_on_block_constraints) =
-            self.available_cross_space_for_flex_items(containing_block_for_container);
+        let (container_min_size, container_max_size, depends_on_block_constraints) =
+            self.available_space_for_flex_items(containing_block_for_container);
 
         let depends_on_block_constraints =
             depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
@@ -647,8 +647,8 @@ impl FlexContainer {
             layout_context,
             positioning_context,
             containing_block,
-            container_min_cross_size,
-            container_max_cross_size,
+            container_min_cross_size: container_min_size.cross,
+            container_max_cross_size: container_max_size.cross,
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
             container_definite_inner_size: self.config.flex_axis.vec2_to_flex_relative(
                 LogicalVec2 {
@@ -666,6 +666,7 @@ impl FlexContainer {
                 self.main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
                     .sizes
                     .max_content
+                    .clamp_between_extremums(container_min_size.main, container_max_size.main)
             }),
         };
 
@@ -1034,10 +1035,10 @@ impl FlexContainer {
         Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
     }
 
-    fn available_cross_space_for_flex_items(
+    fn available_space_for_flex_items(
         &self,
         containing_block_for_container: &ContainingBlock,
-    ) -> (Au, Option<Au>, bool) {
+    ) -> (FlexRelativeVec2<Au>, FlexRelativeVec2<Option<Au>>, bool) {
         let sizes: ContentBoxSizesAndPBMDeprecated = self
             .style
             .content_box_sizes_and_padding_border_margin(&containing_block_for_container.into())
@@ -1053,8 +1054,8 @@ impl FlexContainer {
             .vec2_to_flex_relative(sizes.content_min_box_size.auto_is(Au::zero));
 
         (
-            min_box_size.cross,
-            max_box_size.cross,
+            min_box_size,
+            max_box_size,
             sizes.depends_on_block_constraints,
         )
     }
