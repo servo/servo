@@ -1372,6 +1372,9 @@ where
                     &table_style,
                 );
         }
+        // FIXME: this should use the writing mode of the containing block.
+        let wrapper_float_kind =
+            FloatKind::from_property_and_writing_mode(float_value, wrapper_style.writing_mode);
         let wrapper_fragment = Fragment::from_opaque_node_and_style(
             node.opaque(),
             PseudoElementType::Normal,
@@ -1380,7 +1383,6 @@ where
             node.restyle_damage(),
             SpecificFragmentInfo::TableWrapper,
         );
-        let wrapper_float_kind = FloatKind::from_property(float_value);
         let mut wrapper_flow = FlowRef::new(Arc::new(
             TableWrapperFlow::from_fragment_and_float_kind(wrapper_fragment, wrapper_float_kind),
         ));
@@ -1509,8 +1511,10 @@ where
         node: &ConcreteThreadSafeLayoutNode,
         flotation: Float,
     ) -> ConstructionResult {
-        let flotation = FloatKind::from_property(flotation);
-        let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
+        // FIXME: this should use the writing mode of the containing block.
+        let style = node.style(self.style_context());
+        let flotation = FloatKind::from_property_and_writing_mode(flotation, style.writing_mode);
+        let marker_fragments = match style.get_list().list_style_image {
             Image::Url(ref url_value) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
                     url_value.url().cloned().map(Into::into),
@@ -1529,31 +1533,31 @@ where
             Image::Gradient(..) |
             Image::PaintWorklet(..) |
             Image::CrossFade(..) |
-            Image::None => match ListStyleTypeContent::from_list_style_type(
-                node.style(self.style_context()).get_list().list_style_type,
-            ) {
-                ListStyleTypeContent::None => Vec::new(),
-                ListStyleTypeContent::StaticText(ch) => {
-                    let text = format!("{}\u{a0}", ch);
-                    let mut unscanned_marker_fragments = LinkedList::new();
-                    unscanned_marker_fragments.push_back(Fragment::new(
+            Image::None => {
+                match ListStyleTypeContent::from_list_style_type(style.get_list().list_style_type) {
+                    ListStyleTypeContent::None => Vec::new(),
+                    ListStyleTypeContent::StaticText(ch) => {
+                        let text = format!("{}\u{a0}", ch);
+                        let mut unscanned_marker_fragments = LinkedList::new();
+                        unscanned_marker_fragments.push_back(Fragment::new(
+                            node,
+                            SpecificFragmentInfo::UnscannedText(Box::new(
+                                UnscannedTextFragmentInfo::new(Box::<str>::from(text), None),
+                            )),
+                            self.layout_context,
+                        ));
+                        let marker_fragments = TextRunScanner::new().scan_for_runs(
+                            &self.layout_context.font_context,
+                            unscanned_marker_fragments,
+                        );
+                        marker_fragments.fragments
+                    },
+                    ListStyleTypeContent::GeneratedContent(info) => vec![Fragment::new(
                         node,
-                        SpecificFragmentInfo::UnscannedText(Box::new(
-                            UnscannedTextFragmentInfo::new(Box::<str>::from(text), None),
-                        )),
+                        SpecificFragmentInfo::GeneratedContent(info),
                         self.layout_context,
-                    ));
-                    let marker_fragments = TextRunScanner::new().scan_for_runs(
-                        &self.layout_context.font_context,
-                        unscanned_marker_fragments,
-                    );
-                    marker_fragments.fragments
-                },
-                ListStyleTypeContent::GeneratedContent(info) => vec![Fragment::new(
-                    node,
-                    SpecificFragmentInfo::GeneratedContent(info),
-                    self.layout_context,
-                )],
+                    )],
+                }
             },
         };
 
@@ -1564,11 +1568,7 @@ where
         // there.
         let mut initial_fragments = IntermediateInlineFragments::new();
         let main_fragment = self.build_fragment_for_block(node);
-        let flow = match node
-            .style(self.style_context())
-            .get_list()
-            .list_style_position
-        {
+        let flow = match style.get_list().list_style_position {
             ListStylePosition::Outside => Arc::new(ListItemFlow::from_fragments_and_flotation(
                 main_fragment,
                 marker_fragments,
@@ -1956,7 +1956,9 @@ where
 
             // Flex items contribute flex flow construction results.
             (Display::Flex, float_value, _) => {
-                let float_kind = FloatKind::from_property(float_value);
+                // FIXME: this should use the writing mode of the containing block.
+                let float_kind =
+                    FloatKind::from_property_and_writing_mode(float_value, style.writing_mode);
                 let construction_result = self.build_flow_for_flex(node, float_kind);
                 self.set_flow_construction_result(node, construction_result)
             },
@@ -1972,7 +1974,9 @@ where
             // TODO(pcwalton): Make this only trigger for blocks and handle the other `display`
             // properties separately.
             (_, float_value, _) => {
-                let float_kind = FloatKind::from_property(float_value);
+                // FIXME: this should use the writing mode of the containing block.
+                let float_kind =
+                    FloatKind::from_property_and_writing_mode(float_value, style.writing_mode);
                 // List items contribute their own special flows.
                 let construction_result = if display.is_list_item() {
                     self.build_flow_for_list_item(node, float_value)

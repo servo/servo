@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
-use style::computed_values::float::T as Float;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 
@@ -67,7 +66,7 @@ impl dyn Flow {
         }
 
         let self_base = self.mut_base();
-        if self_base.flags.float_kind() != Float::None &&
+        if self_base.flags.float_kind().is_some() &&
             self_base
                 .restyle_damage
                 .intersects(ServoRestyleDamage::REFLOW)

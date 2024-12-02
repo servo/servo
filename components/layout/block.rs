@@ -1927,23 +1927,23 @@ impl BlockFlow {
                     .flags
                     .contains(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS),
             ) {
-                (Float::None, true) => {
+                (None, true) => {
                     computation.content_intrinsic_sizes.preferred_inline_size = max(
                         computation.content_intrinsic_sizes.preferred_inline_size,
                         child_base.intrinsic_inline_sizes.preferred_inline_size,
                     );
                 },
-                (Float::None, false) => {
+                (None, false) => {
                     preferred_inline_size_of_children_without_text_or_replaced_fragments = max(
                         preferred_inline_size_of_children_without_text_or_replaced_fragments,
                         child_base.intrinsic_inline_sizes.preferred_inline_size,
                     )
                 },
-                (Float::Left, _) => {
+                (Some(FloatKind::Left), _) => {
                     left_float_width_accumulator +=
                         child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
-                (Float::Right, _) => {
+                (Some(FloatKind::Right), _) => {
                     right_float_width_accumulator +=
                         child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },

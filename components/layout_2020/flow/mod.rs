@@ -12,8 +12,7 @@ use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
 use servo_arc::Arc;
-use style::computed_values::clear::T as Clear;
-use style::computed_values::float::T as Float;
+use style::computed_values::clear::T as StyleClear;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::Size as StyleSize;
@@ -24,7 +23,8 @@ use style::Zero;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{
-    ContainingBlockPositionInfo, FloatBox, PlacementAmongFloats, SequentialLayoutState,
+    Clear, ContainingBlockPositionInfo, FloatBox, FloatSide, PlacementAmongFloats,
+    SequentialLayoutState,
 };
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentLayout, IndependentLayoutResult,
@@ -120,7 +120,7 @@ impl BlockLevelBox {
         };
 
         // FIXME: This should only return false when 'clear' causes clearance.
-        if style.get_box().clear != Clear::None {
+        if style.get_box().clear != StyleClear::None {
             return false;
         }
 
@@ -383,11 +383,17 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
                 );
-                let style_box = &float_box.contents.style().get_box();
+                let style = &float_box.contents.style();
                 Some((
                     inline_content_sizes_result,
-                    style_box.float,
-                    style_box.clear,
+                    FloatSide::from_style_and_container_writing_mode(
+                        style,
+                        containing_block.writing_mode,
+                    ),
+                    Clear::from_style_and_container_writing_mode(
+                        style,
+                        containing_block.writing_mode,
+                    ),
                 ))
             },
             BlockLevelBox::SameFormattingContextBlock {
@@ -406,7 +412,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
                 // Instead, we treat it like an independent block with 'clear: both'.
-                Some((inline_content_sizes_result, Float::None, Clear::Both))
+                Some((inline_content_sizes_result, None, Clear::Both))
             },
             BlockLevelBox::Independent(ref independent) => {
                 let inline_content_sizes_result = independent.outer_inline_content_sizes(
@@ -417,8 +423,11 @@ fn calculate_inline_content_size_for_block_level_boxes(
                 );
                 Some((
                     inline_content_sizes_result,
-                    Float::None,
-                    independent.style().get_box().clear,
+                    None,
+                    Clear::from_style_and_container_writing_mode(
+                        independent.style(),
+                        containing_block.writing_mode,
+                    ),
                 ))
             },
         }
@@ -432,31 +441,32 @@ fn calculate_inline_content_size_for_block_level_boxes(
         depends_on_block_constraints: bool,
         /// The maximum size seen so far, not including trailing uncleared floats.
         max_size: ContentSizes,
-        /// The size of the trailing uncleared floats with 'float: left'.
-        left_floats: ContentSizes,
-        /// The size of the trailing uncleared floats with 'float: right'.
-        right_floats: ContentSizes,
+        /// The size of the trailing uncleared floats on the inline-start side
+        /// of the containing block.
+        start_floats: ContentSizes,
+        /// The size of the trailing uncleared floats on the inline-end side
+        /// of the containing block.
+        end_floats: ContentSizes,
     }
 
     impl AccumulatedData {
         fn max_size_including_uncleared_floats(&self) -> ContentSizes {
-            self.max_size
-                .max(self.left_floats.union(&self.right_floats))
+            self.max_size.max(self.start_floats.union(&self.end_floats))
         }
         fn clear_floats(&mut self, clear: Clear) {
             match clear {
-                Clear::Left => {
+                Clear::InlineStart => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.left_floats = ContentSizes::zero();
+                    self.start_floats = ContentSizes::zero();
                 },
-                Clear::Right => {
+                Clear::InlineEnd => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.right_floats = ContentSizes::zero();
+                    self.end_floats = ContentSizes::zero();
                 },
                 Clear::Both => {
                     self.max_size = self.max_size_including_uncleared_floats();
-                    self.left_floats = ContentSizes::zero();
-                    self.right_floats = ContentSizes::zero();
+                    self.start_floats = ContentSizes::zero();
+                    self.end_floats = ContentSizes::zero();
                 },
                 Clear::None => {},
             };
@@ -472,14 +482,14 @@ fn calculate_inline_content_size_for_block_level_boxes(
             data.depends_on_block_constraints |= depends_on_block_constraints;
             data.clear_floats(clear);
             match float {
-                Float::Left => data.left_floats = data.left_floats.union(&size),
-                Float::Right => data.right_floats = data.right_floats.union(&size),
-                Float::None => {
+                Some(FloatSide::InlineStart) => data.start_floats = data.start_floats.union(&size),
+                Some(FloatSide::InlineEnd) => data.end_floats = data.end_floats.union(&size),
+                None => {
                     data.max_size = data
                         .max_size
-                        .max(data.left_floats.union(&data.right_floats).union(&size));
-                    data.left_floats = ContentSizes::zero();
-                    data.right_floats = ContentSizes::zero();
+                        .max(data.start_floats.union(&data.end_floats).union(&size));
+                    data.start_floats = ContentSizes::zero();
+                    data.end_floats = ContentSizes::zero();
                 },
             }
             data
@@ -789,6 +799,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
 ) -> BoxFragment {
+    let containing_block_writing_mode = containing_block.style.writing_mode;
     let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
@@ -815,6 +826,8 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     match sequential_layout_state {
         None => parent_containing_block_position_info = None,
         Some(ref mut sequential_layout_state) => {
+            let clear =
+                Clear::from_style_and_container_writing_mode(style, containing_block_writing_mode);
             let mut block_start_margin = CollapsedMargin::new(margin.block_start);
 
             // The block start margin may collapse with content margins,
@@ -831,7 +844,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             let collapsible_with_parent_start_margin = collapsible_with_parent_start_margin.expect(
                 "We should know whether we are collapsing the block start margin with the parent \
                 when laying out sequentially",
-            ).0 && style.get_box().clear == Clear::None;
+            ).0 && clear == Clear::None;
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
                 if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
@@ -843,8 +856,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             }
 
             // Introduce clearance if necessary.
-            clearance = sequential_layout_state
-                .calculate_clearance(style.get_box().clear, &block_start_margin);
+            clearance = sequential_layout_state.calculate_clearance(clear, &block_start_margin);
             if clearance.is_some() {
                 sequential_layout_state.collapse_margins();
             }
@@ -974,7 +986,6 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         },
     };
 
-    let containing_block_writing_mode = containing_block.style.writing_mode;
     if depends_on_block_constraints {
         base_fragment_info
             .flags
@@ -1098,6 +1109,7 @@ impl NonReplacedFormattingContext {
         containing_block: &ContainingBlock<'_>,
         sequential_layout_state: &mut SequentialLayoutState,
     ) -> BoxFragment {
+        let containing_block_writing_mode = containing_block.style.writing_mode;
         let ContentBoxSizesAndPBMDeprecated {
             content_box_size,
             content_min_box_size,
@@ -1183,7 +1195,10 @@ impl NonReplacedFormattingContext {
             // The code below may then add extra clearance when the element can't fit
             // next to floats not covered by 'clear'.
             let clear_position = sequential_layout_state.calculate_clear_position(
-                self.style.get_box().clear,
+                Clear::from_style_and_container_writing_mode(
+                    &self.style,
+                    containing_block_writing_mode,
+                ),
                 &collapsed_margin_block_start,
             );
             let ceiling = clear_position.unwrap_or_else(|| {
@@ -1339,7 +1354,6 @@ impl NonReplacedFormattingContext {
             );
         }
 
-        let containing_block_writing_mode = containing_block.style.writing_mode;
         BoxFragment::new(
             base_fragment_info,
             self.style.clone(),
@@ -1733,7 +1747,10 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
 ) -> (Option<Au>, (Au, Au), Au) {
     let (clearance, placement_rect) = sequential_layout_state
         .calculate_clearance_and_inline_adjustment(
-            style.get_box().clear,
+            Clear::from_style_and_container_writing_mode(
+                style,
+                containing_block.style.writing_mode,
+            ),
             block_start_margin,
             pbm,
             size,
