@@ -58,6 +58,7 @@ Sessionx.vim
 
 /unminified-js
 /unminified-css
+/unminified-html
 
 # Layout debugger trace files
 layout_trace*
