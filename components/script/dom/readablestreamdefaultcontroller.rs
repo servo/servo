@@ -711,7 +711,8 @@ impl ReadableStreamDefaultController {
 
         // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
         let queue = self.queue.borrow();
-        Some(self.strategy_hwm - queue.total_size)
+        let desired_size = self.strategy_hwm - queue.total_size.clamp(0.0, f64::MAX);
+        Some(desired_size.clamp(desired_size, self.strategy_hwm))
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-can-close-or-enqueue>
