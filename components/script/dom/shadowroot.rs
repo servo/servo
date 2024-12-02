@@ -24,8 +24,11 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
-use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    document_from_node, BindContext, Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext,
+};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
+use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -277,6 +280,48 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         // Step 4. Replace all with fragment within this.
         Node::replace_all(Some(frag.upcast()), self.upcast());
+    }
+}
+
+impl VirtualMethods for ShadowRoot {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<DocumentFragment>() as &dyn VirtualMethods)
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(context);
+        }
+
+        if context.tree_connected {
+            let document = document_from_node(self);
+            document.register_shadow_root(self);
+        }
+
+        let shadow_root = self.upcast::<Node>();
+        shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+        for node in shadow_root.children() {
+            node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
+            node.bind_to_tree(context);
+        }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        if context.tree_connected {
+            let document = document_from_node(self);
+            document.unregister_shadow_root(self);
+        }
+
+        let shadow_root = self.upcast::<Node>();
+        shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
+        for node in shadow_root.children() {
+            node.set_flag(NodeFlags::IS_CONNECTED, false);
+            node.unbind_from_tree(context);
+        }
     }
 }
 

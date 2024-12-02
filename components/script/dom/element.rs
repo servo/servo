@@ -552,9 +552,11 @@ impl Element {
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
 
-        if self.is_connected() {
-            self.node.owner_doc().register_shadow_root(&shadow_root);
-        }
+        let bind_context = BindContext {
+            tree_connected: self.upcast::<Node>().is_connected(),
+            tree_in_doc: self.upcast::<Node>().is_in_doc(),
+        };
+        shadow_root.bind_to_tree(&bind_context);
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
@@ -3586,13 +3588,7 @@ impl VirtualMethods for Element {
         let doc = document_from_node(self);
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            doc.register_shadow_root(shadow_root);
-            let shadow_root = shadow_root.upcast::<Node>();
-            shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-            for node in shadow_root.children() {
-                node.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
-                node.bind_to_tree(context);
-            }
+            shadow_root.bind_to_tree(context);
         }
 
         if !context.tree_connected {
@@ -3637,13 +3633,7 @@ impl VirtualMethods for Element {
         let doc = document_from_node(self);
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            doc.unregister_shadow_root(shadow_root);
-            let shadow_root = shadow_root.upcast::<Node>();
-            shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
-            for node in shadow_root.children() {
-                node.set_flag(NodeFlags::IS_CONNECTED, false);
-                node.unbind_from_tree(context);
-            }
+            shadow_root.unbind_from_tree(context);
         }
 
         let fullscreen = doc.GetFullscreenElement();
