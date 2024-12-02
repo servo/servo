@@ -68,10 +68,14 @@ interface GPUAdapterInfo {
 interface mixin NavigatorGPU {
     [SameObject, Pref="dom.webgpu.enabled", Exposed=(Window /* ,DedicatedWorker */)] readonly attribute GPU gpu;
 };
-// NOTE: see `Navigator.webidl`
-// Navigator includes NavigatorGPU;
+Navigator includes NavigatorGPU;
 // NOTE: see `WorkerNavigator.webidl`
 // WorkerNavigator includes NavigatorGPU;
+
+[Exposed=DedicatedWorker]
+partial interface WorkerNavigator {
+    [SameObject, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
+};
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
