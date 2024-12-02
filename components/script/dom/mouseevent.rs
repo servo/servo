@@ -157,7 +157,53 @@ impl MouseEvent {
         can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized_with_proto(window, proto, can_gc);
-        ev.InitMouseEvent(
+        ev.initialize_mouse_event(
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            screen_x,
+            screen_y,
+            client_x,
+            client_y,
+            ctrl_key,
+            alt_key,
+            shift_key,
+            meta_key,
+            button,
+            buttons,
+            related_target,
+            point_in_target,
+        );
+        ev
+    }
+
+    /// <https://w3c.github.io/uievents/#initialize-a-mouseevent>
+    #[allow(clippy::too_many_arguments)]
+    pub fn initialize_mouse_event(
+        &self,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        screen_x: i32,
+        screen_y: i32,
+        client_x: i32,
+        client_y: i32,
+        ctrl_key: bool,
+        alt_key: bool,
+        shift_key: bool,
+        meta_key: bool,
+        button: i16,
+        buttons: u16,
+        related_target: Option<&EventTarget>,
+        point_in_target: Option<Point2D<f32>>,
+    ) {
+        // TODO: InitMouseEvent has been deprecated. We should follow the link to create an UI
+        // Event instead.
+        self.InitMouseEvent(
             type_,
             bool::from(can_bubble),
             bool::from(cancelable),
@@ -174,12 +220,11 @@ impl MouseEvent {
             button,
             related_target,
         );
-        ev.buttons.set(buttons);
-        ev.point_in_target.set(point_in_target);
+        self.buttons.set(buttons);
+        self.point_in_target.set(point_in_target);
         // TODO: Set proper values in https://github.com/servo/servo/issues/24415
-        ev.page_x.set(client_x);
-        ev.page_y.set(client_y);
-        ev
+        self.page_x.set(client_x);
+        self.page_y.set(client_y);
     }
 
     pub fn point_in_target(&self) -> Option<Point2D<f32>> {
