@@ -38,6 +38,7 @@ product_list = ["android_webview",
                 "opera",
                 "webkit",
                 "webkitgtk_minibrowser",
+                "wpewebkit_minibrowser",
                 "wktr",
                 "epiphany",
                 "ladybird"]

@@ -116,6 +116,7 @@
     test_valid_attr('font-size', 'attr(data-foo type(<percentage>), 10px)', 'abc', '10px');
     test_valid_attr('font-size', 'attr(data-foo type(<percentage> | <length>), 10)', '10px', '10px');
     test_valid_attr('--x', 'attr(data-foo type(<percentage>), abc)', '10', 'abc');
+    test_valid_attr('--x', 'attr(data-foo type(<url>))', 'url("https://does-not-exist.test/404.png")', 'url("https://does-not-exist.test/404.png")');
 
     test_valid_attr('width', 'attr(data-foo type(<length>))', '10px', '10px');
     test_valid_attr('width', 'attr(data-foo type(<length>), red)', '10px', '10px');

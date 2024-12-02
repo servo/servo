@@ -278,7 +278,7 @@ async function negotiateSimulcastAndWaitForVideo(
 async function getCameraStream(t) {
   // Use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
   await setMediaPermission();
-  const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
+  const stream = await navigator.mediaDevices.getUserMedia({video: {width: 640, height: 480}});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   return stream;
 }

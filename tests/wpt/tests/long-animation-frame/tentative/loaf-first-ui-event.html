@@ -19,17 +19,18 @@ promise_test(async t => {
   button.innerText = "Click";
   document.body.appendChild(button);
   t.add_cleanup(() => button.remove());
-  const eventPromise = new Promise(resolve => button.addEventListener("click", event => {
-    busy_wait();
-    resolve(event);
-  }));
-  const entryPromise = expect_long_frame_with_script(() => {
+  let busy_wait = null;
+  let event_ts = 0;
+  const entryPromise = expect_long_frame_with_script((t, busy_wait) => {
+    button.addEventListener("click", event => {
+      busy_wait();
+      event_ts = event.timeStamp;
+    });
     test_driver.click(button);
   }, s => s.invoker === "BUTTON.onclick", t);
   await new Promise(resolve => t.step_timeout(resolve, 0));
-  const event = await eventPromise;
   const [entry] = await entryPromise;
-  assert_equals(entry.firstUIEventTimestamp, event.timeStamp);
+  assert_equals(entry.firstUIEventTimestamp, event_ts);
 }, "LoAF should expose firstUIEventTimestamp for click events");
 
 promise_test(async t => {
@@ -38,7 +39,7 @@ promise_test(async t => {
   document.body.appendChild(button);
   t.add_cleanup(() => button.remove());
   let expectedTimestamp = null;
-  const entryPromise = expect_long_frame_with_script(async () => {
+  const entryPromise = expect_long_frame_with_script(async (t, busy_wait) => {
     const eventPromise = new Promise(resolve => button.addEventListener("pointermove", event => {
       busy_wait();
       expectedTimestamp = event.timeStamp;
@@ -62,6 +63,7 @@ promise_test(async t => {
   document.body.appendChild(button);
   t.add_cleanup(() => button.remove());
   let firstUIEventTimestamp = null;
+  let busy_wait = null;
   const eventPromise = new Promise(resolve => button.addEventListener("click", event => {
     if (firstUIEventTimestamp)
       resolve(event);
@@ -70,9 +72,9 @@ promise_test(async t => {
       busy_wait();
     }
   }));
-  const entryPromise = expect_long_frame_with_script(() => {
-    test_driver.click(button);
-    test_driver.click(button);
+  const entryPromise = expect_long_frame_with_script(async (t, busy_wait_func) => {
+    busy_wait = busy_wait_func;
+    await test_driver.click(button);
   }, s => s.invoker === "BUTTON.onclick", t);
   const [event, [entry]] = await Promise.all([eventPromise, entryPromise]);
   assert_equals(entry.firstUIEventTimestamp, firstUIEventTimestamp);

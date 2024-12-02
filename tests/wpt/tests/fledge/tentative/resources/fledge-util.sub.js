@@ -2,7 +2,9 @@
 
 const BASE_URL = document.baseURI.substring(0, document.baseURI.lastIndexOf('/') + 1);
 const BASE_PATH = (new URL(BASE_URL)).pathname;
-const RESOURCE_PATH = `${BASE_PATH}resources/`
+
+// Allow overriding to allow other repositories to use these utility functions.
+RESOURCE_PATH = `${BASE_PATH}resources/`
 
 const DEFAULT_INTEREST_GROUP_NAME = 'default name';
 

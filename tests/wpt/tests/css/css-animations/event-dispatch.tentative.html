@@ -11,6 +11,14 @@
   from { margin-left: 0px; }
   to { margin-left: 100px; }
 }
+@keyframes anim2 {
+  from { margin-top: 100px; }
+  to { margin-top: 200px; }
+}
+@keyframes anim3 {
+  from { padding-left: 100px; }
+  to { padding-left: 200px; }
+}
 </style>
 <div id="log"></div>
 <script>
@@ -433,5 +441,140 @@ promise_test(async t => {
   // Then wait a couple of frames and check that no event was dispatched.
   await waitForAnimationFrames(2);
 }, 'Cancel the animation after clearing the target effect.');
+
+promise_test(async t => {
+  const { animation, watcher, div } = setupAnimation(t, 'anim 100s');
+
+  await watcher.wait_for('animationstart');
+
+  // Replace the running animation.
+  div.style.animation = 'anim2 100s';
+
+  // animationcancel event should be fired before animationstart because we
+  // expect to cancel the running animation first.
+  const events = await watcher.wait_for(
+    ['animationcancel', 'animationstart'],
+    { record: 'all' }
+  );
+  assert_equals(events[0].animationName, 'anim');
+  assert_equals(events[1].animationName, 'anim2');
+
+  // Then wait a couple of frames and check that no event was dispatched.
+  await waitForAnimationFrames(2);
+}, 'Replacing a running animation should get animationcancel earlier than ' +
+   'animationstart');
+
+promise_test(async t => {
+  const div = addDiv(t, { style: 'animation: anim 100s, anim2 100s' });
+  const animations = div.getAnimations();
+  const watcher = new EventWatcher(t, div, [ 'animationstart',
+                                             'animationcancel' ],
+    () => {
+      return Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+        return fastEventsTimeout();
+      });
+    }
+  );
+
+  await watcher.wait_for(['animationstart', 'animationstart']);
+
+  // Replace the first animation
+  div.style.animation = 'anim3 100s, anim2 100s';
+
+  // animationcancel event should be fired before animationstart because we
+  // expect to cancel the running animation first.
+  const events = await watcher.wait_for(
+    ['animationcancel', 'animationstart'],
+    { record: 'all' }
+  );
+  assert_equals(events[0].animationName, 'anim');
+  assert_equals(events[1].animationName, 'anim3');
+
+  // Then wait a couple of frames and check that no event was dispatched.
+  await waitForAnimationFrames(2);
+}, 'The cancel event should be fired before the new start event if both have ' +
+   'the same position in the animation list');
+
+promise_test(async t => {
+  const div =
+    addDiv(t, { style: 'animation: anim 100s, anim2 100s, anim3 100s' });
+  const animations = div.getAnimations();
+  const watcher = new EventWatcher(t, div, [ 'animationstart',
+                                             'animationcancel' ],
+    () => {
+      return Promise.all([
+        animations[0].ready,
+        animations[1].ready,
+        animations[2].ready
+      ]).then(() => {
+        return fastEventsTimeout();
+      });
+    }
+  );
+
+  await watcher.wait_for(
+    ['animationstart', 'animationstart', 'animationstart']
+  );
+
+  // Cancel the first and the second animations.
+  div.style.animation = 'anim3 100s';
+
+  const events = await watcher.wait_for(
+    ['animationcancel', 'animationcancel'],
+    { record: 'all' }
+  );
+  // Per https://drafts.csswg.org/css-animations-2/#animation-composite-order,
+  // the cancel event with the earlier position should be fired earlier.
+  assert_equals(events[0].animationName, 'anim');
+  assert_equals(events[1].animationName, 'anim2');
+
+  // Then wait a couple of frames and check that no event was dispatched.
+  await waitForAnimationFrames(2);
+}, 'The cancel event with an earlier position in animation list should be ' +
+   'fired earlier');
+
+promise_test(async t => {
+  const div =
+    addDiv(t, { style: 'animation: anim 100s, anim2 100s, anim3 100s' });
+  const animations = div.getAnimations();
+  const watcher = new EventWatcher(t, div, [ 'animationstart',
+                                             'animationcancel' ],
+    () => {
+      return Promise.all([
+        animations[0].ready,
+        animations[1].ready,
+        animations[2].ready
+      ]).then(() => {
+        return fastEventsTimeout();
+      });
+    }
+  );
+
+  await watcher.wait_for(
+    ['animationstart', 'animationstart', 'animationstart']
+  );
+
+  // Change the order, i.e. swap the order of |anim| and |anim2|.
+  div.style.animation = 'anim2 100s, anim 100s, anim3 100s';
+  getComputedStyle(div).animation;
+
+  // Then we cancel the first and the second animations.
+  div.style.animation = 'anim3 100s';
+
+  const events = await watcher.wait_for(
+    ['animationcancel', 'animationcancel'],
+    { record: 'all' }
+  );
+  // Per https://drafts.csswg.org/css-animations-2/#animation-composite-order,
+  // the cancel event to |anim2| should be dispatched before the cancel event to
+  // |anim| since |anim2| appeared before |anim| in the animation-name at the
+  // point when they were cancelled.
+  assert_equals(events[0].animationName, 'anim2');
+  assert_equals(events[1].animationName, 'anim');
+
+  // Then wait a couple of frames and check that no event was dispatched.
+  await waitForAnimationFrames(2);
+}, 'The order of the cancel events follows the relative positions in the ' +
+   'animation list at the point when they were cancelled');
 
 </script>

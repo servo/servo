@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<link rel="match" href="content-visibility-hidden-and-innertext-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<meta name="assert" content="content-visibility does not apply to non-atomic inline level boxes since size containment does not apply to them. HTMLElement.innerText should return the inline box content">
+<style>
+body {
+  font-family: Monospace;
+}
+div {
+  color: transparent;
+  height: 0px;
+}
+</style>
+PASS if innerText reads: "content-visibility does not apply to inline boxes"
+<div id=source><span style="content-visibility: hidden">content-visibility does not apply to inline boxes</span></div>
+<pre id=output></pre>
+<script>
+output.innerText = "innerText: " + source.innerText;
+</script>

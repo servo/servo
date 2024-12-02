@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>CSS Nesting: Crash with '&' inside ::placeholder</title>
+<link rel="help" href="https://issues.chromium.org/issues/380107557">
+<style>
+::placeholder { & {} }
+::placeholder, .a { & {} }
+.a, ::placeholder { & {} }
+</style>

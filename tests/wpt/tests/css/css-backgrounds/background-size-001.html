@@ -39,43 +39,43 @@
         document.getElementById("test").style.backgroundSize = "0px";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "0px", "background-size supporting value");
+                "0px auto", "background-size supporting value");
         }, "background-size_length_zero");
 
         document.getElementById("test").style.backgroundSize = "-0px";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "0px", "background-size supporting value");
+                "0px auto", "background-size supporting value");
         }, "background-size_length_negative_zero");
 
         document.getElementById("test").style.backgroundSize = "+0px";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "0px", "background-size supporting value");
+                "0px auto", "background-size supporting value");
         }, "background-size_length_positive_zero");
 
         document.getElementById("test").style.backgroundSize = "15px";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "15px", "background-size supporting value");
+                "15px auto", "background-size supporting value");
         }, "background-size_length_normal");
 
         document.getElementById("test").style.backgroundSize = "0%";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "0%", "background-size supporting value");
+                "0% auto", "background-size supporting value");
         }, "background-size_percentage_min");
 
         document.getElementById("test").style.backgroundSize = "50%";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "50%", "background-size supporting value");
+                "50% auto", "background-size supporting value");
         }, "background-size_percentage_normal");
 
         document.getElementById("test").style.backgroundSize = "100%";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "100%", "background-size supporting value");
+                "100% auto", "background-size supporting value");
         }, "background-size_percentage_max");
 
         document.getElementById("test").style.backgroundSize = "auto auto";
@@ -99,7 +99,7 @@
         document.getElementById("test").style.backgroundSize = "15px auto";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "15px", "background-size supporting value");
+                "15px auto", "background-size supporting value");
         }, "background-size_length_auto");
 
         document.getElementById("test").style.backgroundSize = "15px 15px";
@@ -117,7 +117,7 @@
         document.getElementById("test").style.backgroundSize = "50% auto";
         test(function() {
             assert_equals(getComputedStyle(document.getElementById("test"), null).getPropertyValue("background-size"),
-                "50%", "background-size supporting value");
+                "50% auto", "background-size supporting value");
         }, "background-size_percentage_auto");
 
         document.getElementById("test").style.backgroundSize = "50% 15px";

@@ -14,6 +14,7 @@ latest_channels = {
     'safari': 'preview',
     'servo': 'nightly',
     'webkitgtk_minibrowser': 'nightly',
+    'wpewebkit_minibrowser': 'nightly',
     'wktr': 'main',
 }
 

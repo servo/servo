@@ -362,8 +362,8 @@ const doAssert =
 /**
  * Assert computed results be equal to expected data.
  * @param {Object} toleranceFunc
- * @param {Object.<MLNamedArrayBufferViews> |
- *     Array[Object.<MLNamedArrayBufferViews>]} actual
+ * @param {Map<String, ArrayBufferView> |
+ *     Array[Map<String, ArrayBufferView>]} actual
  * @param {Object} graphResources - Resources used for building a graph
  */
 const assertResultsEquals =

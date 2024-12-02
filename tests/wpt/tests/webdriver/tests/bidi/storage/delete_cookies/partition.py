@@ -8,8 +8,7 @@ from webdriver.bidi.modules.storage import (
 )
 
 from . import assert_cookies_are_not_present
-from .. import assert_cookie_is_set, create_cookie, get_default_partition_key
-from ... import recursive_compare
+from .. import assert_cookie_is_set, create_cookie, assert_partition_key
 
 pytestmark = pytest.mark.asyncio
 
@@ -63,9 +62,7 @@ async def test_default_partition(
         )
 
     result = await bidi_session.storage.delete_cookies()
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     await assert_cookies_are_not_present(bidi_session)
 
@@ -104,7 +101,7 @@ async def test_partition_context(
         )
 
     result = await bidi_session.storage.delete_cookies(partition=partition)
-    assert result == {"partitionKey": (await get_default_partition_key(bidi_session, new_tab["context"]))}
+    await assert_partition_key(bidi_session, actual=result["partitionKey"], context=new_tab["context"])
 
     await assert_cookies_are_not_present(bidi_session, partition)
 
@@ -135,7 +132,7 @@ async def test_partition_context_iframe(
     )
 
     result = await bidi_session.storage.delete_cookies(partition=frame_partition)
-    assert result == {"partitionKey": (await get_default_partition_key(bidi_session, new_tab["context"]))}
+    await assert_partition_key(bidi_session, actual=result["partitionKey"], context=new_tab["context"])
 
     await assert_cookies_are_not_present(bidi_session, frame_partition)
 
@@ -199,12 +196,10 @@ async def test_partition_source_origin(
     )
 
     result = await bidi_session.storage.delete_cookies(partition=cookie1_partition)
-    assert result == {
-        "partitionKey": {
-            **(await get_default_partition_key(bidi_session)),
-            "sourceOrigin": cookie1_source_origin
-        }
-    }
+
+    await assert_partition_key(bidi_session, actual=result["partitionKey"], expected={
+        "sourceOrigin": cookie1_source_origin
+    })
 
     await assert_cookies_are_not_present(bidi_session, partition=cookie1_partition)
 
@@ -287,12 +282,10 @@ async def test_partition_user_context(
     result = await bidi_session.storage.delete_cookies(
         partition=StorageKeyPartitionDescriptor(user_context=user_context_1)
     )
-    assert result == {
-        "partitionKey": {
-            **(await get_default_partition_key(bidi_session)),
-            "userContext": user_context_1
-        }
-    }
+
+    await assert_partition_key(bidi_session, actual=result["partitionKey"], expected={
+        "userContext": user_context_1
+    })
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, partition=cookie1_partition)

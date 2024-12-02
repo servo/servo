@@ -3,8 +3,7 @@
   const {readable, writable} = new TransformStream({
     start() {},
     transform() {
-      const deadline = performance.now() + 360;
-      while (performance.now() < deadline) {}
+      generate_loaf_now();
     }
   });
   response.body.pipeTo(writable);

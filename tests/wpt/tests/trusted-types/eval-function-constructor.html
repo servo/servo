@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script nonce="abc" src="/resources/testharness.js"></script>
-  <script nonce="abc" src="/resources/testharnessreport.js"></script>
+  <link rel="help" href="https://w3c.github.io/webappsec-csp/#can-compile-strings">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <!-- This CSP rule as well as the null default policy will make the
+       "Get Trusted Type compliant string" algorithm throw for String input. -->
   <meta http-equiv="Content-Security-Policy"
         content="require-trusted-types-for 'script'">
 </head>
@@ -12,7 +15,7 @@
   const args = ["a", "b", "c = 5", "return (a+b)*c;"];
   const arg_max = 2 ** args.length -1;
 
-  // Call 'new Function(...args)', but with a subet of args being Strings,
+  // Call 'new Function(...args)', but with a subset of args being Strings,
   // and a subset being TrustedScript. We use a bitmask to determine which
   // argument gets to be trusted or not.
   function new_function_with_maybe_trusted_args(mask) {
@@ -23,7 +26,9 @@
   }
 
   // Generate all combinations of String/TrustedScript, except for the one
-  // where all argumentes are TrustedScript.
+  // where all arguments are TrustedScript. The first String argument will set
+  // isTrusted=false in EnsureCSPDoesNotBlockStringCompilation and so
+  // "Get Trusted Type compliant string" will be executed on the function text.
   for (let mask = 0; mask < arg_max; mask++) {
     test(t => {
       assert_throws_js(EvalError,
@@ -31,11 +36,28 @@
     }, "Function constructor with mixed plain and trusted strings, mask #" + mask);
   }
 
-  // Now do one with all trusted arguments.
+  // Now do one with all trusted arguments. In that case, isTrusted=true in
+  // EnsureCSPDoesNotBlockStringCompilation and the function is built without
+  // error.
   test(t => {
     const f = new_function_with_maybe_trusted_args(arg_max);
     assert_equals(f(1,2,3), 9);
     assert_equals(f(1,2), 15);
   }, "Function constructor with mixed plain and trusted strings, mask #" + arg_max);
+
+  // Similarly wrap all args in TrustedScript objects, but forges the toString()
+  // method at one index so that it adds extra leading/trailing space compared
+  // to the trusted data. This string mismatch also lead to isTrusted=false in
+  // EnsureCSPDoesNotBlockStringCompilation.
+  args.forEach((_, index) => {
+    test(t => {
+      let mixed_args = args.map((arg_value, arg_index) => {
+        let obj = policy.createScript(arg_value);
+        return arg_index == index ?
+          Object.assign(obj, { toString: () => ` ${arg_value} ` }) : obj;
+      });
+      assert_throws_js(EvalError, _ => new Function(...mixed_args));
+    }, `Function constructor with trusted strings, and a forged toString() for the one at index ${index}`);
+  });
 </script>
 
