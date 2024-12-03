@@ -6,7 +6,13 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
+<script>
+  window.generate_loaf_now = window.busy_wait
+</script>
 <script src="resources/busy.js?from-parser"></script>
+<script>
+  delete window.generate_loaf_now;
+</script>
 <body>
 <h1>Long Animation Frame: script blocks</h1>
 <div id="log"></div>
@@ -26,7 +32,7 @@ promise_test(async t => {
 test_self_script_block(t => {
     const script = document.createElement("script");
     script.type = "module";
-    script.innerHTML = `(${busy_wait.toString()})()`;
+    script.innerHTML = `window.generate_loaf_now()`;
     document.body.appendChild(script);
 }, location.href, "module-script");
 
@@ -53,8 +59,7 @@ test_self_script_block(t => {
 }, new URL("resources/busy.js?import", location.href).href, "module-script");
 
 const busy_wait_str = `  (function() {
-    const deadline = performance.now() + 365;
-    while (performance.now() < deadline) {}
+      generate_loaf_now();
   })()
 `;
 

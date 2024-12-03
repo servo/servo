@@ -12,7 +12,7 @@
 <script>
 
 promise_test(async t => {
-  const [entry, script] = await expect_long_frame_with_script(() => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     requestAnimationFrame(function non_bound_function() {
       busy_wait();
     });
@@ -23,7 +23,7 @@ promise_test(async t => {
 }, "Source location should be extracted from non-bound functions");
 
 promise_test(async t => {
-  const [entry, script] = await expect_long_frame_with_script(() => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     const object = {};
     requestAnimationFrame((function my_bound_function() {
       busy_wait();
@@ -35,7 +35,7 @@ promise_test(async t => {
 }, "Source location should be extracted from bound functions");
 
 promise_test(async t => {
-  const [entry, script] = await expect_long_frame_with_script(() => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     t.step_timeout(function my_timeout() {
       busy_wait();
     });
@@ -45,7 +45,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const scriptLocation = new URL("resources/promise-generates-loaf.js", location.href);
-  const [entry, script] = await expect_long_frame_with_script(() => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     const scriptElement = document.createElement("script");
     scriptElement.src = scriptLocation;
     document.body.appendChild(scriptElement);

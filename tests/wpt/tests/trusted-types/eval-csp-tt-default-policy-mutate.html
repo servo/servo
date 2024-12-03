@@ -21,4 +21,20 @@
   test(t => {
     assert_throws_js(EvalError, _ => new Function('return 1+1'));
   }, "Function constructor with string where default policy mutates value throws.");
+
+  const AsyncFunction = async function() {}.constructor;
+  const GeneratorFunction = function*() {}.constructor;
+  const AsyncGeneratorFunction = async function*() {}.constructor;
+
+  test(t => {
+    assert_throws_js(EvalError, _ => new AsyncFunction('return 1+1'));
+  }, "AsyncFunction constructor with string where default policy mutates value throws.");
+
+  test(t => {
+    assert_throws_js(EvalError, _ => new GeneratorFunction('return 1+1'));
+  }, "GeneratorFunction constructor with string where default policy mutates value throws.");
+
+  test(t => {
+    assert_throws_js(EvalError, _ => new AsyncGeneratorFunction('return 1+1'));
+  }, "AsyncGeneratorFunction constructor with string where default policy mutates value throws.");
 </script>

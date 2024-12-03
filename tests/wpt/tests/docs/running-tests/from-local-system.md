@@ -173,6 +173,7 @@ here](command-line-arguments.html#run).
   android_webview
   safari
   webkitgtk_minibrowser
+  wpewebkit_minibrowser
 ```
 
 ### Running in parallel

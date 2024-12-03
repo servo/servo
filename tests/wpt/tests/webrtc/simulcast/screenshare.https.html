@@ -14,7 +14,7 @@ promise_test(async t => {
   // Test getDisplayMedia with simulcast
   await test_driver.bless('getDisplayMedia');
   const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: {width: 1280, height: 720}
+    video: {width: 640, height: 480}
   });
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   const rids = [0, 1];

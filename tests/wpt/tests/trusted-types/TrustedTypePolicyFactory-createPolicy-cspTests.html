@@ -3,25 +3,63 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/helper.sub.js"></script>
 
-<meta http-equiv="Content-Security-Policy" content="trusted-types SomeName JustOneMoreName">
+<meta http-equiv="Content-Security-Policy" content="trusted-types SomeName JustOneMoreName AnotherName">
 <body>
 <script>
   // Allowed name test
   test(t => {
     let policy = window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    assert_true(policy instanceof TrustedTypePolicy);
     assert_equals(policy.name, 'SomeName');
   }, "Allowed-name policy creation works.");
 
   // Another allowed name test
   test(t => {
     let policy = window.trustedTypes.createPolicy('JustOneMoreName', { createHTML: s => s } );
+    assert_true(policy instanceof TrustedTypePolicy);
     assert_equals(policy.name, 'JustOneMoreName');
   }, "Another allowed-name policy creation works.");
 
+  function promise_violation(t, filter_arg) {
+    return _ => new Promise((resolve) => {
+      function handler(e) {
+        let matches = e.originalPolicy.includes(filter_arg);
+        if (matches) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+
+      document.addEventListener("securitypolicyviolation", handler);
+      t.add_cleanup(() => {
+        document.removeEventListener("securitypolicyviolation", handler);
+      });
+    });
+  }
+
   // Non-allowed names test
-  test(t => {
+  promise_test(t => {
+    let p = Promise.resolve()
+      .then(promise_violation(t, "trusted-types SomeName JustOneMoreName AnotherName"));
+
     assert_throws_js(TypeError, _ => {
      window.trustedTypes.createPolicy('SomeOtherName', { createHTML: s => s } );
     });
+    return p;
   }, "Non-allowed name policy creation throws.");
+
+  // Duplicate names test
+  promise_test(t => {
+    let p = Promise.resolve()
+      .then(promise_violation(t, "trusted-types SomeName JustOneMoreName AnotherName"));
+
+    let policy = window.trustedTypes.createPolicy('AnotherName', { createHTML: s => s } );
+    assert_equals(policy.name, 'AnotherName');
+
+    assert_throws_js(TypeError, _ => {
+      window.trustedTypes.createPolicy('AnotherName', { createHTML: s => s } );
+    });
+    return p;
+  }, "Duplicate name policy creation throws.");
 </script>

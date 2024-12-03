@@ -25,9 +25,11 @@
     test_invalid_value("block-step-insert", "20");
     test_invalid_value("block-step-insert", "none");
     test_invalid_value("block-step-insert", "border-box");
-    test_invalid_value('block-step-insert', "margin-box");
     test_invalid_value("block-step-insert", "margin padding");
     test_invalid_value("block-step-insert", "padding margin");
+    test_invalid_value('block-step-insert', "margin");
+    test_invalid_value("block-step-insert", "padding")
+    test_invalid_value("block-step-insert", "content")
 </script>
 </body>
 </html>

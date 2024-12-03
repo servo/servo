@@ -13,6 +13,7 @@ const {ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN} = get_host_info();
 
 async function prefetch_document_and_count_fetches(options, t) {
     const {href, uid} = await prefetch({
+        "cache-control": "public, max-age=3600",
         file: "prefetch-exec.html",
         type: "text/html",
         corssOrigin: "anonymous",

@@ -56,6 +56,8 @@ promise_test(async t => {
   assert_equals(result2, "frame1_loaded");
 
   await verifyKeyValueForOrigin('key', '2', location.origin);
+
+  await deleteKeyForOrigin('key', location.origin);
 }, 'Basic test for Web Locks API in the shared storage worklet');
 
 </script>

@@ -16,6 +16,9 @@
   const events = ['click'];
   const showModalDialog = () => {
     alert();
+    // Stay busy for a few more ms after dialog closes, to ensure processingEnd
+    // time is far from startTime + duration
+    mainThreadBusy(16);
   };
   document.getElementById('testButtonId').addEventListener("click", showModalDialog);
 

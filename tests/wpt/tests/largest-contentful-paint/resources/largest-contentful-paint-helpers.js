@@ -40,8 +40,6 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   if (options.includes('skip')) {
     return;
   }
-  assert_between_inclusive(entry.loadTime, timeLowerBound, entry.renderTime,
-    'loadTime should occur between the lower bound and the renderTime');
   assert_greater_than_equal(performance.now(), entry.renderTime,
     'renderTime should occur before the entry is dispatched to the observer.');
   assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
@@ -55,14 +53,14 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   }
 
   if (options.includes('animated')) {
-    assert_greater_than(entry.loadTime, entry.firstAnimatedFrameTime,
-      'firstAnimatedFrameTime should be smaller than loadTime');
-    assert_greater_than(entry.renderTime, entry.firstAnimatedFrameTime,
-      'firstAnimatedFrameTime should be smaller than renderTime');
-    assert_less_than(entry.firstAnimatedFrameTime, image_delay,
-      'firstAnimatedFrameTime should be smaller than the delay applied to the second frame');
-    assert_greater_than(entry.firstAnimatedFrameTime, 0,
-      'firstAnimatedFrameTime should be larger than 0');
+    assert_less_than(entry.renderTime, image_delay,
+      'renderTime should be smaller than the delay applied to the second frame');
+    assert_greater_than(entry.renderTime, 0,
+      'renderTime should be larger than 0');
+  }
+  else {
+    assert_between_inclusive(entry.loadTime, timeLowerBound, entry.renderTime,
+      'loadTime should occur between the lower bound and the renderTime');
   }
 }
 

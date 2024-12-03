@@ -53,7 +53,7 @@
         }
       };
       scroller.onscroll = (event) => {
-        if (scroller.scrollTop > 1) {
+        if (scroller.scrollTop > 1 && scroller.scrollTop < 200) {
           // Interrupt the smooth scroll.
           scroller.scrollTop = 1;
           interrupted = true;

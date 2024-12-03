@@ -48,5 +48,61 @@ promise_test(() => {
   return sharedStorage.delete("a");
 }, 'sharedStorage.delete');
 
+test(() => {
+  try {
+    let a = new SharedStorageSetMethod('a');
+  } catch (e) {
+    assert_equals(e.name, 'TypeError');
+    return;
+  }
+  assert_unreached("did not throw");
+}, 'new SharedStorageSetMethod with 1 argument');
+
+test(() => {
+  let a = new SharedStorageSetMethod('a', 'b');
+}, 'new SharedStorageSetMethod with 2 arguments');
+
+test(() => {
+  try {
+    let a = new SharedStorageAppendMethod('a');
+  } catch (e) {
+    assert_equals(e.name, 'TypeError');
+    return;
+  }
+  assert_unreached("did not throw");
+}, 'new SharedStorageAppendMethod with 1 argument');
+
+test(() => {
+  let a = new SharedStorageAppendMethod('a', 'b');
+}, 'new SharedStorageAppendMethod with 2 arguments');
+
+test(() => {
+  try {
+    let a = new SharedStorageDeleteMethod();
+  } catch (e) {
+    assert_equals(e.name, 'TypeError');
+    return;
+  }
+  assert_unreached("did not throw");
+}, 'new SharedStorageDeleteMethod with no arguments');
+
+test(() => {
+  let a = new SharedStorageDeleteMethod('a');
+}, 'new SharedStorageDeleteMethod with 1 argument');
+
+test(() => {
+  try {
+    let a = SharedStorageClearMethod();
+  } catch (e) {
+    assert_equals(e.name, 'TypeError');
+    return;
+  }
+  assert_unreached("did not throw");
+}, 'call SharedStorageClearMethod() as a function');
+
+test(() => {
+  let a = new SharedStorageClearMethod();
+}, 'new SharedStorageClearMethod with no arguments');
+
 </script>
 </body>

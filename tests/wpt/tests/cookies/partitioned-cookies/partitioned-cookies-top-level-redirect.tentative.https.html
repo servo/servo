@@ -42,7 +42,11 @@
   test(() => {
       assert_true(document.cookie.includes(partitionedCookie));
       assert_true(window.location.href.includes(partitionedCookie));
-    },"Partitioned Cookies are available in top-level cross-site to same-site redirects");
+
+      erase_cookie_from_js("ancestor", "Secure; Path=/; SameSite=None; Partitioned");
+    }
+  ,"Partitioned Cookies are available in top-level cross-site to same-site redirects");
+
 
 </script>
 </body>

@@ -3,10 +3,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
+<script src=/common/get-host-info.sub.js></script>
 <script>
 promise_test(async t => {
   let i = document.createElement("iframe");
-  i.src = "resources/cross-origin-redirect-on-second-visit.py?key=" + token();
+  i.src = "resources/cross-origin-redirect-on-second-visit.py?key=" + token() + "&remote_origin=" + get_host_info().HTTP_REMOTE_ORIGIN;
   document.body.appendChild(i);
 
   // Wait for after the load event so that the navigation doesn't get converted

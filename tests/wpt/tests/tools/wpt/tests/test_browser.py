@@ -341,8 +341,9 @@ def test_webkitgtk_minibrowser_version(mocked_check_output):
     assert webkitgtk_minibrowser.version(binary='MiniBrowser') == '2.26.1'
 
     # nightly version
-    mocked_check_output.return_value = b'WebKitGTK 2.27.1 (r250823)\n'
-    assert webkitgtk_minibrowser.version(binary='MiniBrowser') == '2.27.1 (r250823)'
+    mocked_check_output.return_value = b'WebKitGTK 2.47.1 (286783@main)\n'
+    assert webkitgtk_minibrowser.version(binary='MiniBrowser') == '2.47.1 (286783@main)'
+
 
 @mock.patch('subprocess.check_output')
 def test_webkitgtk_minibrowser_version_errors(mocked_check_output):
@@ -365,33 +366,137 @@ def test_webkitgtk_minibrowser_version_errors(mocked_check_output):
 # on Windows only works if the binary name ends with a ".exe" suffix.
 # But, WebKitGTK itself doesn't support Windows, so lets skip the test.
 @pytest.mark.skipif(sys.platform.startswith('win'), reason='test not needed on Windows')
+@mock.patch('os.path.isdir', return_value=True)
 @mock.patch('os.access', return_value=True)
-@mock.patch('os.path.exists')
-def test_webkitgtk_minibrowser_find_binary(mocked_os_path_exists, _mocked_os_access):
+@mock.patch('shutil.which')
+@mock.patch('os.listdir')
+@mock.patch('os.path.isfile')
+def test_webkitgtk_minibrowser_find_binary(mocked_os_path_isfile, mocked_os_listdir, mocked_which, _mocked_os_access, _mocked_os_isdir):
     webkitgtk_minibrowser = browser.WebKitGTKMiniBrowser(logger)
 
-    # No MiniBrowser found
-    mocked_os_path_exists.side_effect = lambda path: path == '/etc/passwd'
+    # No WebKitGTK MiniBrowser found (WPE one shouldn't match)
+    mocked_os_path_isfile.side_effect = lambda path: path == '/usr/libexec/wpe-webkit-1.0/MiniBrowser'
+    mocked_os_listdir.side_effect = lambda contents: ['wpe-webkit-1.0', 'webkitgtk-6.0', 'webkit2gtk-4.0']
+    mocked_which.side_effect = lambda found: None
     assert webkitgtk_minibrowser.find_binary() is None
 
     # Found on the default Fedora path
     fedora_minibrowser_path = '/usr/libexec/webkit2gtk-4.0/MiniBrowser'
-    mocked_os_path_exists.side_effect = lambda path: path == fedora_minibrowser_path
+    mocked_os_path_isfile.side_effect = lambda path: path == fedora_minibrowser_path
+    mocked_os_listdir.side_effect = lambda contents: ['wpe-webkit-1.0', 'webkitgtk-6.0', 'webkit2gtk-4.0']
+    mocked_which.side_effect = lambda found: None
     assert webkitgtk_minibrowser.find_binary() == fedora_minibrowser_path
 
     # Found on the default Debian path for AMD64 (gcc not available)
     debian_minibrowser_path_amd64 = '/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/MiniBrowser'
-    mocked_os_path_exists.side_effect = lambda path: path == debian_minibrowser_path_amd64
+    mocked_os_path_isfile.side_effect = lambda path: path == debian_minibrowser_path_amd64
+    mocked_os_listdir.side_effect = lambda contents: ['wpe-webkit-1.0', 'webkitgtk-6.0', 'webkit2gtk-4.0']
+    mocked_which.side_effect = lambda found: None
     assert webkitgtk_minibrowser.find_binary() == debian_minibrowser_path_amd64
 
     # Found on the default Debian path for AMD64 (gcc available but gives an error)
     debian_minibrowser_path_amd64 = '/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/MiniBrowser'
-    mocked_os_path_exists.side_effect = lambda path: path in [debian_minibrowser_path_amd64, '/usr/bin/gcc']
+    mocked_os_path_isfile.side_effect = lambda path: path in [debian_minibrowser_path_amd64, '/usr/bin/gcc']
+    mocked_os_listdir.side_effect = lambda contents: ['wpe-webkit-1.0', 'webkitgtk-6.0', 'webkit2gtk-4.0']
+    mocked_which.side_effect = lambda found: '/usr/bin/gcc'
     with mock.patch('subprocess.check_output', return_value = b'error', side_effect = subprocess.CalledProcessError(1, 'cmd')):
         assert webkitgtk_minibrowser.find_binary() == debian_minibrowser_path_amd64
 
-        # Found on the default Debian path for ARM64 (gcc available)
-        debian_minibrowser_path_arm64 = '/usr/lib/aarch64-linux-gnu/webkit2gtk-4.0/MiniBrowser'
-        mocked_os_path_exists.side_effect = lambda path: path in [debian_minibrowser_path_arm64, '/usr/bin/gcc']
-        with mock.patch('subprocess.check_output', return_value = b'aarch64-linux-gnu'):
-            assert webkitgtk_minibrowser.find_binary() == debian_minibrowser_path_arm64
+    # Found on the default Debian path for ARM64 (gcc available)
+    debian_minibrowser_path_arm64 = '/usr/lib/aarch64-linux-gnu/webkit2gtk-4.0/MiniBrowser'
+    mocked_os_path_isfile.side_effect = lambda path: path in [debian_minibrowser_path_arm64, '/usr/bin/gcc']
+    mocked_os_listdir.side_effect = lambda contents: sorted(['wpe-webkit-1.0', 'webkitgtk-6.0', 'webkit2gtk-4.0'])
+    mocked_which.side_effect = lambda found: '/usr/bin/gcc'
+    with mock.patch('subprocess.check_output', return_value = b'aarch64-linux-gnu'):
+        assert webkitgtk_minibrowser.find_binary() == debian_minibrowser_path_arm64
+
+    # Find first the MiniBrowser on the directory with the higher number in case two available
+    mocked_os_path_isfile.side_effect = lambda path: True
+    mocked_os_listdir.side_effect = lambda contents: ['wpe-webkit-1.0', 'webkitgtk-6.0', 'webkit2gtk-4.0']
+    mocked_which.side_effect = lambda found: None
+    assert webkitgtk_minibrowser.find_binary() == '/usr/libexec/webkitgtk-6.0/MiniBrowser'
+
+
+@mock.patch('subprocess.check_output')
+def test_wpewebkit_minibrowser_version(mocked_check_output):
+    wpewebkit_minibrowser = browser.WPEWebKitMiniBrowser(logger)
+
+    # stable version
+    mocked_check_output.return_value = b'WPE WebKit 2.26.1\n'
+    assert wpewebkit_minibrowser.version(binary='MiniBrowser') == '2.26.1'
+
+    # nightly version
+    mocked_check_output.return_value = b'WPE WebKit 2.47.1 (286783@main)\n'
+    assert wpewebkit_minibrowser.version(binary='MiniBrowser') == '2.47.1 (286783@main)'
+
+
+@mock.patch('subprocess.check_output')
+def test_wpewebkit_minibrowser_version_errors(mocked_check_output):
+    wpewebkit_minibrowser = browser.WPEWebKitMiniBrowser(logger)
+
+    # No binary
+    assert wpewebkit_minibrowser.version() is None
+
+    # `MiniBrowser --version` return gibberish
+    mocked_check_output.return_value = b'gibberish'
+    assert wpewebkit_minibrowser.version(binary='MiniBrowser') is None
+
+    # `MiniBrowser --version` fails (as it does for MiniBrowser <= 2.26.0)
+    mocked_check_output.return_value = b'dummy'
+    mocked_check_output.side_effect = subprocess.CalledProcessError(1, 'cmd')
+    assert wpewebkit_minibrowser.version(binary='MiniBrowser') is None
+
+
+# The test below doesn't work on Windows because find_binary()
+# on Windows only works if the binary name ends with a ".exe" suffix.
+# But, WPE WebKit itself doesn't support Windows, so lets skip the test.
+@pytest.mark.skipif(sys.platform.startswith('win'), reason='test not needed on Windows')
+@mock.patch('os.path.isdir', return_value=True)
+@mock.patch('os.access', return_value=True)
+@mock.patch('shutil.which')
+@mock.patch('os.listdir')
+@mock.patch('os.path.isfile')
+def test_wpewebkit_minibrowser_find_binary(mocked_os_path_isfile, mocked_os_listdir, mocked_which, _mocked_os_access, _mocked_os_isdir):
+    wpewebkit_minibrowser = browser.WPEWebKitMiniBrowser(logger)
+
+    # No WPE MiniBrowser found (WebKitGTK one shouldn't match)
+    mocked_os_path_isfile.side_effect = lambda path: path == '/usr/libexec/wpewebkit-6.0/MiniBrowser'
+    mocked_os_listdir.side_effect = lambda contents: ['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-1.0']
+    mocked_which.side_effect = lambda found: None
+    assert wpewebkit_minibrowser.find_binary() is None
+
+    # Found on the default Arch path
+    arch_minibrowser_path = '/usr/lib/wpe-webkit-1.0/MiniBrowser'
+    mocked_os_path_isfile.side_effect = lambda path: path == arch_minibrowser_path
+    mocked_os_listdir.side_effect = lambda contents: ['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-1.0']
+    mocked_which.side_effect = lambda found: None
+    assert wpewebkit_minibrowser.find_binary() == arch_minibrowser_path
+
+    # Found on the default Debian path for AMD64 (gcc not available)
+    debian_minibrowser_path_amd64 = '/usr/lib/x86_64-linux-gnu/wpe-webkit-1.0/MiniBrowser'
+    mocked_os_path_isfile.side_effect = lambda path: path == debian_minibrowser_path_amd64
+    mocked_os_listdir.side_effect = lambda contents: ['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-1.0']
+    mocked_which.side_effect = lambda found: None
+    assert wpewebkit_minibrowser.find_binary() == debian_minibrowser_path_amd64
+
+    # Found on the default Debian path for AMD64 (gcc available but gives an error)
+    debian_minibrowser_path_amd64 = '/usr/lib/x86_64-linux-gnu/wpe-webkit-1.0/MiniBrowser'
+    mocked_os_path_isfile.side_effect = lambda path: path in [debian_minibrowser_path_amd64, '/usr/bin/gcc']
+    mocked_os_listdir.side_effect = lambda contents: ['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-1.0']
+    mocked_which.side_effect = lambda found: '/usr/bin/gcc'
+    with mock.patch('subprocess.check_output', return_value = b'error', side_effect = subprocess.CalledProcessError(1, 'cmd')):
+        assert wpewebkit_minibrowser.find_binary() == debian_minibrowser_path_amd64
+
+    # Found on the default Debian path for ARM64 (gcc available)
+    debian_minibrowser_path_arm64 = '/usr/lib/aarch64-linux-gnu/wpe-webkit-1.0/MiniBrowser'
+    mocked_os_path_isfile.side_effect = lambda path: path in [debian_minibrowser_path_arm64, '/usr/bin/gcc']
+    mocked_os_listdir.side_effect = lambda contents: ['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-1.0']
+    mocked_which.side_effect = lambda found: '/usr/bin/gcc'
+    with mock.patch('subprocess.check_output', return_value = b'aarch64-linux-gnu'):
+        assert wpewebkit_minibrowser.find_binary() == debian_minibrowser_path_arm64
+
+    # Find first the MiniBrowser on the directory with the higher number in case two available
+    mocked_os_path_isfile.side_effect = lambda path: True
+    mocked_os_listdir.side_effect = lambda contents: sorted(['wpewebkit-6.0', 'webkit2gtk-4.0', 'wpe-webkit-2.0', 'wpe-webkit-1.0'])
+    mocked_which.side_effect = lambda found: None
+    assert wpewebkit_minibrowser.find_binary() == '/usr/libexec/wpe-webkit-2.0/MiniBrowser'

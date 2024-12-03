@@ -67,7 +67,12 @@ namespace bar {
 namespace baz {
   DOMString LongStory(any hero, DOMString... details);
   DOMString ShortStory(DOMString... details);
-};`);
+};
+[Exposed=Worker]
+namespace Absent {
+  undefined Lies();
+};
+`);
 idlArray.test();
 </script>
 <script type="text/json" id="expected">
@@ -230,6 +235,12 @@ idlArray.test();
     },
     {
       "name": "baz namespace: operation ShortStory(DOMString...)",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Absent namespace: existence and properties of namespace object",
       "status_string": "PASS",
       "properties": {},
       "message": null

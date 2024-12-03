@@ -85,6 +85,7 @@ test_computed_value("animation-range", "normal 100px");
 test_computed_value("animation-range", "100px");
 test_computed_value("animation-range", "100px normal", "100px");
 test_computed_value("animation-range", "10% normal", "10%");
+test_computed_value("animation-range", "10% calc(70% + 10% * sign(100em - 1px))", "10% 80%");
 
 test_invalid_value("animation-range", "entry 50% 0s", "entry 50%");
 test_invalid_value("animation-range", "0s entry 50%");

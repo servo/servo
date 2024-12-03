@@ -2,7 +2,7 @@ import pytest
 from webdriver.bidi.modules.network import NetworkBase64Value, NetworkStringValue
 from webdriver.bidi.modules.storage import CookieFilter
 
-from .. import create_cookie, format_expiry_string, get_default_partition_key, generate_expiry_date
+from .. import assert_partition_key, create_cookie, format_expiry_string, generate_expiry_date
 from ... import recursive_compare
 
 pytestmark = pytest.mark.asyncio
@@ -37,9 +37,7 @@ async def test_filter(
         filter=filter,
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     # Provide consistent cookies order.
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
@@ -104,9 +102,7 @@ async def test_filter_domain(
         filter=CookieFilter(domain=domain),
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     # Provide consistent cookies order.
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
@@ -195,9 +191,7 @@ async def test_filter_expiry(
         filter=CookieFilter(expiry=cookie1_expiry),
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     # Provide consistent cookies order.
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
@@ -309,9 +303,7 @@ async def test_filter_same_site(
         filter=CookieFilter(same_site=same_site_1),
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     # Provide consistent cookies order.
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
@@ -379,9 +371,7 @@ async def test_filter_secure(
         filter=CookieFilter(secure=secure_1),
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     # Provide consistent cookies order.
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
@@ -459,9 +449,7 @@ async def test_filter_path(
         filter=CookieFilter(path=path_1),
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
     recursive_compare(
@@ -540,9 +528,7 @@ async def test_filter_http_only(
         filter=CookieFilter(http_only=http_only_1),
     )
 
-    assert cookies["partitionKey"] == {
-        **(await get_default_partition_key(bidi_session)),
-    }
+    await assert_partition_key(bidi_session, actual=cookies["partitionKey"])
     assert len(cookies["cookies"]) == 2
     (cookie_1, cookie_2) = sorted(cookies["cookies"], key=lambda c: c["name"])
     recursive_compare(

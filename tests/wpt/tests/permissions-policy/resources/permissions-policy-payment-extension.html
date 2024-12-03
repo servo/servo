@@ -15,7 +15,7 @@ let authenticatorArgs = {
 
 window.onload = async function() {
   test_driver.set_test_context(parent);
-  await window.test_driver.add_virtual_authenticator(authenticatorArgs);
+  const authenticator = await window.test_driver.add_virtual_authenticator(authenticatorArgs);
   let enabled = true;
   let name = `OK`;
   try {
@@ -56,6 +56,7 @@ window.onload = async function() {
     enabled = false;
     name = e.name;
   }
+  await window.test_driver.remove_virtual_authenticator(authenticator);
   parent.postMessage({ type: 'availability-result', enabled, name }, '*');
 }
 </script>

@@ -80,8 +80,10 @@ def assert_request_data(request_data, expected_request, expected_time_range):
         {
             "bodySize": any_int_or_null,
             "cookies": any_list,
+            "destination": any_string,
             "headers": any_list,
             "headersSize": any_int,
+            "initiatorType": any_string_or_null,
             "method": any_string,
             "request": any_string,
             "timings": any_dict,
@@ -175,8 +177,8 @@ def assert_before_request_sent_event(
     expected_time_range=None,
 ):
     # Assert initiator
-    assert isinstance(event["initiator"], dict)
-    assert isinstance(event["initiator"]["type"], str)
+    if "initiator" in event:
+        assert isinstance(event["initiator"], dict)
 
     # Assert base parameters
     assert_base_parameters(
@@ -371,18 +373,26 @@ HTTP_STATUS_AND_STATUS_TEXT = [
     (505, "HTTP Version Not Supported"),
 ]
 
+BASE_URL = "/webdriver/tests/bidi/network/support"
 PAGE_DATA_URL_HTML = "data:text/html,<div>foo</div>"
 PAGE_DATA_URL_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/TQBcNTh/AAAAAXRSTlPM0jRW/QAAAApJREFUeJxjYgAAAAYAAzY3fKgAAAAASUVORK5CYII="
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_IMAGE = "/webdriver/tests/bidi/network/support/empty.png"
-PAGE_EMPTY_SCRIPT = "/webdriver/tests/bidi/network/support/empty.js"
-PAGE_EMPTY_SVG = "/webdriver/tests/bidi/network/support/empty.svg"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
+PAGE_EMPTY_HTML = f"{BASE_URL}/empty.html"
+PAGE_EMPTY_IMAGE = f"{BASE_URL}/empty.png"
+PAGE_EMPTY_SCRIPT = f"{BASE_URL}/empty.js"
+PAGE_EMPTY_SVG = f"{BASE_URL}/empty.svg"
+PAGE_EMPTY_TEXT = f"{BASE_URL}/empty.txt"
 PAGE_INVALID_URL = "https://not_a_valid_url.test/"
-PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
-PAGE_PROVIDE_RESPONSE_HTML = "/webdriver/tests/bidi/network/support/provide_response.html"
-PAGE_PROVIDE_RESPONSE_SCRIPT = "/webdriver/tests/bidi/network/support/provide_response.js"
-PAGE_PROVIDE_RESPONSE_STYLESHEET = "/webdriver/tests/bidi/network/support/provide_response.css"
+PAGE_INITIATOR = {
+    "HTML": f"{BASE_URL}/initiator/simple-initiator.html",
+    "SCRIPT": f"{BASE_URL}/initiator/simple-initiator-script.js",
+    "STYLESHEET": f"{BASE_URL}/initiator/simple-initiator-style.css",
+    "IMAGE": f"{BASE_URL}/initiator/simple-initiator-img.png",
+    "BACKGROUND": f"{BASE_URL}/initiator/simple-initiator-bg.png",
+}
+PAGE_OTHER_TEXT = f"{BASE_URL}/other.txt"
+PAGE_PROVIDE_RESPONSE_HTML = f"{BASE_URL}/provide_response.html"
+PAGE_PROVIDE_RESPONSE_SCRIPT = f"{BASE_URL}/provide_response.js"
+PAGE_PROVIDE_RESPONSE_STYLESHEET = f"{BASE_URL}/provide_response.css"
 PAGE_REDIRECT_HTTP_EQUIV = (
     "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
 )
