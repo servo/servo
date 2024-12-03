@@ -9,13 +9,14 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::wrappers::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
-use crate::dom::bindings::import::module::{Error, Fallible};
+use crate::dom::bindings::import::module::{throw_dom_exception, Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -149,6 +150,29 @@ impl EnqueuedValue {
     }
 }
 
+/// <https://streams.spec.whatwg.org/#is-non-negative-number>
+fn is_non_negative_number(value: &EnqueuedValue) -> bool {
+    let value_with_size = match value {
+        EnqueuedValue::Native(_) => return true,
+        EnqueuedValue::Js(value_with_size) => value_with_size,
+    };
+
+    // If v is not a Number, return false.
+    // Checked as part of the WebIDL.
+
+    // If v is NaN, return false.
+    if value_with_size.size.is_nan() {
+        return false;
+    }
+
+    // If v < 0, return false.
+    if value_with_size.size.is_sign_negative() {
+        return false;
+    }
+
+    true
+}
+
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct QueueWithSizes {
@@ -171,8 +195,19 @@ impl QueueWithSizes {
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
     fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
-        // TODO: If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
-        // TODO: If size is +∞, throw a RangeError exception.
+        // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
+        if !is_non_negative_number(&value) {
+            return Err(Error::Range(
+                "The size of the enqueued chunk is not a non-negative number.".to_string(),
+            ));
+        }
+
+        // If size is +∞, throw a RangeError exception.
+        if value.size().is_infinite() {
+            return Err(Error::Range(
+                "The size of the enqueued chunk is infinite.".to_string(),
+            ));
+        }
 
         self.total_size += value.size();
         self.queue.push_back(value);
@@ -292,7 +327,8 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    pub fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) {
+    #[allow(unsafe_code)]
+    pub fn setup(&self, stream: DomRoot<ReadableStream>, can_gc: CanGc) -> Result<(), Error> {
         // Assert: stream.[[controller]] is undefined
         stream.assert_no_controller();
 
@@ -317,9 +353,27 @@ impl ReadableStreamDefaultController {
         stream.set_default_controller(&rooted_default_controller);
 
         if let Some(underlying_source) = rooted_default_controller.underlying_source.get() {
+            // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
+            let start_result = underlying_source
+                .call_start_algorithm(
+                    Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
+                    can_gc,
+                )
+                .unwrap_or_else(|| {
+                    let promise = Promise::new(global, can_gc);
+                    promise.resolve_native(&());
+                    Ok(promise)
+                });
+
+            // Let startPromise be a promise resolved with startResult.
+            let start_promise = start_result?;
+
+            // Upon fulfillment of startPromise,
             let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
                 controller: Trusted::new(&*rooted_default_controller),
             });
+
+            // Upon rejection of startPromise with reason r,
             let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
                 controller: Trusted::new(&*rooted_default_controller),
             });
@@ -328,23 +382,12 @@ impl ReadableStreamDefaultController {
                 Some(fulfillment_handler),
                 Some(rejection_handler),
             );
-
             let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
-            // Let startResult be the result of performing startAlgorithm. (This might throw an exception.)
-            if let Some(promise) = underlying_source.call_start_algorithm(
-                Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
-                can_gc,
-            ) {
-                promise.append_native_handler(&handler, comp, can_gc);
-            } else {
-                let promise = Promise::new(global, can_gc);
-                promise.append_native_handler(&handler, comp, can_gc);
-                // Let startPromise be a promise resolved with startResult.
-                // Note: where is startResult?
-                promise.resolve_native(&());
-            }
+            start_promise.append_native_handler(&handler, comp, can_gc);
         };
+
+        Ok(())
     }
 
     /// Setting the JS object after the heap has settled down.
@@ -398,6 +441,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    #[allow(unsafe_code)]
     fn call_pull_if_needed(&self, can_gc: CanGc) {
         if !self.should_call_pull() {
             return;
@@ -436,16 +480,31 @@ impl ReadableStreamDefaultController {
 
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
-        if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
-            promise.append_native_handler(&handler, comp, can_gc);
-        } else {
+        let result = underlying_source
+            .call_pull_algorithm(controller)
+            .unwrap_or_else(|| {
+                let promise = Promise::new(&global, can_gc);
+                promise.resolve_native(&());
+                Ok(promise)
+            });
+        let promise = result.unwrap_or_else(|error| {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if `self.global()` is the right globalscope.
+            unsafe {
+                error
+                    .clone()
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+            };
             let promise = Promise::new(&global, can_gc);
-            promise.append_native_handler(&handler, comp, can_gc);
-            promise.resolve_native(&());
-        }
+            promise.reject_native(&rval.handle());
+            promise
+        });
+        promise.append_native_handler(&handler, comp, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
+    #[allow(unsafe_code)]
     pub fn perform_cancel_steps(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
         self.queue.borrow_mut().reset();
@@ -462,14 +521,27 @@ impl ReadableStreamDefaultController {
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
                 promise.resolve_native(&());
-                promise
+                Ok(promise)
             });
+        let promise = result.unwrap_or_else(|error| {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if `self.global()` is the right globalscope.
+            unsafe {
+                error
+                    .clone()
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
+            };
+            let promise = Promise::new(&global, can_gc);
+            promise.reject_native(&rval.handle());
+            promise
+        });
 
         // Perform ! ReadableStreamDefaultControllerClearAlgorithms(this).
         self.clear_algorithms();
 
-        // Return result
-        result
+        // Return result(the promise).
+        promise
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
@@ -560,36 +632,21 @@ impl ReadableStreamDefaultController {
             let size = if let Some(strategy_size) = strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
-                let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
+                let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow);
                 match result {
                     // Let chunkSize be result.[[Value]].
                     Ok(size) => size,
                     Err(error) => {
                         // If result is an abrupt completion,
                         rooted!(in(*cx) let mut rval = UndefinedValue());
-
-                        match error {
-                            // Note: `to_jsval` on JSFailed panics,
-                            // so result.[[Value]] is left undefined in this case.
-                            Error::JSFailed => {},
-                            _ => {
-                                // TODO: check if `self.global()` is the right globalscope.
-                                unsafe {
-                                    error
-                                        .clone()
-                                        .to_jsval(*cx, &self.global(), rval.handle_mut())
-                                };
-                            },
-                        }
+                        unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                         // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
                         self.error(rval.handle());
 
                         // Return result.
                         // Note: we need to return a type error, because no exception is pending.
-                        return Err(Error::Type(
-                            "Couldn't convert result from strategy size call.".to_string(),
-                        ));
+                        return Err(error);
                     },
                 }
             } else {
@@ -606,25 +663,30 @@ impl ReadableStreamDefaultController {
 
             {
                 // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
-                let mut queue = self.queue.borrow_mut();
-                if let Err(error) =
+                let res = {
+                    let mut queue = self.queue.borrow_mut();
                     queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size))
-                {
+                };
+                if let Err(error) = res {
                     // If enqueueResult is an abrupt completion,
 
+                    // First, throw the exception.
+                    // Note: this must be done manually here,
+                    // because `enqueue_value_with_size` does not call into JS.
+                    throw_dom_exception(cx, &self.global(), error);
+
+                    // Then, get a handle to the JS val for the exception,
+                    // and use that to error the stream.
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-                    // TODO: check if this is the right globalscope.
-                    unsafe {
-                        error
-                            .clone()
-                            .to_jsval(*cx, &self.global(), rval.handle_mut())
-                    };
+                    unsafe { assert!(JS_GetPendingException(*cx, rval.handle_mut())) };
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
                     self.error(rval.handle());
 
                     // Return enqueueResult.
-                    return Err(error);
+                    // Note: because we threw the exception above,
+                    // there is a pending exception and we can return JSFailed.
+                    return Err(Error::JSFailed);
                 }
             }
         }
