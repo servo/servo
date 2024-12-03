@@ -1788,7 +1788,7 @@ impl ScriptThread {
                 }
                 #[cfg(not(feature = "webgpu"))]
                 {
-                    unreachable!(); // This should never be hit when webgpu is disabled
+                    unreachable!("This should never be hit when webgpu is disabled");
                 }
             },
         };

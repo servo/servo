@@ -155,7 +155,9 @@ use style_traits::CSSPixel;
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
-use webrender::{RenderApi, RenderApiSender};
+#[cfg(feature = "webgpu")]
+use webrender::RenderApi;
+use webrender::RenderApiSender;
 use webrender_api::DocumentId;
 use webrender_traits::WebrenderExternalImageRegistry;
 
