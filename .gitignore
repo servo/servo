@@ -12,6 +12,12 @@
 /python/_venv*
 /python/tidy/servo_tidy.egg-info
 /tests/wpt/sync
+/tests/wpt/meta/.cache
+/tests/wpt/meta-legacy-layout/.cache
+/tests/wpt/mozilla/meta/.cache
+/tests/wpt/mozilla/meta-legacy-layout/.cache
+/tests/wpt/webgl/meta/.cache
+/tests/wpt/webgl/meta-legacy-layout/.cache
 /tests/dromaeo/dromaeo
 *.pkl
 *.pyc
