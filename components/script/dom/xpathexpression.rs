@@ -14,18 +14,18 @@ use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathresult::XPathResultType;
 use crate::script_runtime::CanGc;
-use crate::xpath::{evaluate_parsed_xpath, Expr, Value};
+use crate::xpath::{evaluate_parsed_xpath, Expr};
 
 #[dom_struct]
 pub struct XPathExpression {
     reflector_: Reflector,
     window: Dom<Window>,
     #[no_trace]
-    parsed_expression: Option<Expr>,
+    parsed_expression: Expr,
 }
 
 impl XPathExpression {
-    fn new_inherited(window: &Window, parsed_expression: Option<Expr>) -> XPathExpression {
+    fn new_inherited(window: &Window, parsed_expression: Expr) -> XPathExpression {
         XPathExpression {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
@@ -37,7 +37,7 @@ impl XPathExpression {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        parsed_expression: Option<Expr>,
+        parsed_expression: Expr,
     ) -> DomRoot<XPathExpression> {
         reflect_dom_object_with_proto(
             Box::new(XPathExpression::new_inherited(window, parsed_expression)),
@@ -61,11 +61,8 @@ impl XPathExpressionMethods<crate::DomTypeHolder> for XPathExpression {
         let global = self.global();
         let window = global.as_window();
 
-        let result_value = if let Some(ref parsed_expression) = self.parsed_expression {
-            evaluate_parsed_xpath(parsed_expression, context_node).map_err(|_e| Error::Operation)?
-        } else {
-            Value::Nodeset(vec![])
-        };
+        let result_value = evaluate_parsed_xpath(&self.parsed_expression, context_node)
+            .map_err(|_e| Error::Operation)?;
 
         // TODO(vlindhol): support putting results into mutable `_result` as per the spec
         Ok(XPathResult::new(

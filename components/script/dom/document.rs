@@ -5623,7 +5623,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         &self,
         expression: DOMString,
         resolver: Option<Rc<XPathNSResolver>>,
-    ) -> DomRoot<super::types::XPathExpression> {
+    ) -> Fallible<DomRoot<super::types::XPathExpression>> {
         let global = self.global();
         let window = global.as_window();
         let evaluator = XPathEvaluator::new(window, None, CanGc::note());

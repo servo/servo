@@ -4,7 +4,7 @@
 
 // https://dom.spec.whatwg.org/#mixin-xpathevaluatorbase
 interface mixin XPathEvaluatorBase {
-  [NewObject] XPathExpression createExpression(DOMString expression, optional XPathNSResolver? resolver = null);
+  [NewObject, Throws] XPathExpression createExpression(DOMString expression, optional XPathNSResolver? resolver = null);
   Node createNSResolver(Node nodeResolver); // legacy
   // XPathResult.ANY_TYPE = 0
   [Throws] XPathResult evaluate(
