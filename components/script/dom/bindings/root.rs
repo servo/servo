@@ -721,6 +721,15 @@ impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
     }
 }
 
+impl<T: DomObject> Clone for MutNullableDom<T> {
+    fn clone(&self) -> Self {
+        let inner = unsafe { &*self.ptr.get() };
+        Self {
+            ptr: UnsafeCell::new(inner.clone()),
+        }
+    }
+}
+
 /// A holder that allows to lazily initialize the value only once
 /// `Dom<T>`, using OnceCell
 /// Essentially a `OnceCell<Dom<T>>`.

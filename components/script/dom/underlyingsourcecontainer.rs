@@ -72,9 +72,9 @@ pub struct TeeUnderlyingSource {
     reader: Dom<ReadableStreamDefaultReader>,
     stream: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
-    branch_1: Rc<MutNullableDom<ReadableStream>>,
+    branch_1: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
-    branch_2: Rc<MutNullableDom<ReadableStream>>,
+    branch_2: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
@@ -86,9 +86,9 @@ pub struct TeeUnderlyingSource {
     #[ignore_malloc_size_of = "Rc"]
     clone_for_branch_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
-    reason_1: Rc<Box<Heap<JSVal>>>,
+    reason_1: Box<Heap<JSVal>>,
     #[ignore_malloc_size_of = "Rc"]
-    reason_2: Rc<Box<Heap<JSVal>>>,
+    reason_2: Box<Heap<JSVal>>,
     #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
     #[ignore_malloc_size_of = "TeeCancelAlgorithm"]
@@ -101,15 +101,15 @@ impl TeeUnderlyingSource {
     pub fn new(
         reader: Dom<ReadableStreamDefaultReader>,
         stream: Dom<ReadableStream>,
-        branch_1: Rc<MutNullableDom<ReadableStream>>,
-        branch_2: Rc<MutNullableDom<ReadableStream>>,
+        branch_1: MutNullableDom<ReadableStream>,
+        branch_2: MutNullableDom<ReadableStream>,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         clone_for_branch_2: Rc<Cell<bool>>,
-        reason_1: Rc<Box<Heap<JSVal>>>,
-        reason_2: Rc<Box<Heap<JSVal>>>,
+        reason_1: SafeHandleValue,
+        reason_2: SafeHandleValue,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: TeeCancelAlgorithm,
     ) -> TeeUnderlyingSource {
@@ -123,8 +123,8 @@ impl TeeUnderlyingSource {
             canceled_1,
             canceled_2,
             clone_for_branch_2,
-            reason_1,
-            reason_2,
+            reason_1: Heap::boxed(reason_1.get()),
+            reason_2: Heap::boxed(reason_2.get()),
             cancel_promise,
             tee_cancel_algorithm,
         }

@@ -710,16 +710,14 @@ impl ReadableStream {
         let canceled_2 = Rc::new(Cell::new(false));
 
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut reason_1_rval = UndefinedValue());
-        rooted!(in(*cx) let mut reason_2_rval = UndefinedValue());
         // Let reason1 be undefined.
-        let reason_1 = Rc::new(Heap::boxed(reason_1_rval.get()));
+        rooted!(in(*cx) let mut reason_1 = UndefinedValue());
         // Let reason2 be undefined.
-        let reason_2 = Rc::new(Heap::boxed(reason_2_rval.get()));
+        rooted!(in(*cx) let mut reason_2 = UndefinedValue());
         // Let branch1 be undefined.
-        let branch_1 = Rc::new(MutNullableDom::new(None));
+        let branch_1 = MutNullableDom::new(None);
         // Let branch2 be undefined.
-        let branch_2 = Rc::new(MutNullableDom::new(None));
+        let branch_2 = MutNullableDom::new(None);
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
 
@@ -733,8 +731,8 @@ impl ReadableStream {
             canceled_1.clone(),
             canceled_2.clone(),
             clone_for_branch_2.clone(),
-            reason_1.clone(),
-            reason_2.clone(),
+            reason_1.handle(),
+            reason_2.handle(),
             cancel_promise.clone(),
             TeeCancelAlgorithm::Cancel1Algorithm,
         ));
@@ -749,8 +747,8 @@ impl ReadableStream {
             canceled_1,
             canceled_2,
             clone_for_branch_2,
-            reason_1,
-            reason_2,
+            reason_1.handle(),
+            reason_2.handle(),
             cancel_promise,
             TeeCancelAlgorithm::Cancel2Algorithm,
         ));

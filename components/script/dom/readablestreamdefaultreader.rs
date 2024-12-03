@@ -61,9 +61,9 @@ impl TeeReadRequestMicrotask {
 pub struct TeeReadRequest {
     stream: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
-    branch_1: Rc<MutNullableDom<ReadableStream>>,
+    branch_1: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
-    branch_2: Rc<MutNullableDom<ReadableStream>>,
+    branch_2: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
@@ -84,8 +84,8 @@ impl TeeReadRequest {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         stream: Dom<ReadableStream>,
-        branch_1: Rc<MutNullableDom<ReadableStream>>,
-        branch_2: Rc<MutNullableDom<ReadableStream>>,
+        branch_1: MutNullableDom<ReadableStream>,
+        branch_2: MutNullableDom<ReadableStream>,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
@@ -604,8 +604,8 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
     pub fn append_native_handler_to_closed_promise(
         &self,
-        branch_1: Rc<MutNullableDom<ReadableStream>>,
-        branch_2: Rc<MutNullableDom<ReadableStream>>,
+        branch_1: MutNullableDom<ReadableStream>,
+        branch_2: MutNullableDom<ReadableStream>,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
