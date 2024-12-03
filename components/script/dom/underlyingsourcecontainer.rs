@@ -50,9 +50,9 @@ impl UnderlyingSourceType {
     pub fn is_native(&self) -> bool {
         matches!(
             self,
-            UnderlyingSourceType::Memory(_)
-                | UnderlyingSourceType::Blob(_)
-                | UnderlyingSourceType::FetchResponse
+            UnderlyingSourceType::Memory(_) |
+                UnderlyingSourceType::Blob(_) |
+                UnderlyingSourceType::FetchResponse
         )
     }
 
@@ -132,7 +132,7 @@ impl TeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
-    pub fn pull_algorithm(&self) -> Option<Rc<Promise>> {
+    pub fn pull_algorithm(&self) -> Option<Result<Rc<Promise>, Error>> {
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
@@ -140,7 +140,11 @@ impl TeeUnderlyingSource {
             // Return a promise resolved with undefined.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            return Some(Promise::new_resolved(&self.stream.global(), cx, rval.handle()).unwrap());
+            return Some(Promise::new_resolved(
+                &self.stream.global(),
+                cx,
+                rval.handle(),
+            ));
         }
 
         // Set reading to true.
@@ -176,17 +180,18 @@ impl TeeUnderlyingSource {
         // Return a promise resolved with undefined.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        match Promise::new_resolved(&self.stream.global(), GlobalScope::get_cx(), rval.handle()) {
-            Ok(promise) => Some(promise),
-            Err(_) => None,
-        }
+        Some(Promise::new_resolved(
+            &self.stream.global(),
+            GlobalScope::get_cx(),
+            rval.handle(),
+        ))
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let cancel1Algorithm be the following steps, taking a reason argument
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
-    fn cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Rc<Promise>> {
+    fn cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Result<Rc<Promise>, Error>> {
         match self.tee_cancel_algorithm {
             TeeCancelAlgorithm::Cancel1Algorithm => {
                 // Set canceled_1 to true.
@@ -202,7 +207,7 @@ impl TeeUnderlyingSource {
                     // Resolve cancelPromise with cancelResult.
                 }
                 // Return cancelPromise.
-                Some(self.cancel_promise.clone())
+                Some(Ok(self.cancel_promise.clone()))
             },
             TeeCancelAlgorithm::Cancel2Algorithm => {
                 // Set canceled_2 to true.
@@ -218,7 +223,7 @@ impl TeeUnderlyingSource {
                     // Resolve cancelPromise with cancelResult.
                 }
                 // Return cancelPromise.
-                Some(self.cancel_promise.clone())
+                Some(Ok(self.cancel_promise.clone()))
             },
         }
     }
@@ -274,19 +279,26 @@ impl UnderlyingSourceContainer {
         &self,
         reason: SafeHandleValue,
     ) -> Option<Result<Rc<Promise>, Error>> {
-        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(algo) = &source.cancel {
-                let result = unsafe {
-                    algo.Call_(
-                        &SafeHandle::from_raw(this_obj.handle()),
-                        Some(reason),
-                        ExceptionHandling::Rethrow,
-                    )
-                };
-                return Some(result);
-            }
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, this_obj) => {
+                if let Some(algo) = &source.cancel {
+                    let result = unsafe {
+                        algo.Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            Some(reason),
+                            ExceptionHandling::Rethrow,
+                        )
+                    };
+                    return Some(result);
+                }
+                None
+            },
+            UnderlyingSourceType::Tee(tee_underlyin_source) => {
+                // Call the cancel algorithm for the appropriate branch.
+                tee_underlyin_source.cancel_algorithm(reason)
+            },
+            _ => None,
         }
-        None
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
@@ -295,20 +307,27 @@ impl UnderlyingSourceContainer {
         &self,
         controller: Controller,
     ) -> Option<Result<Rc<Promise>, Error>> {
-        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(algo) = &source.pull {
-                let result = unsafe {
-                    algo.Call_(
-                        &SafeHandle::from_raw(this_obj.handle()),
-                        controller,
-                        ExceptionHandling::Rethrow,
-                    )
-                };
-                return Some(result);
-            }
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, this_obj) => {
+                if let Some(algo) = &source.pull {
+                    let result = unsafe {
+                        algo.Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            controller,
+                            ExceptionHandling::Rethrow,
+                        )
+                    };
+                    return Some(result);
+                }
+                None
+            },
+            UnderlyingSourceType::Tee(tee_underlyin_source) => {
+                // Call the pull algorithm for the appropriate branch.
+                tee_underlyin_source.pull_algorithm()
+            },
+            // Note: other source type have no pull steps for now.
+            _ => None,
         }
-        // Note: other source type have no pull steps for now.
-        None
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
@@ -324,41 +343,48 @@ impl UnderlyingSourceContainer {
         controller: Controller,
         can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
-        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(start) = &source.start {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-                rooted!(in(*cx) let mut result: JSVal);
-                unsafe {
-                    if let Err(error) = start.Call_(
-                        &SafeHandle::from_raw(this_obj.handle()),
-                        controller,
-                        result.handle_mut(),
-                        ExceptionHandling::Rethrow,
-                    ) {
-                        return Some(Err(error));
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, this_obj) => {
+                if let Some(start) = &source.start {
+                    let cx = GlobalScope::get_cx();
+                    rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
+                    rooted!(in(*cx) let mut result: JSVal);
+                    unsafe {
+                        if let Err(error) = start.Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            controller,
+                            result.handle_mut(),
+                            ExceptionHandling::Rethrow,
+                        ) {
+                            return Some(Err(error));
+                        }
                     }
-                }
-                let is_promise = unsafe {
-                    if result.is_object() {
-                        result_object.set(result.to_object());
-                        IsPromiseObject(result_object.handle().into_handle())
+                    let is_promise = unsafe {
+                        if result.is_object() {
+                            result_object.set(result.to_object());
+                            IsPromiseObject(result_object.handle().into_handle())
+                        } else {
+                            false
+                        }
+                    };
+                    let promise = if is_promise {
+                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
+                        promise
                     } else {
-                        false
-                    }
-                };
-                let promise = if is_promise {
-                    let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                    promise
-                } else {
-                    let promise = Promise::new(&self.global(), can_gc);
-                    promise.resolve_native(&result.get());
-                    promise
-                };
-                return Some(Ok(promise));
-            }
+                        let promise = Promise::new(&self.global(), can_gc);
+                        promise.resolve_native(&result.get());
+                        promise
+                    };
+                    return Some(Ok(promise));
+                }
+                None
+            },
+            UnderlyingSourceType::Tee(_) => {
+                // Let startAlgorithm be an algorithm that returns undefined.
+                None
+            },
+            _ => None,
         }
-        None
     }
 
     /// Does the source have all data in memory?

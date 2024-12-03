@@ -134,7 +134,8 @@ impl TeeReadRequest {
         self.stream.cancel(reason, can_gc);
     }
 
-    /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
+    /// Enqueue a microtask to perform the chunk steps
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     pub fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         // Queue a microtask to perform the following steps:
         let tee_read_request_chunk = TeeReadRequestMicrotask {
@@ -151,7 +152,7 @@ impl TeeReadRequest {
         );
     }
 
-    /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     pub fn chunk_steps(&self, chunk: &RootedTraceableBox<Heap<JSVal>>) {
         // Set readAgain to false.
         self.read_again.set(false);

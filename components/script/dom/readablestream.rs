@@ -150,7 +150,9 @@ fn create_readable_stream(
 
     // Perform ? SetUpReadableStreamDefaultController(stream, controller, startAlgorithm,
     // pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm).
-    controler.setup(stream.clone(), can_gc);
+    controler
+        .setup(stream.clone(), can_gc)
+        .expect("Setup of default controller cannot fail");
 
     // Return stream.
     stream
