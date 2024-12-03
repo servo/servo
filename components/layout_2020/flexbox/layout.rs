@@ -1717,8 +1717,6 @@ impl InitialFlexLineLayout<'_> {
                 }
             }
 
-            let _ = item.item.box_.block_content_size_cache.borrow_mut().take();
-
             let baseline = item.get_or_synthesize_baseline_with_cross_size(used_cross_size);
             if matches!(
                 item.item.align_self.0.value(),
@@ -1875,9 +1873,6 @@ impl FlexItem<'_> {
         used_cross_size_override: Option<Au>,
         non_stretch_layout_result: Option<&mut FlexItemLayoutResult>,
     ) -> Option<FlexItemLayoutResult> {
-        // Clear any layout cache information so that it doesn't persist until the next layout.
-        self.box_.block_content_size_cache.borrow_mut().take();
-
         let containing_block = flex_context.containing_block;
         let mut positioning_context = PositioningContext::new_for_style(self.box_.style())
             .unwrap_or_else(|| {
@@ -2040,18 +2035,27 @@ impl FlexItem<'_> {
                     }
                 }
 
+                let cache = self.box_.block_content_size_cache.borrow_mut().take();
+                let layout = if let Some(cache) = cache.filter(|cache| {
+                    cache.compatible_with_item_as_containing_block(&item_as_containing_block)
+                }) {
+                    positioning_context = cache.positioning_context;
+                    cache.layout
+                } else {
+                    non_replaced.layout(
+                        flex_context.layout_context,
+                        &mut positioning_context,
+                        &item_as_containing_block,
+                        containing_block,
+                    )
+                };
                 let IndependentLayout {
                     fragments,
                     content_block_size,
                     baselines: content_box_baselines,
                     depends_on_block_constraints,
                     ..
-                } = non_replaced.layout(
-                    flex_context.layout_context,
-                    &mut positioning_context,
-                    &item_as_containing_block,
-                    containing_block,
-                );
+                } = layout;
                 let depends_on_block_constraints = depends_on_block_constraints ||
                     (flex_axis == FlexAxis::Row && self.stretches());
 
@@ -2806,10 +2810,10 @@ impl FlexItemBox {
                     block_size: AuOrAuto::Auto,
                     style: &non_replaced.style,
                 };
-                let mut content_block_size = || {
+                let content_block_size = || {
                     if let Some(cache) = &*self.block_content_size_cache.borrow() {
                         if inline_size == cache.containing_block_inline_size {
-                            return cache.content_block_size;
+                            return cache.layout.content_block_size;
                         } else {
                             #[cfg(feature = "tracing")]
                             tracing::warn!(
@@ -2833,7 +2837,8 @@ impl FlexItemBox {
                     *self.block_content_size_cache.borrow_mut() =
                         Some(CachedBlockSizeContribution {
                             containing_block_inline_size: item_as_containing_block.inline_size,
-                            content_block_size: layout.content_block_size,
+                            layout,
+                            positioning_context,
                         });
                     content_block_size
                 };
