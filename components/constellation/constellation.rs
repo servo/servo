@@ -221,7 +221,6 @@ struct WebrenderWGPU {
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 
     /// WebGPU data that supplied to Webrender for rendering
-
     wgpu_image_map: WGPUImageMap,
 }
 

@@ -1772,25 +1772,25 @@ impl ScriptThread {
             recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
                 => FromDevtools(msg.unwrap()),
             recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
-        };
-
-        // select! macro parses all arms regardless of #[cfg], we need to add a separate block for WebGPU
-        #[cfg(feature = "webgpu")]
-        let mut event = select! {
-            recv(self.task_queue.select()) -> msg => {
-                self.task_queue.take_tasks(msg.unwrap());
-                let event = self
-                    .task_queue
-                    .recv()
-                    .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
-                FromScript(event)
+            recv({
+                #[cfg(feature = "webgpu")]
+                {
+                    self.webgpu_port.borrow().as_ref().unwrap_or(&crossbeam_channel::never())
+                }
+                #[cfg(not(feature = "webgpu"))]
+                {
+                    &crossbeam_channel::never::<()>()
+                }
+            }) -> msg => {
+                #[cfg(feature = "webgpu")]
+                {
+                    FromWebGPUServer(msg.unwrap())
+                }
+                #[cfg(not(feature = "webgpu"))]
+                {
+                    unreachable!(); // This should never be hit when webgpu is disabled
+                }
             },
-            recv(self.control_port) -> msg => FromConstellation(msg.unwrap()),
-            recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
-                => FromDevtools(msg.unwrap()),
-            recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
-            recv(self.webgpu_port.borrow().as_ref().unwrap_or(&crossbeam_channel::never())) -> msg
-                => FromWebGPUServer(msg.unwrap()),
         };
         debug!("Got event.");
 

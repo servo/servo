@@ -68,14 +68,9 @@ interface GPUAdapterInfo {
 interface mixin NavigatorGPU {
     [SameObject, Pref="dom.webgpu.enabled", Exposed=(Window /* ,DedicatedWorker */)] readonly attribute GPU gpu;
 };
-Navigator includes NavigatorGPU;
-// NOTE: see `WorkerNavigator.webidl`
-// WorkerNavigator includes NavigatorGPU;
 
-[Exposed=DedicatedWorker]
-partial interface WorkerNavigator {
-    [SameObject, Pref="dom.webgpu.enabled"] readonly attribute GPU gpu;
-};
+Navigator includes NavigatorGPU;
+WorkerNavigator includes NavigatorGPU;
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
@@ -1143,17 +1138,12 @@ enum GPUQueryType {
     "timestamp"
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUCanvasContext {
-    readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
 
-    // Calling configure() a second time invalidates the previous one,
-    // and all of the textures it's produced.
-    [Throws]
+partial interface GPUCanvasContext {
+    [Throws, Pref="dom.webgpu.enabled"]
     undefined configure(GPUCanvasConfiguration descriptor);
-    undefined unconfigure();
-
-    [Throws]
+    [Pref="dom.webgpu.enabled"] undefined unconfigure();
+    [Throws, Pref="dom.webgpu.enabled"]
     GPUTexture getCurrentTexture();
 };
 

@@ -402,8 +402,6 @@ pub mod htmltrackelement;
 pub mod htmlulistelement;
 pub mod htmlunknownelement;
 pub mod htmlvideoelement;
-#[cfg(feature = "webgpu")]
-pub mod identityhub;
 pub mod iirfilternode;
 pub mod imagebitmap;
 pub mod imagedata;
