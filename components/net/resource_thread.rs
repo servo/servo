@@ -559,9 +559,10 @@ pub struct CoreResourceThreadPool {
 }
 
 impl CoreResourceThreadPool {
-    pub fn new(num_threads: usize) -> CoreResourceThreadPool {
+    pub fn new(num_threads: usize, pool_name: String) -> CoreResourceThreadPool {
+        debug!("Creating new CoreResourceThreadPool with {num_threads} threads!");
         let pool = rayon::ThreadPoolBuilder::new()
-            .thread_name(|i| format!("CoreResourceThread#{i}"))
+            .thread_name(move |i| format!("{pool_name}#{i}"))
             .num_threads(num_threads)
             .build()
             .unwrap();
@@ -645,7 +646,11 @@ impl CoreResourceManager {
         ca_certificates: CACertificates,
         ignore_certificate_errors: bool,
     ) -> CoreResourceManager {
-        let pool = CoreResourceThreadPool::new(16);
+        let num_threads = thread::available_parallelism()
+            .map(|i| i.get())
+            .unwrap_or(servo_config::pref!(threadpools.fallback_worker_num) as usize)
+            .min(servo_config::pref!(threadpools.resource_workers.max).max(1) as usize);
+        let pool = CoreResourceThreadPool::new(num_threads, "CoreResourceThreadPool".to_string());
         let pool_handle = Arc::new(pool);
         CoreResourceManager {
             user_agent,

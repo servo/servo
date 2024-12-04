@@ -124,5 +124,9 @@
   "shell.native-orientation": "both",
   "shell.native-titlebar.enabled": true,
   "shell.searchpage": "https://duckduckgo.com/html/?q=%s",
+  "threadpools.async_runtime_workers.max": 6,
+  "threadpools.fallback_worker_num": 3,
+  "threadpools.image_cache_workers.max": 4,
+  "threadpools.resource_workers.max": 4,
   "webgl.testing.context_creation_error": false
 }
