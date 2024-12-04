@@ -48,6 +48,29 @@ use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::JSContext as SafeJSContext;
 
+/// A transparent wrapper intended for use with types that are not considered threadsafe by
+/// the Rust compiler but need to be used in contexts that require threadsafety. This is
+/// needed to allow using JS API types (which usually involve raw pointers) in static initializers,
+/// when Servo guarantees through the use of OnceLock that only one thread will ever initialize
+/// the value.
+pub struct ForceThreadSafe<T>(pub T);
+
+unsafe impl<T> Sync for ForceThreadSafe<T> {}
+unsafe impl<T> Send for ForceThreadSafe<T> {}
+
+impl<T> From<T> for ForceThreadSafe<T> {
+    fn from(val: T) -> Self {
+        Self(val)
+    }
+}
+
+impl<T> std::ops::Deref for ForceThreadSafe<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        &self.0
+    }
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {

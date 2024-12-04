@@ -92,8 +92,6 @@ impl NonCallbackInterfaceObjectClass {
 pub type ConstructorClassHook =
     unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
 
-pub static DEFAULT_THROW: InterfaceConstructorBehavior = InterfaceConstructorBehavior::throw();
-
 /// The constructor behavior of a non-callback interface object.
 pub struct InterfaceConstructorBehavior(JSClassOps);
 
