@@ -10,7 +10,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, HandleValue};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use super::bindings::refcounted::Trusted;
 use super::bindings::root::MutNullableDom;
@@ -48,7 +48,7 @@ pub enum ReadRequest {
 #[allow(crown::unrooted_must_root)]
 pub struct TeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
-    chunk: RootedTraceableBox<Heap<JSVal>>,
+    chunk: Box<Heap<JSVal>>,
     tee_read_request: Dom<TeeReadRequest>,
 }
 
@@ -61,9 +61,7 @@ impl TeeReadRequestMicrotask {
 #[dom_struct]
 pub struct TeeReadRequest {
     stream: Dom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
     branch_1: MutNullableDom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
     branch_2: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
@@ -141,7 +139,7 @@ impl TeeReadRequest {
     pub fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         // Queue a microtask to perform the following steps:
         let tee_read_request_chunk = TeeReadRequestMicrotask {
-            chunk,
+            chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
         let global = self.stream.global();
@@ -155,7 +153,8 @@ impl TeeReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
-    pub fn chunk_steps(&self, chunk: &RootedTraceableBox<Heap<JSVal>>) {
+    #[allow(unsafe_code)]
+    pub fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>) {
         // Set readAgain to false.
         self.read_again.set(false);
         // Let chunk1 and chunk2 be chunk.
@@ -167,7 +166,12 @@ impl TeeReadRequest {
             let cx = GlobalScope::get_cx();
             // Let cloneResult be StructuredClone(chunk2).
             rooted!(in(*cx) let mut clone_result = UndefinedValue());
-            let data = structuredclone::write(cx, chunk2.handle(), None).unwrap();
+            let data = structuredclone::write(
+                cx,
+                unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
+                None,
+            )
+            .unwrap();
 
             // If cloneResult is an abrupt completion,
             if structuredclone::read(&self.stream.global(), data, clone_result.handle_mut())
@@ -190,11 +194,15 @@ impl TeeReadRequest {
 
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_1.[[controller]], chunk1).
         if !self.canceled_1.get() {
-            self.branch_1_default_controller_enqueue(chunk1.handle());
+            self.branch_1_default_controller_enqueue(unsafe {
+                SafeHandleValue::from_raw(chunk1.handle())
+            });
         }
         // If canceled_2 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_2.[[controller]], chunk2).
         if !self.canceled_2.get() {
-            self.branch_2_default_controller_enqueue(chunk2.handle());
+            self.branch_2_default_controller_enqueue(unsafe {
+                SafeHandleValue::from_raw(chunk2.handle())
+            });
         }
         // Set reading to false.
         self.reading.set(false);
@@ -279,7 +287,6 @@ impl TeeReadRequest {
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    #[allow(unsafe_code)]
     pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
@@ -344,7 +351,7 @@ struct ClosedPromiseRejectionHandler {
 impl Callback for ClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon rejection of reader.[[closedPromise]] with reason r,
-    fn callback(&self, _cx: SafeJSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         let branch_1_controller = self.branch_1_controller.root();
         let branch_2_controller = self.branch_1_controller.root();
 

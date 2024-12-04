@@ -703,6 +703,7 @@ impl ReadableStream {
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
         let reader = self.acquire_default_reader(CanGc::note())?;
+        self.set_reader(Some(&reader));
 
         // Let reading be false.
         let reading = Rc::new(Cell::new(false));
@@ -748,12 +749,12 @@ impl ReadableStream {
             branch_2.clone(),
             reading,
             read_again,
-            canceled_1,
-            canceled_2,
+            canceled_1.clone(),
+            canceled_2.clone(),
             clone_for_branch_2,
             reason_1.handle(),
             reason_2.handle(),
-            cancel_promise,
+            cancel_promise.clone(),
             TeeCancelAlgorithm::Cancel2Algorithm,
         ));
 
@@ -772,6 +773,15 @@ impl ReadableStream {
             QueuingStrategy::empty(),
             CanGc::note(),
         )));
+
+        // Upon rejection of reader.[[closedPromise]] with reason r,
+        reader.append_native_handler_to_closed_promise(
+            branch_1.clone(),
+            branch_2.clone(),
+            canceled_1,
+            canceled_2,
+            cancel_promise,
+        );
 
         // Return « branch_1, branch_2 ».
         Ok(vec![

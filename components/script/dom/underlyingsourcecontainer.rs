@@ -71,9 +71,7 @@ pub enum TeeCancelAlgorithm {
 pub struct TeeUnderlyingSource {
     reader: Dom<ReadableStreamDefaultReader>,
     stream: Dom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
     branch_1: MutNullableDom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
     branch_2: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
@@ -166,14 +164,6 @@ impl TeeUnderlyingSource {
                 Dom::from_ref(self),
             ),
         };
-
-        self.reader.append_native_handler_to_closed_promise(
-            self.branch_1.clone(),
-            self.branch_2.clone(),
-            self.canceled_1.clone(),
-            self.canceled_2.clone(),
-            self.cancel_promise.clone(),
-        );
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
         self.reader.read(read_request);
