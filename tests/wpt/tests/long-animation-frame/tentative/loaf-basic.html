@@ -12,16 +12,16 @@
 <script>
 
 promise_test(async t => {
-    await expect_long_frame(() => busy_wait(), t);
+    await expect_long_frame((t, busy_wait) => busy_wait(), t);
 }, 'A long busy wait is a long animation frame');
 
 promise_test(async t => {
-    await expect_long_frame(() => requestAnimationFrame(busy_wait), t);
+    await expect_long_frame((t, busy_wait) => requestAnimationFrame(busy_wait), t);
 }, 'A long busy wait in a requestAnimationFrame is a long animation frame');
 
 promise_test(async t => {
     const segment_duration = very_long_frame_duration / 2;
-    const entry = await expect_long_frame(async () => {
+    const entry = await expect_long_frame(async (t, busy_wait) => {
         busy_wait(segment_duration);
         await new Promise(resolve => requestAnimationFrame(() => {
             busy_wait(segment_duration)
@@ -35,7 +35,7 @@ promise_test(async t => {
 
 promise_test(async t => {
     const segment_duration = very_long_frame_duration / 3;
-    const entry = await expect_long_frame(async () => {
+    const entry = await expect_long_frame(async (t, busy_wait) => {
         const element = document.createElement("div");
         document.body.appendChild(element);
         t.add_cleanup(() => element.remove());

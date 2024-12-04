@@ -29,7 +29,7 @@ promise_test(async test => {
   // One window with DIP:isolate-and-credentialless. (experiment)
   const w_credentialless_token = token();
   const w_credentialless_url = same_origin + executor_path +
-    coep_credentialless + `&uuid=${w_credentialless_token}`;
+    dip_credentialless + `&uuid=${w_credentialless_token}`;
   const w_credentialless = window.open(w_credentialless_url);
   add_completion_callback(() => w_credentialless.close());
 
@@ -48,16 +48,12 @@ promise_test(async test => {
       const worker_token_2 = token();
 
       // Used to check for errors creating the DedicatedWorker.
-      const worker_error_1 = token();
-      const worker_error_2 = token();
+      const worker_error = token();
 
       const w_worker_src_1 = same_origin + executor_worker_path +
         coep_for_worker + `&uuid=${worker_token_1}`;
       send(w_control_token, `
-        new Worker("${w_worker_src_1}", {});
-        worker.onerror = () => {
-          send("${worker_error_1}", "Worker blocked");
-        }
+        const worker = new Worker("${w_worker_src_1}", {});
       `);
 
       const w_worker_src_2 = same_origin + executor_worker_path +
@@ -65,7 +61,7 @@ promise_test(async test => {
       send(w_credentialless_token, `
         const worker = new Worker("${w_worker_src_2}", {});
         worker.onerror = () => {
-          send("${worker_error_2}", "Worker blocked");
+          send("${worker_error}", "Worker blocked");
         }
       `);
 
@@ -82,16 +78,13 @@ promise_test(async test => {
         fetch("${request_url_2}", {mode: 'no-cors', credentials: 'include'});
       `);
 
-      const response_control = await Promise.race([
-        receive(worker_error_1),
-        receive(request_token_1).then(GetCookie)
-      ]);
+      const response_control = await receive(request_token_1).then(GetCookie);
       assert_equals(response_control,
         expected_cookies_control,
         "coep:none => ");
 
       const response_credentialless = await Promise.race([
-        receive(worker_error_2),
+        receive(worker_error),
         receive(request_token_2).then(GetCookie)
       ]);
       assert_equals(response_credentialless,
@@ -118,7 +111,7 @@ promise_test(async test => {
   dedicatedWorkerTest("cross-origin",
     cross_origin, dip_none,
     cookie_cross_origin,
-    "Worker blocked" // Owner's policy is credentialles, so we can't
+    "Worker blocked" // Owner's policy is credentialless, so we can't
                      // create a worker with coep_none.
   );
 

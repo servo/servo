@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: Compute Pressure Level 1 (https://w3c.github.io/compute-pressure/)
 
-enum PressureSource { "thermals", "cpu" };
+enum PressureSource { "cpu" };
 
 enum PressureState { "nominal", "fair", "serious", "critical" };
 

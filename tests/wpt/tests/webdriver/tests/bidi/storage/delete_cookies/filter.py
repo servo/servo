@@ -5,9 +5,9 @@ from webdriver.bidi.modules.storage import CookieFilter
 from . import assert_cookies_are_not_present
 from .. import (
     assert_cookie_is_set,
+    assert_partition_key,
     create_cookie,
     format_expiry_string,
-    get_default_partition_key,
     generate_expiry_date,
 )
 
@@ -52,9 +52,7 @@ async def test_filter(
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -103,9 +101,7 @@ async def test_filter_domain(
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -179,9 +175,7 @@ async def test_filter_expiry(
     result = await bidi_session.storage.delete_cookies(
         filter=CookieFilter(expiry=expiry_to_delete),
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -225,9 +219,7 @@ async def test_filter_name(bidi_session, new_tab, test_page, add_cookie, domain_
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -294,9 +286,7 @@ async def test_filter_same_site(
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -358,9 +348,7 @@ async def test_filter_secure(
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -425,9 +413,7 @@ async def test_filter_path(
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)
@@ -497,9 +483,7 @@ async def test_filter_http_only(
     result = await bidi_session.storage.delete_cookies(
         filter=filter,
     )
-    assert result == {
-        "partitionKey": (await get_default_partition_key(bidi_session))
-    }
+    await assert_partition_key(bidi_session, actual=result["partitionKey"])
 
     # Make sure that deleted cookies are not present.
     await assert_cookies_are_not_present(bidi_session, filter)

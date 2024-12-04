@@ -26,6 +26,9 @@ function test_scope_invalidation(script_element, callback_fn, description) {
 function assert_green(element) {
   assert_equals(getComputedStyle(element).backgroundColor, 'rgb(0, 128, 0)');
 }
+function assert_red(element) {
+  assert_equals(getComputedStyle(element).backgroundColor, 'rgb(255, 0, 0)');
+}
 function assert_not_green(element) {
   assert_equals(getComputedStyle(element).backgroundColor, 'rgb(0, 0, 0)');
 }
@@ -779,4 +782,91 @@ test_scope_invalidation(document.currentScript, () => {
   assert_green(e[7]);
 }, ':nth-child() in scope limit');
 
+</script>
+
+<template>
+  <style>
+    @scope (.a) {
+      .nomatch { background-color: green; }
+    }
+  </style>
+  <div id=wrapper>
+    <div class=a>
+      <div class=b></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  assert_not_green(b);
+  let scope_rule = main.querySelector('style').sheet.cssRules[0];
+  assert_true(scope_rule instanceof CSSScopeRule);
+  scope_rule.cssRules[0].selectorText = '.b';
+  assert_green(b);
+}, 'Modifying selectorText invalidates affected elements');
+</script>
+
+<template>
+  <style>
+    @scope (.a) {
+      .nomatch { background-color: green; }
+    }
+  </style>
+  <div id=wrapper>
+    <div class=a>
+      <div class=b></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  assert_not_green(b);
+  let scope_rule = main.querySelector('style').sheet.cssRules[0];
+  assert_true(scope_rule instanceof CSSScopeRule);
+  scope_rule.cssRules[0].selectorText = '> .b';
+  assert_green(b);
+}, 'Modifying selectorText invalidates affected elements (>)');
+</script>
+
+<template>
+  <style>
+    .a {
+      > .b, > .c {
+        background-color: green; /* Specificity: (0, 2, 0) */
+      }
+    }
+    @scope (.a.a) {
+      .nomatch1 {
+        background-color: red; /* Specificity: (0, 1, 0) */
+      }
+      .nomatch2 {
+        background-color: red; /* Specificity: (0, 1, 0) */
+      }
+    }
+  </style>
+  <div id=wrapper>
+    <div class=a>
+      <div class=b></div>
+      <div class=c></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let b = main.querySelector('.b');
+  let c = main.querySelector('.c');
+  assert_green(b);
+  assert_green(c);
+  let scope_rule = main.querySelector('style').sheet.cssRules[1];
+  assert_true(scope_rule instanceof CSSScopeRule);
+  // Note: relative selectors imply a :where(:scope) selector to the left,
+  // which is observably different from an implicit '&' selector through
+  // specificity.
+  scope_rule.cssRules[0].selectorText = '> .b'; /* Still (0, 1, 0) */
+  scope_rule.cssRules[1].selectorText = '& > .c'; /* (0, 3, 0) */
+  assert_green(b);
+  assert_red(c);
+}, 'Relative selectors set with selectorText are relative to :scope, not &');
 </script>

@@ -47,6 +47,12 @@
       test_computed_value('background-image',
         'cross-fade(calc(-200%) red, green)',
         'cross-fade(rgb(255, 0, 0) 0%, rgb(0, 128, 0))');
+
+      // The percentage here is not resolvable parse-time, but should always be 49%
+      // for all reasonable font sizes.
+      test_computed_value('background-image',
+        'cross-fade(calc(50% + 1% * sign(1em - 10000px)) red, green)',
+        'cross-fade(rgb(255, 0, 0) 49%, rgb(0, 128, 0))');
     </script>
   </body>
 </html>

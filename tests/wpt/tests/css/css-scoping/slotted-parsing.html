@@ -39,6 +39,8 @@
   // Allow tree-abiding pseudo elements after ::slotted
   test_valid_selector("::slotted(*)::before");
   test_valid_selector("::slotted(*)::after");
+  test_valid_selector("::slotted(*)::details-content");
+  test_valid_selector("::slotted(*)::file-selector-button");
   test_valid_selector("::slotted(*)::placeholder");
   test_valid_selector("::slotted(*)::marker");
 

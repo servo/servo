@@ -25,7 +25,7 @@ from .sourcefile import SourceFile
 from .typedata import TypeData
 
 
-CURRENT_VERSION: int = 8
+CURRENT_VERSION: int = 9
 
 
 class ManifestError(Exception):

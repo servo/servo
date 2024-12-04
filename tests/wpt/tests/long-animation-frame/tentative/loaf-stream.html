@@ -12,19 +12,19 @@
 <div id="log"></div>
 <script>
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await fetch("/common/dummy.xml");
     await response.body.getReader().read();
     busy_wait(very_long_frame_duration);
 }, "resolve", "ReadableStreamDefaultReader.read.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await fetch("/common/dummy.xml");
     await response.body.getReader({ mode: "byob" }).read(new Int32Array(1000));
     busy_wait(very_long_frame_duration);
 }, "resolve", "ReadableStreamBYOBReader.read.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await fetch("/common/dummy.xml");
     const {readable, writable} = new TransformStream({
       start() {},

@@ -13,7 +13,7 @@
 <div id="dummy"></div>
 <script>
 promise_test(async t => {
-  const [entry, script] = await expect_long_frame_with_script(t => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     const script_element = document.createElement("script");
     script_element.async = true;
     script_element.src = "resources/loaf-after-callback.js";
@@ -26,7 +26,7 @@ promise_test(async t => {
 }, "a callback inside a script block should not mask LoAFs that come afterwards")
 
 promise_test(async t => {
-  const [entry, script] = await expect_long_frame_with_script(t => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     const script_element = document.createElement("script");
     script_element.async = true;
     script_element.src = "resources/loaf-in-microtask-after-callback.js";

@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.error import MoveTargetOutOfBoundsException
+from webdriver.bidi.error import MoveTargetOutOfBoundsException, NoSuchFrameException
 from webdriver.bidi.modules.input import Actions, get_element_origin
 
 from tests.support.asserts import assert_move_to_coordinates
@@ -15,6 +15,34 @@ from . import (
 )
 
 pytestmark = pytest.mark.asyncio
+
+
+async def test_pointer_down_closes_browsing_context(
+    bidi_session, configuration, get_element, new_tab, inline
+):
+    url = inline("""<input onpointerdown="window.close()">close</input>""")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url,
+        wait="complete",
+    )
+
+    element = await get_element("input", context=new_tab)
+    origin = get_element_origin(element)
+
+    actions = Actions()
+    (
+        actions.add_pointer()
+        .pointer_move(0, 0, origin=origin)
+        .pointer_down(button=0)
+        .pause(250 * configuration["timeout_multiplier"])
+        .pointer_up(button=0)
+    )
+
+    with pytest.raises(NoSuchFrameException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=new_tab["context"]
+        )
 
 
 async def test_click_at_coordinates(bidi_session, top_context, load_static_test_page):

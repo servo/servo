@@ -84,4 +84,18 @@ test(function() {
     assert_equals(div.style.fontStretch, "50.01%");
     assert_equals(div.style.font, "");
 }, "Percentages which cannot be transformed into keywords should prevent the font shorthand from serializing, but not fontStretch");
+
+test(function() {
+    const div = document.getElementById("test");
+
+    // This isn't well-specified, but appears to be consistent across browsers.
+    div.style.fontStretch = "calc(50%)";
+    assert_equals(div.style.fontStretch, "calc(50%)");
+    assert_equals(div.style.font, "ultra-condensed medium serif");
+
+    div.style.fontStretch = "calc(50% + 25% * sign(100em - 1px))";
+    assert_equals(div.style.fontStretch, "calc(50% + 25% * sign(100em - 1px))");
+    assert_equals(div.style.font, "");
+}, "calc() transformation into keywords");
+
 </script>

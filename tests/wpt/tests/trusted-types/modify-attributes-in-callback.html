@@ -12,11 +12,13 @@
   // This is a regression test for https://g-issues.chromium.org/issues/333739948
   // The test should hold true for any browser that supports Trusted Types.
 
-  let target = "data-x";
+  let iframeAttributeRemovedInCallback = null;
   trustedTypes.createPolicy("default", {
     createHTML: (s, _, sink) => {
-      assert_equals(sink, 'HTMLIFrameElement srcdoc');
-      iframe.removeAttribute(target);
+      if (iframeAttributeRemovedInCallback) {
+        assert_equals(sink, 'HTMLIFrameElement srcdoc');
+        iframe.removeAttribute(iframeAttributeRemovedInCallback);
+      }
       return s;
     },
     createScript: (s) => {
@@ -29,8 +31,16 @@
     }
   });
 
+  function cleanUpIFrameTest() {
+    iframeAttributeRemovedInCallback = null;
+    iframe.setAttribute("srcdoc", "content");
+    iframe.setAttribute("data-x", "");
+  }
+
   test(t => {
     // Original bug report: Delete an attribute *before* the current one.
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "data-x";
     assert_equals(iframe.srcdoc, "content");
     assert_equals(iframe.getAttribute("onmouseover"), "");
     iframe.setAttribute("srcdoc", "alert(1)");
@@ -40,31 +50,55 @@
 
   test(t => {
     // Second case: Delete the exact attribute. It still gets set.
-    target = "srcdoc";
-    assert_equals(iframe.srcdoc, "alert(1)");
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "srcdoc";
+    assert_equals(iframe.srcdoc, "content");
     iframe.setAttribute("srcdoc", "new srcdoc value");
     assert_equals(iframe.srcdoc, "new srcdoc value");
   }, "Ensure the deleted attributes is modified.");
 
   test(t => {
-    div.toggleAttribute('onmouseover');
-    assert_equals(div.attributes.length, 2);
-    assert_equals(div.attributes.onmouseover.value, '');
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "data-x";
+    assert_equals(iframe.srcdoc, "content");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+    iframe.setAttributeNS(null, "srcdoc", "alert(1)");
+    assert_equals(iframe.srcdoc, "alert(1)");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+  }, "Ensure the right attributes are modified (setAttributeNS).");
+
+  test(t => {
+    t.add_cleanup(cleanUpIFrameTest);
+    iframeAttributeRemovedInCallback = "srcdoc";
+    assert_equals(iframe.srcdoc, "content");
+    iframe.setAttributeNS(null, "srcdoc", "new srcdoc value");
+    assert_equals(iframe.srcdoc, "new srcdoc value");
+  }, "Ensure the deleted attributes is modified (setAttributeNS).");
+
+  function cleanUpDivTest() {
     div.removeAttribute('onmouseover');
+  }
+  const expectedAttributeCount = 2; // id and onmouseover.
+
+  test(t => {
+    t.add_cleanup(cleanUpDivTest);
+    div.toggleAttribute('onmouseover');
+    assert_equals(div.attributes.length, expectedAttributeCount);
+    assert_equals(div.attributes.onmouseover.value, '');
   }, "Ensure toggleAttribute results in an empty attribute.");
 
   test(t => {
+    t.add_cleanup(cleanUpDivTest);
     div.setAttribute('onmouseover', 'foo');
-    assert_equals(div.attributes.length, 2);
+    assert_equals(div.attributes.length, expectedAttributeCount);
     assert_equals(div.attributes.onmouseover.value, 'foo');
-    div.removeAttribute('onmouseover');
   }, "Ensure setAttribute results in right attribute value.");
 
   test(t => {
+    t.add_cleanup(cleanUpDivTest);
     div.setAttributeNS(null, 'onmouseover', 'foo');
-    assert_equals(div.attributes.length, 2);
+    assert_equals(div.attributes.length, expectedAttributeCount);
     assert_equals(div.attributes.onmouseover.value, 'foo');
-    div.removeAttribute('onmouseover');
   }, "Ensure setAttributeNS results in right attribute value.");
 
 </script>

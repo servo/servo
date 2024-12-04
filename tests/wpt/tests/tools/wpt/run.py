@@ -816,9 +816,8 @@ class WebKitTestRunner(BrowserSetup):
             kwargs["binary"] = binary
 
 
-class WebKitGTKMiniBrowser(BrowserSetup):
-    name = "webkitgtk_minibrowser"
-    browser_cls = browser.WebKitGTKMiniBrowser
+class WebKitGlibBaseMiniBrowser(BrowserSetup):
+    """ Base class for WebKitGTKMiniBrowser and WPEWebKitMiniBrowser """
 
     def install(self, channel=None):
         if self.prompt_install(self.name):
@@ -838,8 +837,23 @@ class WebKitGTKMiniBrowser(BrowserSetup):
                 venv_path=self.venv.path, channel=kwargs["browser_channel"])
 
             if webdriver_binary is None:
-                raise WptrunError("Unable to find WebKitWebDriver in PATH")
+                raise WptrunError('Unable to find "%s" binary in PATH' % self.browser_cls.WEBDRIVER_BINARY_NAME)
             kwargs["webdriver_binary"] = webdriver_binary
+
+
+class WebKitGTKMiniBrowser(WebKitGlibBaseMiniBrowser):
+    name = "webkitgtk_minibrowser"
+    browser_cls = browser.WebKitGTKMiniBrowser
+
+
+class WPEWebKitMiniBrowser(WebKitGlibBaseMiniBrowser):
+    name = "wpewebkit_minibrowser"
+    browser_cls = browser.WPEWebKitMiniBrowser
+
+    def setup_kwargs(self, kwargs):
+        if kwargs["headless"]:
+            kwargs["binary_args"].append("--headless")
+        super().setup_kwargs(kwargs)
 
 
 class Epiphany(BrowserSetup):
@@ -883,6 +897,7 @@ product_setup = {
     "webkit": WebKit,
     "wktr": WebKitTestRunner,
     "webkitgtk_minibrowser": WebKitGTKMiniBrowser,
+    "wpewebkit_minibrowser": WPEWebKitMiniBrowser,
     "epiphany": Epiphany,
     "ladybird": Ladybird,
 }
@@ -961,7 +976,7 @@ def setup_wptrunner(venv, **kwargs):
 
     if kwargs["install_browser"]:
         logger.info("Installing browser")
-        kwargs["binary"] = setup_cls.install(channel=channel)
+        kwargs["binary"] = setup_cls.install(channel=kwargs["browser_channel"])
 
     setup_cls.setup(kwargs)
 

@@ -1,4 +1,4 @@
-// META: global=window,worker
+// META: global=window,worker,shadowrealm-in-window
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: timeout=long
@@ -11,6 +11,10 @@ idl_test(
   ['user-timing'],
   ['hr-time', 'performance-timeline', 'dom'],
   idl_array => {
+    if (self.GLOBAL.isShadowRealm()) {
+      return;
+    }
+
     try {
       performance.mark('test');
       performance.measure('test');

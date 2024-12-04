@@ -19,6 +19,8 @@ interface PerformanceLongAnimationFrameTiming : PerformanceEntry {
     [Default] object toJSON();
 };
 
+PerformanceLongAnimationFrameTiming includes PaintTimingMixin;
+
 enum ScriptInvokerType {
     "classic-script",
     "module-script",
