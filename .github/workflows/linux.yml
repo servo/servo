@@ -131,13 +131,10 @@ jobs:
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
-      - uses: actions/setup-python@v5
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
         with:
-          python-version: '3.10'
-      - name: Bootstrap Python
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        run: python3 -m pip install --upgrade pip
+          skip-python-setup: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
       - name: Bootstrap dependencies
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |

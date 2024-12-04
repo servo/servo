@@ -41,15 +41,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-macos
-      # Python 3.13 breaks wptrunner, so pin the version until
-      # web-platform-tests/wpt#48585 is fixed.
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Prep test environment
         run: |
           gtar -xzf target.tar.gz
-          python3 -m pip install --upgrade pip
           python3 ./mach bootstrap --skip-lints
       - name: Smoketest
         run: python3 ./mach smoketest --${{ inputs.profile }}

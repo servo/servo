@@ -31,9 +31,8 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.6
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Install taplo
         uses: baptiste0928/cargo-install@v3
         with:
@@ -46,8 +45,6 @@ jobs:
           locked: true
           # 0.16.2 requires Rust 1.81 or newer.
           version: '0.16.1'
-      - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
         run: |
           sudo apt update

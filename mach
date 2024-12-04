@@ -14,11 +14,10 @@ import sys
 
 # Destructure because version_info > max_ver is true when running the same version.
 ver = (sys.version_info[0], sys.version_info[1])
-min_ver = (3, 10)
-max_ver = (3, 12) # WPT does not support Python 3.13. See issue #34095.
-if ver < min_ver or ver > max_ver:
-    print("mach does not support python {0}.{1}, please install 3.{2} <= python <= 3.{3}" \
-        .format(ver[0], ver[1], min_ver[1], max_ver[1]))
+min_ver = (3, 9)
+if ver < min_ver:
+    print("mach requires at least version 3.{0} of Python. The version of Python installed in this system is {1}.{2}" \
+        .format(min_ver[1], ver[0], ver[1]))
     sys.exit(1)
 
 def main(args):
