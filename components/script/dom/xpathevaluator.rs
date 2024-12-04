@@ -62,6 +62,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         &self,
         expression: DOMString,
         _resolver: Option<Rc<XPathNSResolver>>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathExpression>> {
         let global = self.global();
         let window = global.as_window();
@@ -71,7 +72,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         Ok(XPathExpression::new(
             window,
             None,
-            CanGc::note(),
+            can_gc,
             parsed_expression,
         ))
     }
@@ -88,16 +89,18 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         _resolver: Option<Rc<XPathNSResolver>>,
         result_type: u16,
         result: Option<&XPathResult>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XPathResult>> {
         let global = self.global();
         let window = global.as_window();
         let parsed_expression = crate::xpath::parse(&expression_str).map_err(|_| Error::Syntax)?;
-        let expression = XPathExpression::new(window, None, CanGc::note(), parsed_expression);
+        let expression = XPathExpression::new(window, None, can_gc, parsed_expression);
         XPathExpressionMethods::<crate::DomTypeHolder>::Evaluate(
             &*expression,
             context_node,
             result_type,
             result,
+            can_gc,
         )
     }
 }

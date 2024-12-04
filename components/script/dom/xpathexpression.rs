@@ -54,6 +54,7 @@ impl XPathExpressionMethods<crate::DomTypeHolder> for XPathExpression {
         context_node: &Node,
         result_type_num: u16,
         _result: Option<&super::types::XPathResult>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<super::types::XPathResult>> {
         let result_type = XPathResultType::try_from(result_type_num)
             .map_err(|()| Error::Type("Invalid XPath result type".to_string()))?;
@@ -68,7 +69,7 @@ impl XPathExpressionMethods<crate::DomTypeHolder> for XPathExpression {
         Ok(XPathResult::new(
             window,
             None,
-            CanGc::note(),
+            can_gc,
             result_type,
             result_value.into(),
         ))

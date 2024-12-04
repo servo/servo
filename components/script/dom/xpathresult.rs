@@ -64,7 +64,7 @@ pub enum XPathResultValue {
     Nodeset(Vec<DomRoot<Node>>),
 }
 
-impl<'n> From<Value> for XPathResultValue {
+impl From<Value> for XPathResultValue {
     fn from(value: Value) -> Self {
         match value {
             Value::Boolean(b) => XPathResultValue::Boolean(b),
@@ -202,8 +202,8 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
     fn GetInvalidIteratorState(&self) -> Fallible<bool> {
         let is_iterator_invalid = self.iterator_invalid.get();
-        if is_iterator_invalid ||
-            matches!(
+        if is_iterator_invalid
+            || matches!(
                 self.result_type,
                 XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
             )
