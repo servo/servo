@@ -1657,7 +1657,7 @@ class PropertyDefiner:
             specs.append(f"&Box::leak(Box::new([\n{joinedCurrentSpecs}]))[..]\n")
             conds = ','.join(cond) if isinstance(cond, list) else cond
             prefableSpecs.append(
-                prefableTemplate % (f"&[{conds}]", f"&**{name}_specs.get().unwrap()", len(specs) - 1)
+                prefableTemplate % (f"&[{conds}]", f"**{name}_specs.get().unwrap()", len(specs) - 1)
             )
 
         joinedSpecs = ',\n'.join(specs)
@@ -1863,7 +1863,7 @@ class MethodDefiner(PropertyDefiner):
                 accessor = "None"
                 jitinfo = "ptr::null()"
             else:
-                selfHostedName = "0 as *const libc::c_char"
+                selfHostedName = "ptr::null()"
                 if m.get("methodInfo", True):
                     if m.get("returnsPromise", False):
                         exceptionToRejection = "true"
@@ -1970,11 +1970,11 @@ class AttrDefiner(PropertyDefiner):
             attr = attr['attr']
 
             if self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"):
-                return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
+                return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
                 accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}'
-                jitinfo = "0 as *const JSJitInfo"
+                jitinfo = "ptr::null()"
             else:
                 if attr.type.isPromise():
                     exceptionToRejection = "true"
@@ -1996,11 +1996,11 @@ class AttrDefiner(PropertyDefiner):
                 or (attr.readonly
                     and not attr.getExtendedAttribute("PutForwards")
                     and not attr.getExtendedAttribute("Replaceable"))):
-                return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
+                return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
                 accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}'
-                jitinfo = "0 as *const JSJitInfo"
+                jitinfo = "ptr::null()"
             else:
                 if attr.hasLegacyLenientThis():
                     accessor = "generic_lenient_setter"
@@ -2515,7 +2515,7 @@ static PrototypeClass: JSClass = JSClass {{
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS()
         ({slotCountStr} ) << JSCLASS_RESERVED_SLOTS_SHIFT,
-    cOps: 0 as *const _,
+    cOps: ptr::null(),
     spec: ptr::null(),
     ext: ptr::null(),
     oOps: ptr::null(),
@@ -2993,7 +2993,7 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
     ]
     for template, array in unforgeableMembers:
         if array.length() > 0:
-            unforgeables.append(CGGeneric(template % f"&**{array.variableName()}.get().unwrap()"))
+            unforgeables.append(CGGeneric(template % f"**{array.variableName()}.get().unwrap()"))
     return CGList(unforgeables, "\n")
 
 
@@ -3151,7 +3151,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}(cx, obj.handle(), &**{array.variableName()}.get().unwrap(), obj.handle());"
+        members = [f"{function}(cx, obj.handle(), **{array.variableName()}.get().unwrap(), obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
 
@@ -3334,8 +3334,8 @@ class CGCrossOriginProperties(CGThing):
 
             pub(crate) fn init_cross_origin_properties() {
                 assert!(CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
-                    attributes: &**sCrossOriginAttributes.get().unwrap(),
-                    methods: &**sCrossOriginMethods.get().unwrap(),
+                    attributes: **sCrossOriginAttributes.get().unwrap(),
+                    methods: **sCrossOriginMethods.get().unwrap(),
                 }.into()).is_ok(), "Cross origin properties already initialized");
             }
             """
@@ -3412,11 +3412,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             else:
                 proto = "JS_NewPlainObject(*cx)"
             if self.properties.static_methods.length():
-                methods = f"&**{self.properties.static_methods.variableName()}.get().unwrap()"
+                methods = f"**{self.properties.static_methods.variableName()}.get().unwrap()"
             else:
                 methods = "&[]"
             if self.descriptor.interface.hasConstants():
-                constants = "&**sConstants.get().unwrap()"
+                constants = "**sConstants.get().unwrap()"
             else:
                 constants = "&[]"
             id = MakeNativeName(name)
@@ -3438,7 +3438,7 @@ assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
             cName = str_to_cstr(name)
             return CGGeneric(f"""
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(cx, global, &**sConstants.get().unwrap(), {cName}, interface.handle_mut());
+create_callback_interface_object(cx, global, **sConstants.get().unwrap(), {cName}, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{name} as usize] = interface.get();
@@ -3481,7 +3481,7 @@ assert!(!prototype_proto.is_null());"""))
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
             if array.length():
-                properties[arrayName] = f"&**{array.variableName()}.get().unwrap()"
+                properties[arrayName] = f"**{array.variableName()}.get().unwrap()"
             else:
                 properties[arrayName] = "&[]"
 
