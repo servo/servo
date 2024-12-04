@@ -2107,6 +2107,7 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
+        let _realm = enter_realm(self);
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
             &mut *animation_frame_list,
