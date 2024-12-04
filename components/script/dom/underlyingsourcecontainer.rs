@@ -98,6 +98,7 @@ pub struct TeeUnderlyingSource {
 
 impl TeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         reader: Dom<ReadableStreamDefaultReader>,
         stream: Dom<ReadableStream>,

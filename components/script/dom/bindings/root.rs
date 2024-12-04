@@ -722,6 +722,7 @@ impl<T: DomObject> MallocSizeOf for MutNullableDom<T> {
 }
 
 impl<T: DomObject> Clone for MutNullableDom<T> {
+    #[allow(crown::unrooted_must_root)]
     fn clone(&self) -> Self {
         let inner = unsafe { &*self.ptr.get() };
         Self {

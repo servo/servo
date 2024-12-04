@@ -113,6 +113,7 @@ pub enum ReaderType {
 }
 
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
+#[allow(crown::unrooted_must_root)]
 fn create_readable_stream(
     global: &GlobalScope,
     underlying_source_type: UnderlyingSourceType,
@@ -693,6 +694,7 @@ impl ReadableStream {
         }
     }
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
+    #[allow(crown::unrooted_must_root)]
     fn default_tee(&self, clone_for_branch_2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
 

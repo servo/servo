@@ -45,6 +45,7 @@ pub enum ReadRequest {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
 pub struct TeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: RootedTraceableBox<Heap<JSVal>>,
@@ -82,6 +83,7 @@ pub struct TeeReadRequest {
 
 impl TeeReadRequest {
     #[allow(clippy::too_many_arguments)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         stream: Dom<ReadableStream>,
         branch_1: MutNullableDom<ReadableStream>,
@@ -603,6 +605,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
+    #[allow(crown::unrooted_must_root)]
     pub fn append_native_handler_to_closed_promise(
         &self,
         branch_1: MutNullableDom<ReadableStream>,
