@@ -84,7 +84,13 @@ stdenv.mkDerivation (androidEnvironment // {
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
-    (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
+
+    # Ensure the Python version is same as the one in `.python-version` file so
+    # that `uv` will just symlink to the one in nix store. Otherwise `uv` will
+    # download a pre-built binary that won't work on nix.
+    # FIXME: dbus python module needs to be installed into the virtual environment.
+    python312
+    uv
 
     # This pins gnumake to 4.3 since 4.4 breaks jobserver
     # functionality in mozjs and causes builds to be extremely
