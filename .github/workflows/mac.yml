@@ -77,18 +77,14 @@ jobs:
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      # Python 3.13 breaks wptrunner, so pin the version until
-      # web-platform-tests/wpt#48585 is fixed.
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.6
       - name: Install crown
         run: cargo install --path support/crown
       - name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip
           python3 ./mach bootstrap --skip-lints
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
