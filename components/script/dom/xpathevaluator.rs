@@ -50,6 +50,7 @@ impl XPathEvaluator {
 }
 
 impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
+    /// https://dom.spec.whatwg.org/#dom-xpathevaluator-xpathevaluator
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -58,6 +59,7 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         XPathEvaluator::new(window, proto, can_gc)
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-createexpression
     fn CreateExpression(
         &self,
         expression: DOMString,
@@ -77,11 +79,13 @@ impl XPathEvaluatorMethods<crate::DomTypeHolder> for XPathEvaluator {
         ))
     }
 
-    // Legacy: the spec tells us to just return `node_resolver` as-is
+    /// https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-creatensresolver
     fn CreateNSResolver(&self, node_resolver: &Node) -> DomRoot<Node> {
+        // Legacy: the spec tells us to just return `node_resolver` as-is
         DomRoot::from_ref(node_resolver)
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-evaluate
     fn Evaluate(
         &self,
         expression_str: DOMString,

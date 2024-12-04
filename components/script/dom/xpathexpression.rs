@@ -5,14 +5,13 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
-use super::types::XPathResult;
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::dom::xpathresult::XPathResultType;
+use crate::dom::xpathresult::{XPathResult, XPathResultType};
 use crate::script_runtime::CanGc;
 use crate::xpath::{evaluate_parsed_xpath, Expr};
 
@@ -49,13 +48,14 @@ impl XPathExpression {
 }
 
 impl XPathExpressionMethods<crate::DomTypeHolder> for XPathExpression {
+    /// https://dom.spec.whatwg.org/#dom-xpathexpression-evaluate
     fn Evaluate(
         &self,
         context_node: &Node,
         result_type_num: u16,
-        _result: Option<&super::types::XPathResult>,
+        _result: Option<&XPathResult>,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<super::types::XPathResult>> {
+    ) -> Fallible<DomRoot<XPathResult>> {
         let result_type = XPathResultType::try_from(result_type_num)
             .map_err(|()| Error::Type("Invalid XPath result type".to_string()))?;
 

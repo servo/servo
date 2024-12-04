@@ -139,10 +139,12 @@ impl XPathResult {
 }
 
 impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-resulttype
     fn ResultType(&self) -> u16 {
         self.result_type as u16
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-numbervalue
     fn GetNumberValue(&self) -> Fallible<f64> {
         match (&self.value, self.result_type) {
             (XPathResultValue::Number(n), XPathResultType::Number) => Ok(*n),
@@ -152,6 +154,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-stringvalue
     fn GetStringValue(&self) -> Fallible<DOMString> {
         match (&self.value, self.result_type) {
             (XPathResultValue::String(s), XPathResultType::String) => Ok(s.clone()),
@@ -161,6 +164,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-booleanvalue
     fn GetBooleanValue(&self) -> Fallible<bool> {
         match (&self.value, self.result_type) {
             (XPathResultValue::Boolean(b), XPathResultType::Boolean) => Ok(*b),
@@ -170,10 +174,9 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
-    /// Should error out if `result_type` isn't node-set compatible or if the DOM
-    /// has been mutated since evaluating the XPath expression.
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-iteratenext
     fn IterateNext(&self) -> Fallible<Option<DomRoot<Node>>> {
-        // TODO(vlindhol): observe if DOM has mutated => invalidate iterator and drop references
+        // TODO(vlindhol): actually set `iterator_invalid` somewhere
         if self.iterator_invalid.get() {
             return Err(Error::Range(
                 "Invalidated iterator for XPathResult, the DOM has mutated.".to_string(),
@@ -200,6 +203,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-invaliditeratorstate
     fn GetInvalidIteratorState(&self) -> Fallible<bool> {
         let is_iterator_invalid = self.iterator_invalid.get();
         if is_iterator_invalid
@@ -216,6 +220,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-snapshotlength
     fn GetSnapshotLength(&self) -> Fallible<u32> {
         match (&self.value, self.result_type) {
             (
@@ -228,6 +233,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-snapshotitem
     fn SnapshotItem(&self, index: u32) -> Fallible<Option<DomRoot<Node>>> {
         match (&self.value, self.result_type) {
             (
@@ -240,6 +246,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         }
     }
 
+    /// https://dom.spec.whatwg.org/#dom-xpathresult-singlenodevalue
     fn GetSingleNodeValue(&self) -> Fallible<Option<DomRoot<Node>>> {
         match (&self.value, self.result_type) {
             (
