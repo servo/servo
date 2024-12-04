@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
+use std::collections::HashSet;
 use std::{fmt, string};
 
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
@@ -11,7 +12,6 @@ use crate::dom::bindings::utils::AsVoidPtr;
 use crate::dom::node::Node;
 
 /// The primary types of values that an XPath expression returns as a result.
-#[derive(PartialEq)]
 pub enum Value {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
@@ -34,6 +34,47 @@ impl fmt::Debug for Value {
 
 pub fn str_to_num(s: &str) -> f64 {
     s.trim().parse().unwrap_or(f64::NAN)
+}
+
+/// Helper for PartialEq<Value> implementations
+fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
+    nodes
+        .iter()
+        .map(|n| n.GetTextContent().unwrap_or_default().to_string())
+        .collect()
+}
+
+/// Helper for PartialEq<Value> implementations
+fn num_vals(nodes: &[DomRoot<Node>]) -> Vec<f64> {
+    nodes
+        .iter()
+        .map(|n| Value::String(n.GetTextContent().unwrap_or_default().into()).number())
+        .collect()
+}
+
+impl PartialEq<Value> for Value {
+    fn eq(&self, other: &Value) -> bool {
+        match (self, other) {
+            (Value::Nodeset(left_nodes), Value::Nodeset(right_nodes)) => {
+                let left_strings = str_vals(left_nodes);
+                let right_strings = str_vals(right_nodes);
+                !left_strings.is_disjoint(&right_strings)
+            },
+            (&Value::Nodeset(ref nodes), &Value::Number(val))
+            | (&Value::Number(val), &Value::Nodeset(ref nodes)) => {
+                let numbers = num_vals(nodes);
+                numbers.iter().any(|n| *n == val)
+            },
+            (&Value::Nodeset(ref nodes), &Value::String(ref val))
+            | (&Value::String(ref val), &Value::Nodeset(ref nodes)) => {
+                let strings = str_vals(nodes);
+                strings.contains(val)
+            },
+            (&Value::Boolean(_), _) | (_, &Value::Boolean(_)) => self.boolean() == other.boolean(),
+            (&Value::Number(_), _) | (_, &Value::Number(_)) => self.number() == other.number(),
+            _ => self.string() == other.string(),
+        }
+    }
 }
 
 impl Value {

@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
 use std::fmt;
 
 use html5ever::QualName;
@@ -146,48 +145,9 @@ impl Evaluatable for Expr {
                 let left_val = left.evaluate(context)?;
                 let right_val = right.evaluate(context)?;
 
-                fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
-                    nodes
-                        .iter()
-                        .map(|n| n.GetTextContent().unwrap_or_default().to_string())
-                        .collect()
-                }
-
-                fn num_vals(nodes: &[DomRoot<Node>]) -> Vec<f64> {
-                    nodes
-                        .iter()
-                        .map(|n| {
-                            Value::String(n.GetTextContent().unwrap_or_default().into()).number()
-                        })
-                        .collect()
-                }
-
-                let is_equal = match (&left_val, &right_val) {
-                    (Value::Nodeset(left_nodes), Value::Nodeset(right_nodes)) => {
-                        let left_strings = str_vals(left_nodes);
-                        let right_strings = str_vals(right_nodes);
-                        !left_strings.is_disjoint(&right_strings)
-                    },
-                    (&Value::Nodeset(ref nodes), &Number(val)) |
-                    (&Number(val), &Value::Nodeset(ref nodes)) => {
-                        let numbers = num_vals(nodes);
-                        numbers.iter().any(|n| *n == val)
-                    },
-                    (&Value::Nodeset(ref nodes), &Value::String(ref val)) |
-                    (&Value::String(ref val), &Value::Nodeset(ref nodes)) => {
-                        let strings = str_vals(nodes);
-                        strings.contains(val)
-                    },
-                    (&Boolean(_), _) | (_, &Boolean(_)) => {
-                        left_val.boolean() == right_val.boolean()
-                    },
-                    (&Number(_), _) | (_, &Number(_)) => left_val.number() == right_val.number(),
-                    _ => left_val.string() == right_val.string(),
-                };
-
                 let v = match equality_op {
-                    EqualityOp::Eq => is_equal,
-                    EqualityOp::NotEq => !is_equal,
+                    EqualityOp::Eq => left_val == right_val,
+                    EqualityOp::NotEq => left_val != right_val,
                 };
 
                 Ok(Boolean(v))
@@ -306,10 +266,10 @@ impl Evaluatable for PathExpr {
     }
 
     fn is_primitive(&self) -> bool {
-        !self.is_absolute &&
-            !self.is_descendant &&
-            self.steps.len() == 1 &&
-            self.steps[0].is_primitive()
+        !self.is_absolute
+            && !self.is_descendant
+            && self.steps.len() == 1
+            && self.steps[0].is_primitive()
     }
 }
 
