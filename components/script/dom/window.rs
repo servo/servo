@@ -1981,6 +1981,7 @@ impl Window {
         let mut issued_reflow = false;
         let condition = self.Document().needs_reflow();
         if !for_display || condition.is_some() {
+            debug!("Reflowing document ({:?})", self.pipeline_id());
             issued_reflow = self.force_reflow(reflow_goal, reason, condition);
 
             // We shouldn't need a reflow immediately after a
@@ -1998,8 +1999,8 @@ impl Window {
             );
         } else {
             debug!(
-                "Document doesn't need reflow - skipping it (reason {:?})",
-                reason
+                "Document ({:?}) doesn't need reflow - skipping it (reason {reason:?})",
+                self.pipeline_id()
             );
         }
 

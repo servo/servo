@@ -2442,6 +2442,12 @@ impl Document {
         assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
 
+        // Document load is a rendering opportunity.
+        //
+        // TODO(mrobinson): Is it though? Maybe this should be more dependent on what the
+        // results of firing the event are.
+        ScriptThread::note_rendering_opportunity(self.window().pipeline_id());
+
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
