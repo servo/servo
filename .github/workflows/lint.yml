@@ -55,6 +55,6 @@ jobs:
       # TODO: Do GitHub anotaions
       - name: Clippy
         run: |
-          python3 ./mach cargo-clippy --use-crown --locked -- -- --deny warnings
+          python3 ./mach clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all
