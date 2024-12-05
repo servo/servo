@@ -7293,7 +7293,8 @@ class CGDictionary(CGThing):
 class CGInitAllStatics(CGAbstractMethod):
     def __init__(self, config):
         docs = "Initialize the static data used by the SpiderMonkey DOM bindings to implement JS interfaces."
-        descriptors = config.getDescriptors()
+        descriptors = (config.getDescriptors(isCallback=False, register=True) +
+                       config.getDescriptors(isCallback=True, hasInterfaceObject=True, register=True))
         CGAbstractMethod.__init__(self, None, 'InitAllStatics', 'void', [],
                                   pub=True, docs=docs)
         self.descriptors = descriptors
@@ -7301,8 +7302,8 @@ class CGInitAllStatics(CGAbstractMethod):
     def definition_body(self):
         return CGList([
             CGGeneric(f"    Bindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
-                      "::init_statics();\n")
-            for desc in self.descriptors if desc.register and desc.interface.identifier.name != "EventListener"
+                      "::init_statics();")
+            for desc in self.descriptors
         ], "\n")
 
 
