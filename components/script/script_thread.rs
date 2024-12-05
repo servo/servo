@@ -1657,8 +1657,10 @@ impl ScriptThread {
                 document.react_to_environment_changes()
             }
 
-            // Update animations and send events.
-            self.update_animations_and_send_events(can_gc);
+            // > 11. For each doc of docs, update animations and send events for doc, passing
+            // > in relative high resolution time given frameTimestamp and doc's relevant
+            // > global object as the timestamp [WEBANIMATIONS]
+            document.update_animations_and_send_events(can_gc);
 
             // TODO(#31866): Implement "run the fullscreen steps" from
             // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
@@ -1666,8 +1668,12 @@ impl ScriptThread {
             // TODO(#31868): Implement the "context lost steps" from
             // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
-            // Run the animation frame callbacks.
-            document.tick_all_animations(should_run_rafs, can_gc);
+            // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
+            // > in the relative high resolution time given frameTimestamp and doc's
+            // > relevant global object as the timestamp.
+            if should_run_rafs {
+                document.run_the_animation_frame_callbacks(can_gc);
+            }
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);
@@ -2019,22 +2025,6 @@ impl ScriptThread {
         }
 
         true
-    }
-
-    // Perform step 7.10 from https://html.spec.whatwg.org/multipage/#event-loop-processing-model.
-    // Described at: https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events
-    fn update_animations_and_send_events(&self, can_gc: CanGc) {
-        for (_, document) in self.documents.borrow().iter() {
-            document.update_animation_timeline();
-            document.maybe_mark_animating_nodes_as_dirty();
-        }
-
-        for (_, document) in self.documents.borrow().iter() {
-            let _realm = enter_realm(&*document);
-            document
-                .animations()
-                .send_pending_events(document.window(), can_gc);
-        }
     }
 
     fn categorize_msg(&self, msg: &MixedMessage) -> ScriptThreadEventCategory {

@@ -180,7 +180,7 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{NetworkListener, PreInvoke};
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
@@ -2051,7 +2051,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
-    pub fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
+    pub(crate) fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
@@ -2086,7 +2086,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
-    pub fn cancel_animation_frame(&self, ident: u32) {
+    pub(crate) fn cancel_animation_frame(&self, ident: u32) {
         let mut list = self.animation_frame_list.borrow_mut();
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == ident) {
             pair.1 = None;
@@ -2094,7 +2094,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
+    pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
             &mut *animation_frame_list,
@@ -3444,29 +3444,6 @@ impl Document {
         }
     }
 
-    /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.
-    pub fn note_pending_animation_tick(&self, tick_type: AnimationTickType) {
-        self.pending_animation_ticks.borrow_mut().extend(tick_type);
-    }
-
-    /// Whether this document has received an animation tick for rafs.
-    pub fn has_received_raf_tick(&self) -> bool {
-        self.pending_animation_ticks
-            .borrow()
-            .contains(AnimationTickType::REQUEST_ANIMATION_FRAME)
-    }
-
-    /// As part of a `update_the_rendering` task, tick all pending animations.
-    pub fn tick_all_animations(&self, should_run_rafs: bool, can_gc: CanGc) {
-        let tick_type = mem::take(&mut *self.pending_animation_ticks.borrow_mut());
-        if should_run_rafs {
-            self.run_the_animation_frame_callbacks(can_gc);
-        }
-        if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
-            self.maybe_mark_animating_nodes_as_dirty();
-        }
-    }
-
     /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
     pub fn note_pending_compositor_event(&self, event: CompositorEvent) {
         let mut pending_compositor_events = self.pending_compositor_events.borrow_mut();
@@ -4156,22 +4133,20 @@ impl Document {
             .collect()
     }
 
-    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
-        self.animation_timeline.borrow_mut().advance_specific(delta);
-        let current_timeline_value = self.current_animation_timeline_value();
-        self.animations
-            .borrow()
-            .update_for_new_timeline_value(&self.window, current_timeline_value);
+    /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.
+    pub(crate) fn note_pending_animation_tick(&self, tick_type: AnimationTickType) {
+        self.pending_animation_ticks.borrow_mut().extend(tick_type);
     }
 
-    pub(crate) fn update_animation_timeline(&self) {
-        // Only update the time if it isn't being managed by a test.
-        if !pref!(layout.animations.test.enabled) {
-            self.animation_timeline.borrow_mut().update();
-        }
+    /// Whether this document has received an animation tick for rafs.
+    pub(crate) fn has_received_raf_tick(&self) -> bool {
+        self.pending_animation_ticks
+            .borrow()
+            .contains(AnimationTickType::REQUEST_ANIMATION_FRAME)
+    }
 
-        // We still want to update the animations, because our timeline
-        // value might have been advanced previously via the TestBinding.
+    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
+        self.animation_timeline.borrow_mut().advance_specific(delta);
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
             .borrow()
@@ -4206,6 +4181,35 @@ impl Document {
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         self.animations.borrow().cancel_animations_for_node(node);
+    }
+
+    /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
+    pub(crate) fn update_animations_and_send_events(&self, can_gc: CanGc) {
+        // Only update the time if it isn't being managed by a test.
+        if !pref!(layout.animations.test.enabled) {
+            self.animation_timeline.borrow_mut().update();
+        }
+
+        // > 1. Update the current time of all timelines associated with doc passing now
+        // > as the timestamp.
+        // > 2. Remove replaced animations for doc.
+        //
+        // We still want to update the animations, because our timeline
+        // value might have been advanced previously via the TestBinding.
+        let current_timeline_value = self.current_animation_timeline_value();
+        self.animations
+            .borrow()
+            .update_for_new_timeline_value(&self.window, current_timeline_value);
+        self.maybe_mark_animating_nodes_as_dirty();
+
+        // > 3. Perform a microtask checkpoint.
+        self.window()
+            .upcast::<GlobalScope>()
+            .perform_a_microtask_checkpoint(can_gc);
+
+        // Steps 4 through 7 occur inside `send_pending_events().`
+        let _realm = enter_realm(self);
+        self.animations().send_pending_events(self.window(), can_gc);
     }
 
     pub(crate) fn will_declaratively_refresh(&self) -> bool {

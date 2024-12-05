@@ -457,7 +457,12 @@ impl Animations {
             });
     }
 
+    /// An implementation of the final steps of
+    /// <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
     pub(crate) fn send_pending_events(&self, window: &Window, can_gc: CanGc) {
+        // > 4. Let events to dispatch be a copy of doc’s pending animation event queue.
+        // > 5. Clear doc’s pending animation event queue.
+        //
         // Take all of the events here, in case sending one of these events
         // triggers adding new events by forcing a layout.
         let events = std::mem::take(&mut *self.pending_events.borrow_mut());
@@ -465,6 +470,18 @@ impl Animations {
             return;
         }
 
+        // > 6. Perform a stable sort of the animation events in events to dispatch as follows:
+        // >    1. Sort the events by their scheduled event time such that events that were
+        // >       scheduled to occur earlier sort before events scheduled to occur later, and
+        // >       events whose scheduled event time is unresolved sort before events with a
+        // >       resolved scheduled event time.
+        // >    2. Within events with equal scheduled event times, sort by their composite
+        // >       order.
+        //
+        // TODO: Sorting of animation events isn't done yet.
+
+        // 7. Dispatch each of the events in events to dispatch at their corresponding
+        // target using the order established in the previous step.
         for event in events.into_iter() {
             // We root the node here to ensure that sending this event doesn't
             // unroot it as a side-effect.
