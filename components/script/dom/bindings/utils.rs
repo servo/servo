@@ -7,6 +7,7 @@
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr::NonNull;
+use std::sync::OnceLock;
 use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
@@ -53,16 +54,28 @@ use crate::script_runtime::JSContext as SafeJSContext;
 /// needed to allow using JS API types (which usually involve raw pointers) in static initializers,
 /// when Servo guarantees through the use of OnceLock that only one thread will ever initialize
 /// the value.
-pub struct ForceThreadSafe<T>(pub T);
+struct ForceThreadSafe<T>(pub T);
+
+/// A OnceLock wrapping a type that is not considered type-safe by the Rust compiler, but can
+/// will be used in a type-safe manner.
+pub struct ThreadUnsafeOnceLock<T>(OnceLock<ForceThreadSafe<T>>);
+
+impl<T> ThreadUnsafeOnceLock<T> {
+    pub const fn new() -> Self {
+        Self(OnceLock::new())
+    }
+
+    pub fn set(&self, val: T) {
+        assert!(self.0.set(ForceThreadSafe(val)).is_ok());
+    }
+
+    pub fn get(&self) -> &T {
+        &((self.0.get().unwrap()).0)
+    }
+}
 
 unsafe impl<T> Sync for ForceThreadSafe<T> {}
 unsafe impl<T> Send for ForceThreadSafe<T> {}
-
-impl<T> From<T> for ForceThreadSafe<T> {
-    fn from(val: T) -> Self {
-        Self(val)
-    }
-}
 
 impl<T> std::ops::Deref for ForceThreadSafe<T> {
     type Target = T;

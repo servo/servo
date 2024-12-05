@@ -6,7 +6,6 @@
 pub mod base {
     pub use std::ptr;
     pub use std::rc::Rc;
-    pub use std::sync::OnceLock;
 
     pub use js::error::throw_type_error;
     pub use js::jsapi::{
@@ -41,7 +40,7 @@ pub mod base {
     pub use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub use crate::dom::bindings::trace::RootedTraceableBox;
     pub use crate::dom::bindings::utils::{
-        get_dictionary_property, set_dictionary_property, ForceThreadSafe,
+        get_dictionary_property, set_dictionary_property, ThreadUnsafeOnceLock,
     };
     pub use crate::dom::globalscope::GlobalScope;
     pub use crate::script_runtime::JSContext as SafeJSContext;
