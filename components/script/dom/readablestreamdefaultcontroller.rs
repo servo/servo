@@ -516,7 +516,7 @@ impl ReadableStreamDefaultController {
 
         // Let result be the result of performing this.[[cancelAlgorithm]], passing reason.
         let result = underlying_source
-            .call_cancel_algorithm(reason)
+            .call_cancel_algorithm(reason, can_gc)
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
                 promise.resolve_native(&());

@@ -379,6 +379,7 @@ impl ReadableStreamDefaultReader {
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
+        can_gc: CanGc,
     ) {
         let branch_1_controller = branch_1
             .get()
@@ -405,7 +406,7 @@ impl ReadableStreamDefaultReader {
 
         self.closed_promise
             .borrow()
-            .append_native_handler(&handler, comp, CanGc::note());
+            .append_native_handler(&handler, comp, can_gc);
     }
 }
 

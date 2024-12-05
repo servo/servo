@@ -31,8 +31,8 @@ pub struct TeeReadRequestMicrotask {
 }
 
 impl TeeReadRequestMicrotask {
-    pub fn microtask_chunk_steps(&self) {
-        self.tee_read_request.chunk_steps(&self.chunk)
+    pub fn microtask_chunk_steps(&self, can_gc: CanGc) {
+        self.tee_read_request.chunk_steps(&self.chunk, can_gc)
     }
 }
 
@@ -72,7 +72,6 @@ impl TeeReadRequest {
         cancel_promise: Rc<Promise>,
         tee_underlying_source: Dom<TeeUnderlyingSource>,
     ) -> Self {
-        println!("Branch 1: {:?}", branch_1.get().is_some());
         TeeReadRequest {
             reflector_: Reflector::new(),
             stream,
@@ -128,7 +127,7 @@ impl TeeReadRequest {
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[allow(unsafe_code)]
-    pub fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>) {
+    pub fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
         // Set readAgain to false.
         self.read_again.set(false);
         // Let chunk1 and chunk2 be chunk.
@@ -154,7 +153,7 @@ impl TeeReadRequest {
                 // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
                 self.branch_2_default_controller_error(clone_result.handle());
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
-                self.stream_cancel(clone_result.handle(), CanGc::note());
+                self.stream_cancel(clone_result.handle(), can_gc);
                 // Return.
                 return;
             } else {
@@ -164,15 +163,17 @@ impl TeeReadRequest {
         }
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_1.[[controller]], chunk1).
         if !self.canceled_1.get() {
-            self.branch_1_default_controller_enqueue(unsafe {
-                SafeHandleValue::from_raw(chunk1.handle())
-            });
+            self.branch_1_default_controller_enqueue(
+                unsafe { SafeHandleValue::from_raw(chunk1.handle()) },
+                can_gc,
+            );
         }
         // If canceled_2 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_2.[[controller]], chunk2).
         if !self.canceled_2.get() {
-            self.branch_2_default_controller_enqueue(unsafe {
-                SafeHandleValue::from_raw(chunk2.handle())
-            });
+            self.branch_2_default_controller_enqueue(
+                unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
+                can_gc,
+            );
         }
         // Set reading to false.
         self.reading.set(false);
@@ -205,23 +206,23 @@ impl TeeReadRequest {
     }
     /// Call into enqueue of the default controller of branch_1,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub fn branch_1_default_controller_enqueue(&self, chunk: SafeHandleValue) {
+    pub fn branch_1_default_controller_enqueue(&self, chunk: SafeHandleValue, can_gc: CanGc) {
         let _ = self
             .branch_1
             .get()
             .expect("branch_1 must be set")
             .get_default_controller()
-            .enqueue(GlobalScope::get_cx(), chunk, CanGc::note());
+            .enqueue(GlobalScope::get_cx(), chunk, can_gc);
     }
     /// Call into enqueue of the default controller of branch_2,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub fn branch_2_default_controller_enqueue(&self, chunk: SafeHandleValue) {
+    pub fn branch_2_default_controller_enqueue(&self, chunk: SafeHandleValue, can_gc: CanGc) {
         let _ = self
             .branch_2
             .get()
             .expect("branch_2 must be set")
             .get_default_controller()
-            .enqueue(GlobalScope::get_cx(), chunk, CanGc::note());
+            .enqueue(GlobalScope::get_cx(), chunk, can_gc);
     }
     /// Call into close of the default controller of branch_1,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>

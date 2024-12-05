@@ -696,14 +696,18 @@ impl ReadableStream {
     }
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     #[allow(crown::unrooted_must_root)]
-    fn default_tee(&self, clone_for_branch_2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn default_tee(
+        &self,
+        clone_for_branch_2: bool,
+        can_gc: CanGc,
+    ) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
 
         // Assert: cloneForBranch2 is a boolean.
         let clone_for_branch_2 = Rc::new(Cell::new(clone_for_branch_2));
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
-        let reader = self.acquire_default_reader(CanGc::note())?;
+        let reader = self.acquire_default_reader(can_gc)?;
         self.set_reader(Some(&reader));
 
         // Let reading be false.
@@ -725,7 +729,7 @@ impl ReadableStream {
         // Let branch2 be undefined.
         let branch_2 = MutNullableDom::new(None);
         // Let cancelPromise be a new promise.
-        let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
+        let cancel_promise = Promise::new(&self.reflector_.global(), can_gc);
 
         let underlying_source_type_branch_1 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
             Dom::from_ref(&reader),
@@ -764,7 +768,7 @@ impl ReadableStream {
             &self.reflector_.global(),
             underlying_source_type_branch_1,
             QueuingStrategy::empty(),
-            CanGc::note(),
+            can_gc,
         )));
 
         // Set branch_2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
@@ -772,7 +776,7 @@ impl ReadableStream {
             &self.reflector_.global(),
             underlying_source_type_branch_2,
             QueuingStrategy::empty(),
-            CanGc::note(),
+            can_gc,
         )));
 
         // Upon rejection of reader.[[closedPromise]] with reason r,
@@ -782,6 +786,7 @@ impl ReadableStream {
             canceled_1,
             canceled_2,
             cancel_promise,
+            can_gc,
         );
 
         // Return « branch_1, branch_2 ».
@@ -792,14 +797,18 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>
-    fn tee(&self, clone_for_branch_2: bool) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn tee(
+        &self,
+        clone_for_branch_2: bool,
+        can_gc: CanGc,
+    ) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Assert: stream implements ReadableStream.
         // Assert: cloneForBranch2 is a boolean.
 
         match self.controller {
             ControllerType::Default(ref _controller) => {
                 // Return ? ReadableStreamDefaultTee(stream, cloneForBranch2).
-                self.default_tee(clone_for_branch_2)
+                self.default_tee(clone_for_branch_2, can_gc)
             },
             ControllerType::Byte(ref _controller) => {
                 // If stream.[[controller]] implements ReadableByteStreamController,
@@ -933,9 +942,9 @@ impl ReadableStreamMethods for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-tee>
-    fn Tee(&self) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+    fn Tee(&self, can_gc: CanGc) -> Fallible<Vec<DomRoot<ReadableStream>>> {
         // Return ? ReadableStreamTee(this, false).
-        self.tee(false)
+        self.tee(false, can_gc)
     }
 }
 

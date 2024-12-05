@@ -108,6 +108,7 @@ impl UnderlyingSourceContainer {
     pub fn call_cancel_algorithm(
         &self,
         reason: SafeHandleValue,
+        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
             UnderlyingSourceType::Js(source, this_obj) => {
@@ -125,7 +126,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(tee_underlyin_source) => {
                 // Call the cancel algorithm for the appropriate branch.
-                tee_underlyin_source.cancel_algorithm(reason)
+                tee_underlyin_source.cancel_algorithm(reason, can_gc)
             },
             _ => None,
         }

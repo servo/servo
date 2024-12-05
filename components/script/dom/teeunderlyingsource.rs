@@ -148,7 +148,11 @@ impl TeeUnderlyingSource {
     /// Let cancel1Algorithm be the following steps, taking a reason argument
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
-    pub fn cancel_algorithm(&self, reason: SafeHandleValue) -> Option<Result<Rc<Promise>, Error>> {
+    pub fn cancel_algorithm(
+        &self,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Option<Result<Rc<Promise>, Error>> {
         match self.tee_cancel_algorithm {
             TeeCancelAlgorithm::Cancel1Algorithm => {
                 // Set canceled_1 to true.
@@ -160,7 +164,7 @@ impl TeeUnderlyingSource {
                     // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
 
                     // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
-                    let _cancel_result = self.stream.cancel(reason, CanGc::note());
+                    let _cancel_result = self.stream.cancel(reason, can_gc);
                     // Resolve cancelPromise with cancelResult.
                 }
                 // Return cancelPromise.
@@ -176,7 +180,7 @@ impl TeeUnderlyingSource {
                     // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
 
                     // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
-                    let _cancel_result = self.stream.cancel(reason, CanGc::note());
+                    let _cancel_result = self.stream.cancel(reason, can_gc);
                     // Resolve cancelPromise with cancelResult.
                 }
                 // Return cancelPromise.
