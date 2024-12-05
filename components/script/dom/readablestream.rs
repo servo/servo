@@ -209,8 +209,8 @@ impl ReadableStream {
             UnderlyingSourceType::Memory(bytes.len()),
             can_gc,
         );
-        stream.enqueue_native(bytes, can_gc);
-        stream.close();
+        stream.enqueue_native(bytes);
+        stream.close_native();
         stream
     }
 
@@ -297,12 +297,12 @@ impl ReadableStream {
     }
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
-    pub fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
+    pub fn enqueue_native(&self, bytes: Vec<u8>) {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .enqueue_native(bytes, can_gc),
+                .enqueue_native(bytes),
             _ => unreachable!(
                 "Enqueueing chunk to a stream from Rust on other than default controller"
             ),
@@ -424,7 +424,9 @@ impl ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    panic!("Attempt to read stream chunk without having first acquired a reader.");
+                    unreachable!(
+                        "Attempt to read stream chunk without having first acquired a reader."
+                    );
                 };
                 reader.Read(can_gc)
             },
@@ -442,7 +444,7 @@ impl ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    panic!("Attempt to stop reading without having first acquired a reader.");
+                    unreachable!("Attempt to stop reading without having first acquired a reader.");
                 };
                 reader.release();
             },
@@ -746,13 +748,18 @@ impl ReadableStreamMethods for ReadableStream {
         assert!(options.mode.unwrap() == ReadableStreamReaderMode::Byob);
 
         // 3. Return ? AcquireReadableStreamBYOBReader(this).
-        todo!();
+        Err(Error::Type(
+            "AcquireReadableStreamBYOBReader is not implemented".to_owned(),
+        ))
     }
 }
 
 #[allow(unsafe_code)]
 /// Get the `done` property of an object that a read promise resolved to.
 pub fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> Result<bool, Error> {
+    if !v.is_object() {
+        return Err(Error::Type("Unknown format for done property.".to_string()));
+    }
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut done = UndefinedValue());
@@ -771,6 +778,11 @@ pub fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> Result<b
 #[allow(unsafe_code)]
 /// Get the `value` property of an object that a read promise resolved to.
 pub fn get_read_promise_bytes(cx: SafeJSContext, v: &SafeHandleValue) -> Result<Vec<u8>, Error> {
+    if !v.is_object() {
+        return Err(Error::Type(
+            "Unknown format for for bytes read.".to_string(),
+        ));
+    }
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut bytes = UndefinedValue());

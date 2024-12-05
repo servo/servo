@@ -446,12 +446,12 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+    pub fn stream_chunk(&self, chunk: Vec<u8>) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.body_stream.get() {
-            body.enqueue_native(chunk, can_gc);
+            body.enqueue_native(chunk);
         }
     }
 
