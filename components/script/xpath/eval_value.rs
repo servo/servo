@@ -60,13 +60,13 @@ impl PartialEq<Value> for Value {
                 let right_strings = str_vals(right_nodes);
                 !left_strings.is_disjoint(&right_strings)
             },
-            (&Value::Nodeset(ref nodes), &Value::Number(val))
-            | (&Value::Number(val), &Value::Nodeset(ref nodes)) => {
+            (&Value::Nodeset(ref nodes), &Value::Number(val)) |
+            (&Value::Number(val), &Value::Nodeset(ref nodes)) => {
                 let numbers = num_vals(nodes);
                 numbers.iter().any(|n| *n == val)
             },
-            (&Value::Nodeset(ref nodes), &Value::String(ref val))
-            | (&Value::String(ref val), &Value::Nodeset(ref nodes)) => {
+            (&Value::Nodeset(ref nodes), &Value::String(ref val)) |
+            (&Value::String(ref val), &Value::Nodeset(ref nodes)) => {
                 let strings = str_vals(nodes);
                 strings.contains(val)
             },

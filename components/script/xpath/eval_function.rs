@@ -3,9 +3,52 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use super::context::EvaluationCtx;
-use super::eval::{try_extract_nodeset, Error, Evaluatable, NodeHelpers};
+use super::eval::{try_extract_nodeset, Error, Evaluatable};
 use super::parser::CoreFunction;
 use super::Value;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
+use crate::dom::element::Element;
+use crate::dom::node::Node;
+
+/// Returns e.g. "rect" for `<svg:rect>`
+fn local_name(node: &Node) -> Option<String> {
+    if matches!(Node::type_id(node), NodeTypeId::Element(_)) {
+        let element = node.downcast::<Element>().unwrap();
+        Some(element.local_name().to_string())
+    } else {
+        None
+    }
+}
+
+/// Returns e.g. "svg:rect" for `<svg:rect>`
+fn name(node: &Node) -> Option<String> {
+    if matches!(Node::type_id(node), NodeTypeId::Element(_)) {
+        let element = node.downcast::<Element>().unwrap();
+        if let Some(prefix) = element.prefix().as_ref() {
+            Some(format!("{}:{}", prefix, element.local_name()))
+        } else {
+            Some(element.local_name().to_string())
+        }
+    } else {
+        None
+    }
+}
+
+/// Returns e.g. the SVG namespace URI for `<svg:rect>`
+fn namespace_uri(node: &Node) -> Option<String> {
+    if matches!(Node::type_id(node), NodeTypeId::Element(_)) {
+        let element = node.downcast::<Element>().unwrap();
+        Some(element.namespace().to_string())
+    } else {
+        None
+    }
+}
+
+/// Returns the text contents of the Node, or empty string if none.
+fn string_value(node: &Node) -> String {
+    node.GetTextContent().unwrap_or_default().to_string()
+}
 
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-normalize-space>
 pub fn normalize_space(s: &str) -> String {
@@ -55,7 +98,7 @@ impl Evaluatable for CoreFunction {
             },
             CoreFunction::String(expr_opt) => match expr_opt {
                 Some(expr) => Ok(Value::String(expr.evaluate(context)?.string())),
-                None => Ok(Value::String(context.context_node.string_value())),
+                None => Ok(Value::String(string_value(&context.context_node))),
             },
             CoreFunction::Concat(exprs) => {
                 let strings: Result<Vec<_>, _> = exprs
@@ -74,7 +117,7 @@ impl Evaluatable for CoreFunction {
                         .cloned(),
                     None => Some(context.context_node.clone()),
                 };
-                let name = node.and_then(|n| n.local_name()).unwrap_or_default();
+                let name = node.and_then(|n| local_name(&n)).unwrap_or_default();
                 Ok(Value::String(name.to_string()))
             },
             CoreFunction::NamespaceUri(expr_opt) => {
@@ -86,7 +129,7 @@ impl Evaluatable for CoreFunction {
                         .cloned(),
                     None => Some(context.context_node.clone()),
                 };
-                let ns = node.and_then(|n| n.namespace_uri()).unwrap_or_default();
+                let ns = node.and_then(|n| namespace_uri(&n)).unwrap_or_default();
                 Ok(Value::String(ns.to_string()))
             },
             CoreFunction::Name(expr_opt) => {
@@ -98,7 +141,7 @@ impl Evaluatable for CoreFunction {
                         .cloned(),
                     None => Some(context.context_node.clone()),
                 };
-                let name = node.and_then(|n| n.name()).unwrap_or_default();
+                let name = node.and_then(|n| name(&n)).unwrap_or_default();
                 Ok(Value::String(name))
             },
             CoreFunction::StartsWith(str1, str2) => {
@@ -143,14 +186,14 @@ impl Evaluatable for CoreFunction {
             CoreFunction::StringLength(expr_opt) => {
                 let s = match expr_opt {
                     Some(expr) => expr.evaluate(context)?.string(),
-                    None => context.context_node.string_value(),
+                    None => string_value(&context.context_node),
                 };
                 Ok(Value::Number(s.chars().count() as f64))
             },
             CoreFunction::NormalizeSpace(expr_opt) => {
                 let s = match expr_opt {
                     Some(expr) => expr.evaluate(context)?.string(),
-                    None => context.context_node.string_value(),
+                    None => string_value(&context.context_node),
                 };
 
                 Ok(Value::String(normalize_space(&s)))
@@ -171,7 +214,7 @@ impl Evaluatable for CoreFunction {
             CoreFunction::Number(expr_opt) => {
                 let val = match expr_opt {
                     Some(expr) => expr.evaluate(context)?,
-                    None => Value::String(context.context_node.string_value()),
+                    None => Value::String(string_value(&context.context_node)),
                 };
                 Ok(Value::Number(val.number()))
             },
@@ -179,7 +222,7 @@ impl Evaluatable for CoreFunction {
                 let nodes = expr.evaluate(context).and_then(try_extract_nodeset)?;
                 let sum = nodes
                     .iter()
-                    .map(|n| Value::String(n.string_value()).number())
+                    .map(|n| Value::String(string_value(n)).number())
                     .sum();
                 Ok(Value::Number(sum))
             },

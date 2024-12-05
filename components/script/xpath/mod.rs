@@ -14,7 +14,6 @@ mod context;
 mod eval;
 mod eval_function;
 mod eval_value;
-mod node_test;
 mod parser;
 
 /// The failure modes of executing an XPath.

@@ -268,36 +268,36 @@ impl CoreFunction {
     pub fn min_args(&self) -> usize {
         match self {
             // No args
-            CoreFunction::Last
-            | CoreFunction::Position
-            | CoreFunction::True
-            | CoreFunction::False => 0,
+            CoreFunction::Last |
+            CoreFunction::Position |
+            CoreFunction::True |
+            CoreFunction::False => 0,
 
             // Optional single arg
-            CoreFunction::LocalName(_)
-            | CoreFunction::NamespaceUri(_)
-            | CoreFunction::Name(_)
-            | CoreFunction::String(_)
-            | CoreFunction::StringLength(_)
-            | CoreFunction::NormalizeSpace(_)
-            | CoreFunction::Number(_) => 0,
+            CoreFunction::LocalName(_) |
+            CoreFunction::NamespaceUri(_) |
+            CoreFunction::Name(_) |
+            CoreFunction::String(_) |
+            CoreFunction::StringLength(_) |
+            CoreFunction::NormalizeSpace(_) |
+            CoreFunction::Number(_) => 0,
 
             // Required single arg
-            CoreFunction::Count(_)
-            | CoreFunction::Id(_)
-            | CoreFunction::Sum(_)
-            | CoreFunction::Floor(_)
-            | CoreFunction::Ceiling(_)
-            | CoreFunction::Round(_)
-            | CoreFunction::Boolean(_)
-            | CoreFunction::Not(_)
-            | CoreFunction::Lang(_) => 1,
+            CoreFunction::Count(_) |
+            CoreFunction::Id(_) |
+            CoreFunction::Sum(_) |
+            CoreFunction::Floor(_) |
+            CoreFunction::Ceiling(_) |
+            CoreFunction::Round(_) |
+            CoreFunction::Boolean(_) |
+            CoreFunction::Not(_) |
+            CoreFunction::Lang(_) => 1,
 
             // Required two args
-            CoreFunction::StartsWith(_, _)
-            | CoreFunction::Contains(_, _)
-            | CoreFunction::SubstringBefore(_, _)
-            | CoreFunction::SubstringAfter(_, _) => 2,
+            CoreFunction::StartsWith(_, _) |
+            CoreFunction::Contains(_, _) |
+            CoreFunction::SubstringBefore(_, _) |
+            CoreFunction::SubstringAfter(_, _) => 2,
 
             // Special cases
             CoreFunction::Concat(_) => 2,          // Minimum 2 args
@@ -309,36 +309,36 @@ impl CoreFunction {
     pub fn max_args(&self) -> Option<usize> {
         match self {
             // No args
-            CoreFunction::Last
-            | CoreFunction::Position
-            | CoreFunction::True
-            | CoreFunction::False => Some(0),
+            CoreFunction::Last |
+            CoreFunction::Position |
+            CoreFunction::True |
+            CoreFunction::False => Some(0),
 
             // Optional single arg (0 or 1)
-            CoreFunction::LocalName(_)
-            | CoreFunction::NamespaceUri(_)
-            | CoreFunction::Name(_)
-            | CoreFunction::String(_)
-            | CoreFunction::StringLength(_)
-            | CoreFunction::NormalizeSpace(_)
-            | CoreFunction::Number(_) => Some(1),
+            CoreFunction::LocalName(_) |
+            CoreFunction::NamespaceUri(_) |
+            CoreFunction::Name(_) |
+            CoreFunction::String(_) |
+            CoreFunction::StringLength(_) |
+            CoreFunction::NormalizeSpace(_) |
+            CoreFunction::Number(_) => Some(1),
 
             // Exactly one arg
-            CoreFunction::Count(_)
-            | CoreFunction::Id(_)
-            | CoreFunction::Sum(_)
-            | CoreFunction::Floor(_)
-            | CoreFunction::Ceiling(_)
-            | CoreFunction::Round(_)
-            | CoreFunction::Boolean(_)
-            | CoreFunction::Not(_)
-            | CoreFunction::Lang(_) => Some(1),
+            CoreFunction::Count(_) |
+            CoreFunction::Id(_) |
+            CoreFunction::Sum(_) |
+            CoreFunction::Floor(_) |
+            CoreFunction::Ceiling(_) |
+            CoreFunction::Round(_) |
+            CoreFunction::Boolean(_) |
+            CoreFunction::Not(_) |
+            CoreFunction::Lang(_) => Some(1),
 
             // Exactly two args
-            CoreFunction::StartsWith(_, _)
-            | CoreFunction::Contains(_, _)
-            | CoreFunction::SubstringBefore(_, _)
-            | CoreFunction::SubstringAfter(_, _) => Some(2),
+            CoreFunction::StartsWith(_, _) |
+            CoreFunction::Contains(_, _) |
+            CoreFunction::SubstringBefore(_, _) |
+            CoreFunction::SubstringAfter(_, _) => Some(2),
 
             // Special cases
             CoreFunction::Concat(_) => None, // Unlimited args

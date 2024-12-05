@@ -48,7 +48,7 @@ impl XPathExpression {
 }
 
 impl XPathExpressionMethods<crate::DomTypeHolder> for XPathExpression {
-    /// https://dom.spec.whatwg.org/#dom-xpathexpression-evaluate
+    /// <https://dom.spec.whatwg.org/#dom-xpathexpression-evaluate>
     fn Evaluate(
         &self,
         context_node: &Node,
