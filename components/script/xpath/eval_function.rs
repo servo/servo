@@ -50,6 +50,30 @@ fn string_value(node: &Node) -> String {
     node.GetTextContent().unwrap_or_default().to_string()
 }
 
+/// If s2 is found inside s1, return everything *before* s2. Return all of s1 otherwise.
+fn substring_before(s1: &str, s2: &str) -> String {
+    match s1.find(s2) {
+        Some(pos) => s1[..pos].to_string(),
+        None => String::new(),
+    }
+}
+
+/// If s2 is found inside s1, return everything *after* s2. Return all of s1 otherwise.
+fn substring_after(s1: &str, s2: &str) -> String {
+    match s1.find(s2) {
+        Some(pos) => s1[pos + s2.len()..].to_string(),
+        None => String::new(),
+    }
+}
+
+fn substring(s: &str, start_idx: isize, len: Option<isize>) -> String {
+    let s_len = s.len();
+    let len = len.unwrap_or(s_len as isize).max(0) as usize;
+    let start_idx = start_idx.max(0) as usize;
+    let end_idx = (start_idx + len.max(0)).min(s_len);
+    s[start_idx..end_idx].to_string()
+}
+
 /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-normalize-space>
 pub fn normalize_space(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
@@ -157,31 +181,21 @@ impl Evaluatable for CoreFunction {
             CoreFunction::SubstringBefore(str1, str2) => {
                 let s1 = str1.evaluate(context)?.string();
                 let s2 = str2.evaluate(context)?.string();
-                let result = match s1.find(&s2) {
-                    Some(pos) => s1[..pos].to_string(),
-                    None => String::new(),
-                };
-                Ok(Value::String(result))
+                Ok(Value::String(substring_before(&s1, &s2)))
             },
             CoreFunction::SubstringAfter(str1, str2) => {
                 let s1 = str1.evaluate(context)?.string();
                 let s2 = str2.evaluate(context)?.string();
-                let result = match s1.find(&s2) {
-                    Some(pos) => s1[pos + s2.len()..].to_string(),
-                    None => String::new(),
-                };
-                Ok(Value::String(result))
+                Ok(Value::String(substring_after(&s1, &s2)))
             },
             CoreFunction::Substring(str1, start, length_opt) => {
                 let s = str1.evaluate(context)?.string();
                 let start_idx = start.evaluate(context)?.number().round() as isize - 1;
                 let len = match length_opt {
-                    Some(len) => len.evaluate(context)?.number().round() as isize,
-                    None => s.len() as isize,
+                    Some(len_expr) => Some(len_expr.evaluate(context)?.number().round() as isize),
+                    None => None,
                 };
-                let start_idx = start_idx.max(0) as usize;
-                let end_idx = (start_idx + len.max(0) as usize).min(s.len());
-                Ok(Value::String(s[start_idx..end_idx].to_string()))
+                Ok(Value::String(substring(&s, start_idx, len)))
             },
             CoreFunction::StringLength(expr_opt) => {
                 let s = match expr_opt {
@@ -269,9 +283,9 @@ impl Evaluatable for CoreFunction {
                 expr.is_primitive() && substr.is_primitive()
             },
             CoreFunction::Substring(expr, start_pos, length_opt) => {
-                expr.is_primitive() &&
-                    start_pos.is_primitive() &&
-                    length_opt
+                expr.is_primitive()
+                    && start_pos.is_primitive()
+                    && length_opt
                         .as_ref()
                         .map(|length| length.is_primitive())
                         .unwrap_or(false)
@@ -301,5 +315,43 @@ impl Evaluatable for CoreFunction {
             CoreFunction::False => true,
             CoreFunction::Lang(_) => false,
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::{substring, substring_after, substring_before};
+
+    #[test]
+    fn test_substring_before() {
+        assert_eq!(substring_before("hello world", "world"), "hello ");
+        assert_eq!(substring_before("prefix:name", ":"), "prefix");
+        assert_eq!(substring_before("no-separator", "xyz"), "");
+        assert_eq!(substring_before("", "anything"), "");
+        assert_eq!(substring_before("multiple:colons:here", ":"), "multiple");
+        assert_eq!(substring_before("start-match-test", "start"), "");
+    }
+
+    #[test]
+    fn test_substring_after() {
+        assert_eq!(substring_after("hello world", "hello "), "world");
+        assert_eq!(substring_after("prefix:name", ":"), "name");
+        assert_eq!(substring_after("no-separator", "xyz"), "");
+        assert_eq!(substring_after("", "anything"), "");
+        assert_eq!(substring_after("multiple:colons:here", ":"), "colons:here");
+        assert_eq!(substring_after("test-end-match", "match"), "");
+    }
+
+    #[test]
+    fn test_substring() {
+        assert_eq!(substring("hello world", 0, Some(5)), "hello");
+        assert_eq!(substring("hello world", 6, Some(5)), "world");
+        assert_eq!(substring("hello", 1, Some(3)), "ell");
+        assert_eq!(substring("hello", -5, Some(2)), "he");
+        assert_eq!(substring("hello", 0, None), "hello");
+        assert_eq!(substring("hello", 2, Some(10)), "llo");
+        assert_eq!(substring("hello", 5, Some(1)), "");
+        assert_eq!(substring("", 0, Some(5)), "");
+        assert_eq!(substring("hello", 0, Some(0)), "");
+        assert_eq!(substring("hello", 0, Some(-5)), "");
     }
 }
