@@ -143,7 +143,7 @@ use script_traits::{
     LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
     PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
     ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
+    StructuredSerializedData, Theme, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
@@ -1502,6 +1502,9 @@ where
             },
             FromCompositorMsg::WindowSize(top_level_browsing_context_id, new_size, size_type) => {
                 self.handle_window_size_msg(top_level_browsing_context_id, new_size, size_type);
+            },
+            FromCompositorMsg::ThemeChange(theme) => {
+                self.handle_theme_change(theme);
             },
             FromCompositorMsg::TickAnimation(pipeline_id, tick_type) => {
                 self.handle_tick_animation(pipeline_id, tick_type)
@@ -5473,6 +5476,23 @@ where
                     new_size,
                     size_type,
                 ));
+            }
+        }
+    }
+
+    /// Handle theme change events from the embedder and forward them to the script thread
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_theme_change(&mut self, theme: Theme) {
+        for pipeline in self.pipelines.values() {
+            let msg = ConstellationControlMsg::ThemeChange(pipeline.id, theme);
+            if let Err(err) = pipeline.event_loop.send(msg) {
+                warn!(
+                    "{}: Failed to send theme change event to pipeline ({:?}).",
+                    pipeline.id, err
+                );
             }
         }
     }

@@ -53,8 +53,7 @@ use script_layout_interface::{
     ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
-    PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -733,8 +732,10 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
+        self.handle_theme_change(data.theme, data.window_size, &guards);
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.handle_viewport_change(data.window_size, &guards);
+        let viewport_size_changed =
+            self.handle_viewport_change(data.window_size, data.theme, &guards);
         if viewport_size_changed && had_used_viewport_units {
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
@@ -1093,10 +1094,33 @@ impl LayoutThread {
         }
     }
 
+    /// Update document styles when platform theme changes.
+    fn handle_theme_change(
+        &mut self,
+        theme: PrefersColorScheme,
+        window_size_data: WindowSizeData,
+        guards: &StylesheetGuards,
+    ) {
+        let device = Device::new(
+            MediaType::screen(),
+            self.stylist.quirks_mode(),
+            window_size_data.initial_viewport,
+            Scale::new(self.stylist.device().device_pixel_ratio().get()),
+            Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
+            self.stylist.device().default_computed_values().to_arc(),
+            theme,
+        );
+
+        let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
+        self.stylist
+            .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+    }
+
     /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
     fn handle_viewport_change(
         &mut self,
         window_size_data: WindowSizeData,
+        theme: PrefersColorScheme,
         guards: &StylesheetGuards,
     ) -> bool {
         // If the viewport size and device pixel ratio has not changed, do not make any changes.
@@ -1119,8 +1143,7 @@ impl LayoutThread {
             Scale::new(window_size_data.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
-            // TODO: obtain preferred color scheme from embedder
-            PrefersColorScheme::Light,
+            theme,
         );
 
         // Preserve any previously computed root font size.

@@ -81,12 +81,7 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
-    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
-    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
-    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress,
-    UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
+    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -2021,6 +2016,7 @@ impl ScriptThread {
                     .parent_info
                     .or(Some(new_layout_info.new_pipeline_id)),
                 Resize(id, ..) => Some(id),
+                ThemeChange(id, ..) => Some(id),
                 ResizeInactive(id, ..) => Some(id),
                 UnloadDocument(id) => Some(id),
                 ExitPipeline(id, ..) => Some(id),
@@ -2265,6 +2261,9 @@ impl ScriptThread {
             ConstellationControlMsg::ResizeInactive(id, new_size) => {
                 self.handle_resize_inactive_msg(id, new_size)
             },
+            ConstellationControlMsg::ThemeChange(_, theme) => {
+                self.handle_theme_change(theme);
+            },
             ConstellationControlMsg::GetTitle(pipeline_id) => {
                 self.handle_get_title_msg(pipeline_id)
             },
@@ -2368,6 +2367,7 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::ExitFullScreen(..) |
             msg @ ConstellationControlMsg::SendEvent(..) |
             msg @ ConstellationControlMsg::TickAllAnimations(..) |
+            msg @ ConstellationControlMsg::ThemeChange(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
@@ -2854,6 +2854,15 @@ impl ScriptThread {
             }
             warn!("resize sent to nonexistent pipeline");
         })
+    }
+
+    fn handle_theme_change(&self, theme: Theme) {
+        let docs = self.documents.borrow();
+        for (_, document) in docs.iter() {
+            let window = document.window();
+            window.set_theme(theme);
+            window.force_reflow(ReflowGoal::Full, ReflowReason::ThemeChange, None);
+        }
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
