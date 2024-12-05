@@ -796,8 +796,7 @@ impl LayoutThread {
 
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
-        let rayon_pool = STYLE_THREAD_POOL.lock().unwrap();
-        let rayon_pool = rayon_pool.pool();
+        let rayon_pool = STYLE_THREAD_POOL.pool();
         let rayon_pool = rayon_pool.as_ref();
 
         // Create a layout context for use throughout the following passes.

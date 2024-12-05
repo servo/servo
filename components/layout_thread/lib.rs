@@ -1082,10 +1082,12 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let pool = STYLE_THREAD_POOL.lock().unwrap();
-        let thread_pool = pool.pool();
+        let thread_pool = STYLE_THREAD_POOL.pool();
         let (thread_pool, num_threads) = if self.parallel_flag {
-            (thread_pool.as_ref(), pool.num_threads.unwrap_or(1))
+            (
+                thread_pool.as_ref(),
+                STYLE_THREAD_POOL.num_threads.unwrap_or(1),
+            )
         } else {
             (None, 1)
         };
