@@ -14,7 +14,7 @@ use net::protocols::ProtocolHandler;
 use net_traits::request::Request;
 use net_traits::response::Response;
 
-use crate::desktop::protocols::resource::ResourceProtocolHandler;
+use crate::protocols::resource::ResourceProtocolHandler;
 
 #[derive(Default)]
 pub struct ServoProtocolHandler {}
