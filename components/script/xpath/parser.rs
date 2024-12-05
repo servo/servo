@@ -2,60 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// EBNF grammar of XPath 1.0
-// [1]  XPath              ::= Expr
-// [2]  Expr               ::= ExprSingle
-// [3]  ExprSingle         ::= OrExpr
-// [4]  OrExpr             ::= AndExpr ( "or" AndExpr )*
-// [5]  AndExpr            ::= EqualityExpr ( "and" EqualityExpr )*
-// [6]  EqualityExpr       ::= RelationalExpr ( ("=" \| "!=") // RelationalExpr )*
-// [7]  RelationalExpr     ::= AdditiveExpr ( ("<" \| ">" \| "<=" \| ">=") AdditiveExpr )*
-// [8]  AdditiveExpr       ::= MultiplicativeExpr ( ("+" \| "-") MultiplicativeExpr )*
-// [9]  MultiplicativeExpr ::= UnaryExpr ( ( "*" \| "div" \| "mod") UnaryExpr )*
-// [10] UnaryExpr          ::= "-"* UnionExpr
-// [11] UnionExpr          ::= PathExpr ( "|" PathExpr )*
-// [12] PathExpr           ::= ("/" RelativePathExpr?) \| ("//" RelativePathExpr) \| RelativePathExpr
-// [13] RelativePathExpr   ::= StepExpr (("/" \| "//") StepExpr)*
-// [14] StepExpr           ::= FilterExpr \| AxisStep
-// [15] AxisStep           ::= (ReverseStep \| ForwardStep) PredicateList
-// [16] ForwardStep        ::= (ForwardAxis NodeTest) \| AbbrevForwardStep
-// [17] ForwardAxis        ::= ("child" "::")
-//                               \| ("descendant" "::")
-//                               \| ("attribute" "::")
-//                               \| ("self" "::")
-//                               \| ("descendant-or-self" "::")
-//                               \| ("following-sibling" "::")
-//                               \| ("following" "::")
-//                               \| ("namespace" "::")
-// [18] AbbrevForwardStep  ::= '@'? NodeTest
-// [19] ReverseStep        ::= (ReverseAxis NodeTest) \| AbbrevReverseStep
-// [20] ReverseAxis        ::= ("parent" "::")
-//                               \| ("ancestor" "::")
-//                               \| ("preceding-sibling" "::")
-//                               \| ("preceding" "::")
-//                               \| ("ancestor-or-self" "::")
-// [21] AbbrevReverseStep  ::= ”..” /* xgc: predicate */
-// [22] NodeTest           ::= KindTest \| NameTest
-// [23] NameTest           ::= QName \| Wildcard
-// [24] Wildcard           ::= "*" \| (NCName ":" "*")
-// [25] FilterExpr         ::= PrimaryExpr PredicateList
-// [26] PredicateList      ::= Predicate*
-// [27] Predicate          ::= "[" Expr "]"
-// [28] PrimaryExpr        ::= Literal \| VarRef \| ParenthesizedExpr \| ContextItemExpr \| FunctionCall
-// [29] Literal            ::= NumericLiteral \| StringLiteral
-// [30] NumericLiteral     ::= IntegerLiteral \| DecimalLiteral
-// [31] VarRef             ::= "$" VarName
-// [32] VarName            ::= QName
-// [33] ParenthesizedExpr  ::= "(" Expr ")"
-// [34] ContextItemExpr    ::= "."
-// [35] FunctionCall       ::= QName "(" ( ExprSingle ( "," ExprSingle )* )? ')'
-// [36] KindTest           ::= PITest \| CommentTest \| TextTest \| AnyKindTest
-// [37] AnyKindTest        ::= "node" "(" ")"
-// [38] TextTest           ::= "text" "(" ")"
-// [39] CommentTest        ::= "comment" "(" ")"
-// [40] PITest             ::= "processing-instruction" "(" StringLiteral? ")"
-// [41] StringLiteral      ::= '"' [^"]* '"' | "'" [^']* "'"
-
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
 use nom::character::complete::{alpha1, alphanumeric1, char, digit1, multispace0};
@@ -224,39 +170,66 @@ pub enum NumericLiteral {
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum CoreFunction {
     // Node Set Functions
-    Last,                            // last()
-    Position,                        // position()
-    Count(Box<Expr>),                // count(node-set)
-    Id(Box<Expr>),                   // id(object)
-    LocalName(Option<Box<Expr>>),    // local-name(node-set?)
-    NamespaceUri(Option<Box<Expr>>), // namespace-uri(node-set?)
-    Name(Option<Box<Expr>>),         // name(node-set?)
+    /// last()
+    Last,
+    /// position()
+    Position,
+    /// count(node-set)
+    Count(Box<Expr>),
+    /// id(object)
+    Id(Box<Expr>),
+    /// local-name(node-set?)
+    LocalName(Option<Box<Expr>>),
+    /// namespace-uri(node-set?)
+    NamespaceUri(Option<Box<Expr>>),
+    /// name(node-set?)
+    Name(Option<Box<Expr>>),
 
     // String Functions
-    String(Option<Box<Expr>>),                          // string(object?)
-    Concat(Vec<Expr>),                                  // concat(string, string, ...)
-    StartsWith(Box<Expr>, Box<Expr>),                   // starts-with(string, string)
-    Contains(Box<Expr>, Box<Expr>),                     // contains(string, string)
-    SubstringBefore(Box<Expr>, Box<Expr>),              // substring-before(string, string)
-    SubstringAfter(Box<Expr>, Box<Expr>),               // substring-after(string, string)
-    Substring(Box<Expr>, Box<Expr>, Option<Box<Expr>>), // substring(string, number, number?)
-    StringLength(Option<Box<Expr>>),                    // string-length(string?)
-    NormalizeSpace(Option<Box<Expr>>),                  // normalize-space(string?)
-    Translate(Box<Expr>, Box<Expr>, Box<Expr>),         // translate(string, string, string)
+    /// string(object?)
+    String(Option<Box<Expr>>),
+    /// concat(string, string, ...)
+    Concat(Vec<Expr>),
+    /// starts-with(string, string)
+    StartsWith(Box<Expr>, Box<Expr>),
+    /// contains(string, string)
+    Contains(Box<Expr>, Box<Expr>),
+    /// substring-before(string, string)
+    SubstringBefore(Box<Expr>, Box<Expr>),
+    /// substring-after(string, string)
+    SubstringAfter(Box<Expr>, Box<Expr>),
+    /// substring(string, number, number?)
+    Substring(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
+    /// string-length(string?)
+    StringLength(Option<Box<Expr>>),
+    /// normalize-space(string?)
+    NormalizeSpace(Option<Box<Expr>>),
+    /// translate(string, string, string)
+    Translate(Box<Expr>, Box<Expr>, Box<Expr>),
 
     // Number Functions
-    Number(Option<Box<Expr>>), // number(object?)
-    Sum(Box<Expr>),            // sum(node-set)
-    Floor(Box<Expr>),          // floor(number)
-    Ceiling(Box<Expr>),        // ceiling(number)
-    Round(Box<Expr>),          // round(number)
+    /// number(object?)
+    Number(Option<Box<Expr>>),
+    /// sum(node-set)
+    Sum(Box<Expr>),
+    /// floor(number)
+    Floor(Box<Expr>),
+    /// ceiling(number)
+    Ceiling(Box<Expr>),
+    /// round(number)
+    Round(Box<Expr>),
 
     // Boolean Functions
-    Boolean(Box<Expr>), // boolean(object)
-    Not(Box<Expr>),     // not(boolean)
-    True,               // true()
-    False,              // false()
-    Lang(Box<Expr>),    // lang(string)
+    /// boolean(object)
+    Boolean(Box<Expr>),
+    /// not(boolean)
+    Not(Box<Expr>),
+    /// true()
+    True,
+    /// false()
+    False,
+    /// lang(string)
+    Lang(Box<Expr>),
 }
 
 impl CoreFunction {
@@ -295,36 +268,36 @@ impl CoreFunction {
     pub fn min_args(&self) -> usize {
         match self {
             // No args
-            CoreFunction::Last |
-            CoreFunction::Position |
-            CoreFunction::True |
-            CoreFunction::False => 0,
+            CoreFunction::Last
+            | CoreFunction::Position
+            | CoreFunction::True
+            | CoreFunction::False => 0,
 
             // Optional single arg
-            CoreFunction::LocalName(_) |
-            CoreFunction::NamespaceUri(_) |
-            CoreFunction::Name(_) |
-            CoreFunction::String(_) |
-            CoreFunction::StringLength(_) |
-            CoreFunction::NormalizeSpace(_) |
-            CoreFunction::Number(_) => 0,
+            CoreFunction::LocalName(_)
+            | CoreFunction::NamespaceUri(_)
+            | CoreFunction::Name(_)
+            | CoreFunction::String(_)
+            | CoreFunction::StringLength(_)
+            | CoreFunction::NormalizeSpace(_)
+            | CoreFunction::Number(_) => 0,
 
             // Required single arg
-            CoreFunction::Count(_) |
-            CoreFunction::Id(_) |
-            CoreFunction::Sum(_) |
-            CoreFunction::Floor(_) |
-            CoreFunction::Ceiling(_) |
-            CoreFunction::Round(_) |
-            CoreFunction::Boolean(_) |
-            CoreFunction::Not(_) |
-            CoreFunction::Lang(_) => 1,
+            CoreFunction::Count(_)
+            | CoreFunction::Id(_)
+            | CoreFunction::Sum(_)
+            | CoreFunction::Floor(_)
+            | CoreFunction::Ceiling(_)
+            | CoreFunction::Round(_)
+            | CoreFunction::Boolean(_)
+            | CoreFunction::Not(_)
+            | CoreFunction::Lang(_) => 1,
 
             // Required two args
-            CoreFunction::StartsWith(_, _) |
-            CoreFunction::Contains(_, _) |
-            CoreFunction::SubstringBefore(_, _) |
-            CoreFunction::SubstringAfter(_, _) => 2,
+            CoreFunction::StartsWith(_, _)
+            | CoreFunction::Contains(_, _)
+            | CoreFunction::SubstringBefore(_, _)
+            | CoreFunction::SubstringAfter(_, _) => 2,
 
             // Special cases
             CoreFunction::Concat(_) => 2,          // Minimum 2 args
@@ -336,36 +309,36 @@ impl CoreFunction {
     pub fn max_args(&self) -> Option<usize> {
         match self {
             // No args
-            CoreFunction::Last |
-            CoreFunction::Position |
-            CoreFunction::True |
-            CoreFunction::False => Some(0),
+            CoreFunction::Last
+            | CoreFunction::Position
+            | CoreFunction::True
+            | CoreFunction::False => Some(0),
 
             // Optional single arg (0 or 1)
-            CoreFunction::LocalName(_) |
-            CoreFunction::NamespaceUri(_) |
-            CoreFunction::Name(_) |
-            CoreFunction::String(_) |
-            CoreFunction::StringLength(_) |
-            CoreFunction::NormalizeSpace(_) |
-            CoreFunction::Number(_) => Some(1),
+            CoreFunction::LocalName(_)
+            | CoreFunction::NamespaceUri(_)
+            | CoreFunction::Name(_)
+            | CoreFunction::String(_)
+            | CoreFunction::StringLength(_)
+            | CoreFunction::NormalizeSpace(_)
+            | CoreFunction::Number(_) => Some(1),
 
             // Exactly one arg
-            CoreFunction::Count(_) |
-            CoreFunction::Id(_) |
-            CoreFunction::Sum(_) |
-            CoreFunction::Floor(_) |
-            CoreFunction::Ceiling(_) |
-            CoreFunction::Round(_) |
-            CoreFunction::Boolean(_) |
-            CoreFunction::Not(_) |
-            CoreFunction::Lang(_) => Some(1),
+            CoreFunction::Count(_)
+            | CoreFunction::Id(_)
+            | CoreFunction::Sum(_)
+            | CoreFunction::Floor(_)
+            | CoreFunction::Ceiling(_)
+            | CoreFunction::Round(_)
+            | CoreFunction::Boolean(_)
+            | CoreFunction::Not(_)
+            | CoreFunction::Lang(_) => Some(1),
 
             // Exactly two args
-            CoreFunction::StartsWith(_, _) |
-            CoreFunction::Contains(_, _) |
-            CoreFunction::SubstringBefore(_, _) |
-            CoreFunction::SubstringAfter(_, _) => Some(2),
+            CoreFunction::StartsWith(_, _)
+            | CoreFunction::Contains(_, _)
+            | CoreFunction::SubstringBefore(_, _)
+            | CoreFunction::SubstringAfter(_, _) => Some(2),
 
             // Special cases
             CoreFunction::Concat(_) => None, // Unlimited args
@@ -406,19 +379,15 @@ impl std::fmt::Display for OwnedParserError {
 
 impl std::error::Error for OwnedParserError {}
 
-// [1] XPath and
-// [2] Expr combined.
 /// Top-level parser
 fn expr(input: &str) -> IResult<&str, Expr> {
     expr_single(input)
 }
 
-// [3] ExprSingle
 fn expr_single(input: &str) -> IResult<&str, Expr> {
     or_expr(input)
 }
 
-// [4] OrExpr
 fn or_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = and_expr(input)?;
     let (input, rest) = many0(preceded(ws(tag("or")), and_expr))(input)?;
@@ -430,7 +399,6 @@ fn or_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [5] AndExpr
 fn and_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = equality_expr(input)?;
     let (input, rest) = many0(preceded(ws(tag("and")), equality_expr))(input)?;
@@ -442,7 +410,6 @@ fn and_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [6] EqualityExpr
 fn equality_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = relational_expr(input)?;
     let (input, rest) = many0(tuple((
@@ -461,7 +428,6 @@ fn equality_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [7] RelationalExpr
 fn relational_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = additive_expr(input)?;
     let (input, rest) = many0(tuple((
@@ -482,7 +448,6 @@ fn relational_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [8] AdditiveExpr
 fn additive_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = multiplicative_expr(input)?;
     let (input, rest) = many0(tuple((
@@ -501,7 +466,6 @@ fn additive_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [9] MultiplicativeExpr
 fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = unary_expr(input)?;
     let (input, rest) = many0(tuple((
@@ -521,7 +485,6 @@ fn multiplicative_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [10] UnaryExpr
 fn unary_expr(input: &str) -> IResult<&str, Expr> {
     let (input, minus_count) = many0(ws(char('-')))(input)?;
     let (input, expr) = union_expr(input)?;
@@ -532,7 +495,6 @@ fn unary_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [11] UnionExpr
 fn union_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = path_expr(input)?;
     let (input, rest) = many0(preceded(ws(char('|')), path_expr))(input)?;
@@ -545,7 +507,6 @@ fn union_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [12] PathExpr
 fn path_expr(input: &str) -> IResult<&str, Expr> {
     alt((
         // "//" RelativePathExpr
@@ -577,7 +538,6 @@ fn path_expr(input: &str) -> IResult<&str, Expr> {
     ))(input)
 }
 
-// [13] RelativePathExpr
 fn relative_path_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = step_expr(input)?;
     let (input, steps) = many0(pair(
@@ -609,7 +569,6 @@ fn relative_path_expr(input: &str) -> IResult<&str, Expr> {
     ))
 }
 
-// [14] StepExpr
 fn step_expr(input: &str) -> IResult<&str, StepExpr> {
     alt((
         map(filter_expr, StepExpr::Filter),
@@ -617,7 +576,6 @@ fn step_expr(input: &str) -> IResult<&str, StepExpr> {
     ))(input)
 }
 
-// [15] AxisStep
 fn axis_step(input: &str) -> IResult<&str, AxisStep> {
     let (input, (step, predicates)) =
         pair(alt((forward_step, reverse_step)), predicate_list)(input)?;
@@ -633,7 +591,6 @@ fn axis_step(input: &str) -> IResult<&str, AxisStep> {
     ))
 }
 
-// [16] ForwardStep
 fn forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     alt((
         // ForwardAxis NodeTest
@@ -643,7 +600,6 @@ fn forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     ))(input)
 }
 
-// [17] ForwardAxis
 fn forward_axis(input: &str) -> IResult<&str, Axis> {
     let (input, axis) = alt((
         value(Axis::Child, tag("child::")),
@@ -659,7 +615,6 @@ fn forward_axis(input: &str) -> IResult<&str, Axis> {
     Ok((input, axis))
 }
 
-// [18] AbbrevForwardStep
 fn abbrev_forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     let (input, attr) = opt(char('@'))(input)?;
     let (input, test) = node_test(input)?;
@@ -677,7 +632,6 @@ fn abbrev_forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     ))
 }
 
-// [19] ReverseStep
 fn reverse_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     alt((
         // ReverseAxis NodeTest
@@ -687,7 +641,6 @@ fn reverse_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     ))(input)
 }
 
-// [20] ReverseAxis
 fn reverse_axis(input: &str) -> IResult<&str, Axis> {
     alt((
         value(Axis::Parent, tag("parent::")),
@@ -698,14 +651,12 @@ fn reverse_axis(input: &str) -> IResult<&str, Axis> {
     ))(input)
 }
 
-// [21] AbbrevReverseStep
 fn abbrev_reverse_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
     map(tag(".."), |_| {
         (Axis::Parent, NodeTest::Kind(KindTest::Node))
     })(input)
 }
 
-// [22] NodeTest
 fn node_test(input: &str) -> IResult<&str, NodeTest> {
     alt((
         map(kind_test, NodeTest::Kind),
@@ -716,8 +667,6 @@ fn node_test(input: &str) -> IResult<&str, NodeTest> {
     ))(input)
 }
 
-// [23] NameTest and
-// [24] Wildcard combined
 #[derive(Clone, Debug, PartialEq)]
 enum NameTest {
     QName(QName),
@@ -740,7 +689,6 @@ fn name_test(input: &str) -> IResult<&str, NameTest> {
     ))(input)
 }
 
-// [25] FilterExpr
 fn filter_expr(input: &str) -> IResult<&str, FilterExpr> {
     let (input, primary) = primary_expr(input)?;
     let (input, predicates) = predicate_list(input)?;
@@ -754,19 +702,16 @@ fn filter_expr(input: &str) -> IResult<&str, FilterExpr> {
     ))
 }
 
-// [26] PredicateList
 fn predicate_list(input: &str) -> IResult<&str, PredicateListExpr> {
     let (input, predicates) = many0(predicate)(input)?;
     Ok((input, PredicateListExpr { predicates }))
 }
 
-// [27] Predicate
 fn predicate(input: &str) -> IResult<&str, PredicateExpr> {
     let (input, expr) = delimited(ws(char('[')), expr, ws(char(']')))(input)?;
     Ok((input, PredicateExpr { expr }))
 }
 
-// [28] PrimaryExpr
 fn primary_expr(input: &str) -> IResult<&str, PrimaryExpr> {
     alt((
         literal,
@@ -779,37 +724,30 @@ fn primary_expr(input: &str) -> IResult<&str, PrimaryExpr> {
     ))(input)
 }
 
-// [29] Literal
 fn literal(input: &str) -> IResult<&str, PrimaryExpr> {
     map(alt((numeric_literal, string_literal)), |lit| {
         PrimaryExpr::Literal(lit)
     })(input)
 }
 
-// [30] NumericLiteral
 fn numeric_literal(input: &str) -> IResult<&str, Literal> {
     alt((decimal_literal, integer_literal))(input)
 }
 
-// [31] VarRef and
-// [32] VarName
 fn var_ref(input: &str) -> IResult<&str, PrimaryExpr> {
     let (input, _) = char('$')(input)?;
     let (input, name) = qname(input)?;
     Ok((input, PrimaryExpr::Variable(name)))
 }
 
-// [33] ParenthesizedExpr
 fn parenthesized_expr(input: &str) -> IResult<&str, Expr> {
     delimited(ws(char('(')), expr, ws(char(')')))(input)
 }
 
-// [34] ContextItemExpr
 fn context_item_expr(input: &str) -> IResult<&str, PrimaryExpr> {
     map(char('.'), |_| PrimaryExpr::ContextItem)(input)
 }
 
-// [35] FunctionCall
 fn function_call(input: &str) -> IResult<&str, PrimaryExpr> {
     let (input, name) = qname(input)?;
     let (input, args) = delimited(
@@ -906,26 +844,22 @@ fn function_call(input: &str) -> IResult<&str, PrimaryExpr> {
     Ok((input, PrimaryExpr::Function(core_fn)))
 }
 
-// [36] KindTest
 fn kind_test(input: &str) -> IResult<&str, KindTest> {
     alt((pi_test, comment_test, text_test, any_kind_test))(input)
 }
 
-// [37] AnyKindTest
 fn any_kind_test(input: &str) -> IResult<&str, KindTest> {
     map(tuple((tag("node"), ws(char('(')), ws(char(')')))), |_| {
         KindTest::Node
     })(input)
 }
 
-// [38] TextTest
 fn text_test(input: &str) -> IResult<&str, KindTest> {
     map(tuple((tag("text"), ws(char('(')), ws(char(')')))), |_| {
         KindTest::Text
     })(input)
 }
 
-// [39] CommentTest
 fn comment_test(input: &str) -> IResult<&str, KindTest> {
     map(
         tuple((tag("comment"), ws(char('(')), ws(char(')')))),
@@ -933,7 +867,6 @@ fn comment_test(input: &str) -> IResult<&str, KindTest> {
     )(input)
 }
 
-// [40] PITest
 fn pi_test(input: &str) -> IResult<&str, KindTest> {
     map(
         tuple((
@@ -971,7 +904,6 @@ fn decimal_literal(input: &str) -> IResult<&str, Literal> {
     )(input)
 }
 
-// [41] StringLiteral
 fn string_literal(input: &str) -> IResult<&str, Literal> {
     alt((
         delimited(
