@@ -29,7 +29,7 @@ linker = "lld-link.exe"
 linker = "lld-link.exe"
 
 [env]
-MACOSX_DEPLOYMENT_TARGET = "10.10"
+MACOSX_DEPLOYMENT_TARGET = "13.0"
 RUSTC_BOOTSTRAP = "crown,script,style_tests"
 
 [build]
