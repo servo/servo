@@ -4131,6 +4131,7 @@ dependencies = [
  "net_traits",
  "profile",
  "profile_traits",
+ "rayon",
  "script",
  "script_layout_interface",
  "script_traits",

@@ -215,6 +215,10 @@ mod gen {
                     /// Maximum number of workers for the Core Resource Manager
                     max: i64,
                 },
+                webrender_workers: {
+                    /// Maximum number of workers for webrender
+                    max: i64,
+                },
             },
             css: {
                 animations: {

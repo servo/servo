@@ -128,5 +128,6 @@
   "threadpools.fallback_worker_num": 3,
   "threadpools.image_cache_workers.max": 4,
   "threadpools.resource_workers.max": 4,
+  "threadpools.webrender_workers.max": 4,
   "webgl.testing.context_creation_error": false
 }
