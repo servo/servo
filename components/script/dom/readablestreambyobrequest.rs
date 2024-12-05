@@ -15,7 +15,7 @@ pub struct ReadableStreamBYOBRequest {
     reflector_: Reflector,
 }
 
-impl ReadableStreamBYOBRequestMethods for ReadableStreamBYOBRequest {
+impl ReadableStreamBYOBRequestMethods<crate::DomTypeHolder> for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
     fn GetView(&self, _cx: SafeJSContext) -> Option<js::typedarray::ArrayBufferView> {
         // TODO

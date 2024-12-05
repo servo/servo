@@ -25,7 +25,7 @@ impl ReadableByteStreamController {
     }
 }
 
-impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
+impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#rbs-controller-byob-request>
     fn GetByobRequest(
         &self,

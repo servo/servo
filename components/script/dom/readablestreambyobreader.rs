@@ -39,7 +39,7 @@ impl ReadableStreamBYOBReader {
     }
 }
 
-impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
+impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#byob-reader-constructor>
     fn Constructor(
         _global: &GlobalScope,

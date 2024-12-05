@@ -45,7 +45,7 @@ impl ByteLengthQueuingStrategy {
     }
 }
 
-impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
+impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuingStrategy {
     /// <https://streams.spec.whatwg.org/#blqs-constructor>
     fn Constructor(
         global: &GlobalScope,
