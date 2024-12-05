@@ -40,7 +40,7 @@ use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
-use crate::dom::identityhub::IdentityHub;
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;

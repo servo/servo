@@ -129,8 +129,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-#[cfg(feature = "webgpu")]
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
@@ -138,6 +136,8 @@ use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::uievent::UIEvent;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worker::TrustedWorkerAddress;
@@ -1924,6 +1924,7 @@ impl ScriptThread {
                                 None => break,
                             },
                             Ok(ev) => event = FromImageCache(ev),
+                            #[cfg(not(feature = "webgpu"))]
                             Err(_) => break,
                         },
                         Ok(ev) => event = FromDevtools(ev),

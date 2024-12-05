@@ -20,12 +20,12 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpuconvert::{convert_load_op, convert_store_op};
-use crate::dom::gpudevice::GPUDevice;
-use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
+use crate::dom::webgpu::gpubuffer::GPUBuffer;
+use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
+use crate::dom::webgpu::gpucomputepassencoder::GPUComputePassEncoder;
+use crate::dom::webgpu::gpuconvert::{convert_load_op, convert_store_op};
+use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::dom::webgpu::gpurenderpassencoder::GPURenderPassEncoder;
 
 #[dom_struct]
 pub struct GPUCommandEncoder {

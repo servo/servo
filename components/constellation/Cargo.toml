@@ -15,7 +15,7 @@ path = "lib.rs"
 default = []
 multiview = []
 tracing = ["dep:tracing"]
-webgpu = []
+webgpu = ["script_traits/webgpu"]
 
 [dependencies]
 background_hang_monitor_api = { workspace = true }

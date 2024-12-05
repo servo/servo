@@ -55,7 +55,7 @@ tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 webxr = ["dep:webxr", "libservo/webxr"]
-webgpu = []
+webgpu = ["libservo/webgpu"]
 
 [dependencies]
 libc = { workspace = true }

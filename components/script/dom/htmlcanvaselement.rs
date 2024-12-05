@@ -9,11 +9,14 @@ use euclid::default::{Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use image::codecs::png::PngEncoder;
 use image::{ColorType, ImageEncoder};
-use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
+use ipc_channel::ipc::IpcSharedMemory;
+#[cfg(feature = "webgpu")]
+use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
+#[cfg(feature = "webgpu")]
 use script_traits::ScriptMsg;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
@@ -256,7 +259,7 @@ impl HTMLCanvasElement {
 
     #[cfg(not(feature = "webgpu"))]
     fn get_or_init_webgpu_context(&self) -> Option<DomRoot<GPUCanvasContext>> {
-        return None;
+        None
     }
 
     #[cfg(feature = "webgpu")]

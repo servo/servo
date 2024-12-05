@@ -107,8 +107,6 @@ use crate::dom::file::File;
 use crate::dom::gamepad::{contains_user_gesture, Gamepad};
 use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
-#[cfg(feature = "webgpu")]
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
@@ -121,6 +119,8 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;

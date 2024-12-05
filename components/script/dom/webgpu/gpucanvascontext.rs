@@ -20,11 +20,12 @@ use webrender_api::ImageKey;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
+use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCanvasAlphaMode, GPUCanvasConfiguration, GPUCanvasContextMethods, GPUDeviceMethods,
-    GPUExtent3D, GPUExtent3DDict, GPUObjectDescriptorBase, GPUTextureDescriptor,
-    GPUTextureDimension, GPUTextureFormat, GPUTextureUsageConstants,
+    GPUCanvasAlphaMode, GPUCanvasConfiguration, GPUDeviceMethods, GPUExtent3D, GPUExtent3DDict,
+    GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
+    GPUTextureUsageConstants,
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};

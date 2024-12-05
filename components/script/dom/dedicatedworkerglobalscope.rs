@@ -47,9 +47,9 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-#[cfg(feature = "webgpu")]
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::messageevent::MessageEvent;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;

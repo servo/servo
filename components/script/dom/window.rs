@@ -124,8 +124,6 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-#[cfg(feature = "webgpu")]
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
@@ -139,6 +137,8 @@ use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;

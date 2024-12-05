@@ -11,10 +11,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpubindgroup::GPUBindGroup;
-use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandencoder::GPUCommandEncoder;
-use crate::dom::gpucomputepipeline::GPUComputePipeline;
+use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
+use crate::dom::webgpu::gpubuffer::GPUBuffer;
+use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
+use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
 
 #[dom_struct]
 pub struct GPUComputePassEncoder {

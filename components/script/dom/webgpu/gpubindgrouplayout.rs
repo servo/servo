@@ -17,8 +17,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::convert_bind_group_layout_entry;
-use crate::dom::gpudevice::GPUDevice;
+use crate::dom::webgpu::gpuconvert::convert_bind_group_layout_entry;
+use crate::dom::webgpu::gpudevice::GPUDevice;
 
 #[dom_struct]
 pub struct GPUBindGroupLayout {

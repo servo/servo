@@ -22,10 +22,10 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-#[cfg(feature = "webgpu")]
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
 use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext};

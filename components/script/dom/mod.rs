@@ -580,7 +580,7 @@ mod webxr;
 #[cfg(feature = "webxr")]
 pub use self::webxr::*;
 #[cfg(feature = "webgpu")]
-mod webgpu;
+pub mod webgpu;
 #[cfg(feature = "webgpu")]
 pub use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]

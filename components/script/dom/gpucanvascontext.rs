@@ -7,18 +7,18 @@ use script_layout_interface::HTMLCanvasDataSource;
 
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::UnionTypes;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 
-// This GPUCanvasContext is a dummy implementation for the case #[cfg(not(feature = "webgpu"))]
 #[dom_struct]
 pub struct GPUCanvasContext {
     reflector_: Reflector,
 }
 
 impl GPUCanvasContext {
+    #[allow(dead_code)]
     fn new_inherited() -> Self {
         unimplemented!()
     }

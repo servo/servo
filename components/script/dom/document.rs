@@ -127,8 +127,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
-#[cfg(feature = "webgpu")]
-use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -177,6 +175,8 @@ use crate::dom::types::VisibilityStateEntry;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
