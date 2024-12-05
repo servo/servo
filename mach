@@ -12,10 +12,14 @@
 import os
 import sys
 
-if sys.version_info < (3, 10):
-    print("mach does not support python < 3.10, please install python 3 >= 3.10")
+# Destructure because version_info > max_ver is true when running the same version.
+ver = (sys.version_info[0], sys.version_info[1])
+min_ver = (3, 10)
+max_ver = (3, 12) # WPT does not support Python 3.13. See issue #34095.
+if ver < min_ver or ver > max_ver:
+    print("mach does not support python {0}.{1}, please install 3.{2} <= python <= 3.{3}" \
+        .format(ver[0], ver[1], min_ver[1], max_ver[1]))
     sys.exit(1)
-
 
 def main(args):
     topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
