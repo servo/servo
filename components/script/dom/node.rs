@@ -369,6 +369,10 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
+        // Since all the nodes have been removed at this point, it is safe for
+        // script/layout to observe the state of the DOM.
+        self.owner_doc().remove_script_and_layout_blocker();
+
         Self::complete_remove_subtree(child, &context);
     }
 
@@ -2091,6 +2095,11 @@ impl Node {
                 }
             }
         }
+
+        // Since all the nodes have been inserted at this point, it is safe for
+        // script/layout to observe the state of the DOM.
+        node.owner_doc().remove_script_and_layout_blocker();
+
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(parent).children_changed(&ChildrenMutation::insert(
                 previous_sibling.as_deref(),
@@ -2106,7 +2115,6 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
-        node.owner_doc().remove_script_and_layout_blocker();
 
         ScriptThread::note_rendering_opportunity(window_from_node(parent).pipeline_id());
     }
@@ -2140,6 +2148,11 @@ impl Node {
         if let Some(node) = node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
+
+        // Since all the nodes have been inserted at this point, it is safe for
+        // script/layout to observe the state of the DOM.
+        parent.owner_doc().remove_script_and_layout_blocker();
+
         // Step 6.
         vtable_for(parent).children_changed(&ChildrenMutation::replace_all(
             removed_nodes.r(),
@@ -2155,7 +2168,6 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker();
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
@@ -2213,6 +2225,7 @@ impl Node {
         // Steps 9-10 are handled in unbind_from_tree.
         parent.remove_child(node, cached_index);
         // Step 11. transient registered observers
+
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(parent).children_changed(&ChildrenMutation::replace(
@@ -2231,7 +2244,7 @@ impl Node {
             };
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker();
+
         ScriptThread::note_rendering_opportunity(window_from_node(parent).pipeline_id());
     }
 
