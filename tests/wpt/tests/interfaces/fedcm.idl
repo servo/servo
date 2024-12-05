@@ -53,7 +53,9 @@ dictionary IdentityProviderRequestOptions : IdentityProviderConfig {
 };
 
 dictionary IdentityProviderWellKnown {
-  required sequence<USVString> provider_urls;
+  sequence<USVString> provider_urls;
+  USVString accounts_endpoint;
+  USVString login_url;
 };
 
 dictionary IdentityProviderIcon {

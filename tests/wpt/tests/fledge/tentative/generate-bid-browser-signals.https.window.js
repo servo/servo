@@ -33,6 +33,7 @@ subsetTest(promise_test, async test => {
     "adComponentsLimit": 40,
     "joinCount": 1,
     "bidCount": 0,
+    "multiBidLimit": 1,
     "prevWinsMs": []
   }
   let biddingLogicURL = createBiddingScriptURL(

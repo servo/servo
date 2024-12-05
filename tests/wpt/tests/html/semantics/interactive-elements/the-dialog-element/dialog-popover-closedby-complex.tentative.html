@@ -24,6 +24,7 @@
   #popoverA { top: 150px; bottom: auto; padding:0; }
   #dialogB { top: 200px; bottom: auto; padding:0; }
   #popoverB { top: 250px; bottom: auto; padding:0; }
+  dialog { position: fixed; }
 </style>
 
 <script>
@@ -71,38 +72,43 @@ function openDialogPopoverStack(t,modalA,modalB) {
       await clickOn(unrelated);
       // Clicking outside all is actually a click on a dialog backdrop.
       // If dialogB is modal, it'll be dialogB, which is nested inside popoverA.
-      assertStates(false,modalB,false,false);
+      // Either way, both popoverB and dialogB should close.
+      assertStates(true,modalB,false,false);
+      await clickOn(unrelated);
+      // Clicking outside again should close the remaining two.
+      assertStates(false,false,false,false);
     },`clicking outside all with ${modalAString} and ${modalBString}`);
 
     promise_test(async (t) => {
       openDialogPopoverStack(t,modalA,modalB);
       await clickOn(popoverB);
-      // Clicking popoverB will keep both popovers plus the intervening dialogB
-      // open, because they're a stack.
-      assertStates(false,true,true,true);
+      // Clicking popoverB should keep everything open.
+      assertStates(true,true,true,true);
     },`clicking popoverB with ${modalAString} and ${modalBString}`);
 
     promise_test(async (t) => {
       openDialogPopoverStack(t,modalA,modalB);
       await clickOn(dialogB);
-      // dialogB is nested inside popoverA.
-      assertStates(false,true,true,false);
+      // Only popoverB should be light dismissed.
+      assertStates(true,true,true,false);
     },`clicking dialogB with ${modalAString} and ${modalBString}`);
 
     promise_test(async (t) => {
       openDialogPopoverStack(t,modalA,modalB);
       await clickOn(popoverA);
-      // If dialogB is modal, then clicking popoverA is actually a backdrop
-      // click on dialogB, which will close it. PopoverA stays open because
-      // dialogB is nested inside popoverA.
-      assertStates(false,true,!modalB,false);
+      // Both dialogB and popoverB should be light dismissed.
+      assertStates(true,true,false,false);
     },`clicking popoverA with ${modalAString} and ${modalBString}`);
 
     promise_test(async (t) => {
       openDialogPopoverStack(t,modalA,modalB);
-      await clickOn(dialogB);
-      // Again, this is a backdrop click on dialogB.
-      assertStates(false,true,true,false);
+      await clickOn(dialogA);
+      // If dialogB is modal, clicking on dialogA is actually clicking on dialogB,
+      // which means popoverB will stay open.
+      assertStates(true,modalB,false,false);
+      await clickOn(dialogA);
+      // The next click on dialogA should light dismiss popoverA.
+      assertStates(true,false,false,false);
     },`clicking dialogA with ${modalAString} and ${modalBString}`);
   });
 });

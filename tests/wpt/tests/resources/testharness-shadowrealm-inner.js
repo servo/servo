@@ -17,6 +17,17 @@ globalThis.setShadowRealmGlobalProperties = function (queryString, fetchAdaptor)
     return new Promise(executor).then((s) => JSON.parse(s));
   };
 
+  // Used only by idlharness.js
+  globalThis.fetch_spec = (spec) => {
+    const resource = `/interfaces/${spec}.idl`;
+    const executor = fetchAdaptor(resource);
+    return new Promise(executor).then(
+      idl => ({ spec, idl }),
+      () => {
+        throw new IdlHarnessError(`Error fetching ${resource}.`);
+      });
+  }
+
   globalThis.location = { search: queryString };
 };
 

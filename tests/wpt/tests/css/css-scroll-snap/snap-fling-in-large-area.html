@@ -32,7 +32,7 @@
   </main>
   <script>
     promise_test(async (t) => {
-      await waitForCompositorCommit();
+      await waitForCompositorReady();
       const scroller = document.getElementById("scroller");
       assert_equals(scroller.scrollTop, 0, "scroller not initially scrolled");
 
@@ -44,9 +44,25 @@
         last_scroll_top = scroller.scrollTop;
       }
       scroller.addEventListener("scroll", scroll_listener);
-      const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
-      await touchFlingInTarget(/*pixels_to_scroll*/100, scroller, "down");
-      await scrollend_promise;
+      // We expect pointercancel to be triggered when scrolling starts due to
+      // the touch-fling. If we instead get a pointerup event, we know that
+      // scrolling isn't happening and we can immediately fail the test instead
+      // of waiting for a timeout.
+      const pointer_promise = () => {
+        return new Promise((resolve, reject) => {
+          document.addEventListener("pointerup", reject, { once: true });
+          document.addEventListener("pointercancel", resolve, { once: true });
+        });
+      };
+
+      try {
+        const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+        await touchFlingInTarget(/*pixels_to_scroll*/100, scroller, "down");
+        await pointer_promise;
+        await scrollend_promise;
+      } catch(e) {
+        assert_unreached("Failed to trigger touch fling.");
+      }
 
       assert_greater_than(last_scroll_top, initial_scroll_top,
         "received at least one scroll update.");

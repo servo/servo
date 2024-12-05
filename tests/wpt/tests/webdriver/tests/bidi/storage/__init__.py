@@ -96,3 +96,11 @@ async def get_default_partition_key(bidi_session, context=None):
     else:
         result = await bidi_session.storage.get_cookies(partition=BrowsingContextPartitionDescriptor(context))
     return result['partitionKey']
+
+
+async def assert_partition_key(bidi_session, actual, expected = {}, context=None):
+    expected = {
+        **(await get_default_partition_key(bidi_session, context)),
+        **expected
+    }
+    recursive_compare(expected, actual)

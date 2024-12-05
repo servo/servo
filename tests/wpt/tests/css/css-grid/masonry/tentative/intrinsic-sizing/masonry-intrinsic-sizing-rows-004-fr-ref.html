@@ -1,0 +1,142 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <meta charset="utf-8">
+  <title>Reference: Masonry layout max-content sizing</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+
+@import "support/masonry-intrinsic-sizing-visual.css";
+
+grid {
+  display: inline-grid;
+  gap: 1px 2px;
+  grid-template-rows: 1fr 2fr 1fr 1fr;
+  grid-auto-flow: column;
+  border: 1px solid;
+  padding: 1px 0 2px 0;
+  vertical-align: top;
+  height: max-content;
+}
+
+item {
+  justify-self: start;
+  writing-mode: vertical-rl;
+  text-orientation: sideways;
+}
+
+.hidden {
+  visibility: hidden;
+  opacity: 0.5;
+  width: 1em;
+}
+</style>
+
+<body>
+
+<section class="fr">
+<grid>
+  <item style="height:2ch">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item>5 5</item>
+
+  <item class="hidden" style="grid-area: 4/2">0 0</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="height: 2ch;">5 5</item>
+
+  <item class="hidden" style="grid-area: 4/2">0 0</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item style="grid-area: 1/2">4</item>
+  <item style="height:2ch; grid-area: 2/1/3/3">5 5</item>
+
+  <item class="hidden" style="grid-area: 1/2">0 0</item>
+  <item class="hidden" style="grid-area: 2/1">0 0</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="height:4ch; grid-area: 2/1/4/auto">5 5</item>
+
+  <item class="hidden" style="grid-area: 2/1">0 0</item>
+  <item class="hidden" style="grid-area: 3/2">0 0</item>
+</grid>
+
+<grid>
+  <item style="grid-row: 4">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="grid-area: 2/1/4/2">5 5</item>
+  <item style="height:5ch; grid-area: 1/2/4/3">6</item>
+
+  <item class="hidden" style="grid-area: 3/3">0</item>
+  <item class="hidden" style="grid-area: 2/1">0 0</item>
+  <item class="hidden" style="grid-area: 3/1">0 0</item>
+</grid>
+
+<grid>
+  <item style="grid-row: 4">1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="height:3ch; grid-area: 2/1/4/2">5</item>
+  <item style="height:5ch; grid-area: 1/2/4/3">6</item>
+
+  <item class="hidden" style="grid-area: 2/1">0 0</item>
+  <item class="hidden" style="grid-area: 3/1">0 0</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="grid-area: 1/2/5/3">5 5</item>
+
+  <item class="hidden" style="grid-area: 1/2">0 0</item>
+  <item class="hidden" style="grid-area: 3/2">0 0</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="height:6ch; grid-area: 1/2/5/3">5 5</item>
+
+  <item class="hidden" style="grid-area: 1/2">0 0</item>
+  <item class="hidden" style="grid-area: 4/2">0 0</item>
+</grid>
+
+<grid>
+  <item>1</item>
+  <item>2 2</item>
+  <item>3 3</item>
+  <item>4</item>
+  <item style="height:6ch; grid-area: 1/2/4/3">5 5</item>
+
+  <item class="hidden" style="grid-area: 1/2">0 0</item>
+  <item class="hidden" style="grid-area: 4/2">0 0</item>
+  <item class="hidden" style="height:6ch; grid-area: 2/2/5/3">0 0</item>
+</grid>
+</section>
+</body>

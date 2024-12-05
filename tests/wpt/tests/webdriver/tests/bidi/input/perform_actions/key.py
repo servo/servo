@@ -19,6 +19,34 @@ async def test_invalid_browsing_context(bidi_session):
         await bidi_session.input.perform_actions(actions=actions, context="foo")
 
 
+async def test_key_down_closes_browsing_context(
+    bidi_session, configuration, new_tab, inline
+):
+    url = inline("""
+        <input onkeydown="window.close()">close</input>
+        <script>document.querySelector("input").focus();</script>
+        """)
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url,
+        wait="complete",
+    )
+
+    actions = Actions()
+    (
+        actions.add_key()
+        .key_down("w")
+        .pause(250 * configuration["timeout_multiplier"])
+        .key_up("w")
+    )
+
+    with pytest.raises(NoSuchFrameException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=new_tab["context"]
+        )
+
+
 async def test_key_backspace(bidi_session, top_context, setup_key_test):
     actions = Actions()
     actions.add_key().send_keys("efcd").send_keys([Keys.BACKSPACE, Keys.BACKSPACE])

@@ -47,7 +47,7 @@
       [ "about:blank", "TrustedScriptURL", "HTMLScriptElement src",
           _ => script.src = "about:blank" ],
       [ "2+2", "TrustedScript", "eval", _ => eval("2+2") ],
-      [ "(function anonymous(\n) {\nreturn 2+2\n})", "TrustedScript",
+      [ "function anonymous(\n) {\nreturn 2+2\n}", "TrustedScript",
         "Function", _ => new Function("return 2+2") ],
     ];
     for (var tc of cases) {

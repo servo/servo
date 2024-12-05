@@ -2520,6 +2520,11 @@ interface MessageChannel {
   readonly attribute MessagePort port2;
 };
 
+interface mixin MessageEventTarget {
+  attribute EventHandler onmessage;
+  attribute EventHandler onmessageerror;
+};
+
 [Exposed=(Window,Worker,AudioWorklet), Transferable]
 interface MessagePort : EventTarget {
   undefined postMessage(any message, sequence<object> transfer);
@@ -2528,10 +2533,10 @@ interface MessagePort : EventTarget {
   undefined close();
 
   // event handlers
-  attribute EventHandler onmessage;
-  attribute EventHandler onmessageerror;
   attribute EventHandler onclose;
 };
+
+MessagePort includes MessageEventTarget;
 
 dictionary StructuredSerializeOptions {
   sequence<object> transfer = [];
@@ -2571,10 +2576,9 @@ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   undefined postMessage(any message, optional StructuredSerializeOptions options = {});
 
   undefined close();
-
-  attribute EventHandler onmessage;
-  attribute EventHandler onmessageerror;
 };
+
+DedicatedWorkerGlobalScope includes MessageEventTarget;
 
 [Global=(Worker,SharedWorker),Exposed=SharedWorker]
 interface SharedWorkerGlobalScope : WorkerGlobalScope {
@@ -2597,8 +2601,6 @@ interface Worker : EventTarget {
 
   undefined postMessage(any message, sequence<object> transfer);
   undefined postMessage(any message, optional StructuredSerializeOptions options = {});
-  attribute EventHandler onmessage;
-  attribute EventHandler onmessageerror;
 };
 
 dictionary WorkerOptions {
@@ -2610,6 +2612,7 @@ dictionary WorkerOptions {
 enum WorkerType { "classic", "module" };
 
 Worker includes AbstractWorker;
+Worker includes MessageEventTarget;
 
 [Exposed=Window]
 interface SharedWorker : EventTarget {

@@ -31,3 +31,9 @@ function assignJavascriptURLToInjectionSink(testCase) {
     element[testCase.navigationFunction]();
   }
 }
+
+function encodeURIWithApostrophes(uriWithApostrophes) {
+  const encodedURI = encodeURI(uriWithApostrophes);
+  // https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
+  return encodedURI.replaceAll("'","%27");
+}

@@ -15,5 +15,19 @@ promise_test(async function(t) {
     testWin.close();
   });
   assert_false(navigator.userActivation.isActive, "User activation should be consumed");
-});
+}, "Opening a new window should consume user activation");
+
+promise_test(async function(t) {
+  await test_driver.bless("user activation");
+  const testWin = window.open("/resources/blank.html", "testWindow");
+  assert_false(navigator.userActivation.isActive, "User activation should be consumed");
+  t.add_cleanup(() => {
+    testWin.close();
+  });
+
+  // Open the existing window again
+  await test_driver.bless("user activation");
+  const testWin2 = window.open("/resources/blank.html", "testWindow");
+  assert_true(navigator.userActivation.isActive, "User activation should not be consumed");
+}, "Opening an existing window should not consume user activation");
 </script>

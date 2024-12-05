@@ -1,4 +1,4 @@
-// META: global=worker
+// META: global=worker,shadowrealm-in-window
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: timeout=long

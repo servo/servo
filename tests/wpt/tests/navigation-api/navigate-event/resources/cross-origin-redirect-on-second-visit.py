@@ -1,7 +1,7 @@
 import uuid
 
-def redirect_response():
-  location = b'http://localhost:8000/common/blank.html'
+def redirect_response(remote_origin):
+  location = remote_origin + "/common/blank.html";
   return (301,
   [
     (b'Cache-Control', b'no-cache, no-store, must-revalidate'),
@@ -22,10 +22,11 @@ def ok_response():
 
 def main(request, response):
   key = request.GET[b'key'];
+  remote_origin = request.GET[b'remote_origin'];
   visited = request.server.stash.take(key)
   request.server.stash.put(key, True)
 
   if visited is None:
     return ok_response()
 
-  return redirect_response()
+  return redirect_response(remote_origin)

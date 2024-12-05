@@ -77,23 +77,17 @@
                 assert_equals(elemOverflow.clientHeight, 90);
             }, "elemOverflow.clientHeight is the height of the padding edge");
 
-            /* This test differs from the spec. All major browsers give the result here, ignoring
-               the bottom padding.
-            */
             test(function(){
-                assert_equals(elemOverflow.scrollHeight, 150);
+                assert_equals(elemOverflow.scrollHeight, 200);
             }, "elemOverflow.scrollHeight is the height of its scrolled contents (ignoring padding, since we overflowed)");
 
             test(function(){
-            }, "elemOverflow.clientWidth is the width of the padding edge");
                 assert_equals(elemOverflow.clientWidth, 240);
+            }, "elemOverflow.clientWidth is the width of the padding edge");
 
-            /* This test differs from the spec. All major browsers give the result here, ignoring
-               the right padding.
-            */
             test(function(){
-                assert_equals(elemOverflow.scrollWidth, 250);
-            }, "elemOverflow.scrollHeight is the width of its scrolled contents (ignoring padding, since we overflowed)");
+                assert_equals(elemOverflow.scrollWidth, 290);
+            }, "elemOverflow.scrollHeight is the width of its scrolled contents (plus padding)");
 
             test(function(){
                 assert_equals(elemNestedOverflow.clientHeight, 90);

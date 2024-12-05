@@ -652,3 +652,28 @@ test((t) => {
   assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
 }, 'Insert a nested style rule within @scope, :scope');
 </script>
+
+<template id=test_insert_nested_declarations_directly>
+<style>
+  :where(.a) {
+    color: red;
+  }
+  @scope (.a) {
+  }
+</style>
+<div class=a>
+  <div id=child>Foo</div>
+</div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_insert_nested_declarations_directly.content.cloneNode(true));
+  assert_equals(getComputedStyle(child).color, 'rgb(255, 0, 0)');
+  let scope_rule = main.querySelector('style').sheet.cssRules[1];
+  assert_true(scope_rule instanceof CSSScopeRule);
+  scope_rule.insertRule('color: green');
+  assert_true(scope_rule.cssRules[0] instanceof CSSNestedDeclarations);
+  assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+}, 'Insert a CSSNestedDeclarations rule directly in top-level @scope');
+</script>

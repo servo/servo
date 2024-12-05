@@ -1,7 +1,8 @@
 # wdspec tests
 
 The term "wdspec" describes a type of test in WPT which verifies some aspect of
-[the WebDriver protocol](https://w3c.github.io/webdriver/). These tests are
+[WebDriver Classic](https://w3c.github.io/webdriver/) or
+[WebDriver BiDi](https://w3c.github.io/webdriver-bidi) protocols. These tests are
 written in [the Python programming language](https://www.python.org/) and
 structured with [the pytest testing
 framework](https://docs.pytest.org/en/latest/).
@@ -66,3 +67,100 @@ a WebDriver session) are defined in terms of Pytest "fixtures" and must be
 loaded accordingly. For more detail on how to define and use test fixtures,
 please refer to [the pytest project's documentation on the
 topic](https://docs.pytest.org/en/latest/fixture.html).
+
+## WebDriver BiDi
+
+The wdspec tests for [WebDriver BiDi](https://w3c.github.io/webdriver-bidi) are
+located in the `tests/bidi/` and `tests/interop` directories. Tests related to
+external specifications are located in `external` subdirectories e.g.
+[Permissions](https://www.w3.org/TR/permissions/) tests would go in
+`tests/bidi/external/permissions/`.
+
+The `webdriver.bidi.client.BidiSession` class provides an abstraction for the BiDi
+client and contains properties corresponding to the
+[WebDriver BiDi modules](https://w3c.github.io/webdriver-bidi/#protocol-modules). It
+can be retrieved by fixture `bidi_session`.
+
+### Extending WebDriver BiDi
+
+This section describes how to extend the WebDriver BiDi client with an example of
+adding support for [Permissions](https://www.w3.org/TR/permissions/).
+
+#### Adding a New Module
+
+##### Create `BidiModule`
+
+BiDi modules are defined in the `tools/webdriver/webdriver/bidi/modules/` directory.
+To add a new module called `permissions`, declare a Python class
+`webdriver.bidi.modules.permissions.Permissions` that inherits from `BidiModule` and
+store it in [`tools/webdriver/webdriver/bidi/modules/permissions.py`](https://github.com/web-platform-tests/wpt/blob/b81831169b8527a6c569a4ad92cf8a1baf4a7118/tools/webdriver/webdriver/bidi/modules/permissions.py#L7):
+
+```python
+class Permissions(BidiModule):
+    pass
+```
+
+##### Import the Module in `bidi/modules/__init__.py`
+
+Import this class in `tools/webdriver/webdriver/bidi/modules/__init__.py`:
+
+```python
+from .permissions import Permissions
+```
+
+##### Create an Instance of the Module in `webdriver.bidi.client.BidiSession`
+
+Modify the `webdriver.bidi.client.BidiSession.__init__` method to create an instance
+of `Permissions` and store it in a `permissions` [property](https://github.com/web-platform-tests/wpt/blob/b81831169b8527a6c569a4ad92cf8a1baf4a7118/tools/webdriver/webdriver/bidi/client.py#L98):
+
+```python
+self.permissions = modules.Permissions(self)
+```
+
+#### Adding a New Command
+
+[WebDriver BiDi commands](https://w3c.github.io/webdriver-bidi/#commands) are
+represented as module methods decorated with
+`@command` (`webdriver.bidi.modules._module.command`). To add a new command, add
+a method with the corresponding name (translated from camel case to snake case) to
+the module. The method should return a dictionary that represents the
+[command parameters](https://w3c.github.io/webdriver-bidi/#command-command-parameters).
+
+For example, to add the
+[`permissions.setPermission`](https://www.w3.org/TR/permissions/#webdriver-bidi-command-permissions-setPermission)
+command, add the following `set_permission` method to the [`Permissions` class](https://github.com/web-platform-tests/wpt/blob/b81831169b8527a6c569a4ad92cf8a1baf4a7118/tools/webdriver/webdriver/bidi/modules/permissions.py#L9):
+
+```python
+from ._module import command
+...
+class Permissions(BidiModule):
+...
+    @command
+    def set_permission(self,
+          descriptor: Union[Optional[Mapping[str, Any]], Undefined] = UNDEFINED,
+          state: Union[Optional[str], Undefined] = UNDEFINED,
+          origin: Union[Optional[str], Undefined] = UNDEFINED,
+          user_context: Union[Optional[str], Undefined] = UNDEFINED) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "descriptor": descriptor,
+            "state": state,
+            "origin": origin,
+            "userContext": user_context,
+        }
+        return params
+```
+
+### Adding Tests
+
+Generally, a single test file should contain tests for a single parameter or feature
+and stored in `webdriver/tests/bidi/{MODULE}/{METHOD}/{FEATURE}.py`
+For example, tests for
+[`permissions.setPermission`](https://www.w3.org/TR/permissions/#webdriver-bidi-command-permissions-setPermission)
+could be split into:
+
+* Invalid parameters: [`set_permission/invalid.py`](https://github.com/web-platform-tests/wpt/blob/aa019e3ff08cc75644edca41cfb095601477cb9d/webdriver/tests/bidi/external/permissions/set_permission/invalid.py)
+* Common scenarios: [`set_permission/set_permission.py`](https://github.com/web-platform-tests/wpt/blob/aa019e3ff08cc75644edca41cfb095601477cb9d/webdriver/tests/bidi/external/permissions/set_permission/set_permission.py)
+* User context: [`set_permission/user_context.py`](https://github.com/web-platform-tests/wpt/blob/master/webdriver/tests/bidi/external/permissions/set_permission/user_context.py)
+
+Tests should use `bidi_session`'s modules' methods to send commands and verify its
+side effects.

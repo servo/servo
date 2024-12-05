@@ -74,7 +74,10 @@ def release_actions(session):
     ):
         time.sleep(0.1)
 
-    session.actions.release()
+    try:
+        session.actions.release()
+    except NoSuchWindowException:
+        pass
 
 
 @pytest.fixture

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>CSS Multi-column Layout Test: ::column pseudo element valid parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector("::column");
+  test_valid_selector("::column::scroll-marker");
+  test_valid_selector("::before::column");
+  test_valid_selector("::before::column::scroll-marker");
+</script>

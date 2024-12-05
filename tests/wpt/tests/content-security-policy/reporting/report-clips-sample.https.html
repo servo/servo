@@ -9,26 +9,72 @@
 </head>
 <body>
   <script>
+  const trimmedSampleLength = 40;
+  const evalSample = "evil = '1234567890123456789012345678901234567890;'";
+  const trimmedEvalSample = evalSample.substring(0, trimmedSampleLength);
   promise_test(t => {
     let evil = false;
     assert_throws_js(EvalError, _ => {
-      eval("evil = '1234567890123456789012345678901234567890';");
+      eval(evalSample);
     });
     assert_false(evil);
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
-      assert_equals(e.sample, "eval|evil = '12345678901234567890123456789012");
+      assert_equals(e.sample, `eval|${trimmedEvalSample}`);
     }));
-  }, "Unsafe eval violation sample is clipped to 40 characters.");
+  }, `Unsafe eval violation sample is clipped to ${trimmedSampleLength} characters.`);
+
+  promise_test(t => {
+    let evil = false;
+    assert_throws_js(EvalError, _ => {
+      eval?.(evalSample);
+    });
+    assert_false(evil);
+    return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
+      assert_equals(e.sample, `eval|${trimmedEvalSample}`);
+    }));
+  }, `Unsafe indirect eval violation sample is clipped to ${trimmedSampleLength} characters.`);
+
+  const functionBody = "return '1234567890123456789012345678901234567890';";
+  const sampleWithoutFunctionPrefix = `(a,b\n) {\nreturn ${functionBody}\n}`;
 
   promise_test(t => {
     assert_throws_js(EvalError, _ => {
-      new Function("a", "b", "return '1234567890123456789012345678901234567890';");
+      new Function("a", "b", functionBody);
     });
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
-      assert_equals(e.sample.replace(/\n/g, ""),
-                    "Function|(a,b) {return '12345678901234567890123");
+      assert_equals(e.sample, `Function|${sampleWithoutFunctionPrefix.substring(0, trimmedSampleLength)}`);
     }));
   }, "Function constructor - the other kind of eval - is clipped.");
+
+  promise_test(t => {
+    assert_throws_js(EvalError, _ => {
+      const AsyncFunction = async function() {}.constructor
+      new AsyncFunction("a", "b", functionBody);
+    });
+    return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
+      assert_equals(e.sample, `Function|${sampleWithoutFunctionPrefix.substring(0, trimmedSampleLength)}`);
+    }));
+  }, "Async Function constructor is also clipped.");
+
+  promise_test(t => {
+    assert_throws_js(EvalError, _ => {
+      const GeneratorFunction = function*() {}.constructor
+      new GeneratorFunction("a", "b", functionBody);
+    });
+    return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
+        assert_equals(e.sample, `Function|${sampleWithoutFunctionPrefix.substring(0, trimmedSampleLength)}`);
+    }));
+  }, "Generator Function constructor is also clipped.");
+
+  promise_test(t => {
+    assert_throws_js(EvalError, _ => {
+      const AsyncGeneratorFunction = async function*() {}.constructor
+      new AsyncGeneratorFunction("a", "b", functionBody);
+    });
+    return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
+        assert_equals(e.sample, `Function|${sampleWithoutFunctionPrefix.substring(0, trimmedSampleLength)}`);
+    }));
+  }, "AsyncGenerator Function constructor is also clipped.");
 
   promise_test(t => {
     const a = document.createElement("a");

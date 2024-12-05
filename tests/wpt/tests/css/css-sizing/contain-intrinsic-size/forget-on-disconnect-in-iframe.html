@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-4/#intrinsic-size-override">
+
+<iframe id="iframe" srcdoc='
+<div id="parent">
+  <div id="target" style="contain-intrinsic-size:auto 1px auto 2px; width:max-content; height:max-content;">
+    <div id="contents" style="width:100px; height:50px;"></div>
+  </div>
+</div>
+'></iframe>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function checkSize(elm, expectedWidth, expectedHeight, msg) {
+    assert_equals(elm.clientWidth, expectedWidth, msg + " - clientWidth");
+    assert_equals(elm.clientHeight, expectedHeight, msg + " - clientHeight");
+  }
+
+  function nextRendering() {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+  }
+
+  // Make sure that the iframe is loaded:
+  onload = function() {
+    promise_test(async function() {
+      const doc = iframe.contentWindow.document;
+      const parent = doc.getElementById('parent');
+      const target = doc.getElementById('target');
+      const contents = doc.getElementById('contents');
+
+      checkSize(target, 100, 50, "Sizing normally");
+
+      await nextRendering();
+      target.style.contentVisibility = "hidden";
+      contents.style.width = "66px";
+      contents.style.height = "66px";
+      checkSize(target, 100, 50, "Using last remembered size");
+
+      target.remove();
+      checkSize(target, 0, 0, "No box");
+
+      await nextRendering();
+      parent.appendChild(target);
+      checkSize(target, 1, 2, "Size containment with no last remembered size");
+    }, "Forget remembered size inside iframe");
+  }
+</script>

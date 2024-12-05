@@ -3,64 +3,34 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/shared-storage/resources/util.js"></script>
+<script src="/shared-storage/resources/util.sub.js"></script>
 <script src="/fenced-frame/resources/utils.js"></script>
 
 <body>
 <script>
 'use strict';
+const scriptOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
 
-async function createWorkletThenSelectUrlAndVerifyDataOrigin(data_origin_value) {
-  const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
-  const script_url = crossOrigin +
-                     `/shared-storage/resources/simple-module.js`;
+promise_test(async t => {
+  await createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+ }, 'For a cross-origin worklet with default data origin, test selectURL() ' +
+    'and verify its data origin');
 
-    const options = (data_origin_value === '') ? { credentials: "omit" } :
-          { credentials: "omit", dataOrigin: data_origin_value };
+promise_test(async t => {
+  await createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'context-origin', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+ }, 'For a cross-origin worklet with dataOrigin "context-origin", test ' +
+    'selectURL() and verify its data origin');
 
-  const worklet = await sharedStorage.createWorklet(script_url, options);
-
-  const ancestor_key = token();
-  let url0 = generateURL("/shared-storage/resources/frame0.html",
-                         [ancestor_key]);
-
-  let select_url_result = await worklet.selectURL(
-    "test-url-selection-operation",
-    [{ url: url0 }], {
-      data: {
-        'mockResult': 0,
-        'setKey': 'key0',
-        'setValue': 'value0'
-      },
-      resolveToConfig: true,
-      keepAlive: true
-    });
-
-  assert_true(validateSelectURLResult(select_url_result, true));
-  attachFencedFrame(select_url_result, 'opaque-ads');
-  const result0 = await nextValueFromServer(ancestor_key);
-  assert_equals(result0, "frame0_loaded");
-
-  const expectedDataOrigin = (data_origin_value === 'script-origin') ?
-        crossOrigin : location.origin;
-  await verifyKeyValueForOrigin('key0', 'value0', expectedDataOrigin);
-}
-
-promise_test(async () => {
-  await createWorkletThenSelectUrlAndVerifyDataOrigin(/*data_origin_value=*/'');
-}, 'For a cross-origin worklet with default data origin, test selectURL() ' +
-   'and verify its data origin');
-
-promise_test(async () => {
-  await createWorkletThenSelectUrlAndVerifyDataOrigin(
-        /*data_origin_value=*/'context-origin');
-}, 'For a cross-origin worklet with dataOrigin "context-origin", test ' +
-   'selectURL() and verify its data origin');
-
-promise_test(async () => {
-  await createWorkletThenSelectUrlAndVerifyDataOrigin(
-        /*data_origin_value=*/'script-origin');
-}, 'For a cross-origin worklet with dataOrigin "script-origin", test ' +
-   'selectURL() and verify its data origin');
+promise_test(async t => {
+  await createWorkletAndVerifyDataOrigin(
+    t, /*data_origin=*/'script-origin', /*script_origin=*/scriptOrigin,
+    /*expect_success=*/true, /*error_type=*/null);
+ }, 'For a cross-origin worklet with dataOrigin "script-origin", test ' +
+    'selectURL() and verify its data origin');
 
 </script>
 </body>
