@@ -37,14 +37,15 @@ use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
-use crate::dom::underlyingsourcecontainer::{UnderlyingSourceType, TeeUnderlyingSource};
+use crate::dom::teeunderlyingsource::TeeCancelAlgorithm;
+use crate::dom::types::TeeUnderlyingSource;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 
 use super::bindings::reflector::reflect_dom_object_with_proto;
-use super::underlyingsourcecontainer::TeeCancelAlgorithm;
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -141,7 +142,7 @@ fn create_readable_stream(
     );
 
     // Let controller be a new ReadableStreamDefaultController.
-    let controler = ReadableStreamDefaultController::new(
+    let controller = ReadableStreamDefaultController::new(
         global,
         underlying_source_type,
         high_water_mark,
@@ -151,7 +152,7 @@ fn create_readable_stream(
 
     // Perform ? SetUpReadableStreamDefaultController(stream, controller, startAlgorithm,
     // pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm).
-    controler
+    controller
         .setup(stream.clone(), can_gc)
         .expect("Setup of default controller cannot fail");
 
@@ -726,7 +727,7 @@ impl ReadableStream {
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), CanGc::note());
 
-        let underlying_sourc_type_branch_1 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
+        let underlying_source_type_branch_1 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
             Dom::from_ref(&reader),
             Dom::from_ref(self),
             branch_1.clone(),
@@ -742,7 +743,7 @@ impl ReadableStream {
             TeeCancelAlgorithm::Cancel1Algorithm,
         ));
 
-        let underlying_sourc_type_branch_2 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
+        let underlying_source_type_branch_2 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
             Dom::from_ref(&reader),
             Dom::from_ref(self),
             branch_1.clone(),
@@ -761,7 +762,7 @@ impl ReadableStream {
         // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
         branch_1.set(Some(&create_readable_stream(
             &self.reflector_.global(),
-            underlying_sourc_type_branch_1,
+            underlying_source_type_branch_1,
             QueuingStrategy::empty(),
             CanGc::note(),
         )));
@@ -769,7 +770,7 @@ impl ReadableStream {
         // Set branch_2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
         branch_2.set(Some(&create_readable_stream(
             &self.reflector_.global(),
-            underlying_sourc_type_branch_2,
+            underlying_source_type_branch_2,
             QueuingStrategy::empty(),
             CanGc::note(),
         )));
