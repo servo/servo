@@ -632,8 +632,20 @@ impl HoistedAbsolutelyPositionedBox {
 
             let pb = pbm.padding + pbm.border;
             let margin_rect_size = content_size + pbm.padding_border_sums + margin.sum();
-            let inline_origin = inline_axis_solver.origin_for_margin_box(margin_rect_size.inline);
-            let block_origin = block_axis_solver.origin_for_margin_box(margin_rect_size.block);
+            let inline_origin = inline_axis_solver.origin_for_margin_box(
+                AxisDirection::Inline,
+                margin_rect_size.inline,
+                style.writing_mode,
+                shared_fragment.original_parent_writing_mode,
+                containing_block_writing_mode,
+            );
+            let block_origin = block_axis_solver.origin_for_margin_box(
+                AxisDirection::Block,
+                margin_rect_size.block,
+                style.writing_mode,
+                shared_fragment.original_parent_writing_mode,
+                containing_block_writing_mode,
+            );
 
             let content_rect = LogicalRect {
                 start_corner: LogicalVec2 {
@@ -868,12 +880,23 @@ impl<'a> AbsoluteAxisSolver<'a> {
         result
     }
 
-    fn origin_for_margin_box(&self, size: Au) -> Au {
-        let (alignment_container, flip_anchor) = match (
+    fn origin_for_margin_box(
+        &self,
+        axis: AxisDirection,
+        size: Au,
+        self_writing_mode: WritingMode,
+        original_parent_writing_mode: WritingMode,
+        containing_block_writing_mode: WritingMode,
+    ) -> Au {
+        let (alignment_container, alignment_container_writing_mode, flip_anchor) = match (
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
         ) {
-            (None, None) => (self.static_position_rect_axis, self.flip_anchor),
+            (None, None) => (
+                self.static_position_rect_axis,
+                original_parent_writing_mode,
+                self.flip_anchor,
+            ),
             (Some(start), Some(end)) => {
                 let start = start.to_used_value(self.containing_size);
                 let end = end.to_used_value(self.containing_size);
@@ -881,7 +904,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     origin: start,
                     length: self.containing_size - (end + start),
                 };
-                (alignment_container, false)
+                (alignment_container, containing_block_writing_mode, false)
             },
             // If a single offset is auto, for alignment purposes it resolves to the amount
             // that makes the inset-modified containing block be exactly as big as the abspos.
@@ -892,21 +915,49 @@ impl<'a> AbsoluteAxisSolver<'a> {
             },
         };
 
+        assert_eq!(
+            self_writing_mode.is_horizontal(),
+            original_parent_writing_mode.is_horizontal(),
+            "Mixed horizontal and vertical writing modes are not supported yet"
+        );
+        assert_eq!(
+            self_writing_mode.is_horizontal(),
+            containing_block_writing_mode.is_horizontal(),
+            "Mixed horizontal and vertical writing modes are not supported yet"
+        );
+        let self_value_matches_container = || {
+            axis == AxisDirection::Block ||
+                self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
+        };
+
         // Here we resolve the alignment to either start, center, or end.
         // Note we need to handle both self-alignment values (when some inset isn't auto)
         // and distributed alignment values (when both insets are auto).
         // The latter are treated as their fallback alignment.
         let alignment = match self.alignment.value() {
-            // https://drafts.csswg.org/css-align/#valdef-self-position-end
-            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
-            AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
             // https://drafts.csswg.org/css-align/#valdef-self-position-center
             // https://drafts.csswg.org/css-align/#valdef-align-content-space-around
             // https://drafts.csswg.org/css-align/#valdef-align-content-space-evenly
             AlignFlags::CENTER | AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => {
                 AlignFlags::CENTER
             },
-            // TODO(#34282): handle missing values: self-start, self-end, left, right.
+            // https://drafts.csswg.org/css-align/#valdef-self-position-self-start
+            AlignFlags::SELF_START if self_value_matches_container() => AlignFlags::START,
+            AlignFlags::SELF_START => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-self-end
+            AlignFlags::SELF_END if self_value_matches_container() => AlignFlags::END,
+            AlignFlags::SELF_END => AlignFlags::START,
+            // https://drafts.csswg.org/css-align/#valdef-justify-content-left
+            AlignFlags::LEFT if alignment_container_writing_mode.is_bidi_ltr() => AlignFlags::START,
+            AlignFlags::LEFT => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-justify-content-right
+            AlignFlags::RIGHT if alignment_container_writing_mode.is_bidi_ltr() => AlignFlags::END,
+            AlignFlags::RIGHT => AlignFlags::START,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-end
+            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
+            AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
+            // https://drafts.csswg.org/css-align/#valdef-self-position-start
+            // https://drafts.csswg.org/css-align/#valdef-self-position-flex-start
             _ => AlignFlags::START,
         };
 
