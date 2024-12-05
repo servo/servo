@@ -646,10 +646,10 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, can_gc);
+            stream.enqueue_native(b);
         },
         Err(e) => {
             stream.error_native(e);
@@ -672,7 +672,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
                         });
 
                         let _ = self
@@ -696,7 +696,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
+                            stream_handle_incoming(&stream, Ok(bytes_in));
                         });
 
                         let _ = self
@@ -762,7 +762,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&stream, error, CanGc::note());
+                                    stream_handle_incoming(&stream, error);
                                 }),
                                 &self.task_canceller,
                             );

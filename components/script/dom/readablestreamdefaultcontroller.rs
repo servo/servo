@@ -126,7 +126,7 @@ impl Callback for StartAlgorithmRejectionHandler {
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
 pub struct ValueWithSize {
-    value: Heap<JSVal>,
+    value: Box<Heap<JSVal>>,
     size: f64,
 }
 
@@ -135,8 +135,7 @@ pub struct ValueWithSize {
 #[allow(crown::unrooted_must_root)]
 pub enum EnqueuedValue {
     /// A value enqueued from Rust.
-    #[allow(dead_code)]
-    Native(Rc<Box<[u8]>>),
+    Native(Box<[u8]>),
     /// A Js value.
     Js(ValueWithSize),
 }
@@ -656,10 +655,9 @@ impl ReadableStreamDefaultController {
             // We create the value-with-size created inside
             // EnqueueValueWithSize here.
             let value_with_size = ValueWithSize {
-                value: Heap::default(),
+                value: Heap::boxed(chunk.get()),
                 size,
             };
-            value_with_size.value.set(chunk.get());
 
             {
                 // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
@@ -700,11 +698,22 @@ impl ReadableStreamDefaultController {
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     #[allow(unsafe_code)]
-    pub fn enqueue_native(&self, chunk: Vec<u8>, can_gc: CanGc) {
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        unsafe { chunk.to_jsval(*cx, rval.handle_mut()) };
-        let _ = self.enqueue(cx, rval.handle(), can_gc);
+    pub fn enqueue_native(&self, chunk: Vec<u8>) {
+        let stream = self
+            .stream
+            .get()
+            .expect("Controller must have a stream when a chunk is enqueued.");
+        if stream.is_locked() && stream.get_num_read_requests() > 0 {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            unsafe { chunk.to_jsval(*cx, rval.handle_mut()) };
+            stream.fulfill_read_request(rval.handle(), false);
+        } else {
+            let mut queue = self.queue.borrow_mut();
+            queue
+                .enqueue_value_with_size(EnqueuedValue::Native(chunk.into_boxed_slice()))
+                .expect("Enqueuing a chunk from Rust should not fail.");
+        }
     }
 
     /// Does the stream have all data in memory?
