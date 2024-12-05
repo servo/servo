@@ -103,6 +103,20 @@ promise_test(t => {
   }));
 }, "Test that encodingInfo rejects if the video configuration contentType doesn't parse");
 
+// See https://mimesniff.spec.whatwg.org/#example-valid-mime-type-string
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
+      contentType: 'video/webm;',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that encodingInfo rejects if the video configuration contentType is not a valid MIME type string");
+
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
@@ -146,6 +160,45 @@ promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: {
+      contentType: 'video/webm',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that encodingInfo rejects if the video configuration contentType does not imply a single media codec but has no codecs parameter");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08, vp8"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    }
+  }));
+}, "Test that encodingInfo rejects if the video configuration contentType has a codecs parameter that indicates multiple video codecs");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08, opus"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    }
+  }));
+}, "Test that encodingInfo rejects if the video configuration contentType has a codecs parameter that indicates both an audio and a video codec");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    video: {
       contentType: 'video/webm; codecs="vp09.00.10.08"',
       width: 800,
       height: 600,
@@ -153,7 +206,7 @@ promise_test(t => {
       framerate: '24000/1001',
     }
   }));
-}, "Test that encodingInfo() rejects framerate in the form of x/y");
+}, "Test that encodingInfo rejects framerate in the form of x/y");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -166,7 +219,7 @@ promise_test(t => {
       framerate: '24000/0',
     }
   }));
-}, "Test that encodingInfo() rejects framerate in the form of x/0");
+}, "Test that encodingInfo rejects framerate in the form of x/0");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -179,7 +232,7 @@ promise_test(t => {
       framerate: '0/10001',
     }
   }));
-}, "Test that encodingInfo() rejects framerate in the form of 0/y");
+}, "Test that encodingInfo rejects framerate in the form of 0/y");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -192,7 +245,7 @@ promise_test(t => {
       framerate: '-24000/10001',
     }
   }));
-}, "Test that encodingInfo() rejects framerate in the form of -x/y");
+}, "Test that encodingInfo rejects framerate in the form of -x/y");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -205,7 +258,7 @@ promise_test(t => {
       framerate: '24000/-10001',
     }
   }));
-}, "Test that encodingInfo() rejects framerate in the form of x/-y");
+}, "Test that encodingInfo rejects framerate in the form of x/-y");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -218,7 +271,7 @@ promise_test(t => {
       framerate: '24000/',
     }
   }));
-}, "Test that encodingInfo() rejects framerate in the form of x/");
+}, "Test that encodingInfo rejects framerate in the form of x/");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -231,7 +284,7 @@ promise_test(t => {
       framerate: '1/3x',
     }
   }));
-}, "Test that encodingInfo() rejects framerate with trailing unallowed characters");
+}, "Test that encodingInfo rejects framerate with trailing unallowed characters");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
@@ -262,6 +315,27 @@ promise_test(t => {
 }, "Test that encodingInfo rejects if the audio configuration contentType has one parameter that isn't codecs");
 
 promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    audio: { contentType: 'audio/webm' },
+  }));
+}, "Test that encodingInfo rejects if the audio configuration contentType does not imply a single media codec but has no codecs parameter");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    audio: { contentType: 'audio/webm; codecs="vorbis, opus"' },
+  }));
+}, "Test that encodingInfo rejects if the audio configuration contentType has a codecs parameter that indicates multiple audio codecs");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.encodingInfo({
+    type: 'record',
+    audio: { contentType: 'audio/webm; codecs="vp09.00.10.08, opus"' },
+  }));
+}, "Test that encodingInfo rejects if the audio configuration contentType has a codecs parameter that indicates both an audio and a video codec");
+
+promise_test(t => {
   return navigator.mediaCapabilities.encodingInfo({
     type: 'record',
     video: minimalVideoConfiguration,
@@ -271,7 +345,7 @@ promise_test(t => {
     assert_equals(typeof ability.smooth, "boolean");
     assert_equals(typeof ability.powerEfficient, "boolean");
   });
-}, "Test that encodingInfo returns a valid MediaCapabilitiesInfo objects for record type");
+}, "Test that encodingInfo returns a valid MediaCapabilitiesInfo object for record type");
 
 async_test(t => {
   var validTypes = [ 'record', 'webrtc' ];

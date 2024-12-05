@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: Masonry layout column width sizing</title>
+  <link rel="author" title="Brandon Stewart" href="mailto:brandonstewart@apple.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#track-sizing">
+  <link rel="match" href="masonry-intrinsic-sizing-rows-007.html">
+  <style>
+
+@import "support/masonry-intrinsic-sizing-visual.css";
+
+grid {
+  display: grid;
+  gap: 1rem 1rem;
+  grid-template-columns: 1ch 1ch;
+  grid-template-rows: repeat(4,100px);
+  border: 1px solid;
+  padding: 0 1px 0 2px;
+  vertical-align: top;
+}
+
+item {
+    background-color: blue;
+    width: auto;
+}
+
+</style>
+
+<body>
+
+<grid title="Ensure a width is applied in a column masonry layout when the item's width is auto">
+  <item style="grid-column: 1;">1</item>
+  <item style="grid-column: 2;">5</item>
+  <item style="grid-column: 1;">2</item>
+  <item style="grid-column: 1;">3</item>
+  <item style="grid-column: 1;">4</item>
+</grid>
+
+

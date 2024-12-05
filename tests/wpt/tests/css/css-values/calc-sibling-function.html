@@ -11,6 +11,9 @@
       counter-increment: foo calc(sibling-count());
       left: calc(10% + 100px * sibling-index());
     }
+    #test::before {
+      z-index: calc(sibling-index() * 2);
+    }
   </style>
 </head>
 <body>
@@ -36,6 +39,11 @@ test(() => {
   let style = getComputedStyle(document.getElementById('test'));
   assert_equals(style.left, 'calc(10% + 200px)');
 }, 'sibling-index() in calc() with percentage');
+
+test(() => {
+  let style = getComputedStyle(document.getElementById('test'), ':before');
+  assert_equals(style.zIndex, '4');
+}, 'sibling-count on pseudo-element');
   </script>
 </body>
 </html>

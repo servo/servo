@@ -152,6 +152,12 @@ done
 sox -n -r 48000 sfx.wav synth 1 sine 480
 ffmpeg -i sfx.wav -frames:a 10 -acodec libopus -b:a 96K sfx-opus.ogg
 
+### sfx-vorbis.ogg
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 -acodec libvorbis -b:a 96K sfx-vorbis.ogg
+```
+
 ### av1.mp4
 ```
 ffmpeg -f lavfi -i testsrc=rate=10:n=1 -t 1 -pix_fmt yuv420p -vcodec libaom-av1 av1.mp4

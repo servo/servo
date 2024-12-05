@@ -462,19 +462,19 @@ class RefTestImplementation:
                                                           lhs_screenshots,
                                                           rhs_screenshots)):
             comparison_screenshots = (lhs_screenshot, rhs_screenshot)
-            if not fuzzy or fuzzy == ((0, 0), (0, 0)):
-                equal = lhs_hash == rhs_hash
-                # sometimes images can have different hashes, but pixels can be identical.
-                if not equal:
-                    self.logger.info("Image hashes didn't match%s, checking pixel differences" %
-                                     ("" if len(hashes) == 1 else " on page %i" % (page_idx + 1)))
-                    max_per_channel, pixels_different = self.get_differences(comparison_screenshots,
-                                                                             urls)
-                    equal = pixels_different == 0 and max_per_channel == 0
+            if lhs_hash == rhs_hash:
+                max_per_channel, pixels_different = 0, 0
             else:
+                # sometimes images can have different hashes, but pixels can be identical.
+                self.logger.info("Image hashes didn't match%s, checking pixel differences" %
+                                 ("" if len(hashes) == 1 else " on page %i" % (page_idx + 1)))
                 max_per_channel, pixels_different = self.get_differences(comparison_screenshots,
                                                                          urls,
                                                                          page_idx if len(hashes) > 1 else None)
+
+            if not fuzzy or fuzzy == ((0, 0), (0, 0)):
+                equal = pixels_different == 0 and max_per_channel == 0
+            else:
                 allowed_per_channel, allowed_different = fuzzy
                 self.logger.info("Allowed %s pixels different, maximum difference per channel %s" %
                                  ("-".join(str(item) for item in allowed_different),

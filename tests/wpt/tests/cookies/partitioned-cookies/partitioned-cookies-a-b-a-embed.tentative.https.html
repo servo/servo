@@ -37,6 +37,7 @@
     document.body.appendChild(iframe);
 
     await fetch_tests_from_window(iframe.contentWindow);
+    erase_cookie_from_js("ancestor", "Secure; Path=/; SameSite=None; Partitioned");
   }, "Setting Partitioned cookie on top-level site and embedding a cross-site iframe");
 
 </script>

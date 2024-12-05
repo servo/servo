@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <title> Test the snapshotted CSP is checked during task creation, not during
+    execution.
+  </title>
+</head>
+<body>
+  <iframe id="iframe"></iframe>
+  <script>
+    setup({ single_test: true });
+
+    function f() {
+      location.href = "javascript:h()";
+    }
+
+    let e1Dispatched = false;
+
+    document.addEventListener("securitypolicyviolation", (e1) => {
+      if (e1.lineNumber == 88) {
+        e1Dispatched = true;
+      }
+    });
+
+    document.addEventListener("securitypolicyviolation", (e2) => {
+      if (e2.lineNumber == 17) {
+        assert_true(e1Dispatched, "e1 was dispatched before e2");
+        done();
+      }
+    });
+
+    function addCSP() {
+      const m = document.createElement("meta");
+      m.setAttribute("http-equiv", "Content-Security-Policy");
+      m.setAttribute("content", "default-src 'none'");
+      document.head.append(m);
+    }
+
+    window.addEventListener("load", () => {
+      // Steps:
+      // 1. Execute `javascript:` URL: queues task for executing `f`.
+      // 2. Add CSP.
+      // 3. Execute `javascript:` URL: queues `securitypolicyviolation` event e1
+      // (expected) or a task for executing `g`.
+
+      // `f`: should queue another task, a different `securitypolicyviolation`
+      // e2.
+      // `g`: doesn't matter, won't be executed.
+
+      // Potentially two queues from the spec are relevant here:
+      // Queue 1 for the `javascript:` URL navigations:
+      // <https://html.spec.whatwg.org/#navigation-and-traversal-task-source>.
+      // Queue 2 for the "securitypolicyviolation" events:
+      // <https://github.com/w3c/webappsec-csp/issues/696>.
+
+      // After step 1:
+      //   Queue 1: [javascript-f]
+      // After step 2:
+      //   Queue 1: [javascript-f]
+      // Expected after step 3:
+      //   Queue 1: [javascript-f]; Queue 2: [e1]
+      //   After javascript-f:
+      //     Queue 1: []; Queue 2: [e1, e2]*
+      // Unexpected after step 3:
+      //   Queue 1: [javascript-f, javascript-g]
+      //   After javascript-f:
+      //     Queue 1: [javascript-g]; Queue 2: [e2]
+      //     After javascript-g:
+      //       Queue 1: []; Queue 2: [e2, e1]*
+      //
+      // *: the order or processing two elements of different queues is
+      // unspecified. For this test only the order within queue 2 matters.
+      //
+      // So e1 being dispatched before e2 implies the snapshotted CSP was
+      // checked during task creation, not during task execution.
+      //
+      // That behavior isn't specified; see
+      // <https://github.com/whatwg/html/issues/4651#issuecomment-2412623188>
+      // and related comments. This test is a first step towards specifying
+      // a deterministic behavior.
+
+      const iframe = document.getElementById("iframe");
+      iframe.contentWindow.location.href = "javascript:parent.f()";
+      addCSP();
+      iframe.contentWindow.location.href = "javascript:g()";
+    });
+  </script>
+</body>
+</html>

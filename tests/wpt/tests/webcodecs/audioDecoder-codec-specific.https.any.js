@@ -12,6 +12,7 @@
 // META: variant=?pcm_s32
 // META: variant=?pcm_f32
 // META: variant=?flac
+// META: variant=?vorbis
 
 const ADTS_AAC_DATA = {
   src: 'sfx.adts',
@@ -128,6 +129,30 @@ const PCM_S24_DATA = pcm("pcm-s24", 0x66);
 const PCM_S32_DATA = pcm("pcm-s32", 0x66);
 const PCM_F32_DATA = pcm("pcm-f32", 0x72);
 
+const VORBIS_DATA = {
+  src: 'sfx-vorbis.ogg',
+  config: {
+    codec: 'vorbis',
+    description: [
+      2,
+      30,
+      62,
+      {offset: 28, size: 30},
+      {offset: 101, size: 62},
+      {offset: 163, size: 3771}
+    ],
+    numberOfChannels: 1,
+    sampleRate: 48000,
+  },
+  chunks: [
+    {offset: 3968, size: 44}, {offset: 4012, size: 21},
+    {offset: 4033, size: 57}, {offset: 4090, size: 37},
+    {offset: 4127, size: 37}, {offset: 4164, size: 107},
+    {offset: 4271, size: 172}
+  ],
+  duration: 21333
+};
+
 // Allows mutating `callbacks` after constructing the AudioDecoder, wraps calls
 // in t.step().
 function createAudioDecoder(t, callbacks) {
@@ -171,6 +196,7 @@ promise_setup(async () => {
     '?pcm_s32': PCM_S32_DATA,
     '?pcm_f32': PCM_F32_DATA,
     '?flac': FLAC_DATA,
+    '?vorbis': VORBIS_DATA,
   }[location.search];
 
   // Don't run any tests if the codec is not supported.
@@ -193,7 +219,28 @@ promise_setup(async () => {
 
   CONFIG = {...data.config};
   if (data.config.description) {
-    CONFIG.description = view(buf, data.config.description);
+    // The description for decoding vorbis is expected to be in Xiph extradata format.
+    // https://w3c.github.io/webcodecs/vorbis_codec_registration.html#audiodecoderconfig-description
+    if (Array.isArray(data.config.description)) {
+      const length = data.config.description.reduce((sum, value) => sum + ((typeof value === 'number') ? 1 : value.size), 0);
+      const description = new Uint8Array(length);
+
+      data.config.description.reduce((offset, value) => {
+          if (typeof value === 'number') {
+              description[offset] = value;
+
+              return offset + 1;
+          }
+
+          description.set(view(buf, value), offset);
+
+          return offset + value.size;
+      }, 0);
+
+      CONFIG.description = description;
+    } else {
+      CONFIG.description = view(buf, data.config.description);
+    }
   }
 
   CHUNK_DATA = [];
@@ -300,7 +347,7 @@ promise_test(async t => {
   });
 
   await decoder.flush();
-  assert_equals(outputs, CHUNKS.length, 'outputs');
+  assert_equals(outputs, CONFIG.codec === 'vorbis' ? CHUNKS.length - 1 : CHUNKS.length, 'outputs');
 }, 'Test decoding');
 
 promise_test(async t => {
@@ -316,9 +363,11 @@ promise_test(async t => {
   decoder.configure(CONFIG);
   decoder.decode(new EncodedAudioChunk(
       {type: 'key', timestamp: -42, data: CHUNK_DATA[0]}));
+  decoder.decode(new EncodedAudioChunk(
+      {type: 'key', timestamp: CHUNKS[0].duration - 42, data: CHUNK_DATA[1]}));
 
   await decoder.flush();
-  assert_equals(outputs, 1, 'outputs');
+  assert_equals(outputs, CONFIG.codec === 'vorbis' ? 1 : 2, 'outputs');
 }, 'Test decoding a with negative timestamp');
 
 promise_test(async t => {
@@ -333,13 +382,14 @@ promise_test(async t => {
 
   decoder.configure(CONFIG);
   decoder.decode(CHUNKS[0]);
+  decoder.decode(CHUNKS[1]);
 
   await decoder.flush();
-  assert_equals(outputs, 1, 'outputs');
+  assert_equals(outputs, CONFIG.codec === 'vorbis' ? 1 : 2, 'outputs');
 
-  decoder.decode(CHUNKS[0]);
+  decoder.decode(CHUNKS[2]);
   await decoder.flush();
-  assert_equals(outputs, 2, 'outputs');
+  assert_equals(outputs, CONFIG.codec === 'vorbis' ? 2 : 3, 'outputs');
 }, 'Test decoding after flush');
 
 promise_test(async t => {

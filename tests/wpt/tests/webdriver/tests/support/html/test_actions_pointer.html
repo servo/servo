@@ -1,7 +1,13 @@
 ﻿<!doctype html>
-<meta charset=utf-8>
 <html>
 <head>
+    <meta charset="utf-8">
+    <!-- This is used for tests which check the pointer event position
+         synthesized via TestDriver.  Therefore, if the page is initially
+         scaled to non-100%, TestDriver needs to floor the specified position
+         so that the event may be fired at different position.  Thus, we need
+         to fix the scale here. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Test Actions</title>
     <style>
       div { padding: 0; margin: 0; }

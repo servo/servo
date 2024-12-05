@@ -69,9 +69,11 @@ promise_test(async t => {
   const audio = document.createElement('audio');
   audio.srcObject = new MediaStream();
   audio.srcObject.addTrack(remoteTrack);
-  assert_equals(await pollChannelCount(t, remoteTrack), 1,
-                'Remote track is also mono');
-}, 'Sending and receiving a mono track with opus');
+  // The stereo opus decoder outputs stereo regardless of the signal on the
+  // wire.
+  assert_equals(await pollChannelCount(t, remoteTrack), 2,
+                'Remote track is stereo (despite local track being mono)');
+}, 'Sending and receiving a mono track with opus (stereo decoder upmix)');
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();

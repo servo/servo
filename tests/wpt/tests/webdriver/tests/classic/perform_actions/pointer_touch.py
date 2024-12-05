@@ -29,6 +29,21 @@ def test_no_browsing_context(session, closed_frame, touch_chain):
         touch_chain.click().perform()
 
 
+def test_pointer_down_closes_browsing_context(
+    session, configuration, http_new_tab, inline, touch_chain
+):
+    session.url = inline(
+        """<input onpointerdown="window.close()">close</input>""")
+    origin = session.find.css("input", all=False)
+
+    with pytest.raises(NoSuchWindowException):
+        touch_chain.pointer_move(0, 0, origin=origin) \
+            .pointer_down(button=0) \
+            .pause(100 * configuration["timeout_multiplier"]) \
+            .pointer_up(button=0) \
+            .perform()
+
+
 @pytest.mark.parametrize("as_frame", [False, True], ids=["top_context", "child_context"])
 def test_stale_element_reference(session, stale_element, touch_chain, as_frame):
     element = stale_element("input#text", as_frame=as_frame)

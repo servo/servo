@@ -23,7 +23,7 @@
       const entry = await load_and_observe(url);
       // anim-gr.png is 100 by 50.
       const size = 100 * 50;
-      checkImage(entry, url, 'image_id', size, beforeLoad, ["renderTimeIs0", "animated-zero"]);
+      checkImage(entry, url, 'image_id', size, beforeLoad, ["animated"]);
     }, "Same origin animated image is observable and has a first frame.");
   </script>
 </body>

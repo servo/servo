@@ -56,10 +56,10 @@ function loaf_blocking_duration_test(run, label) {
   }, `LoAF blockingDuration should be equivalent to long tasks: ${label}`);
 }
 
-loaf_blocking_duration_test(t => t.step_timeout(busy_wait), "Non-rendering");
-loaf_blocking_duration_test(t => t.step_timeout(() => {
+loaf_blocking_duration_test((t, busy_wait) => t.step_timeout(busy_wait), "Non-rendering");
+loaf_blocking_duration_test((t, busy_wait) => t.step_timeout(() => {
   busy_wait();
-  requestAnimationFrame(busy_wait);
+  requestAnimationFrame(generate_loaf_now);
 }), "Rendering");
 </script>
 </body>

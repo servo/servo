@@ -3,5 +3,5 @@
   new URLSearchParams([["a", "hello"]]).forEach((value, key) => {
     document.querySelector("#dummy").innerText += value;
   });
-  busy_wait();
+  generate_loaf_now();
 })();

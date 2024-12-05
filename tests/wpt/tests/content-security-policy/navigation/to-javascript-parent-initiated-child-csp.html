@@ -22,12 +22,6 @@
   // https://web-platform-tests.org/writing-tests/testharness-api.html#determining-when-all-tests-are-complete.
   setup({explicit_done: true});
 
-  function encodeURIWithApostrophes(uriWithApostrophes) {
-    const encodedURI = encodeURI(uriWithApostrophes);
-    // https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding
-    return encodedURI.replaceAll("'","%27");
-  }
-
   const kIframeURLPath = "support/frame-with-csp.sub.html";
 
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/Sources#unsafe-inline

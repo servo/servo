@@ -73,7 +73,7 @@ function test_cq_condition_valid(condition, unknown) {
     assert_equals(style.sheet.rules.length, 2);
     const expected = unknown ? '' : 'true';
     assert_equals(getComputedStyle(document.querySelector("#cq-main")).getPropertyValue('--match'), expected);
-  }, `Query condition should be valid: ${condition}`);
+  }, `Query condition should be valid${unknown ? ' but unknown' : ''}: ${condition}`);
 }
 
 function test_cq_condition_known(condition) {

@@ -1,0 +1,85 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  let worklet1 = await sharedStorage.createWorklet('resources/simple-module.js');
+  let worklet2 = await sharedStorage.createWorklet('resources/simple-module.js');
+
+  const ancestor_key1 = token();
+  let url1_0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key1]);
+  let url1_1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key1]);
+
+  const ancestor_key2 = token();
+  let url2_0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key2]);
+  let url2_1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key2]);
+
+  // Invoke `selectURL()` to perform the following steps:
+  // 1. Acquires the lock.
+  // 2. Reads the current value at the given key.
+  // 3. Waits for 500ms.
+  // 4. Sets the shared storage value to the read value appended with the given letter.
+  // 5. Releases the lock.
+  //
+  // In parallel, invoke another `selectURL()`, which subsequently invokes
+  // `sharedStorage.batchUpdate()` that:
+  // - Acquires the same named lock.
+  // - Executes two `append` methods, each appending the same letter.
+  //
+  // Expected behavior: After both of them finish, the value at the given key
+  // should contain the letter repeated three times.
+  //
+  // This demonstrates that:
+  // 1. The `withLock` option is effective, preventing the `batchUpdate()`
+  //    method interfering with the "get and set" operation. If the lock were not
+  //    used, the final value would likely be a single letter.
+  // 2. `batchUpdate()` correctly executes all `append` methods within the
+  //    batch.
+  //
+  // Note: This test remains valid even if the `batchUpdate()` call happens
+  // outside the critical section protected by the lock within the worklet. The
+  // test effectively demonstrates mutual exclusion as long as there's a
+  // reasonable chance for `batchUpdate()` to occur while the worklet is still
+  // running.
+  let select_url_result1 = await worklet1.selectURL(
+      "get-wait-set-within-lock",
+      [{url: url1_0}, {url: url1_1}],
+      {data: {'key': 'key',
+              'lock_name': 'lock1',
+              'append_letter': 'a'},
+      resolveToConfig: true});
+
+  let select_url_result2 = await worklet2.selectURL(
+      "batch-update-with-two-append-methods-with-batch-lock-option",
+      [{url: url2_0}, {url: url2_1}],
+      {data: {'key': 'key',
+              'lock_name': 'lock1',
+              'append_letter': 'a'},
+      resolveToConfig: true});
+
+  attachFencedFrame(select_url_result1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestor_key1);
+  assert_equals(result1, "frame1_loaded");
+
+  attachFencedFrame(select_url_result2, 'opaque-ads');
+  const result2 = await nextValueFromServer(ancestor_key2);
+  assert_equals(result2, "frame1_loaded");
+
+  await verifyKeyValueForOrigin('key', 'aaa', location.origin);
+
+  await deleteKeyForOrigin('key', location.origin);
+}, 'Test for batchUpdate() with a batch lock in a SharedStorageWorklet context');
+
+</script>
+</body>

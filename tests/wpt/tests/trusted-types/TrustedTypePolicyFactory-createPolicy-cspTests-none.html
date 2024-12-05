@@ -5,15 +5,41 @@
 <meta http-equiv="Content-Security-Policy" content="trusted-types 'none'">
 <body>
 <script>
-  test(t => {
+  function promise_violation(t, filter_arg) {
+    return _ => new Promise((resolve) => {
+      function handler(e) {
+        let matches = e.originalPolicy.includes(filter_arg);
+        if (matches) {
+          document.removeEventListener("securitypolicyviolation", handler);
+          e.stopPropagation();
+          resolve(e);
+        }
+      }
+
+      document.addEventListener("securitypolicyviolation", handler);
+      t.add_cleanup(() => {
+          document.removeEventListener("securitypolicyviolation", handler);
+      });
+    });
+  }
+
+  promise_test(t => {
+    let p = Promise.resolve()
+      .then(promise_violation(t, "trusted-types 'none'"));
+
     assert_throws_js(TypeError, _ => {
       window.trustedTypes.createPolicy('SomeName', { createHTML: s => s } );
     });
+    return p;
   }, "Cannot create policy with name 'SomeName' - policy creation throws");
 
-  test(t => {
+  promise_test(t => {
+    let p = Promise.resolve()
+      .then(promise_violation(t, "trusted-types 'none'"));
+
     assert_throws_js(TypeError, _ => {
       window.trustedTypes.createPolicy('default', { createHTML: s => s } );
     });
+    return p;
   }, "Cannot create policy with name 'default' - policy creation throws");
 </script>

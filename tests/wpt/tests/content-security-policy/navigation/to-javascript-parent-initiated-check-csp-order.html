@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="content-security-policy" content="script-src 'self' 'nonce-abc'">
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+</head>
+<body>
+<iframe id="iframeWithScriptSrcNone"></iframe>
+<a id="anchorWithTargetScriptSrcNone" target="iframeWithScriptSrcNone">a</a>
+<a id="anchorWithTargetOtherTabWithScriptSrcNone" target="otherTabWithScriptSrcNone">a2</a>
+<map name="m">
+  <area target="iframeWithScriptScrcNone" id="areaWithTargetIframeWithScriptSrcNone" shape="default">
+  <area target="otherTabWithScriptSrcNone" id="areaWithTargetOtherTabWithScriptSrcNone" shape="default">
+</map>
+<img usemap="#m" alt="i">
+
+<script nonce="abc">
+  // Since another tab is opened, this test suite needs to explicitly signal
+  // when it's done. Otherwise, the tests which wait for the tab to finish
+  // loading aren't executed. See,
+  // https://web-platform-tests.org/writing-tests/testharness-api.html#determining-when-all-tests-are-complete.
+  setup({explicit_done: true});
+
+  const kEncodedURLOfPageWithScriptSrcNone = encodeURIWithApostrophes(
+    "support/frame-with-csp.sub.html" + "?csp=script-src 'none'");
+
+  document.getElementById("iframeWithScriptSrcNone").src =
+    kEncodedURLOfPageWithScriptSrcNone;
+
+  window.addEventListener("load", () => {
+    const otherTabWithScriptSrcNone = window.open(
+      kEncodedURLOfPageWithScriptSrcNone, "otherTabWithScriptSrcNone");
+
+    otherTabWithScriptSrcNone.addEventListener("load", () => {
+      const kTestCases = [
+        { elementId: "iframeWithScriptSrcNone",
+          propertySequence: ["contentWindow", "location", "href"],
+        },
+        { elementId: "iframeWithScriptSrcNone",
+          propertySequence: ["src"],
+        },
+        { elementId: "anchorWithTargetScriptSrcNone",
+          propertySequence: ["href"],
+          navigationFunction: "click",
+        },
+        { elementId: "anchorWithTargetOtherTabWithScriptSrcNone",
+          propertySequence: ["href"],
+          navigationFunction: "click",
+        },
+        { elementId: "areaWithTargetIframeWithScriptSrcNone",
+          propertySequence: ["href"],
+          navigationFunction: "click",
+        },
+        { elementId: "areaWithTargetOtherTabWithScriptSrcNone",
+          propertySequence: ["href"],
+          navigationFunction: "click",
+        },
+        { targetWindow: otherTabWithScriptSrcNone,
+          propertySequence: ["location", "href"],
+        },
+      ];
+
+      for (testCase of kTestCases) {
+        const injectionSinkDescription = determineInjectionSinkDescription(testCase);
+
+        promise_test(t => new Promise(resolve => {
+          window.addEventListener("securitypolicyviolation", resolve,
+            { once: true });
+
+          window.addEventListener("message",
+            t.unreached_func("Should not have received a message"),
+            { once: true }
+          );
+          assignJavascriptURLToInjectionSink(testCase);
+        }).then(e => {
+          assert_equals(e.blockedURI, "inline");
+          assert_equals(e.effectiveDirective, "script-src-elem");
+
+          // Chrome and Firefox currently check the parent's CSP first, hence
+          // asserting it below. A comparison with WebKit was impossible due to
+          // https://github.com/web-platform-tests/wpt/issues/49262.
+          // The behavior should be specified; see
+          // https://github.com/whatwg/html/issues/4651#issuecomment-495060149 and
+          // the encompassing ticket.
+          assert_equals(e.originalPolicy, "script-src 'self' 'nonce-abc'",
+              "Parent's policy is checked first");
+        }), `Executing the javascript URL should violate the parent's CSP for
+          ${injectionSinkDescription}`);
+      }
+
+      done();
+    });
+  });
+</script>
+</body>
+</html>

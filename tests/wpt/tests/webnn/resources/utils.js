@@ -362,8 +362,8 @@ const doAssert =
 /**
  * Assert computed results be equal to expected data.
  * @param {Object} toleranceFunc
- * @param {Object.<MLNamedArrayBufferViews> |
- *     Array[Object.<MLNamedArrayBufferViews>]} actual
+ * @param {Map<String, ArrayBufferView> |
+ *     Array[Map<String, ArrayBufferView>]} actual
  * @param {Object} graphResources - Resources used for building a graph
  */
 const assertResultsEquals =
@@ -440,11 +440,14 @@ const createOperand = (context, builder, operandName, resources) => {
   const descriptor = resources.descriptor;
   const dataType = descriptor.dataType;
 
+  const supportedDataTypes = resources.constant ?
+      context.opSupportLimits().constant.dataTypes :
+      context.opSupportLimits().input.dataTypes;
+
   // If input data type is not supported on current platform, attempt to use
   // a supported type to pass the data, then cast back to original type.
-  if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
-    const compatibleType =
-        findCompatibleType(dataType, context.opSupportLimits().input.dataTypes);
+  if (!supportedDataTypes.includes(dataType)) {
+    const compatibleType = findCompatibleType(dataType, supportedDataTypes);
     if (compatibleType) {
       descriptor.castedType = compatibleType;
       descriptor.dataType = compatibleType;

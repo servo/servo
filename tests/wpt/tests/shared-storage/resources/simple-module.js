@@ -122,6 +122,53 @@ class GetWaitIncrementWithinLockOperation {
   }
 }
 
+class GetWaitSetWithinLockOperation {
+  async run(urls, data) {
+    if (data && data.hasOwnProperty('key') && data.hasOwnProperty('lock_name')
+        && data.hasOwnProperty('append_letter')) {
+      await navigator.locks.request(data['lock_name'], async (lock) => {
+        let value_read = await sharedStorage.get(data['key']);
+
+        if (value_read === undefined) {
+          value_read = "";
+        }
+
+        await busyWaitMs(500);
+
+        await sharedStorage.set(data['key'], value_read + data['append_letter']);
+      });
+
+      return 1;
+    }
+    return -1;
+  }
+}
+
+class AppendWithLockOptionOperation {
+  async run(urls, data) {
+    if (data && data.hasOwnProperty('key') && data.hasOwnProperty('lock_name')
+        && data.hasOwnProperty('append_letter')) {
+      sharedStorage.append(data['key'], data['append_letter'], {withLock: data['lock_name']});
+      return 1;
+    }
+    return -1;
+  }
+}
+
+class BatchUpdateWithTwoAppendMethodsWithBatchLockOptionOperation {
+  async run(urls, data) {
+    if (data && data.hasOwnProperty('key') && data.hasOwnProperty('lock_name')
+        && data.hasOwnProperty('append_letter')) {
+      sharedStorage.batchUpdate([
+          new SharedStorageAppendMethod(data['key'], data['append_letter']),
+          new SharedStorageAppendMethod(data['key'], data['append_letter'])
+        ], {withLock: data['lock_name']});
+      return 1;
+    }
+    return -1;
+  }
+}
+
 register('test-url-selection-operation', TestURLSelectionOperation);
 register('test-url-selection-operation-2', TestURLSelectionOperationTwo);
 register('test-slow-url-selection-operation', TestSlowURLSelectionOperation);
@@ -131,3 +178,6 @@ register('verify-key-value', VerifyKeyValue);
 register('verify-key-not-found', VerifyKeyNotFound);
 register('verify-interest-groups', VerifyInterestGroups);
 register('get-wait-increment-within-lock', GetWaitIncrementWithinLockOperation);
+register('get-wait-set-within-lock', GetWaitSetWithinLockOperation);
+register('append-with-lock-option', AppendWithLockOptionOperation);
+register('batch-update-with-two-append-methods-with-batch-lock-option', BatchUpdateWithTwoAppendMethodsWithBatchLockOptionOperation);

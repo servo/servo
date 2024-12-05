@@ -14,35 +14,35 @@
 
 const {REMOTE_ORIGIN} = get_host_info();
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     await fetch("/common/dummy.xml");
     busy_wait(very_long_frame_duration);
 }, "resolve", "Window.fetch.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await fetch("/common/dummy.xml");
     await response.text();
     busy_wait(very_long_frame_duration);
 }, "resolve", "Response.text.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await fetch("/common/dummy.xml");
     await response.arrayBuffer();
     busy_wait(very_long_frame_duration);
 }, "resolve", "Response.arrayBuffer.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await fetch("/fetch/api/resources/data.json");
     await response.json();
     busy_wait(very_long_frame_duration);
 }, "resolve", "Response.json.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     const response = await import("/loading/resources/dummy.js");
     busy_wait(very_long_frame_duration);
 }, "resolve", "import.then");
 
-test_promise_script(async t => {
+test_promise_script(async (t, busy_wait) => {
     fetch(new URL("/common/dummy.xml", REMOTE_ORIGIN).href, {mode: "cors"})
         .catch(() => {
             busy_wait(very_long_frame_duration);

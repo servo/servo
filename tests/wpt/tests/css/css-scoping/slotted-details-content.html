@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Scoping Test: ::slotted() allows ::details-content</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<link rel="match" href="slotted-details-content-ref.html">
+<div id="host">
+  <details open>This text should be green</details>
+</div>
+<script>
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <style>
+      ::slotted(*)::details-content { color: green }
+    </style>
+    <slot></slot>
+  `;
+</script>

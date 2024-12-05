@@ -31,29 +31,44 @@ function busy_wait(ms_delay = very_long_frame_duration) {
   while (performance.now() < deadline) {}
 }
 
+function generate_long_animation_frame(duration = very_long_frame_duration) {
+  busy_wait(duration / 2);
+  const reference_time = performance.now();
+  busy_wait(duration / 2);
+  return new Promise(resolve => new PerformanceObserver((entries, observer) => {
+    const entry = entries.getEntries().find(e =>
+        ((e.startTime < reference_time) &&
+        (reference_time < (e.startTime + e.duration))));
+    if (entry) {
+      observer.disconnect();
+      resolve(entry);
+    }
+  }).observe({type: "long-animation-frame"}));
+}
+
 async function expect_long_frame(cb, t) {
   await windowLoaded;
-  await new Promise(resolve => t.step_timeout(resolve, 0));
   const timeout = new Promise((resolve, reject) =>
     t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout));
-  const receivedLongFrame = loaf_promise(t);
-  await cb(t);
+  let resolve_loaf;
+  const received_loaf = new Promise(resolve => { resolve_loaf = resolve; });
+  const generate_loaf = () =>
+    generate_long_animation_frame(very_long_frame_duration).then(resolve_loaf);
+  window.generate_loaf_now = generate_loaf;
+  await cb(t, generate_loaf);
   const entry = await Promise.race([
-    receivedLongFrame,
+    received_loaf,
     timeout
   ]);
+  delete window.generate_loaf_now;
   return entry;
 }
 
 async function expect_long_frame_with_script(cb, predicate, t) {
-  for (let i = 0; i < 10; ++i) {
-      const entry = await expect_long_frame(cb, t);
-      if (entry === "timeout" || !entry.scripts.length)
-        continue;
-      for (const script of entry.scripts) {
-        if (predicate(script, entry))
-          return [entry, script];
-      }
+  const entry = await expect_long_frame(cb, t);
+  for (const script of entry.scripts ?? []) {
+    if (predicate(script, entry))
+      return [entry, script];
   }
 
   return [];
@@ -95,17 +110,16 @@ async function prepare_exec_popup(t, origin) {
   t.add_cleanup(() => popup.close());
   return [new RemoteContext(uuid), popup];
 }
+
 function test_loaf_script(cb, invoker, invokerType, label) {
   promise_test(async t => {
     let [entry, script] = [];
     [entry, script] = await expect_long_frame_with_script(cb,
       script => (
         script.invokerType === invokerType &&
-        script.invoker.startsWith(invoker) &&
-        script.duration >= very_long_frame_duration), t);
+        script.invoker.startsWith(invoker)), t);
 
     assert_true(!!entry, "Entry detected");
-    assert_greater_than_equal(script.duration, very_long_frame_duration);
     assert_greater_than_equal(entry.duration, script.duration);
     assert_greater_than_equal(script.executionStart, script.startTime);
     assert_greater_than_equal(script.startTime, entry.startTime)

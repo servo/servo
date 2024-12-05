@@ -17,7 +17,7 @@ const host_info = get_host_info();
 const {ORIGIN, REMOTE_ORIGIN, HTTP_NOTSAMESITE_ORIGIN} = host_info;
 
 promise_test (async t => {
-  const [entry, script] = await expect_long_frame_with_script(() => {
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
     requestAnimationFrame(() => busy_wait());
   }, () => true, t);
   assert_equals(script.windowAttribution, "self");
@@ -31,8 +31,7 @@ promise_test (async t => {
     const [entry, script] = await expect_long_frame_with_script(() =>
       executor.execute_script(async (duration) => {
         await new Promise(resolve => window.requestAnimationFrame(resolve));
-        const deadline = performance.now() + duration;
-        while (performance.now() < deadline) {}
+        parent.generate_loaf_now();
       }, [very_long_frame_duration]), () => true, t);
 
       if (script.windowAttribution === "descendant" && script.window === iframe.contentWindow) {
@@ -49,7 +48,7 @@ promise_test(async t => {
   document.body.append(iframe);
   t.add_cleanup(() => iframe.remove());
   const [entry, script] = await expect_long_frame_with_script(
-    () => requestAnimationFrame(busy_wait), () => true, t);
+    (t, busy_wait) => requestAnimationFrame(busy_wait), () => true, t);
   const in_iframe = iframe.contentWindow.performance.getEntriesByType("long-animation-frame").some(
     e => e.scripts.some(script_in_iframe => script_in_iframe.invoker === script.invoker)
   );

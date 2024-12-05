@@ -42,10 +42,11 @@ promise_test(async t => {
     navigator.serviceWorker.onmessage = resolve;
     get_newest_worker(registration).postMessage('invoke clients.matchAll()');
   });
+  const clients = message.data;
 
-  assert_array_equals(
-    message.data,
-    [ window.location.href, new URL(pageUrl, location).toString() ]);
+  // Don't use `assert_array_equals` as the clients may contain unrelated pages.
+  assert_true(clients.includes(window.location.href));
+  assert_true(clients.includes(new URL(pageUrl, location).toString()));
 }, 'The client urls (including a prerender page) are exposed by ' +
    'Clients#matchAll()');
 

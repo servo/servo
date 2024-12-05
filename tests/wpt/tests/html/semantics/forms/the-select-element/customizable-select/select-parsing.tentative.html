@@ -104,15 +104,15 @@ test(() => {
   const outerSelect = document.getElementById('nested1');
   const innerSelect = document.getElementById('expectafter1');
   const nextDiv = document.getElementById('expectafter1b');
-  assert_true(!!outerSelect && !!innerSelect);
-  assert_equals(outerSelect.nextSibling, innerSelect,'Nested select should be pushed out as the next sibling');
-  assert_equals(innerSelect.nextElementSibling, nextDiv,'Subsequent content is there too');
+  assert_true(!!outerSelect);
+  assert_equals(innerSelect, null,'Nested select should be removed');
+  assert_equals(outerSelect.nextElementSibling, nextDiv,'Subsequent content is there too');
 }, 'Nested selects should be retained 1');
 
 test(() => {
   const outerSelect = document.getElementById('nested2');
   const innerSelect = document.getElementById('expectafter2');
-  assert_true(!!outerSelect && !!innerSelect);
-  assert_equals(outerSelect.nextSibling, innerSelect,'Nested select should be pushed out as the next sibling');
+  assert_true(!!outerSelect);
+  assert_equals(innerSelect, null,'Nested select should be pushed out as the next sibling');
 }, 'Nested selects should be retained 2');
 </script>

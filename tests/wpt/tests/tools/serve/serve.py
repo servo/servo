@@ -452,7 +452,7 @@ class ShadowRealmInWindowHandler(HtmlWrapperHandler):
 
   await fetch_tests_from_shadow_realm(r);
   done();
-})();
+})().catch(e => setup(() => { throw e; }));
 </script>
 """
 
@@ -504,7 +504,7 @@ class ShadowRealmInShadowRealmHandler(HtmlWrapperHandler):
   `);
   await fetch_tests_from_shadow_realm(outer);
   done();
-})();
+})().catch(e => setup(() => { throw e; }));
 </script>
 """
 
@@ -625,23 +625,27 @@ class ShadowRealmWorkerWrapperHandler(BaseWorkerHandler):
     wrapper = """%(meta)s
 importScripts("/resources/testharness-shadowrealm-outer.js");
 (async function() {
-  const r = new ShadowRealm();
-  await shadowRealmEvalAsync(r, `
-    await import("/resources/testharness-shadowrealm-inner.js");
-    await import("/resources/testharness.js");
-  `);
-  r.evaluate("setShadowRealmGlobalProperties")("%(query)s", fetchAdaptor);
-
-  await shadowRealmEvalAsync(r, `
-    %(script)s
-    await import("%(path)s");
-  `);
-
   const postMessageFunc = await getPostMessageFunc();
-  function forwardMessage(msgJSON) {
-    postMessageFunc(JSON.parse(msgJSON));
+  try {
+    const r = new ShadowRealm();
+    await shadowRealmEvalAsync(r, `
+      await import("/resources/testharness-shadowrealm-inner.js");
+      await import("/resources/testharness.js");
+    `);
+    r.evaluate("setShadowRealmGlobalProperties")("%(query)s", fetchAdaptor);
+
+    await shadowRealmEvalAsync(r, `
+      %(script)s
+      await import("%(path)s");
+    `);
+
+    function forwardMessage(msgJSON) {
+      postMessageFunc(JSON.parse(msgJSON));
+    }
+    r.evaluate('begin_shadow_realm_tests')(forwardMessage);
+  } catch (e) {
+    postMessageFunc(createSetupErrorResult(e));
   }
-  r.evaluate('begin_shadow_realm_tests')(forwardMessage);
 })();
 """
 
@@ -655,25 +659,29 @@ class ShadowRealmServiceWorkerWrapperHandler(BaseWorkerHandler):
 importScripts("/resources/testharness-shadowrealm-outer.js");
 
 (async function () {
-  const r = new ShadowRealm();
-  setupFakeDynamicImportInShadowRealm(r, fetchAdaptor);
-
-  await shadowRealmEvalAsync(r, `
-    await fakeDynamicImport("/resources/testharness-shadowrealm-inner.js");
-    await fakeDynamicImport("/resources/testharness.js");
-  `);
-  r.evaluate("setShadowRealmGlobalProperties")("%(query)s", fetchAdaptor);
-
-  await shadowRealmEvalAsync(r, `
-    %(script)s
-    await fakeDynamicImport("%(path)s");
-  `);
-
   const postMessageFunc = await getPostMessageFunc();
-  function forwardMessage(msgJSON) {
-    postMessageFunc(JSON.parse(msgJSON));
+  try {
+    const r = new ShadowRealm();
+    setupFakeDynamicImportInShadowRealm(r, fetchAdaptor);
+
+    await shadowRealmEvalAsync(r, `
+      await fakeDynamicImport("/resources/testharness-shadowrealm-inner.js");
+      await fakeDynamicImport("/resources/testharness.js");
+    `);
+    r.evaluate("setShadowRealmGlobalProperties")("%(query)s", fetchAdaptor);
+
+    await shadowRealmEvalAsync(r, `
+      %(script)s
+      await fakeDynamicImport("%(path)s");
+    `);
+
+    function forwardMessage(msgJSON) {
+      postMessageFunc(JSON.parse(msgJSON));
+    }
+    r.evaluate("begin_shadow_realm_tests")(forwardMessage);
+  } catch (e) {
+    postMessageFunc(createSetupErrorResult(e));
   }
-  r.evaluate("begin_shadow_realm_tests")(forwardMessage);
 })();
 """
 
@@ -685,26 +693,30 @@ class ShadowRealmAudioWorkletWrapperHandler(BaseWorkerHandler):
     path_replace = [(".any.audioworklet-shadowrealm.js", ".any.js")]
     wrapper = """%(meta)s
 TestRunner.prototype.createShadowRealmAndStartTests = async function() {
-  const queryPart = import.meta.url.split('?')[1];
-  const locationSearch = queryPart ? '?' + queryPart : '';
+  try {
+    const queryPart = import.meta.url.split('?')[1];
+    const locationSearch = queryPart ? '?' + queryPart : '';
 
-  const r = new ShadowRealm();
-  const adaptor = this.fetchOverPortExecutor.bind(this);
-  setupFakeDynamicImportInShadowRealm(r, adaptor);
+    const r = new ShadowRealm();
+    const adaptor = this.fetchOverPortExecutor.bind(this);
+    setupFakeDynamicImportInShadowRealm(r, adaptor);
 
-  await shadowRealmEvalAsync(r, `
-    await fakeDynamicImport("/resources/testharness-shadowrealm-inner.js");
-    await fakeDynamicImport("/resources/testharness.js");
-  `);
-  r.evaluate("setShadowRealmGlobalProperties")(locationSearch, adaptor);
+    await shadowRealmEvalAsync(r, `
+      await fakeDynamicImport("/resources/testharness-shadowrealm-inner.js");
+      await fakeDynamicImport("/resources/testharness.js");
+    `);
+    r.evaluate("setShadowRealmGlobalProperties")(locationSearch, adaptor);
 
-  await shadowRealmEvalAsync(r, `
-    %(script)s
-    await fakeDynamicImport("%(path)s");
-  `);
-  const forwardMessage = (msgJSON) =>
-    this.port.postMessage(JSON.parse(msgJSON));
-  r.evaluate("begin_shadow_realm_tests")(forwardMessage);
+    await shadowRealmEvalAsync(r, `
+      %(script)s
+      await fakeDynamicImport("%(path)s");
+    `);
+    const forwardMessage = (msgJSON) =>
+      this.port.postMessage(JSON.parse(msgJSON));
+    r.evaluate("begin_shadow_realm_tests")(forwardMessage);
+  } catch (e) {
+    this.port.postMessage(createSetupErrorResult(e));
+  }
 }
 """
 

@@ -11,7 +11,7 @@
 <div id="log"></div>
 <script>
 
-test_self_event_listener(t => {
+test_self_event_listener((t, busy_wait) => {
     const img = document.createElement("img");
     img.src = "/images/green.png";
     img.addEventListener("load", () => {
@@ -22,7 +22,7 @@ test_self_event_listener(t => {
     t.add_cleanup(() => img.remove());
 }, "IMG#image.onload");
 
-test_self_event_listener(t => {
+test_self_event_listener((t, busy_wait) => {
     const img = document.createElement("img");
     img.src = "/images/green.png";
     img.addEventListener("load", () => {
@@ -32,7 +32,7 @@ test_self_event_listener(t => {
     t.add_cleanup(() => img.remove());
 }, "IMG[src=/images/green.png].onload");
 
-test_self_event_listener(t => {
+test_self_event_listener((t, busy_wait) => {
     const xhr = new XMLHttpRequest();
     xhr.open("GET", "/common/dummy.xml");
     xhr.addEventListener("load", () => {

@@ -53,6 +53,8 @@ promise_test(async () => {
   iframeHost = iframeUrl.hostname;
   assert_not_equals(window.location.hostname, iframeHost);
 
+  erase_cookie_from_js("ancestor", "Secure; Path=/; SameSite=None; Partitioned");
+
 }, "Partitioned cookies are not sent in embedded same-site to cross-site redirects");
 </script>
 </body>
