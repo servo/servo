@@ -68,7 +68,7 @@ use style::context::{
 use style::dom::{OpaqueNode, TElement, TNode};
 use style::error_reporting::RustLogReporter;
 use style::font_metrics::FontMetrics;
-use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
+use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
@@ -93,6 +93,14 @@ use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{units, ExternalScrollId, HitTestFlags};
 use webrender_traits::CrossProcessCompositorApi;
+
+// This mutex is necessary due to syncronisation issues between two different types of thread-local storage
+// which manifest themselves when the layout thread tries to layout iframes in parallel with the main page
+//
+// See: https://github.com/servo/servo/pull/29792
+// And: https://gist.github.com/mukilan/ed57eb61b83237a05fbf6360ec5e33b0
+static STYLE_THREAD_POOL: Mutex<&style::global_style_data::STYLE_THREAD_POOL> =
+    Mutex::new(&style::global_style_data::STYLE_THREAD_POOL);
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -796,7 +804,8 @@ impl LayoutThread {
 
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
-        let rayon_pool = STYLE_THREAD_POOL.pool();
+        let rayon_pool = STYLE_THREAD_POOL.lock();
+        let rayon_pool = rayon_pool.pool();
         let rayon_pool = rayon_pool.as_ref();
 
         // Create a layout context for use throughout the following passes.

@@ -81,7 +81,7 @@ use style::context::{
 use style::dom::{OpaqueNode, ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
-use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
+use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -108,6 +108,14 @@ use url::Url;
 use webrender_api::units::DevicePixel;
 use webrender_api::{units, ColorF, HitTestFlags};
 use webrender_traits::CrossProcessCompositorApi;
+
+// This mutex is necessary due to syncronisation issues between two different types of thread-local storage
+// which manifest themselves when the layout thread tries to layout iframes in parallel with the main page
+//
+// See: https://github.com/servo/servo/pull/29792
+// And: https://gist.github.com/mukilan/ed57eb61b83237a05fbf6360ec5e33b0
+static STYLE_THREAD_POOL: Mutex<&style::global_style_data::STYLE_THREAD_POOL> =
+    Mutex::new(&style::global_style_data::STYLE_THREAD_POOL);
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -1082,12 +1090,10 @@ impl LayoutThread {
             data.stylesheets_changed,
         );
 
-        let thread_pool = STYLE_THREAD_POOL.pool();
+        let pool = STYLE_THREAD_POOL.lock().unwrap();
+        let thread_pool = pool.pool();
         let (thread_pool, num_threads) = if self.parallel_flag {
-            (
-                thread_pool.as_ref(),
-                STYLE_THREAD_POOL.num_threads.unwrap_or(1),
-            )
+            (thread_pool.as_ref(), pool.num_threads.unwrap_or(1))
         } else {
             (None, 1)
         };
