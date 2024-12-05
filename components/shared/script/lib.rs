@@ -55,6 +55,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
+#[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
@@ -380,6 +381,7 @@ pub enum ConstellationControlMsg {
     /// Notifies the media session about a user requested media session action.
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
+    #[cfg(feature = "webgpu")]
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
@@ -422,6 +424,7 @@ impl fmt::Debug for ConstellationControlMsg {
             PaintMetric(..) => "PaintMetric",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
+            #[cfg(feature = "webgpu")]
             SetWebGPUPort(..) => "SetWebGPUPort",
             SetScrollStates(..) => "SetScrollStates",
             SetEpochPaintTime(..) => "SetEpochPaintTime",

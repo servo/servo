@@ -23,6 +23,7 @@ use net_traits::CoreResourceMsg;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
+#[cfg(feature = "webgpu")]
 use webgpu::{wgc, WebGPU, WebGPUResponse};
 
 use crate::{
@@ -247,12 +248,14 @@ pub enum ScriptMsg {
     /// Notifies the constellation about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(PipelineId, MediaSessionEvent),
+    #[cfg(feature = "webgpu")]
     /// Create a WebGPU Adapter instance
     RequestAdapter(
         IpcSender<WebGPUResponse>,
         wgc::instance::RequestAdapterOptions,
         wgc::id::AdapterId,
     ),
+    #[cfg(feature = "webgpu")]
     /// Get WebGPU channel
     GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
@@ -312,7 +315,9 @@ impl fmt::Debug for ScriptMsg {
             ForwardDOMMessage(..) => "ForwardDOMMessage",
             ScheduleJob(..) => "ScheduleJob",
             MediaSessionEvent(..) => "MediaSessionEvent",
+            #[cfg(feature = "webgpu")]
             RequestAdapter(..) => "RequestAdapter",
+            #[cfg(feature = "webgpu")]
             GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
         };

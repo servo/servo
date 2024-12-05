@@ -42,3 +42,4 @@ pub mod gputextureusage;
 pub mod gputextureview;
 pub mod gpuuncapturederrorevent;
 pub mod gpuvalidationerror;
+pub mod identityhub;

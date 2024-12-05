@@ -94,6 +94,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use url::Position;
+#[cfg(feature = "webgpu")]
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
@@ -128,7 +129,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
@@ -136,6 +136,8 @@ use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::uievent::UIEvent;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worker::TrustedWorkerAddress;
@@ -279,6 +281,7 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache((PipelineId, PendingImageResponse)),
+    #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
 }
 
@@ -739,10 +742,12 @@ pub struct ScriptThread {
 
     /// Identity manager for WebGPU resources
     #[no_trace]
+    #[cfg(feature = "webgpu")]
     gpu_id_hub: Arc<IdentityHub>,
 
     /// Receiver to receive commands from optional WebGPU server.
     #[no_trace]
+    #[cfg(feature = "webgpu")]
     webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
 
     // Secure context
@@ -1136,6 +1141,7 @@ impl ScriptThread {
                         image_cache: script_thread.image_cache.clone(),
                         is_headless: script_thread.headless,
                         user_agent: script_thread.user_agent.clone(),
+                        #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
                     };
@@ -1359,7 +1365,9 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
+            #[cfg(feature = "webgpu")]
             gpu_id_hub: Arc::new(IdentityHub::default()),
+            #[cfg(feature = "webgpu")]
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
@@ -1739,9 +1747,9 @@ impl ScriptThread {
 
     /// Handle incoming messages from other tasks and the task queue.
     fn handle_msgs(&self, can_gc: CanGc) -> bool {
-        use self::MixedMessage::{
-            FromConstellation, FromDevtools, FromImageCache, FromScript, FromWebGPUServer,
-        };
+        #[cfg(feature = "webgpu")]
+        use self::MixedMessage::FromWebGPUServer;
+        use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache, FromScript};
 
         // Proritize rendering tasks and others, and gather all other events as `sequential`.
         let mut sequential = vec![];
@@ -1764,8 +1772,25 @@ impl ScriptThread {
             recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
                 => FromDevtools(msg.unwrap()),
             recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
-            recv(self.webgpu_port.borrow().as_ref().unwrap_or(&crossbeam_channel::never())) -> msg
-                => FromWebGPUServer(msg.unwrap()),
+            recv({
+                #[cfg(feature = "webgpu")]
+                {
+                    self.webgpu_port.borrow().as_ref().unwrap_or(&crossbeam_channel::never())
+                }
+                #[cfg(not(feature = "webgpu"))]
+                {
+                    &crossbeam_channel::never::<()>()
+                }
+            }) -> msg => {
+                #[cfg(feature = "webgpu")]
+                {
+                    FromWebGPUServer(msg.unwrap())
+                }
+                #[cfg(not(feature = "webgpu"))]
+                {
+                    unreachable!("This should never be hit when webgpu is disabled");
+                }
+            },
         };
         debug!("Got event.");
 
@@ -1890,6 +1915,7 @@ impl ScriptThread {
                 Err(_) => match self.task_queue.take_tasks_and_recv() {
                     Err(_) => match self.devtools_port.try_recv() {
                         Err(_) => match self.image_cache_port.try_recv() {
+                            #[cfg(feature = "webgpu")]
                             Err(_) => match &*self.webgpu_port.borrow() {
                                 Some(p) => match p.try_recv() {
                                     Err(_) => break,
@@ -1898,6 +1924,8 @@ impl ScriptThread {
                                 None => break,
                             },
                             Ok(ev) => event = FromImageCache(ev),
+                            #[cfg(not(feature = "webgpu"))]
+                            Err(_) => break,
                         },
                         Ok(ev) => event = FromDevtools(ev),
                     },
@@ -1953,6 +1981,7 @@ impl ScriptThread {
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg, can_gc),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+                    #[cfg(feature = "webgpu")]
                     FromWebGPUServer(inner_msg) => {
                         self.handle_msg_from_webgpu_server(inner_msg, can_gc)
                     },
@@ -2053,6 +2082,7 @@ impl ScriptThread {
                 },
                 _ => ScriptThreadEventCategory::ScriptEvent,
             },
+            #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(_) => ScriptThreadEventCategory::WebGPUMsg,
         }
     }
@@ -2093,6 +2123,7 @@ impl ScriptThread {
                 ScriptHangAnnotation::PerformanceTimelineTask
             },
             ScriptThreadEventCategory::PortMessage => ScriptHangAnnotation::PortMessage,
+            #[cfg(feature = "webgpu")]
             ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
         };
         self.background_hang_monitor
@@ -2139,6 +2170,7 @@ impl ScriptThread {
                 PaintMetric(id, ..) => Some(id),
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
+                #[cfg(feature = "webgpu")]
                 SetWebGPUPort(..) => None,
                 SetScrollStates(id, ..) => Some(id),
                 SetEpochPaintTime(id, ..) => Some(id),
@@ -2155,6 +2187,7 @@ impl ScriptThread {
                 MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
+            #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
         }
     }
@@ -2287,6 +2320,7 @@ impl ScriptThread {
                     profiler_chan,
                     f
                 ),
+                #[cfg(feature = "webgpu")]
                 ScriptThreadEventCategory::WebGPUMsg => {
                     time_profile!(ProfilerCategory::ScriptWebGPUMsg, None, profiler_chan, f)
                 },
@@ -2438,6 +2472,7 @@ impl ScriptThread {
             ConstellationControlMsg::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(pipeline_id, action, can_gc)
             },
+            #[cfg(feature = "webgpu")]
             ConstellationControlMsg::SetWebGPUPort(port) => {
                 if self.webgpu_port.borrow().is_some() {
                     warn!("WebGPU port already exists for this content process");
@@ -2509,6 +2544,7 @@ impl ScriptThread {
         window.layout_mut().set_epoch_paint_time(epoch, time);
     }
 
+    #[cfg(feature = "webgpu")]
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg, can_gc: CanGc) {
         match msg {
             WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.free_adapter_id(id),
@@ -3768,6 +3804,7 @@ impl ScriptThread {
             self.replace_surrogates,
             self.user_agent.clone(),
             self.player_context.clone(),
+            #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.inherited_secure_context,
         );

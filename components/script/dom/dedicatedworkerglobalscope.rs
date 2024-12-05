@@ -47,8 +47,9 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::messageevent::MessageEvent;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
@@ -253,7 +254,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
@@ -265,6 +266,7 @@ impl DedicatedWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
+                #[cfg(feature = "webgpu")]
                 gpu_id_hub,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
@@ -291,7 +293,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
@@ -308,6 +310,7 @@ impl DedicatedWorkerGlobalScope {
             closing,
             image_cache,
             browsing_context,
+            #[cfg(feature = "webgpu")]
             gpu_id_hub,
             control_receiver,
         ));
@@ -330,7 +333,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
     ) -> JoinHandle<()> {
@@ -416,6 +419,7 @@ impl DedicatedWorkerGlobalScope {
                     closing,
                     image_cache,
                     browsing_context,
+                    #[cfg(feature = "webgpu")]
                     gpu_id_hub,
                     control_receiver,
                 );

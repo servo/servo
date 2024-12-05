@@ -183,7 +183,9 @@ mod from_script {
                 Self::ForwardDOMMessage(..) => target!("ForwardDOMMessage"),
                 Self::ScheduleJob(..) => target!("ScheduleJob"),
                 Self::MediaSessionEvent(..) => target!("MediaSessionEvent"),
+                #[cfg(feature = "webgpu")]
                 Self::RequestAdapter(..) => target!("RequestAdapter"),
+                #[cfg(feature = "webgpu")]
                 Self::GetWebGPUChan(..) => target!("GetWebGPUChan"),
                 Self::TitleChanged(..) => target!("TitleChanged"),
             }

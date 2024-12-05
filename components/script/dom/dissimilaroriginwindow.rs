@@ -64,6 +64,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.microtask_queue().clone(),
                 global_to_clone_from.is_headless(),
                 global_to_clone_from.get_user_agent(),
+                #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
                 Some(global_to_clone_from.is_secure_context()),
                 false,

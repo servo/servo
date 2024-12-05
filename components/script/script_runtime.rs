@@ -158,6 +158,7 @@ pub enum ScriptThreadEventCategory {
     EnterFullscreen,
     ExitFullscreen,
     PerformanceTimelineTask,
+    #[cfg(feature = "webgpu")]
     WebGPUMsg,
 }
 

@@ -20,11 +20,11 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpudevice::GPUDevice;
-use crate::dom::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::dom::promise::Promise;
 use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::webgpu::gpu::{response_async, AsyncWGPUListener};
+use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::dom::webgpu::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 

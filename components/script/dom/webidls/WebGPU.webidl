@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// skip-unless CARGO_FEATURE_WEBGPU
+
 // Source: WebGPU (https://gpuweb.github.io/gpuweb/)
 // Direct source: https://github.com/w3c/webref/blob/curated/ed/idl/webgpu.idl
 
@@ -66,10 +68,9 @@ interface GPUAdapterInfo {
 interface mixin NavigatorGPU {
     [SameObject, Pref="dom.webgpu.enabled", Exposed=(Window /* ,DedicatedWorker */)] readonly attribute GPU gpu;
 };
-// NOTE: see `Navigator.webidl`
-// Navigator includes NavigatorGPU;
-// NOTE: see `WorkerNavigator.webidl`
-// WorkerNavigator includes NavigatorGPU;
+
+Navigator includes NavigatorGPU;
+WorkerNavigator includes NavigatorGPU;
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
@@ -1137,17 +1138,12 @@ enum GPUQueryType {
     "timestamp"
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUCanvasContext {
-    readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
 
-    // Calling configure() a second time invalidates the previous one,
-    // and all of the textures it's produced.
-    [Throws]
+partial interface GPUCanvasContext {
+    [Throws, Pref="dom.webgpu.enabled"]
     undefined configure(GPUCanvasConfiguration descriptor);
-    undefined unconfigure();
-
-    [Throws]
+    [Pref="dom.webgpu.enabled"] undefined unconfigure();
+    [Throws, Pref="dom.webgpu.enabled"]
     GPUTexture getCurrentTexture();
 };
 

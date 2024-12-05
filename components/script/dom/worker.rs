@@ -234,6 +234,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             closing.clone(),
             global.image_cache(),
             browsing_context,
+            #[cfg(feature = "webgpu")]
             global.wgpu_id_hub(),
             control_receiver,
             context_sender,

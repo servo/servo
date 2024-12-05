@@ -13,6 +13,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
+#[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::JSContext;
@@ -22,6 +23,7 @@ use crate::script_runtime::JSContext;
 pub struct WorkerNavigator {
     reflector_: Reflector,
     permissions: MutNullableDom<Permissions>,
+    #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
 }
 
@@ -30,6 +32,7 @@ impl WorkerNavigator {
         WorkerNavigator {
             reflector_: Reflector::new(),
             permissions: Default::default(),
+            #[cfg(feature = "webgpu")]
             gpu: Default::default(),
         }
     }
@@ -108,6 +111,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(&self.global()))
     }

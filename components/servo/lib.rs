@@ -88,6 +88,9 @@ use surfman::platform::generic::multi::context::NativeContext as LinuxNativeCont
 use surfman::{GLApi, GLVersion};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
+#[cfg(feature = "webgpu")]
+pub use webgpu;
+#[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
@@ -100,7 +103,7 @@ pub use {
     constellation, devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel,
     keyboard_types, layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
     script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
-    servo_url as url, servo_url, style, style_traits, webgpu, webrender_api, webrender_traits,
+    servo_url as url, servo_url, style, style_traits, webrender_api, webrender_traits,
 };
 
 #[cfg(feature = "webdriver")]
@@ -424,8 +427,11 @@ where
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
+        #[cfg(feature = "webgpu")]
         let wgpu_image_handler = webgpu::WGPUExternalImages::default();
+        #[cfg(feature = "webgpu")]
         let wgpu_image_map = wgpu_image_handler.images.clone();
+        #[cfg(feature = "webgpu")]
         external_image_handlers.set_handler(
             Box::new(wgpu_image_handler),
             WebrenderImageHandlerType::WebGPU,
@@ -468,6 +474,7 @@ where
             glplayer_threads,
             window_size,
             external_images,
+            #[cfg(feature = "webgpu")]
             wgpu_image_map,
             protocols,
         );
@@ -1058,7 +1065,7 @@ fn create_constellation(
     glplayer_threads: Option<GLPlayerThreads>,
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    wgpu_image_map: WGPUImageMap,
+    #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
@@ -1110,6 +1117,7 @@ fn create_constellation(
         player_context,
         user_agent,
         webrender_external_images: external_images,
+        #[cfg(feature = "webgpu")]
         wgpu_image_map,
     };
 

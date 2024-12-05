@@ -11,6 +11,9 @@ rust-version.workspace = true
 name = "script_traits"
 path = "lib.rs"
 
+[features]
+webgpu = []
+
 [dependencies]
 background_hang_monitor_api = { workspace = true }
 base = { workspace = true }

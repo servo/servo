@@ -151,9 +151,13 @@ use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
+#[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
+#[cfg(feature = "webgpu")]
 use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
-use webrender::{RenderApi, RenderApiSender};
+#[cfg(feature = "webgpu")]
+use webrender::RenderApi;
+use webrender::RenderApiSender;
 use webrender_api::DocumentId;
 use webrender_traits::WebrenderExternalImageRegistry;
 
@@ -209,6 +213,7 @@ struct MessagePortInfo {
     entangled_with: Option<MessagePortId>,
 }
 
+#[cfg(feature = "webgpu")]
 /// Webrender related objects required by WebGPU threads
 struct WebrenderWGPU {
     /// Webrender API.
@@ -251,6 +256,7 @@ struct BrowsingContextGroup {
     event_loops: HashMap<Host, Weak<EventLoop>>,
 
     /// The set of all WebGPU channels in this BrowsingContextGroup.
+    #[cfg(feature = "webgpu")]
     webgpus: HashMap<Host, WebGPU>,
 }
 
@@ -388,6 +394,7 @@ pub struct Constellation<STF, SWF> {
     webrender_document: DocumentId,
 
     /// Webrender related objects required by WebGPU threads
+    #[cfg(feature = "webgpu")]
     webrender_wgpu: WebrenderWGPU,
 
     /// A map of message-port Id to info.
@@ -543,6 +550,7 @@ pub struct InitialConstellationState {
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
 
+    #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WGPUImageMap,
 }
 
@@ -704,6 +712,7 @@ where
                 // Zero is reserved for the embedder.
                 PipelineNamespace::install(PipelineNamespaceId(1));
 
+                #[cfg(feature = "webgpu")]
                 let webrender_wgpu = WebrenderWGPU {
                     webrender_api: state.webrender_api_sender.create_api(),
                     webrender_external_images: state.webrender_external_images,
@@ -758,6 +767,7 @@ where
                     scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
+                    #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
                     handled_warnings: VecDeque::new(),
@@ -1830,12 +1840,14 @@ where
                     EmbedderMsg::MediaSessionEvent(event),
                 ));
             },
+            #[cfg(feature = "webgpu")]
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => self
                 .handle_wgpu_request(
                     source_pipeline_id,
                     BrowsingContextId::from(source_top_ctx_id),
                     FromScriptMsg::RequestAdapter(response_sender, options, ids),
                 ),
+            #[cfg(feature = "webgpu")]
             FromScriptMsg::GetWebGPUChan(response_sender) => self.handle_wgpu_request(
                 source_pipeline_id,
                 BrowsingContextId::from(source_top_ctx_id),
@@ -2034,6 +2046,7 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
+    #[cfg(feature = "webgpu")]
     fn handle_wgpu_request(
         &mut self,
         source_pipeline_id: PipelineId,
@@ -2747,6 +2760,7 @@ where
         }
 
         debug!("Exiting WebGPU threads.");
+        #[cfg(feature = "webgpu")]
         let receivers = self
             .browsing_context_group_set
             .values()
@@ -2763,6 +2777,7 @@ where
             })
             .flatten();
 
+        #[cfg(feature = "webgpu")]
         for receiver in receivers {
             if let Err(e) = receiver.recv() {
                 warn!("Failed to receive exit response from WebGPU ({:?})", e);

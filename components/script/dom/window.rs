@@ -124,7 +124,6 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::identityhub::IdentityHub;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
@@ -138,6 +137,8 @@ use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
+#[cfg(feature = "webgpu")]
+use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
@@ -1875,6 +1876,7 @@ impl Window {
         // If this reflow is for display, ensure webgl canvases are composited with
         // up-to-date contents.
         if for_display {
+            #[cfg(feature = "webgpu")]
             document.flush_dirty_webgpu_canvases();
             document.flush_dirty_webgl_canvases();
         }
@@ -2601,7 +2603,7 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
-        gpu_id_hub: Arc<IdentityHub>,
+        #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
@@ -2628,6 +2630,7 @@ impl Window {
                 microtask_queue,
                 is_headless,
                 user_agent,
+                #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,

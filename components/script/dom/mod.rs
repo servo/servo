@@ -402,7 +402,6 @@ pub mod htmltrackelement;
 pub mod htmlulistelement;
 pub mod htmlunknownelement;
 pub mod htmlvideoelement;
-pub mod identityhub;
 pub mod iirfilternode;
 pub mod imagebitmap;
 pub mod imagedata;
@@ -580,8 +579,14 @@ pub mod websocket;
 mod webxr;
 #[cfg(feature = "webxr")]
 pub use self::webxr::*;
-mod webgpu;
+#[cfg(feature = "webgpu")]
+pub mod webgpu;
+#[cfg(feature = "webgpu")]
 pub use self::webgpu::*;
+#[cfg(not(feature = "webgpu"))]
+pub mod gpucanvascontext;
+#[cfg(not(feature = "webgpu"))]
+pub use gpucanvascontext::GPUCanvasContext;
 pub mod wheelevent;
 pub mod window;
 pub mod windowproxy;

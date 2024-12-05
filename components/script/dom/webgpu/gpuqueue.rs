@@ -19,10 +19,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
+use crate::dom::webgpu::gpubuffer::GPUBuffer;
+use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
+use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
