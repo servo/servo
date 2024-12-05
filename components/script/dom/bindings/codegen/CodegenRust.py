@@ -2552,7 +2552,14 @@ static INTERFACE_OBJECT_CLASS: OnceLock<ForceThreadSafe<NonCallbackInterfaceObje
 
 pub(crate) fn init_interface_object() {{
     assert!(INTERFACE_OBJECT_CLASS.set(NonCallbackInterfaceObjectClass::new(
-        Box::leak(Box::new({constructorBehavior})),
+        {{
+            // Intermediate `const` because as of nightly-2018-10-05,
+            // rustc is conservative in promotion to `'static` of the return values of `const fn`s:
+            // https://github.com/rust-lang/rust/issues/54846
+            // https://github.com/rust-lang/rust/pull/53851
+            const BEHAVIOR: InterfaceConstructorBehavior = {constructorBehavior};
+            &BEHAVIOR
+        }},
         {representation},
         PrototypeList::ID::{name},
         {self.descriptor.prototypeDepth},
