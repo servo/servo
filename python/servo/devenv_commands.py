@@ -125,12 +125,12 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         return self.run_cargo_build_like_command("fix", params, **kwargs)
 
-    @Command('cargo-clippy',
+    @Command('clippy',
              description='Run "cargo clippy"',
              category='devenv')
     @CommandArgument(
         'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to cargo-clippy")
+        help="Command-line arguments to be passed through to clippy")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def cargo_clippy(self, params, **kwargs):
         if not params:
