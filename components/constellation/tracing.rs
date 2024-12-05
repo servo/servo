@@ -72,6 +72,7 @@ mod from_compositor {
                 Self::ClearCache => target!("ClearCache"),
                 Self::TraverseHistory(..) => target!("TraverseHistory"),
                 Self::WindowSize(..) => target!("WindowSize"),
+                Self::ThemeChange(..) => target!("ThemeChange"),
                 Self::TickAnimation(..) => target!("TickAnimation"),
                 Self::WebDriverCommand(..) => target!("WebDriverCommand"),
                 Self::Reload(..) => target!("Reload"),
