@@ -80,7 +80,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       assert_true(name in interfaceMap,
                   "If this is failing: DANGER, are you sure you want to expose the new " +
                   "interface " + name + " to all webpages as a property on the global? " +
-                  "Do not make a change to this file without review from jdm or Ms2ger " +
+                  "Do not make a change to this file without review" +
                   "for that specific change!");
       if (name in interfaceMap) {
         delete interfaceMap[name];
