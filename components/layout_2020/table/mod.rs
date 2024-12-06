@@ -84,6 +84,7 @@ use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::layout_box_base::LayoutBoxBase;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
@@ -189,6 +190,9 @@ pub type TableSlotOffset = Vector2D<usize, UnknownUnit>;
 
 #[derive(Debug, Serialize)]
 pub struct TableSlotCell {
+    /// The [`LayoutBoxBase`] of this table cell.
+    base: LayoutBoxBase,
+
     /// The contents of this cell, with its own layout.
     contents: BlockFormattingContext,
 
@@ -198,33 +202,27 @@ pub struct TableSlotCell {
     /// Number of rows that the cell is to span. Zero means that the cell is to span all
     /// the remaining rows in the row group.
     rowspan: usize,
-
-    /// The style of this table cell.
-    #[serde(skip_serializing)]
-    style: Arc<ComputedValues>,
-
-    /// The [`BaseFragmentInfo`] of this cell.
-    base_fragment_info: BaseFragmentInfo,
 }
 
 impl TableSlotCell {
     pub fn mock_for_testing(id: usize, colspan: usize, rowspan: usize) -> Self {
         Self {
+            base: LayoutBoxBase::new(
+                BaseFragmentInfo::new_for_node(OpaqueNode(id)),
+                ComputedValues::initial_values_with_font_override(Font::initial_values()).to_arc(),
+            ),
             contents: BlockFormattingContext {
                 contents: BlockContainer::BlockLevelBoxes(Vec::new()),
                 contains_floats: false,
             },
             colspan,
             rowspan,
-            style: ComputedValues::initial_values_with_font_override(Font::initial_values())
-                .to_arc(),
-            base_fragment_info: BaseFragmentInfo::new_for_node(OpaqueNode(id)),
         }
     }
 
     /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
     pub fn node_id(&self) -> usize {
-        self.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
+        self.base.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
     }
 }
 
