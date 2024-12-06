@@ -315,13 +315,6 @@ impl VirtualMethods for ShadowRoot {
             let document = document_from_node(self);
             document.unregister_shadow_root(self);
         }
-
-        let shadow_root = self.upcast::<Node>();
-        shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
-        for node in shadow_root.children() {
-            node.set_flag(NodeFlags::IS_CONNECTED, false);
-            node.unbind_from_tree(context);
-        }
     }
 }
 
