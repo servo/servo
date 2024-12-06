@@ -112,7 +112,7 @@ impl Callback for ClosedPromiseRejectionHandler {
     /// Upon rejection of reader.[[closedPromise]] with reason r,
     fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         let branch_1_controller = self.branch_1_controller.root();
-        let branch_2_controller = self.branch_1_controller.root();
+        let branch_2_controller = self.branch_2_controller.root();
 
         // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], r).
         branch_1_controller.error(v);

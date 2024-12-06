@@ -10,7 +10,6 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
-use super::bindings::root::MutNullableDom;
 use super::bindings::structuredclone;
 use super::types::TeeUnderlyingSource;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
