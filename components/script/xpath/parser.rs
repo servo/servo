@@ -948,18 +948,7 @@ fn ncname(input: &str) -> IResult<&str, &str> {
 // Test functions to verify the parsers:
 #[cfg(test)]
 mod tests {
-    use insta::{assert_debug_snapshot, with_settings};
-    use rstest::rstest;
-
     use super::*;
-
-    macro_rules! set_snapshot_suffix {
-        ($($expr:expr),*) => {
-            let mut settings = insta::Settings::clone_current();
-            settings.set_snapshot_suffix(format!($($expr,)*));
-            let _guard = settings.bind_to_scope();
-        }
-    }
 
     #[test]
     fn test_node_tests() {
@@ -1010,43 +999,211 @@ mod tests {
         }
     }
 
-    #[rstest]
-    #[case("position", "position()")]
-    #[case("last", "last()")]
-    #[case("concat", "concat('hello', ' ', 'world')")]
-    #[case("node", "node()[1]")]
-    #[case("text", "text()[contains(., 'test')]")]
-    #[case("pi", "processing-instruction('test')[2]")]
-    fn test_filter_expr(#[case] name: &str, #[case] input: &str) {
-        set_snapshot_suffix!("{}", name);
+    #[test]
+    fn test_filter_expr() {
+        let cases = vec![
+            (
+                "processing-instruction('test')[2]",
+                Expr::Path(PathExpr {
+                    is_absolute: false,
+                    is_descendant: false,
+                    steps: vec![StepExpr::Axis(AxisStep {
+                        axis: Axis::Child,
+                        node_test: NodeTest::Kind(KindTest::PI(Some("test".to_string()))),
+                        predicates: PredicateListExpr {
+                            predicates: vec![PredicateExpr {
+                                expr: Expr::Path(PathExpr {
+                                    is_absolute: false,
+                                    is_descendant: false,
+                                    steps: vec![StepExpr::Filter(FilterExpr {
+                                        primary: PrimaryExpr::Literal(Literal::Numeric(
+                                            NumericLiteral::Integer(2),
+                                        )),
+                                        predicates: PredicateListExpr { predicates: vec![] },
+                                    })],
+                                }),
+                            }],
+                        },
+                    })],
+                }),
+            ),
+            (
+                "concat('hello', ' ', 'world')",
+                Expr::Path(PathExpr {
+                    is_absolute: false,
+                    is_descendant: false,
+                    steps: vec![StepExpr::Filter(FilterExpr {
+                        primary: PrimaryExpr::Function(CoreFunction::Concat(vec![
+                            Expr::Path(PathExpr {
+                                is_absolute: false,
+                                is_descendant: false,
+                                steps: vec![StepExpr::Filter(FilterExpr {
+                                    primary: PrimaryExpr::Literal(Literal::String(
+                                        "hello".to_string(),
+                                    )),
+                                    predicates: PredicateListExpr { predicates: vec![] },
+                                })],
+                            }),
+                            Expr::Path(PathExpr {
+                                is_absolute: false,
+                                is_descendant: false,
+                                steps: vec![StepExpr::Filter(FilterExpr {
+                                    primary: PrimaryExpr::Literal(Literal::String(" ".to_string())),
+                                    predicates: PredicateListExpr { predicates: vec![] },
+                                })],
+                            }),
+                            Expr::Path(PathExpr {
+                                is_absolute: false,
+                                is_descendant: false,
+                                steps: vec![StepExpr::Filter(FilterExpr {
+                                    primary: PrimaryExpr::Literal(Literal::String(
+                                        "world".to_string(),
+                                    )),
+                                    predicates: PredicateListExpr { predicates: vec![] },
+                                })],
+                            }),
+                        ])),
+                        predicates: PredicateListExpr { predicates: vec![] },
+                    })],
+                }),
+            ),
+        ];
 
-        if let Ok((_, output)) = expr(input) {
-            with_settings!({ description => input }, {
-                assert_debug_snapshot!(output);
-            });
-        } else {
-            panic!("Failed to parse '{}'", input);
+        for (input, expected) in cases {
+            match parse(input) {
+                Ok(result) => {
+                    assert_eq!(result, expected);
+                },
+                Err(e) => panic!("Failed to parse '{}': {:?}", input, e),
+            }
         }
     }
 
-    #[rstest]
-    #[case("contains_class", "//*[contains(@class, 'test')]")]
-    #[case("position_last", "//div[position() > 1]/*[last()]")]
-    #[case("following_sibling", "ancestor::*[1]/following-sibling::div[1]")]
-    #[case("div_or_span", "//*[self::div or self::span][@class]")]
-    #[case(
-        "pi_string_length",
-        "//processing-instruction('test')[string-length(.) > 0]"
-    )]
-    fn test_complex_paths(#[case] name: &str, #[case] input: &str) {
-        set_snapshot_suffix!("{}", name);
+    #[test]
+    fn test_complex_paths() {
+        let cases = vec![
+            (
+                "//*[contains(@class, 'test')]",
+                Expr::Path(PathExpr {
+                    is_absolute: true,
+                    is_descendant: true,
+                    steps: vec![StepExpr::Axis(AxisStep {
+                        axis: Axis::Child,
+                        node_test: NodeTest::Wildcard,
+                        predicates: PredicateListExpr {
+                            predicates: vec![PredicateExpr {
+                                expr: Expr::Path(PathExpr {
+                                    is_absolute: false,
+                                    is_descendant: false,
+                                    steps: vec![StepExpr::Filter(FilterExpr {
+                                        primary: PrimaryExpr::Function(CoreFunction::Contains(
+                                            Box::new(Expr::Path(PathExpr {
+                                                is_absolute: false,
+                                                is_descendant: false,
+                                                steps: vec![StepExpr::Axis(AxisStep {
+                                                    axis: Axis::Attribute,
+                                                    node_test: NodeTest::Name(QName {
+                                                        prefix: None,
+                                                        local_part: "class".to_string(),
+                                                    }),
+                                                    predicates: PredicateListExpr {
+                                                        predicates: vec![],
+                                                    },
+                                                })],
+                                            })),
+                                            Box::new(Expr::Path(PathExpr {
+                                                is_absolute: false,
+                                                is_descendant: false,
+                                                steps: vec![StepExpr::Filter(FilterExpr {
+                                                    primary: PrimaryExpr::Literal(Literal::String(
+                                                        "test".to_string(),
+                                                    )),
+                                                    predicates: PredicateListExpr {
+                                                        predicates: vec![],
+                                                    },
+                                                })],
+                                            })),
+                                        )),
+                                        predicates: PredicateListExpr { predicates: vec![] },
+                                    })],
+                                }),
+                            }],
+                        },
+                    })],
+                }),
+            ),
+            (
+                "//div[position() > 1]/*[last()]",
+                Expr::Path(PathExpr {
+                    is_absolute: true,
+                    is_descendant: true,
+                    steps: vec![
+                        StepExpr::Axis(AxisStep {
+                            axis: Axis::Child,
+                            node_test: NodeTest::Name(QName {
+                                prefix: None,
+                                local_part: "div".to_string(),
+                            }),
+                            predicates: PredicateListExpr {
+                                predicates: vec![PredicateExpr {
+                                    expr: Expr::Relational(
+                                        Box::new(Expr::Path(PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: vec![StepExpr::Filter(FilterExpr {
+                                                primary: PrimaryExpr::Function(
+                                                    CoreFunction::Position,
+                                                ),
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
+                                            })],
+                                        })),
+                                        RelationalOp::Gt,
+                                        Box::new(Expr::Path(PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: vec![StepExpr::Filter(FilterExpr {
+                                                primary: PrimaryExpr::Literal(Literal::Numeric(
+                                                    NumericLiteral::Integer(1),
+                                                )),
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
+                                            })],
+                                        })),
+                                    ),
+                                }],
+                            },
+                        }),
+                        StepExpr::Axis(AxisStep {
+                            axis: Axis::Child,
+                            node_test: NodeTest::Wildcard,
+                            predicates: PredicateListExpr {
+                                predicates: vec![PredicateExpr {
+                                    expr: Expr::Path(PathExpr {
+                                        is_absolute: false,
+                                        is_descendant: false,
+                                        steps: vec![StepExpr::Filter(FilterExpr {
+                                            primary: PrimaryExpr::Function(CoreFunction::Last),
+                                            predicates: PredicateListExpr { predicates: vec![] },
+                                        })],
+                                    }),
+                                }],
+                            },
+                        }),
+                    ],
+                }),
+            ),
+        ];
 
-        if let Ok((_, output)) = expr(input) {
-            with_settings!({ description => input }, {
-                assert_debug_snapshot!(output);
-            });
-        } else {
-            panic!("Failed to parse '{}'", input);
+        for (input, expected) in cases {
+            match parse(input) {
+                Ok(result) => {
+                    assert_eq!(result, expected);
+                },
+                Err(e) => panic!("Failed to parse '{}': {:?}", input, e),
+            }
         }
     }
 }

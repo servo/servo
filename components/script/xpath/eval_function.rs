@@ -283,9 +283,9 @@ impl Evaluatable for CoreFunction {
                 expr.is_primitive() && substr.is_primitive()
             },
             CoreFunction::Substring(expr, start_pos, length_opt) => {
-                expr.is_primitive()
-                    && start_pos.is_primitive()
-                    && length_opt
+                expr.is_primitive() &&
+                    start_pos.is_primitive() &&
+                    length_opt
                         .as_ref()
                         .map(|length| length.is_primitive())
                         .unwrap_or(false)
