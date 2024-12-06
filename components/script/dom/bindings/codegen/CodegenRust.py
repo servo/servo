@@ -1657,7 +1657,7 @@ class PropertyDefiner:
             specs.append(f"&Box::leak(Box::new([\n{joinedCurrentSpecs}]))[..]\n")
             conds = ','.join(cond) if isinstance(cond, list) else cond
             prefableSpecs.append(
-                prefableTemplate % (f"&[{conds}]", f"{name}_specs.get()", len(specs) - 1)
+                prefableTemplate % (f"&[{conds}]", f"unsafe {{ {name}_specs.get() }}", len(specs) - 1)
             )
 
         joinedSpecs = ',\n'.join(specs)
@@ -1868,12 +1868,12 @@ class MethodDefiner(PropertyDefiner):
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
-                    jitinfo = (f"{identifier}_methodinfo.get()"
+                    jitinfo = (f"unsafe {{ {identifier}_methodinfo.get() }}"
                                " as *const _ as *const JSJitInfo")
                     accessor = f"Some(generic_method::<{exceptionToRejection}>)"
                 else:
                     if m.get("returnsPromise", False):
-                        jitinfo = f"{m.get('nativeName', m['name'])}_methodinfo.get()"
+                        jitinfo = f"unsafe {{ {m.get('nativeName', m['name'])}_methodinfo.get() }}"
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
@@ -1979,7 +1979,7 @@ class AttrDefiner(PropertyDefiner):
                 else:
                     accessor = f"generic_getter::<{exceptionToRejection}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
-                jitinfo = f"{internalName}_getterinfo.get()"
+                jitinfo = f"unsafe {{ {internalName}_getterinfo.get() }}"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -2001,7 +2001,7 @@ class AttrDefiner(PropertyDefiner):
                 else:
                     accessor = "generic_setter"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
-                jitinfo = f"{internalName}_setterinfo.get()"
+                jitinfo = f"unsafe {{ {internalName}_setterinfo.get() }}"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -2430,7 +2430,7 @@ pub(crate) fn init_domjs_class() {{
             flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
                    ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                    /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
-            cOps: CLASS_OPS.get(),
+            cOps: unsafe {{ CLASS_OPS.get() }},
             spec: ptr::null(),
             ext: ptr::null(),
             oOps: ptr::null(),
@@ -2994,7 +2994,7 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
     ]
     for template, array in unforgeableMembers:
         if array.length() > 0:
-            unforgeables.append(CGGeneric(template % f"{array.variableName()}.get()"))
+            unforgeables.append(CGGeneric(template % f"unsafe {{ {array.variableName()}.get() }}"))
     return CGList(unforgeables, "\n")
 
 
@@ -3212,7 +3212,7 @@ class CGIDLInterface(CGThing):
         elif self.descriptor.proxy:
             check = "ptr::eq(class, &Class)"
         else:
-            check = "ptr::eq(class, &Class.get().dom_class)"
+            check = "ptr::eq(class, unsafe { &Class.get().dom_class })"
         return f"""
 impl IDLInterface for {name} {{
     #[inline]
@@ -3335,8 +3335,8 @@ class CGCrossOriginProperties(CGThing):
 
             pub(crate) fn init_cross_origin_properties() {
                 CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
-                    attributes: sCrossOriginAttributes.get(),
-                    methods: sCrossOriginMethods.get(),
+                    attributes: unsafe { sCrossOriginAttributes.get() },
+                    methods: unsafe { sCrossOriginMethods.get() },
                 });
             }
             """

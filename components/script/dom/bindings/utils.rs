@@ -53,11 +53,11 @@ use crate::script_runtime::JSContext as SafeJSContext;
 /// the Rust compiler but need to be used in contexts that require threadsafety. This is
 /// needed to allow using JS API types (which usually involve raw pointers) in static initializers,
 /// when Servo guarantees through the use of OnceLock that only one thread will ever initialize
-/// the value.
+/// the value and that the types contain no interior mutability.
 struct ForceThreadSafe<T>(pub T);
 
-/// A OnceLock wrapping a type that is not considered type-safe by the Rust compiler, but can
-/// will be used in a type-safe manner.
+/// A OnceLock wrapping a type that is not considered threadsafe by the Rust compiler, but
+/// will be used in a threadsafe manner.
 pub struct ThreadUnsafeOnceLock<T>(OnceLock<ForceThreadSafe<T>>);
 
 impl<T> ThreadUnsafeOnceLock<T> {
@@ -65,11 +65,17 @@ impl<T> ThreadUnsafeOnceLock<T> {
         Self(OnceLock::new())
     }
 
+    /// Initialize the value inside this lock. Panics if the lock has been previously initialized.
     pub fn set(&self, val: T) {
         assert!(self.0.set(ForceThreadSafe(val)).is_ok());
     }
 
-    pub fn get(&self) -> &T {
+    /// Get a reference to the value inside this lock. Panics if the lock has not been initialized.
+    ///
+    /// SAFETY:
+    ///   The caller must ensure that the value contained inside this lock does not contain
+    ///   any interior mutability.
+    pub unsafe fn get(&self) -> &T {
         &((self.0.get().unwrap()).0)
     }
 }
