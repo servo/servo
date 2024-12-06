@@ -4126,6 +4126,7 @@ dependencies = [
  "layout_thread_2020",
  "log",
  "media",
+ "metrics",
  "mozangle",
  "net",
  "net_traits",
@@ -4389,6 +4390,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
+ "tracing",
 ]
 
 [[package]]
