@@ -38,8 +38,6 @@ use log::debug;
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, MaxRect};
-use style::computed_values::clear::T as Clear;
-use style::computed_values::float::T as Float;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::position::T as Position;
 use style::computed_values::text_align::T as TextAlign;
@@ -57,7 +55,7 @@ use crate::display_list::{
     DisplayListBuildState, StackingContextCollectionState, StackingContextId,
 };
 use crate::flex::FlexFlow;
-use crate::floats::{Floats, SpeculatedFloatPlacement};
+use crate::floats::{ClearType, FloatKind, Floats, SpeculatedFloatPlacement};
 use crate::flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use crate::flow_ref::{FlowRef, WeakFlowRef};
 use crate::fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
@@ -672,13 +670,13 @@ bitflags! {
 
 impl FlowFlags {
     #[inline]
-    pub fn float_kind(&self) -> Float {
+    pub fn float_kind(&self) -> Option<FloatKind> {
         if self.contains(FlowFlags::FLOATS_LEFT) {
-            Float::Left
+            Some(FloatKind::Left)
         } else if self.contains(FlowFlags::FLOATS_RIGHT) {
-            Float::Right
+            Some(FloatKind::Right)
         } else {
-            Float::None
+            None
         }
     }
 
@@ -1070,18 +1068,22 @@ impl BaseFlow {
                 }
 
                 if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
-                    match style.get_box().float {
-                        Float::None => {},
-                        Float::Left => flags.insert(FlowFlags::FLOATS_LEFT),
-                        Float::Right => flags.insert(FlowFlags::FLOATS_RIGHT),
+                    // FIXME: this should use the writing mode of the containing block.
+                    match FloatKind::from_property_and_writing_mode(
+                        style.get_box().float,
+                        style.writing_mode,
+                    ) {
+                        None => {},
+                        Some(FloatKind::Left) => flags.insert(FlowFlags::FLOATS_LEFT),
+                        Some(FloatKind::Right) => flags.insert(FlowFlags::FLOATS_RIGHT),
                     }
                 }
 
-                match style.get_box().clear {
-                    Clear::None => {},
-                    Clear::Left => flags.insert(FlowFlags::CLEARS_LEFT),
-                    Clear::Right => flags.insert(FlowFlags::CLEARS_RIGHT),
-                    Clear::Both => {
+                match ClearType::from_style(style) {
+                    None => {},
+                    Some(ClearType::Left) => flags.insert(FlowFlags::CLEARS_LEFT),
+                    Some(ClearType::Right) => flags.insert(FlowFlags::CLEARS_RIGHT),
+                    Some(ClearType::Both) => {
                         flags.insert(FlowFlags::CLEARS_LEFT);
                         flags.insert(FlowFlags::CLEARS_RIGHT);
                     },

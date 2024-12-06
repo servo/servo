@@ -96,7 +96,6 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
 use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
-use style::values::computed::Clear;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
@@ -111,7 +110,7 @@ use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
-use super::float::PlacementAmongFloats;
+use super::float::{Clear, PlacementAmongFloats};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
@@ -721,7 +720,10 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             .contains(FragmentFlags::IS_BR_ELEMENT) &&
             self.deferred_br_clear == Clear::None
         {
-            self.deferred_br_clear = inline_box_state.base.style.clone_clear();
+            self.deferred_br_clear = Clear::from_style_and_container_writing_mode(
+                &inline_box_state.base.style,
+                self.containing_block.style.writing_mode,
+            );
         }
 
         if inline_box.is_first_fragment {

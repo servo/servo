@@ -33,7 +33,6 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
-use style::computed_values::clear::T as Clear;
 use style::computed_values::color::T as Color;
 use style::computed_values::display::T as Display;
 use style::computed_values::mix_blend_mode::T as MixBlendMode;
@@ -1507,13 +1506,7 @@ impl Fragment {
     /// FIXME(pcwalton): Just replace with the clear type from the style module for speed?
     #[inline(always)]
     pub fn clear(&self) -> Option<ClearType> {
-        let style = self.style();
-        match style.get_box().clear {
-            Clear::None => None,
-            Clear::Left => Some(ClearType::Left),
-            Clear::Right => Some(ClearType::Right),
-            Clear::Both => Some(ClearType::Both),
-        }
+        ClearType::from_style(self.style())
     }
 
     #[inline(always)]

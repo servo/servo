@@ -19,7 +19,7 @@ use style::computed_values::float::T as FloatProperty;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Clear;
+use style::values::computed::Clear as StyleClear;
 use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
@@ -243,8 +243,8 @@ impl<'a> PlacementAmongFloats<'a> {
                 inline: self.min_inline_start,
                 block: self
                     .ceiling
-                    .max(self.float_context.clear_left_position)
-                    .max(self.float_context.clear_right_position),
+                    .max(self.float_context.clear_inline_start_position)
+                    .max(self.float_context.clear_inline_end_position),
             },
             size: LogicalVec2 {
                 inline: self.max_inline_end - self.min_inline_start,
@@ -339,10 +339,10 @@ pub struct FloatContext {
     /// independent block formatting context that contains all of the floats
     /// this `FloatContext` positions.
     pub containing_block_info: ContainingBlockPositionInfo,
-    /// The (logically) lowest margin edge of the last left float.
-    pub clear_left_position: Au,
-    /// The (logically) lowest margin edge of the last right float.
-    pub clear_right_position: Au,
+    /// The (logically) lowest margin edge of the last inline-start float.
+    pub clear_inline_start_position: Au,
+    /// The (logically) lowest margin edge of the last inline-end float.
+    pub clear_inline_end_position: Au,
 }
 
 impl FloatContext {
@@ -368,8 +368,8 @@ impl FloatContext {
                 Au::zero(),
                 max_inline_size,
             ),
-            clear_left_position: Au::zero(),
-            clear_right_position: Au::zero(),
+            clear_inline_start_position: Au::zero(),
+            clear_inline_end_position: Au::zero(),
         }
     }
 
@@ -394,11 +394,11 @@ impl FloatContext {
     pub(crate) fn place_object(&self, object: &PlacementInfo, ceiling: Au) -> LogicalVec2<Au> {
         let ceiling = match object.clear {
             Clear::None => ceiling,
-            Clear::Left => ceiling.max(self.clear_left_position),
-            Clear::Right => ceiling.max(self.clear_right_position),
+            Clear::InlineStart => ceiling.max(self.clear_inline_start_position),
+            Clear::InlineEnd => ceiling.max(self.clear_inline_end_position),
             Clear::Both => ceiling
-                .max(self.clear_left_position)
-                .max(self.clear_right_position),
+                .max(self.clear_inline_start_position)
+                .max(self.clear_inline_end_position),
         };
 
         // Find the first band this float fits in.
@@ -461,11 +461,11 @@ impl FloatContext {
         // Update clear.
         match new_float.side {
             FloatSide::InlineStart => {
-                self.clear_left_position
+                self.clear_inline_start_position
                     .max_assign(new_float_rect.max_block_position());
             },
             FloatSide::InlineEnd => {
-                self.clear_right_position
+                self.clear_inline_end_position
                     .max_assign(new_float_rect.max_block_position());
             },
         }
@@ -495,6 +495,32 @@ impl FloatContext {
             .max_assign(new_float_rect.start_corner.block);
 
         new_float_rect.start_corner
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Clear {
+    None,
+    InlineStart,
+    InlineEnd,
+    Both,
+}
+
+impl Clear {
+    pub(crate) fn from_style_and_container_writing_mode(
+        style: &ComputedValues,
+        container_writing_mode: WritingMode,
+    ) -> Self {
+        match style.get_box().clear {
+            StyleClear::None => Self::None,
+            StyleClear::Both => Self::Both,
+            StyleClear::InlineStart => Self::InlineStart,
+            StyleClear::InlineEnd => Self::InlineEnd,
+            StyleClear::Left if container_writing_mode.is_bidi_ltr() => Self::InlineStart,
+            StyleClear::Left => Self::InlineEnd,
+            StyleClear::Right if container_writing_mode.is_bidi_ltr() => Self::InlineEnd,
+            StyleClear::Right => Self::InlineStart,
+        }
     }
 }
 
@@ -537,19 +563,19 @@ pub struct FloatBand {
 }
 
 impl FloatSide {
-    fn from_style_and_container_writing_mode(
+    pub(crate) fn from_style_and_container_writing_mode(
         style: &ComputedValues,
         container_writing_mode: WritingMode,
     ) -> Option<FloatSide> {
-        match (style.get_box().float, container_writing_mode.is_bidi_ltr()) {
-            (FloatProperty::None, _) => None,
-            (FloatProperty::Left, true) | (FloatProperty::Right, false) => {
-                Some(FloatSide::InlineStart)
-            },
-            (FloatProperty::Right, true) | (FloatProperty::Left, false) => {
-                Some(FloatSide::InlineEnd)
-            },
-        }
+        Some(match style.get_box().float {
+            FloatProperty::None => return None,
+            FloatProperty::InlineStart => Self::InlineStart,
+            FloatProperty::InlineEnd => Self::InlineEnd,
+            FloatProperty::Left if container_writing_mode.is_bidi_ltr() => Self::InlineStart,
+            FloatProperty::Left => Self::InlineEnd,
+            FloatProperty::Right if container_writing_mode.is_bidi_ltr() => Self::InlineEnd,
+            FloatProperty::Right => Self::InlineStart,
+        })
     }
 }
 
@@ -1021,12 +1047,12 @@ impl SequentialLayoutState {
         // in that case we don't need to add clearance.
         let clear_position = match clear {
             Clear::None => unreachable!(),
-            Clear::Left => self.floats.clear_left_position,
-            Clear::Right => self.floats.clear_right_position,
+            Clear::InlineStart => self.floats.clear_inline_start_position,
+            Clear::InlineEnd => self.floats.clear_inline_end_position,
             Clear::Both => self
                 .floats
-                .clear_left_position
-                .max(self.floats.clear_right_position),
+                .clear_inline_start_position
+                .max(self.floats.clear_inline_end_position),
         };
         if hypothetical_block_position >= clear_position {
             None
@@ -1133,7 +1159,10 @@ impl SequentialLayoutState {
                 container_writing_mode,
             )
             .expect("Float box wasn't floated!"),
-            clear: box_fragment.style.get_box().clear,
+            clear: Clear::from_style_and_container_writing_mode(
+                &box_fragment.style,
+                container_writing_mode,
+            ),
         });
 
         // Re-calculate relative adjustment so that it is not lost when the BoxFragment's

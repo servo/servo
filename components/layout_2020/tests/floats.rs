@@ -13,12 +13,11 @@ use std::{thread, u32};
 use app_units::Au;
 use euclid::num::Zero;
 use layout_2020::flow::float::{
-    ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext, FloatSide,
-    PlacementInfo,
+    Clear, ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext,
+    FloatSide, PlacementInfo,
 };
 use layout_2020::geom::{LogicalRect, LogicalVec2};
 use quickcheck::{Arbitrary, Gen};
-use style::values::computed::Clear;
 
 static PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
 
@@ -421,8 +420,8 @@ impl Arbitrary for FloatInput {
 fn new_clear(value: u8) -> Clear {
     match value & 3 {
         0 => Clear::None,
-        1 => Clear::Left,
-        2 => Clear::Right,
+        1 => Clear::InlineStart,
+        2 => Clear::InlineEnd,
         _ => Clear::Both,
     }
 }
@@ -739,8 +738,8 @@ fn check_floats_rule_10(placement: &FloatPlacement) {
             }
 
             match this_float.info.clear {
-                Clear::Left => assert_ne!(other_float.info.side, FloatSide::InlineStart),
-                Clear::Right => assert_ne!(other_float.info.side, FloatSide::InlineEnd),
+                Clear::InlineStart => assert_ne!(other_float.info.side, FloatSide::InlineStart),
+                Clear::InlineEnd => assert_ne!(other_float.info.side, FloatSide::InlineEnd),
                 Clear::Both => assert!(false),
                 Clear::None => unreachable!(),
             }

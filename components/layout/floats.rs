@@ -8,8 +8,10 @@ use std::fmt;
 use app_units::{Au, MAX_AU};
 use log::debug;
 use serde::Serialize;
+use style::computed_values::clear::T as StyleClear;
 use style::computed_values::float::T as StyleFloat;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use style::properties::ComputedValues;
 
 use crate::block::FormattingContextType;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
@@ -23,12 +25,19 @@ pub enum FloatKind {
 }
 
 impl FloatKind {
-    pub fn from_property(property: StyleFloat) -> Option<FloatKind> {
-        match property {
-            StyleFloat::None => None,
-            StyleFloat::Left => Some(FloatKind::Left),
-            StyleFloat::Right => Some(FloatKind::Right),
-        }
+    pub fn from_property_and_writing_mode(
+        property: StyleFloat,
+        writing_mode: WritingMode,
+    ) -> Option<FloatKind> {
+        Some(match property {
+            StyleFloat::None => return None,
+            StyleFloat::Left => Self::Left,
+            StyleFloat::Right => Self::Right,
+            StyleFloat::InlineStart if writing_mode.is_bidi_ltr() => Self::Left,
+            StyleFloat::InlineStart => Self::Right,
+            StyleFloat::InlineEnd if writing_mode.is_bidi_ltr() => Self::Right,
+            StyleFloat::InlineEnd => Self::Left,
+        })
     }
 }
 
@@ -38,6 +47,22 @@ pub enum ClearType {
     Left,
     Right,
     Both,
+}
+
+impl ClearType {
+    pub fn from_style(style: &ComputedValues) -> Option<Self> {
+        Some(match style.get_box().clear {
+            StyleClear::None => return None,
+            StyleClear::Left => Self::Left,
+            StyleClear::Right => Self::Right,
+            StyleClear::Both => Self::Both,
+            // FIXME: these should check the writing mode of the containing block.
+            StyleClear::InlineStart if style.writing_mode.is_bidi_ltr() => Self::Left,
+            StyleClear::InlineStart => Self::Right,
+            StyleClear::InlineEnd if style.writing_mode.is_bidi_ltr() => Self::Right,
+            StyleClear::InlineEnd => Self::Left,
+        })
+    }
 }
 
 /// Information about a single float.
@@ -558,9 +583,9 @@ impl SpeculatedFloatPlacement {
         }
 
         match base_flow.flags.float_kind() {
-            StyleFloat::None => {},
-            StyleFloat::Left => self.left += float_inline_size,
-            StyleFloat::Right => self.right += float_inline_size,
+            None => {},
+            Some(FloatKind::Left) => self.left += float_inline_size,
+            Some(FloatKind::Right) => self.right += float_inline_size,
         }
     }
 
