@@ -2129,6 +2129,22 @@ impl Node {
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         node.owner_doc().remove_script_and_layout_blocker();
+
+        // Step 10. Let staticNodeList be a list of nodes, initially « ».
+        rooted_vec!(let mut static_node_list);
+
+        // Step 11. For each node of nodes, in tree order:
+        for node in new_nodes {
+            // Step 11.1 For each shadow-including inclusive descendant inclusiveDescendant of node,
+            //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
+            static_node_list.extend(node.traverse_preorder(ShadowIncluding::Yes))
+        }
+
+        // Step 12. For each node of staticNodeList, if node is connected, then run the
+        //          post-connection steps with node.
+        for node in static_node_list.iter().filter(|n| n.is_connected()) {
+            vtable_for(node).post_connection_steps();
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
