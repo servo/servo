@@ -1644,7 +1644,7 @@ class PropertyDefiner:
         assert len(array) != 0
         specs = []
         prefableSpecs = []
-        prefableTemplate = '    Guard::new(%s, %s[%d])'
+        prefableTemplate = '    Guard::new(%s, (%s)[%d])'
         origTemplate = specTemplate
         if isinstance(specTemplate, str):
             specTemplate = lambda _: origTemplate  # noqa
@@ -1654,22 +1654,29 @@ class PropertyDefiner:
             if specTerminator:
                 currentSpecs.append(specTerminator)
             joinedCurrentSpecs = ',\n'.join(currentSpecs)
-            specs.append(f"&[\n{joinedCurrentSpecs}]\n")
+            specs.append(f"&Box::leak(Box::new([\n{joinedCurrentSpecs}]))[..]\n")
             conds = ','.join(cond) if isinstance(cond, list) else cond
             prefableSpecs.append(
-                prefableTemplate % (f"&[{conds}]", f"{name}_specs", len(specs) - 1)
+                prefableTemplate % (f"&[{conds}]", f"unsafe {{ {name}_specs.get() }}", len(specs) - 1)
             )
 
         joinedSpecs = ',\n'.join(specs)
-        specsArray = (f"const {name}_specs: &[&[{specType}]] = &[\n"
-                      f"{joinedSpecs}\n"
-                      "];\n")
+        specsArray = f"static {name}_specs: ThreadUnsafeOnceLock<&[&[{specType}]]> = ThreadUnsafeOnceLock::new();\n"
+
+        initSpecs = f"""
+pub(crate) fn init_{name}_specs() {{
+    {name}_specs.set(Box::leak(Box::new([{joinedSpecs}])));
+}}"""
 
         joinedPrefableSpecs = ',\n'.join(prefableSpecs)
-        prefArray = (f"const {name}: &[Guard<&[{specType}]>] = &[\n"
-                     f"{joinedPrefableSpecs}\n"
-                     "];\n")
-        return f"{specsArray}{prefArray}"
+        prefArray = f"static {name}: ThreadUnsafeOnceLock<&[Guard<&[{specType}]>]> = ThreadUnsafeOnceLock::new();\n"
+
+        initPrefs = f"""
+pub(crate) fn init_{name}_prefs() {{
+    {name}.set(Box::leak(Box::new([{joinedPrefableSpecs}])));
+}}"""
+
+        return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
 
     def generateUnguardedArray(self, array, name, specTemplate, specTerminator,
                                specType, getCondition, getDataTuple):
@@ -1692,12 +1699,12 @@ class PropertyDefiner:
         specsArray.append(specTerminator)
 
         joinedSpecs = ',\n'.join(specsArray)
-        return dedent(
-            f"""
-            const {name}: &[{specType}] = &[
-            {joinedSpecs}
-            ];
-            """)
+        initialSpecs = f"static {name}: ThreadUnsafeOnceLock<&[{specType}]> = ThreadUnsafeOnceLock::new();\n"
+        initSpecs = f"""
+pub(crate) fn init_{name}() {{
+    {name}.set(Box::leak(Box::new([{joinedSpecs}])));
+}}"""
+        return dedent(f"{initialSpecs}{initSpecs}")
 
 
 # The length of a method is the minimum of the lengths of the
@@ -1850,7 +1857,7 @@ class MethodDefiner(PropertyDefiner):
                 accessor = "None"
                 jitinfo = "ptr::null()"
             else:
-                selfHostedName = "0 as *const libc::c_char"
+                selfHostedName = "ptr::null()"
                 if m.get("methodInfo", True):
                     if m.get("returnsPromise", False):
                         exceptionToRejection = "true"
@@ -1861,11 +1868,12 @@ class MethodDefiner(PropertyDefiner):
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
-                    jitinfo = f"&{identifier}_methodinfo as *const _ as *const JSJitInfo"
+                    jitinfo = (f"unsafe {{ {identifier}_methodinfo.get() }}"
+                               " as *const _ as *const JSJitInfo")
                     accessor = f"Some(generic_method::<{exceptionToRejection}>)"
                 else:
                     if m.get("returnsPromise", False):
-                        jitinfo = f"&{m.get('nativeName', m['name'])}_methodinfo"
+                        jitinfo = f"unsafe {{ {m.get('nativeName', m['name'])}_methodinfo.get() }}"
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
@@ -1956,11 +1964,11 @@ class AttrDefiner(PropertyDefiner):
             attr = attr['attr']
 
             if self.crossorigin and not attr.getExtendedAttribute("CrossOriginReadable"):
-                return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
+                return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
                 accessor = f'get_{self.descriptor.internalNameFor(attr.identifier.name)}'
-                jitinfo = "0 as *const JSJitInfo"
+                jitinfo = "ptr::null()"
             else:
                 if attr.type.isPromise():
                     exceptionToRejection = "true"
@@ -1970,7 +1978,8 @@ class AttrDefiner(PropertyDefiner):
                     accessor = f"generic_lenient_getter::<{exceptionToRejection}>"
                 else:
                     accessor = f"generic_getter::<{exceptionToRejection}>"
-                jitinfo = f"&{self.descriptor.internalNameFor(attr.identifier.name)}_getterinfo"
+                internalName = self.descriptor.internalNameFor(attr.identifier.name)
+                jitinfo = f"unsafe {{ {internalName}_getterinfo.get() }}"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -1981,17 +1990,18 @@ class AttrDefiner(PropertyDefiner):
                 or (attr.readonly
                     and not attr.getExtendedAttribute("PutForwards")
                     and not attr.getExtendedAttribute("Replaceable"))):
-                return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
+                return "JSNativeWrapper { op: None, info: ptr::null() }"
 
             if self.static:
                 accessor = f'set_{self.descriptor.internalNameFor(attr.identifier.name)}'
-                jitinfo = "0 as *const JSJitInfo"
+                jitinfo = "ptr::null()"
             else:
                 if attr.hasLegacyLenientThis():
                     accessor = "generic_lenient_setter"
                 else:
                     accessor = "generic_setter"
-                jitinfo = f"&{self.descriptor.internalNameFor(attr.identifier.name)}_setterinfo"
+                internalName = self.descriptor.internalNameFor(attr.identifier.name)
+                jitinfo = f"unsafe {{ {internalName}_setterinfo.get() }}"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -2345,7 +2355,7 @@ def DOMClass(descriptor):
     # padding.
     protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
     prototypeChainString = ', '.join(protoList)
-    mallocSizeOf = f'malloc_size_of_including_raw_self::<{descriptor.concreteType}>'
+    mallocSizeOf = f"malloc_size_of_including_raw_self::<{descriptor.concreteType}>"
     if descriptor.isGlobal():
         globals_ = camel_to_upper_snake(descriptor.name)
     else:
@@ -2393,32 +2403,41 @@ class CGDOMJSClass(CGThing):
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
         return f"""
-static CLASS_OPS: JSClassOps = JSClassOps {{
-    addProperty: None,
-    delProperty: None,
-    enumerate: None,
-    newEnumerate: {args['enumerateHook']},
-    resolve: {args['resolveHook']},
-    mayResolve: None,
-    finalize: Some({args['finalizeHook']}),
-    call: None,
-    construct: None,
-    trace: Some({args['traceHook']}),
-}};
+static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
 
-static Class: DOMJSClass = DOMJSClass {{
-    base: JSClass {{
-        name: {args['name']},
-        flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
-               ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
-               /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
-        cOps: &CLASS_OPS,
-        spec: ptr::null(),
-        ext: ptr::null(),
-        oOps: ptr::null(),
-    }},
-    dom_class: {args['domClass']},
-}};
+pub(crate) fn init_class_ops() {{
+    CLASS_OPS.set(JSClassOps {{
+        addProperty: None,
+        delProperty: None,
+        enumerate: None,
+        newEnumerate: {args['enumerateHook']},
+        resolve: {args['resolveHook']},
+        mayResolve: None,
+        finalize: Some({args['finalizeHook']}),
+        call: None,
+        construct: None,
+        trace: Some({args['traceHook']}),
+    }});
+}}
+
+static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
+
+pub(crate) fn init_domjs_class() {{
+    init_class_ops();
+    Class.set(DOMJSClass {{
+        base: JSClass {{
+            name: {args['name']},
+            flags: JSCLASS_IS_DOMJSCLASS | {args['flags']} |
+                   ((({args['slots']}) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
+                   /* JSCLASS_HAS_RESERVED_SLOTS({args['slots']}) */,
+            cOps: unsafe {{ CLASS_OPS.get() }},
+            spec: ptr::null(),
+            ext: ptr::null(),
+            oOps: ptr::null(),
+        }},
+        dom_class: {args['domClass']},
+    }});
+}}
 """
 
 
@@ -2490,7 +2509,7 @@ static PrototypeClass: JSClass = JSClass {{
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS()
         ({slotCountStr} ) << JSCLASS_RESERVED_SLOTS_SHIFT,
-    cOps: 0 as *const _,
+    cOps: ptr::null(),
     spec: ptr::null(),
     ext: ptr::null(),
     oOps: ptr::null(),
@@ -2523,8 +2542,10 @@ static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {{
         name = self.descriptor.interface.identifier.name
         representation = f'b"function {name}() {{\\n    [native code]\\n}}"'
         return f"""
-static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
-    NonCallbackInterfaceObjectClass::new(
+static INTERFACE_OBJECT_CLASS: ThreadUnsafeOnceLock<NonCallbackInterfaceObjectClass> = ThreadUnsafeOnceLock::new();
+
+pub(crate) fn init_interface_object() {{
+    INTERFACE_OBJECT_CLASS.set(NonCallbackInterfaceObjectClass::new(
         {{
             // Intermediate `const` because as of nightly-2018-10-05,
             // rustc is conservative in promotion to `'static` of the return values of `const fn`s:
@@ -2535,7 +2556,9 @@ static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
         }},
         {representation},
         PrototypeList::ID::{name},
-        {self.descriptor.prototypeDepth});
+        {self.descriptor.prototypeDepth},
+    ));
+}}
 """
 
 
@@ -2971,7 +2994,7 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
     ]
     for template, array in unforgeableMembers:
         if array.length() > 0:
-            unforgeables.append(CGGeneric(template % array.variableName()))
+            unforgeables.append(CGGeneric(template % f"unsafe {{ {array.variableName()}.get() }}"))
     return CGList(unforgeables, "\n")
 
 
@@ -3072,7 +3095,7 @@ if let Some(given) = given_proto {
 }
 rooted!(in(*cx) let obj = JS_NewObjectWithGivenProto(
     *cx,
-    &Class.base,
+    &Class.get().base,
     proto.handle(),
 ));
 assert!(!obj.is_null());
@@ -3129,7 +3152,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}(cx, obj.handle(), {array.variableName()}, obj.handle());"
+        members = [f"{function}(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
 
@@ -3140,7 +3163,7 @@ let origin = (*raw.as_ptr()).upcast::<GlobalScope>().origin();
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
     cx,
-    &Class.base,
+    &Class.get().base,
     raw.as_ptr() as *const libc::c_void,
     _trace,
     obj.handle_mut(),
@@ -3189,7 +3212,7 @@ class CGIDLInterface(CGThing):
         elif self.descriptor.proxy:
             check = "ptr::eq(class, &Class)"
         else:
-            check = "ptr::eq(class, &Class.dom_class)"
+            check = "ptr::eq(class, unsafe { &Class.get().dom_class })"
         return f"""
 impl IDLInterface for {name} {{
     #[inline]
@@ -3308,11 +3331,14 @@ class CGCrossOriginProperties(CGThing):
     def define(self):
         return f"{self.methods}{self.attributes}" + dedent(
             """
-            const CROSS_ORIGIN_PROPERTIES: proxyhandler::CrossOriginProperties =
-                proxyhandler::CrossOriginProperties {
-                    attributes: sCrossOriginAttributes,
-                    methods: sCrossOriginMethods,
-                };
+            static CROSS_ORIGIN_PROPERTIES: ThreadUnsafeOnceLock<CrossOriginProperties> = ThreadUnsafeOnceLock::new();
+
+            pub(crate) fn init_cross_origin_properties() {
+                CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
+                    attributes: unsafe { sCrossOriginAttributes.get() },
+                    methods: unsafe { sCrossOriginMethods.get() },
+                });
+            }
             """
         )
 
@@ -3387,11 +3413,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             else:
                 proto = "JS_NewPlainObject(*cx)"
             if self.properties.static_methods.length():
-                methods = self.properties.static_methods.variableName()
+                methods = f"{self.properties.static_methods.variableName()}.get()"
             else:
                 methods = "&[]"
             if self.descriptor.interface.hasConstants():
-                constants = "sConstants"
+                constants = "sConstants.get()"
             else:
                 constants = "&[]"
             id = MakeNativeName(name)
@@ -3413,7 +3439,7 @@ assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
             cName = str_to_cstr(name)
             return CGGeneric(f"""
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(cx, global, sConstants, {cName}, interface.handle_mut());
+create_callback_interface_object(cx, global, sConstants.get(), {cName}, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{name} as usize] = interface.get();
@@ -3456,7 +3482,7 @@ assert!(!prototype_proto.is_null());"""))
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
             if array.length():
-                properties[arrayName] = array.variableName()
+                properties[arrayName] = f"{array.variableName()}.get()"
             else:
                 properties[arrayName] = "&[]"
 
@@ -3512,7 +3538,7 @@ rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
 create_noncallback_interface_object(cx,
                                     global,
                                     interface_proto.handle(),
-                                    &INTERFACE_OBJECT_CLASS,
+                                    INTERFACE_OBJECT_CLASS.get(),
                                     {properties['static_methods']},
                                     {properties['static_attrs']},
                                     {properties['consts']},
@@ -3614,7 +3640,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 holderClass = "ptr::null()"
                 holderProto = "HandleObject::null()"
             else:
-                holderClass = "&Class.base as *const JSClass"
+                holderClass = "&Class.get().base as *const JSClass"
                 holderProto = "prototype.handle()"
             code.append(CGGeneric(f"""
 rooted!(in(*cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
@@ -4482,7 +4508,7 @@ class CGMemberJITInfo(CGThing):
                 """
                 JSJitInfo {
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {
-                        ${opKind}: Some(${opName})
+                        ${opKind}: ${opValue}
                     },
                     __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {
                         protoID: PrototypeList::ID::${name} as u16,
@@ -4505,7 +4531,7 @@ class CGMemberJITInfo(CGThing):
                     ),
                 }
                 """,
-                opName=opName,
+                opValue=f"Some({opName})",
                 name=self.descriptor.name,
                 depth=self.descriptor.interface.inheritanceDepth(),
                 opType=opType,
@@ -4531,17 +4557,26 @@ class CGMemberJITInfo(CGThing):
             return fill(
                 """
                 $*{argTypesDecl}
-                const ${infoName}: JSTypedMethodJitInfo = JSTypedMethodJitInfo {
-                    base: ${jitInfo},
-                    argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
-                };
+                static ${infoName}: ThreadUnsafeOnceLock<JSTypedMethodJitInfo> = ThreadUnsafeOnceLock::new();
+
+                pub(crate) fn init_${infoName}() {
+                    ${infoName}.set(JSTypedMethodJitInfo {
+                        base: ${jitInfoInit},
+                        argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
+                    });
+                }
                 """,
                 argTypesDecl=argTypesDecl,
                 infoName=infoName,
-                jitInfo=indent(jitInfoInitializer(True)),
+                jitInfoInit=indent(jitInfoInitializer(True)),
                 argTypes=argTypes)
 
-        return f"\nconst {infoName}: JSJitInfo = {jitInfoInitializer(False)};\n"
+        return f"""
+static {infoName}: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
+
+pub(crate) fn init_{infoName}() {{
+    {infoName}.set({jitInfoInitializer(False)});
+}}"""
 
     def define(self):
         if self.member.isAttr():
@@ -4815,30 +4850,34 @@ class CGStaticMethodJitinfo(CGGeneric):
         CGGeneric.__init__(
             self,
             f"""
-            const {method.identifier.name}_methodinfo: JSJitInfo = JSJitInfo {{
-                __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
-                    staticMethod: Some({method.identifier.name})
-                }},
-                __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
-                    protoID: PrototypeList::ID::Last as u16,
-                }},
-                __bindgen_anon_3: JSJitInfo__bindgen_ty_3 {{ depth: 0 }},
-                _bitfield_align_1: [],
-                _bitfield_1: __BindgenBitfieldUnit::new(
-                    new_jsjitinfo_bitfield_1!(
-                        JSJitInfo_OpType::StaticMethod as u8,
-                        JSJitInfo_AliasSet::AliasEverything as u8,
-                        JSValueType::JSVAL_TYPE_OBJECT as u8,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        false,
-                        0,
-                    ).to_ne_bytes()
-                ),
-            }};
+            static {method.identifier.name}_methodinfo: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
+
+            pub(crate) fn init_{method.identifier.name}_methodinfo() {{
+                {method.identifier.name}_methodinfo.set(JSJitInfo {{
+                    __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
+                        staticMethod: Some({method.identifier.name})
+                    }},
+                    __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
+                        protoID: PrototypeList::ID::Last as u16,
+                    }},
+                    __bindgen_anon_3: JSJitInfo__bindgen_ty_3 {{ depth: 0 }},
+                    _bitfield_align_1: [],
+                    _bitfield_1: __BindgenBitfieldUnit::new(
+                        new_jsjitinfo_bitfield_1!(
+                            JSJitInfo_OpType::StaticMethod as u8,
+                            JSJitInfo_AliasSet::AliasEverything as u8,
+                            JSValueType::JSVAL_TYPE_OBJECT as u8,
+                            false,
+                            false,
+                            false,
+                            false,
+                            false,
+                            false,
+                            0,
+                        ).to_ne_bytes()
+                    ),
+                }});
+            }}
             """
         )
 
@@ -5790,7 +5829,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
-                        cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, desc, &mut *is_none
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, desc, &mut *is_none
                     ) {
                         return false;
                     }
@@ -6008,7 +6047,9 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
             body += dedent(
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_own_property_keys(cx, proxy, &CROSS_ORIGIN_PROPERTIES, props);
+                    return proxyhandler::cross_origin_own_property_keys(
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), props
+                    );
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6130,7 +6171,9 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             indexed += dedent(
                 """
                 if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_has_own(cx, proxy, &CROSS_ORIGIN_PROPERTIES, id, bp);
+                    return proxyhandler::cross_origin_has_own(
+                        cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, bp
+                    );
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6643,6 +6686,95 @@ class CGWeakReferenceableTrait(CGThing):
         return self.code
 
 
+class CGInitStatics(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+
+        def internal(method):
+            return descriptor.internalNameFor(method.identifier.name)
+
+        properties = PropertyArrays(descriptor)
+        all_names = PropertyArrays.arrayNames()
+        arrays = [getattr(properties, name) for name in all_names]
+        nonempty = map(lambda x: x.variableName(), filter(lambda x: x.length() != 0, arrays))
+        specs = [[
+            f'init_{name}_specs();',
+            f'init_{name}_prefs();',
+        ] for name in nonempty]
+        flat_specs = [x for xs in specs for x in xs]
+        specs = '\n'.join(flat_specs)
+        module = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(descriptor)}"
+        relevantMethods = [
+            m for m in descriptor.interface.members if m.isMethod()
+        ] if not descriptor.interface.isCallback() else []
+        allOperations = descriptor.operations.keys()
+        relevantOperations = list(map(lambda x: f"__{x.lower()}", filter(lambda o: o != "Stringifier", allOperations)))
+        relevantMethods = filter(
+            lambda m: internal(m) not in relevantOperations,
+            relevantMethods,
+        )
+        relevantMethods = filter(
+            lambda x: (
+                not x.isStatic()
+                or any([r.isPromise() for r, _ in x.signatures()])
+            ),
+            relevantMethods
+        )
+
+        methods = [f'{module}::init_{internal(m)}_methodinfo();' for m in relevantMethods]
+        getters = [
+            f'init_{internal(m)}_getterinfo();'
+            for m in descriptor.interface.members if m.isAttr() and not m.isStatic()
+        ]
+        setters = [
+            f'init_{internal(m)}_setterinfo();'
+            for m in descriptor.interface.members
+            if m.isAttr() and (
+                not m.readonly
+                or m.getExtendedAttribute("PutForwards")
+                or m.getExtendedAttribute("Replaceable")
+            ) and not m.isStatic()
+        ]
+        methods = '\n'.join(methods)
+        getters = '\n'.join(getters)
+        setters = '\n'.join(setters)
+        crossorigin = [
+            "init_sCrossOriginMethods();",
+            "init_sCrossOriginAttributes();",
+            "init_cross_origin_properties();"
+        ] if descriptor.isMaybeCrossOriginObject() else []
+        crossorigin_joined = '\n'.join(crossorigin)
+        interface = (
+            "init_interface_object();"
+            if descriptor.interface.hasInterfaceObject()
+            and not descriptor.interface.isNamespace()
+            and not descriptor.interface.isCallback()
+            and not descriptor.interface.getExtendedAttribute("Inline")
+            else ""
+        )
+        nonproxy = (
+            "init_domjs_class();"
+            if not descriptor.proxy
+            and descriptor.concrete
+            else ""
+        )
+
+        self.code = f"""
+        pub(crate) fn init_statics() {{
+            {interface}
+            {nonproxy}
+            {methods}
+            {getters}
+            {setters}
+            {crossorigin_joined}
+            {specs}
+        }}
+        """
+
+    def define(self):
+        return self.code
+
+
 class CGDescriptor(CGThing):
     def __init__(self, descriptor, config, soleDescriptor):
         CGThing.__init__(self)
@@ -6836,6 +6968,8 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGConstructorEnabled(descriptor))
             cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables,
                                                            haveLegacyWindowAliases))
+
+        cgThings.append(CGInitStatics(descriptor))
 
         cgThings = CGList(cgThings, '\n')
 
@@ -7205,6 +7339,23 @@ class CGDictionary(CGThing):
         return deps
 
 
+class CGInitAllStatics(CGAbstractMethod):
+    def __init__(self, config):
+        docs = "Initialize the static data used by the SpiderMonkey DOM bindings to implement JS interfaces."
+        descriptors = (config.getDescriptors(isCallback=False, register=True)
+                       + config.getDescriptors(isCallback=True, hasInterfaceObject=True, register=True))
+        CGAbstractMethod.__init__(self, None, 'InitAllStatics', 'void', [],
+                                  pub=True, docs=docs)
+        self.descriptors = descriptors
+
+    def definition_body(self):
+        return CGList([
+            CGGeneric(f"    Bindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
+                      "::init_statics();")
+            for desc in self.descriptors
+        ], "\n")
+
+
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
@@ -7238,6 +7389,7 @@ class CGRegisterProxyHandlers(CGThing):
                 f"{body}}}\n"
             ),
             CGRegisterProxyHandlersMethod(descriptors),
+            CGInitAllStatics(config),
         ], "\n")
 
     def define(self):

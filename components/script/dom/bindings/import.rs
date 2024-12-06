@@ -34,11 +34,14 @@ pub mod base {
     pub use crate::dom::bindings::error::Error::JSFailed;
     pub use crate::dom::bindings::error::{throw_dom_exception, Fallible};
     pub use crate::dom::bindings::num::Finite;
+    pub use crate::dom::bindings::proxyhandler::CrossOriginProperties;
     pub use crate::dom::bindings::reflector::DomObject;
     pub use crate::dom::bindings::root::DomRoot;
     pub use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub use crate::dom::bindings::trace::RootedTraceableBox;
-    pub use crate::dom::bindings::utils::{get_dictionary_property, set_dictionary_property};
+    pub use crate::dom::bindings::utils::{
+        get_dictionary_property, set_dictionary_property, ThreadUnsafeOnceLock,
+    };
     pub use crate::dom::globalscope::GlobalScope;
     pub use crate::script_runtime::JSContext as SafeJSContext;
 }
