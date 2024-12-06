@@ -45,7 +45,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 
-use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -724,65 +724,73 @@ impl ReadableStream {
         rooted!(in(*cx) let mut reason_1 = UndefinedValue());
         // Let reason2 be undefined.
         rooted!(in(*cx) let mut reason_2 = UndefinedValue());
-        // Let branch1 be undefined.
-        let branch_1 = MutNullableDom::new(None);
-        // Let branch2 be undefined.
-        let branch_2 = MutNullableDom::new(None);
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), can_gc);
 
-        let underlying_source_type_branch_1 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
-            Dom::from_ref(&reader),
-            Dom::from_ref(self),
-            branch_1.clone(),
-            branch_2.clone(),
-            reading.clone(),
-            read_again.clone(),
-            canceled_1.clone(),
-            canceled_2.clone(),
-            clone_for_branch_2.clone(),
-            reason_1.handle(),
-            reason_2.handle(),
-            cancel_promise.clone(),
-            TeeCancelAlgorithm::Cancel1Algorithm,
-        ));
+        let tee_source_1 = reflect_dom_object(
+            Box::new(TeeUnderlyingSource::new(
+                Dom::from_ref(&reader),
+                Dom::from_ref(self),
+                reading.clone(),
+                read_again.clone(),
+                canceled_1.clone(),
+                canceled_2.clone(),
+                clone_for_branch_2.clone(),
+                reason_1.handle(),
+                reason_2.handle(),
+                cancel_promise.clone(),
+                TeeCancelAlgorithm::Cancel1Algorithm,
+            )),
+            &*self.global(),
+        );
 
-        let underlying_source_type_branch_2 = UnderlyingSourceType::Tee(TeeUnderlyingSource::new(
-            Dom::from_ref(&reader),
-            Dom::from_ref(self),
-            branch_1.clone(),
-            branch_2.clone(),
-            reading,
-            read_again,
-            canceled_1.clone(),
-            canceled_2.clone(),
-            clone_for_branch_2,
-            reason_1.handle(),
-            reason_2.handle(),
-            cancel_promise.clone(),
-            TeeCancelAlgorithm::Cancel2Algorithm,
-        ));
+        let underlying_source_type_branch_1 =
+            UnderlyingSourceType::Tee(Dom::from_ref(&*tee_source_1));
+
+        let tee_source_2 = reflect_dom_object(
+            Box::new(TeeUnderlyingSource::new(
+                Dom::from_ref(&reader),
+                Dom::from_ref(self),
+                reading,
+                read_again,
+                canceled_1.clone(),
+                canceled_2.clone(),
+                clone_for_branch_2,
+                reason_1.handle(),
+                reason_2.handle(),
+                cancel_promise.clone(),
+                TeeCancelAlgorithm::Cancel2Algorithm,
+            )),
+            &*self.global(),
+        );
+
+        let underlying_source_type_branch_2 =
+            UnderlyingSourceType::Tee(Dom::from_ref(&*tee_source_2));
 
         // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
-        branch_1.set(Some(&create_readable_stream(
+        let branch_1 = create_readable_stream(
             &self.reflector_.global(),
             underlying_source_type_branch_1,
             QueuingStrategy::empty(),
             can_gc,
-        )));
+        );
+        tee_source_1.set_branch_1(&branch_1);
+        tee_source_2.set_branch_1(&branch_1);
 
         // Set branch_2 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm).
-        branch_2.set(Some(&create_readable_stream(
+        let branch_2 = create_readable_stream(
             &self.reflector_.global(),
             underlying_source_type_branch_2,
             QueuingStrategy::empty(),
             can_gc,
-        )));
+        );
+        tee_source_1.set_branch_2(&branch_2);
+        tee_source_2.set_branch_2(&branch_2);
 
         // Upon rejection of reader.[[closedPromise]] with reason r,
         reader.append_native_handler_to_closed_promise(
-            branch_1.clone(),
-            branch_2.clone(),
+            &branch_1,
+            &branch_2,
             canceled_1,
             canceled_2,
             cancel_promise,
@@ -790,10 +798,7 @@ impl ReadableStream {
         );
 
         // Return « branch_1, branch_2 ».
-        Ok(vec![
-            branch_1.get().expect("Branch1 should be set."),
-            branch_2.get().expect("Branch2 should be set."),
-        ])
+        Ok(vec![branch_1, branch_2])
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-tee>

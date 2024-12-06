@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::Underlying
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::teeunderlyingsource::TeeUnderlyingSource;
@@ -39,7 +39,7 @@ pub enum UnderlyingSourceType {
     /// and the actual JS object for use as `thisArg` in callbacks.
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     /// Tee
-    Tee(TeeUnderlyingSource),
+    Tee(Dom<TeeUnderlyingSource>),
 }
 
 impl UnderlyingSourceType {

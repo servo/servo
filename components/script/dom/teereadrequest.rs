@@ -40,8 +40,8 @@ impl TeeReadRequestMicrotask {
 pub struct TeeReadRequest {
     reflector_: Reflector,
     stream: Dom<ReadableStream>,
-    branch_1: MutNullableDom<ReadableStream>,
-    branch_2: MutNullableDom<ReadableStream>,
+    branch_1: Dom<ReadableStream>,
+    branch_2: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Rc"]
     reading: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
@@ -62,8 +62,8 @@ impl TeeReadRequest {
     #[allow(crown::unrooted_must_root)]
     pub fn new(
         stream: Dom<ReadableStream>,
-        branch_1: MutNullableDom<ReadableStream>,
-        branch_2: MutNullableDom<ReadableStream>,
+        branch_1: &ReadableStream,
+        branch_2: &ReadableStream,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
@@ -75,8 +75,8 @@ impl TeeReadRequest {
         TeeReadRequest {
             reflector_: Reflector::new(),
             stream,
-            branch_1,
-            branch_2,
+            branch_1: Dom::from_ref(branch_1),
+            branch_2: Dom::from_ref(branch_2),
             reading,
             read_again,
             canceled_1,
@@ -89,20 +89,12 @@ impl TeeReadRequest {
     /// Call into error of the default controller of branch_1,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
     pub fn branch_1_default_controller_error(&self, error: SafeHandleValue) {
-        self.branch_1
-            .get()
-            .expect("branch_1 must be set")
-            .get_default_controller()
-            .error(error);
+        self.branch_1.get_default_controller().error(error);
     }
     /// Call into error of the default controller of branch_2,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
     pub fn branch_2_default_controller_error(&self, error: SafeHandleValue) {
-        self.branch_2
-            .get()
-            .expect("branch_2 must be set")
-            .get_default_controller()
-            .error(error);
+        self.branch_2.get_default_controller().error(error);
     }
     /// Call into cancel of the stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
@@ -207,40 +199,28 @@ impl TeeReadRequest {
     /// Call into enqueue of the default controller of branch_1,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn branch_1_default_controller_enqueue(&self, chunk: SafeHandleValue, can_gc: CanGc) {
-        let _ = self
-            .branch_1
-            .get()
-            .expect("branch_1 must be set")
-            .get_default_controller()
-            .enqueue(GlobalScope::get_cx(), chunk, can_gc);
+        let _ =
+            self.branch_1
+                .get_default_controller()
+                .enqueue(GlobalScope::get_cx(), chunk, can_gc);
     }
     /// Call into enqueue of the default controller of branch_2,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn branch_2_default_controller_enqueue(&self, chunk: SafeHandleValue, can_gc: CanGc) {
-        let _ = self
-            .branch_2
-            .get()
-            .expect("branch_2 must be set")
-            .get_default_controller()
-            .enqueue(GlobalScope::get_cx(), chunk, can_gc);
+        let _ =
+            self.branch_2
+                .get_default_controller()
+                .enqueue(GlobalScope::get_cx(), chunk, can_gc);
     }
     /// Call into close of the default controller of branch_1,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub fn branch_1_default_controller_close(&self) {
-        self.branch_1
-            .get()
-            .expect("branch_1 must be set")
-            .get_default_controller()
-            .close();
+        self.branch_1.get_default_controller().close();
     }
     /// Call into close of the default controller of branch_2,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub fn branch_2_default_controller_close(&self) {
-        self.branch_2
-            .get()
-            .expect("branch_2 must be set")
-            .get_default_controller()
-            .close();
+        self.branch_2.get_default_controller().close();
     }
     pub fn pull_algorithm(&self) {
         self.tee_underlying_source.pull_algorithm();

@@ -60,8 +60,6 @@ impl TeeUnderlyingSource {
     pub fn new(
         reader: Dom<ReadableStreamDefaultReader>,
         stream: Dom<ReadableStream>,
-        branch_1: MutNullableDom<ReadableStream>,
-        branch_2: MutNullableDom<ReadableStream>,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
@@ -76,8 +74,8 @@ impl TeeUnderlyingSource {
             reflector_: Reflector::new(),
             reader,
             stream,
-            branch_1,
-            branch_2,
+            branch_1: MutNullableDom::new(None),
+            branch_2: MutNullableDom::new(None),
             reading,
             read_again,
             canceled_1,
@@ -88,6 +86,14 @@ impl TeeUnderlyingSource {
             cancel_promise,
             tee_cancel_algorithm,
         }
+    }
+
+    pub fn set_branch_1(&self, stream: &ReadableStream) {
+        self.branch_1.set(Some(stream));
+    }
+
+    pub fn set_branch_2(&self, stream: &ReadableStream) {
+        self.branch_2.set(Some(stream));
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
@@ -114,8 +120,8 @@ impl TeeUnderlyingSource {
         let tee_read_request = reflect_dom_object(
             Box::new(TeeReadRequest::new(
                 self.stream.clone(),
-                self.branch_1.clone(),
-                self.branch_2.clone(),
+                &self.branch_1.get().expect("Branch 1 should be set."),
+                &self.branch_2.get().expect("Branch 2 should be set."),
                 self.reading.clone(),
                 self.read_again.clone(),
                 self.canceled_1.clone(),

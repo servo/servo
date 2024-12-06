@@ -374,22 +374,16 @@ impl ReadableStreamDefaultReader {
     #[allow(crown::unrooted_must_root)]
     pub fn append_native_handler_to_closed_promise(
         &self,
-        branch_1: MutNullableDom<ReadableStream>,
-        branch_2: MutNullableDom<ReadableStream>,
+        branch_1: &ReadableStream,
+        branch_2: &ReadableStream,
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
         can_gc: CanGc,
     ) {
-        let branch_1_controller = branch_1
-            .get()
-            .expect("branch_1 must be set")
-            .get_default_controller();
+        let branch_1_controller = branch_1.get_default_controller();
 
-        let branch_2_controller = branch_2
-            .get()
-            .expect("branch_2 must be set")
-            .get_default_controller();
+        let branch_2_controller = branch_2.get_default_controller();
 
         let global = self.global();
         let rejection_handler = Box::new(ClosedPromiseRejectionHandler {
