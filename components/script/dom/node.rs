@@ -2337,8 +2337,8 @@ impl Node {
             },
         };
 
-        // Step 4. Set copy’s node document and document to copy, if copy is a document, and set copy’s node document
-        // to document otherwise.
+        // Step 4. Set copy’s node document and document to copy, if copy is a document,
+        // and set copy’s node document to document otherwise.
         let document = match copy.downcast::<Document>() {
             Some(doc) => DomRoot::from_ref(doc),
             None => DomRoot::from_ref(&*document),
@@ -2394,8 +2394,9 @@ impl Node {
                 // Step 7.1 Assert: copy is not a shadow host.
                 assert!(!copy_elem.is_shadow_host());
 
-                // Step 7.2 Run attach a shadow root with copy, node’s shadow root’s mode, true, node’s shadow root’s
-                // serializable, node’s shadow root’s delegates focus, and node’s shadow root’s slot assignment.
+                // Step 7.2 Run attach a shadow root with copy, node’s shadow root’s mode, true,
+                // node’s shadow root’s serializable, node’s shadow root’s delegates focus,
+                // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
                     copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true)
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
