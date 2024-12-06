@@ -1744,20 +1744,15 @@ impl Iterator for TreeIterator {
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let current = self.current.take()?;
 
-        if !self.shadow_including {
-            if let Some(element) = current.downcast::<Element>() {
-                if element.is_shadow_host() {
-                    return self.next_skipping_children_impl(current);
-                }
-            }
-        }
-
-        if self.shadow_including {
-            if let Some(element) = current.downcast::<Element>() {
-                if let Some(shadow_root) = element.shadow_root() {
+        // Handle a potential shadow root on the element
+        if let Some(element) = current.downcast::<Element>() {
+            if let Some(shadow_root) = element.shadow_root() {
+                if self.shadow_including {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
+                } else {
+                    return self.next_skipping_children_impl(current);
                 }
             }
         }
