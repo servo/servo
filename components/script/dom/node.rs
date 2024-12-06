@@ -1752,6 +1752,16 @@ impl Iterator for TreeIterator {
             }
         }
 
+        if self.shadow_including {
+            if let Some(element) = current.downcast::<Element>() {
+                if let Some(shadow_root) = element.shadow_root() {
+                    self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
+                    self.depth += 1;
+                    return Some(current);
+                }
+            }
+        }
+
         if let Some(first_child) = current.GetFirstChild() {
             self.current = Some(first_child);
             self.depth += 1;

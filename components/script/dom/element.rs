@@ -492,7 +492,7 @@ impl Element {
             self.ScrollWidth(can_gc) > self.ClientWidth(can_gc)
     }
 
-    fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+    pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
         self.rare_data()
             .as_ref()?
             .shadow_root
