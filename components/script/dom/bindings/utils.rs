@@ -49,16 +49,13 @@ use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::JSContext as SafeJSContext;
 
-/// A transparent wrapper intended for use with types that are not considered threadsafe by
-/// the Rust compiler but need to be used in contexts that require threadsafety. This is
-/// needed to allow using JS API types (which usually involve raw pointers) in static initializers,
-/// when Servo guarantees through the use of OnceLock that only one thread will ever initialize
-/// the value and that the types contain no interior mutability.
-struct ForceThreadSafe<T>(pub T);
-
 /// A OnceLock wrapping a type that is not considered threadsafe by the Rust compiler, but
-/// will be used in a threadsafe manner.
-pub struct ThreadUnsafeOnceLock<T>(OnceLock<ForceThreadSafe<T>>);
+/// will be used in a threadsafe manner (it will not be mutated, after being initialized).
+///
+/// This is needed to allow using JS API types (which usually involve raw pointers) in static initializers,
+/// when Servo guarantees through the use of OnceLock that only one thread will ever initialize
+/// the value.
+pub struct ThreadUnsafeOnceLock<T>(OnceLock<T>);
 
 impl<T> ThreadUnsafeOnceLock<T> {
     pub const fn new() -> Self {
@@ -67,28 +64,21 @@ impl<T> ThreadUnsafeOnceLock<T> {
 
     /// Initialize the value inside this lock. Panics if the lock has been previously initialized.
     pub fn set(&self, val: T) {
-        assert!(self.0.set(ForceThreadSafe(val)).is_ok());
+        assert!(self.0.set(val).is_ok());
     }
 
     /// Get a reference to the value inside this lock. Panics if the lock has not been initialized.
     ///
     /// SAFETY:
-    ///   The caller must ensure that the value contained inside this lock does not contain
-    ///   any interior mutability.
+    ///   The caller must ensure that it does not mutate value contained inside this lock
+    ///   (using interior mutability).
     pub unsafe fn get(&self) -> &T {
-        &((self.0.get().unwrap()).0)
+        self.0.get().unwrap()
     }
 }
 
-unsafe impl<T> Sync for ForceThreadSafe<T> {}
-unsafe impl<T> Send for ForceThreadSafe<T> {}
-
-impl<T> std::ops::Deref for ForceThreadSafe<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        &self.0
-    }
-}
+unsafe impl<T> Sync for ThreadUnsafeOnceLock<T> {}
+unsafe impl<T> Send for ThreadUnsafeOnceLock<T> {}
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.
