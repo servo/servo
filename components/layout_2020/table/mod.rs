@@ -82,7 +82,7 @@ use style_traits::dom::OpaqueNode;
 use super::flow::BlockFormattingContext;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
-use crate::formatting_contexts::NonReplacedFormattingContext;
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
@@ -320,5 +320,5 @@ impl TableTrackGroup {
 #[derive(Debug, Serialize)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
-    context: ArcRefCell<NonReplacedFormattingContext>,
+    context: ArcRefCell<IndependentFormattingContext>,
 }

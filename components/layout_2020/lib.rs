@@ -14,6 +14,7 @@ pub mod flow;
 mod formatting_contexts;
 mod fragment_tree;
 pub mod geom;
+mod layout_box_base;
 mod taffy;
 #[macro_use]
 pub mod layout_debug;
