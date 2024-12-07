@@ -98,7 +98,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
-use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
+use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
@@ -2247,13 +2247,13 @@ impl Node {
         clone_children: CloneChildrenFlag,
         can_gc: CanGc,
     ) -> DomRoot<Node> {
-        // Step 1.
+        // Step 1. If document is not given, let document be node’s node document.
         let document = match maybe_doc {
             Some(doc) => DomRoot::from_ref(doc),
             None => node.owner_doc(),
         };
 
-        // Step 2.
+        // Step 2. / Step 3.
         // XXXabinader: clone() for each node as trait?
         let copy: DomRoot<Node> = match node.type_id() {
             NodeTypeId::DocumentType => {
@@ -2337,14 +2337,15 @@ impl Node {
             },
         };
 
-        // Step 3.
+        // Step 4. Set copy’s node document and document to copy, if copy is a document,
+        // and set copy’s node document to document otherwise.
         let document = match copy.downcast::<Document>() {
             Some(doc) => DomRoot::from_ref(doc),
             None => DomRoot::from_ref(&*document),
         };
         assert!(copy.owner_doc() == document);
 
-        // Step 4 (some data already copied in step 2).
+        // TODO: The spec tells us to do this in step 3.
         match node.type_id() {
             NodeTypeId::Document(_) => {
                 let node_doc = node.downcast::<Document>().unwrap();
@@ -2370,10 +2371,12 @@ impl Node {
             _ => (),
         }
 
-        // Step 5: cloning steps.
+        // Step 5: Run any cloning steps defined for node in other applicable specifications and pass copy,
+        // node, document, and the clone children flag if set, as parameters.
         vtable_for(node).cloning_steps(&copy, maybe_doc, clone_children);
 
-        // Step 6.
+        // Step 6. If the clone children flag is set, then for each child child of node, in tree order: append the
+        // result of cloning child with document and the clone children flag set, to copy.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
                 let child_copy = Node::clone(&child, Some(&document), clone_children, can_gc);
@@ -2381,7 +2384,43 @@ impl Node {
             }
         }
 
-        // Step 7.
+        // Step 7. If node is a shadow host whose shadow root’s clonable is true:
+        // NOTE: Only elements can be shadow hosts
+        if matches!(node.type_id(), NodeTypeId::Element(_)) {
+            let node_elem = node.downcast::<Element>().unwrap();
+            let copy_elem = copy.downcast::<Element>().unwrap();
+
+            if let Some(shadow_root) = node_elem.shadow_root().filter(|r| r.Clonable()) {
+                // Step 7.1 Assert: copy is not a shadow host.
+                assert!(!copy_elem.is_shadow_host());
+
+                // Step 7.2 Run attach a shadow root with copy, node’s shadow root’s mode, true,
+                // node’s shadow root’s serializable, node’s shadow root’s delegates focus,
+                // and node’s shadow root’s slot assignment.
+                let copy_shadow_root =
+                    copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true)
+                    .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
+
+                // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+
+                // Step 7.4 For each child child of node’s shadow root, in tree order: append the result of
+                // cloning child with document and the clone children flag set, to copy’s shadow root.
+                for child in shadow_root.upcast::<Node>().children() {
+                    let child_copy = Node::clone(
+                        &child,
+                        Some(&document),
+                        CloneChildrenFlag::CloneChildren,
+                        can_gc,
+                    );
+
+                    // TODO: Should we handle the error case here and in step 6?
+                    let _inserted_node =
+                        Node::pre_insert(&child_copy, copy_shadow_root.upcast::<Node>(), None);
+                }
+            }
+        }
+
+        // Step 8. Return copy.
         copy
     }
 

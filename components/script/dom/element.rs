@@ -507,8 +507,10 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     pub fn attach_shadow(
         &self,
+        // TODO: remove is_ua_widget argument
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
+        clonable: bool,
     ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
         if self.namespace != ns!(html) {
@@ -546,7 +548,7 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc(), mode);
+        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc(), mode, clonable);
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -3034,7 +3036,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn AttachShadow(&self, init: &ShadowRootInit) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
         // init["delegatesFocus"], and init["slotAssignment"].
-        let shadow_root = self.attach_shadow(IsUserAgentWidget::No, init.mode)?;
+        let shadow_root = self.attach_shadow(IsUserAgentWidget::No, init.mode, init.clonable)?;
 
         // Step 2. Return this’s shadow root.
         Ok(shadow_root)
