@@ -80,6 +80,10 @@ packages = [
 
     # some non-servo crates still use 0.14
     "glow",
+
+    # required for testing
+    "image",
+    "arboard",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
