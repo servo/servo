@@ -492,7 +492,7 @@ impl Element {
             self.ScrollWidth(can_gc) > self.ClientWidth(can_gc)
     }
 
-    fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
+    pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
         self.rare_data()
             .as_ref()?
             .shadow_root
@@ -3632,19 +3632,21 @@ impl VirtualMethods for Element {
 
         let doc = document_from_node(self);
 
-        if let Some(ref shadow_root) = self.shadow_root() {
-            shadow_root.unbind_from_tree(context);
-        }
-
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(CanGc::note());
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
-            doc.unregister_element_id(self, value.clone());
+            if let Some(ref shadow_root) = self.upcast::<Node>().containing_shadow_root() {
+                shadow_root.unregister_element_id(self, value.clone());
+            } else {
+                doc.unregister_element_id(self, value.clone());
+            }
         }
         if let Some(ref value) = self.name_attribute() {
-            doc.unregister_element_name(self, value.clone());
+            if self.upcast::<Node>().containing_shadow_root().is_none() {
+                doc.unregister_element_name(self, value.clone());
+            }
         }
         // This is used for layout optimization.
         doc.decrement_dom_count();
