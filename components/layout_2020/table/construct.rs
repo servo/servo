@@ -25,10 +25,11 @@ use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
-    IndependentFormattingContext, NonReplacedFormattingContext,
-    NonReplacedFormattingContextContents,
+    IndependentFormattingContext, IndependentFormattingContextContents,
+    IndependentNonReplacedContents,
 };
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
 
 /// A reference to a slot and its coordinates in the table
@@ -134,12 +135,12 @@ impl Table {
         let mut table = table_builder.finish();
         table.anonymous = true;
 
-        IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
-            base_fragment_info: (&anonymous_info).into(),
-            style: grid_and_wrapper_style,
-            content_sizes_result: Default::default(),
-            contents: NonReplacedFormattingContextContents::Table(table),
-        })
+        IndependentFormattingContext {
+            base: LayoutBoxBase::new((&anonymous_info).into(), grid_and_wrapper_style),
+            contents: IndependentFormattingContextContents::NonReplaced(
+                IndependentNonReplacedContents::Table(table),
+            ),
+        }
     }
 
     /// Push a new slot into the last row of this table.
@@ -853,15 +854,13 @@ where
                 DisplayLayoutInternal::TableCaption => {
                     let contents = match contents.try_into() {
                         Ok(non_replaced_contents) => {
-                            NonReplacedFormattingContextContents::Flow(
-                                BlockFormattingContext::construct(
-                                    self.context,
-                                    info,
-                                    non_replaced_contents,
-                                    self.current_text_decoration_line,
-                                    false, /* is_list_item */
-                                ),
-                            )
+                            IndependentNonReplacedContents::Flow(BlockFormattingContext::construct(
+                                self.context,
+                                info,
+                                non_replaced_contents,
+                                self.current_text_decoration_line,
+                                false, /* is_list_item */
+                            ))
                         },
                         Err(_replaced) => {
                             unreachable!("Replaced should not have a LayoutInternal display type.");
@@ -869,11 +868,9 @@ where
                     };
 
                     let caption = TableCaption {
-                        context: ArcRefCell::new(NonReplacedFormattingContext {
-                            style: info.style.clone(),
-                            base_fragment_info: info.into(),
-                            content_sizes_result: Default::default(),
-                            contents,
+                        context: ArcRefCell::new(IndependentFormattingContext {
+                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                            contents: IndependentFormattingContextContents::NonReplaced(contents),
                         }),
                     };
 

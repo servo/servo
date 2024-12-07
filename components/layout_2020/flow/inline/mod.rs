@@ -111,13 +111,14 @@ use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
+use super::IndependentFormattingContextContents;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::{CollapsibleWithParentStartMargin, FlowLayout};
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentLayoutResult,
-    NonReplacedFormattingContextContents,
+    IndependentNonReplacedContents,
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
@@ -2034,13 +2035,11 @@ impl IndependentFormattingContext {
         match self.style().clone_baseline_source() {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
-            BaselineSource::Auto => {
-                if let Self::NonReplaced(non_replaced) = self {
-                    if let NonReplacedFormattingContextContents::Flow(_) = non_replaced.contents {
-                        return baselines.last;
-                    }
-                }
-                baselines.first
+            BaselineSource::Auto => match &self.contents {
+                IndependentFormattingContextContents::NonReplaced(
+                    IndependentNonReplacedContents::Flow(_),
+                ) => baselines.last,
+                _ => baselines.first,
             },
         }
     }

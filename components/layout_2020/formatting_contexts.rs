@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -17,46 +16,32 @@ use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags};
 use crate::geom::LogicalSides;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
-use crate::replaced::ReplacedContent;
+use crate::replaced::ReplacedContents;
 use crate::sizing::{self, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, DisplayInside};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
-use crate::{
-    ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2, SizeConstraint,
-};
+use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, Serialize)]
-pub(crate) enum IndependentFormattingContext {
-    NonReplaced(NonReplacedFormattingContext),
-    Replaced(ReplacedFormattingContext),
+pub(crate) struct IndependentFormattingContext {
+    pub base: LayoutBoxBase,
+    pub contents: IndependentFormattingContextContents,
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct NonReplacedFormattingContext {
-    pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
-    pub style: Arc<ComputedValues>,
-    /// If it was requested during construction
-    #[serde(skip_serializing)]
-    pub content_sizes_result: AtomicRefCell<Option<(SizeConstraint, InlineContentSizesResult)>>,
-    pub contents: NonReplacedFormattingContextContents,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct ReplacedFormattingContext {
-    pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
-    pub style: Arc<ComputedValues>,
-    pub contents: ReplacedContent,
+pub(crate) enum IndependentFormattingContextContents {
+    NonReplaced(IndependentNonReplacedContents),
+    Replaced(ReplacedContents),
 }
 
 // Private so that code outside of this module cannot match variants.
 // It should got through methods instead.
 #[derive(Debug, Serialize)]
-pub(crate) enum NonReplacedFormattingContextContents {
+pub(crate) enum IndependentNonReplacedContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
     Grid(TaffyContainer),
@@ -115,24 +100,23 @@ impl IndependentFormattingContext {
         contents: Contents,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
+        let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
+
         match contents {
             Contents::NonReplaced(non_replaced_contents) => {
-                let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
                 let contents = match display_inside {
                     DisplayInside::Flow { is_list_item } |
                     DisplayInside::FlowRoot { is_list_item } => {
-                        NonReplacedFormattingContextContents::Flow(
-                            BlockFormattingContext::construct(
-                                context,
-                                node_and_style_info,
-                                non_replaced_contents,
-                                propagated_text_decoration_line,
-                                is_list_item,
-                            ),
-                        )
+                        IndependentNonReplacedContents::Flow(BlockFormattingContext::construct(
+                            context,
+                            node_and_style_info,
+                            non_replaced_contents,
+                            propagated_text_decoration_line,
+                            is_list_item,
+                        ))
                     },
                     DisplayInside::Grid => {
-                        NonReplacedFormattingContextContents::Grid(TaffyContainer::construct(
+                        IndependentNonReplacedContents::Grid(TaffyContainer::construct(
                             context,
                             node_and_style_info,
                             non_replaced_contents,
@@ -140,7 +124,7 @@ impl IndependentFormattingContext {
                         ))
                     },
                     DisplayInside::Flex => {
-                        NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
+                        IndependentNonReplacedContents::Flex(FlexContainer::construct(
                             context,
                             node_and_style_info,
                             non_replaced_contents,
@@ -157,7 +141,7 @@ impl IndependentFormattingContext {
                             &node_and_style_info.style,
                         );
                         base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
-                        NonReplacedFormattingContextContents::Table(Table::construct(
+                        IndependentNonReplacedContents::Table(Table::construct(
                             context,
                             node_and_style_info,
                             table_grid_style,
@@ -166,41 +150,36 @@ impl IndependentFormattingContext {
                         ))
                     },
                 };
-                Self::NonReplaced(NonReplacedFormattingContext {
-                    style: Arc::clone(&node_and_style_info.style),
-                    base_fragment_info,
-                    content_sizes_result: AtomicRefCell::default(),
-                    contents,
-                })
+                Self {
+                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+                    contents: IndependentFormattingContextContents::NonReplaced(contents),
+                }
             },
             Contents::Replaced(contents) => {
-                let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
-                Self::Replaced(ReplacedFormattingContext {
-                    base_fragment_info,
-                    style: Arc::clone(&node_and_style_info.style),
-                    contents,
-                })
+                Self {
+                    base: LayoutBoxBase::new(base_fragment_info, node_and_style_info.style.clone()),
+                    contents: IndependentFormattingContextContents::Replaced(contents),
+                }
             },
         }
     }
 
     pub fn is_replaced(&self) -> bool {
-        matches!(self, Self::Replaced(_))
+        matches!(
+            self.contents,
+            IndependentFormattingContextContents::Replaced(_)
+        )
     }
 
+    #[inline]
     pub fn style(&self) -> &Arc<ComputedValues> {
-        match self {
-            Self::NonReplaced(inner) => &inner.style,
-            Self::Replaced(inner) => &inner.style,
-        }
+        &self.base.style
     }
 
+    #[inline]
     pub fn base_fragment_info(&self) -> BaseFragmentInfo {
-        match self {
-            Self::NonReplaced(inner) => inner.base_fragment_info,
-            Self::Replaced(inner) => inner.base_fragment_info,
-        }
+        self.base.base_fragment_info
     }
 
     pub(crate) fn inline_content_sizes(
@@ -208,14 +187,15 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        match self {
-            Self::NonReplaced(inner) => {
-                inner.inline_content_sizes(layout_context, constraint_space)
-            },
-            Self::Replaced(inner) => inner
-                .contents
-                .inline_content_sizes(layout_context, constraint_space),
-        }
+        self.base
+            .inline_content_sizes(constraint_space, || match &self.contents {
+                IndependentFormattingContextContents::NonReplaced(contents) => {
+                    contents.inline_content_sizes(layout_context, constraint_space)
+                },
+                IndependentFormattingContextContents::Replaced(contents) => {
+                    contents.inline_content_sizes(layout_context, constraint_space)
+                },
+            })
     }
 
     pub(crate) fn outer_inline_content_sizes(
@@ -225,40 +205,32 @@ impl IndependentFormattingContext {
         auto_minimum: &LogicalVec2<Au>,
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
-        match self {
-            Self::NonReplaced(non_replaced) => non_replaced.outer_inline_content_sizes(
-                layout_context,
-                containing_block,
-                auto_minimum,
-                auto_block_size_stretches_to_containing_block,
-            ),
-            Self::Replaced(replaced) => sizing::outer_inline(
-                &replaced.style,
-                containing_block,
-                auto_minimum,
-                auto_block_size_stretches_to_containing_block,
-                |padding_border_sums| replaced.preferred_aspect_ratio(padding_border_sums),
-                |constraint_space| {
-                    replaced
-                        .contents
-                        .inline_content_sizes(layout_context, constraint_space)
-                },
-            ),
-        }
+        sizing::outer_inline(
+            self.style(),
+            containing_block,
+            auto_minimum,
+            auto_block_size_stretches_to_containing_block,
+            |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
+            |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
+        )
     }
 
     pub(crate) fn preferred_aspect_ratio(
         &self,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
-        match self {
-            Self::NonReplaced(non_replaced) => non_replaced.preferred_aspect_ratio(),
-            Self::Replaced(replaced) => replaced.preferred_aspect_ratio(padding_border_sums),
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => {
+                content.preferred_aspect_ratio()
+            },
+            IndependentFormattingContextContents::Replaced(content) => {
+                content.preferred_aspect_ratio(self.style(), padding_border_sums)
+            },
         }
     }
 }
 
-impl NonReplacedFormattingContext {
+impl IndependentNonReplacedContents {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -266,25 +238,25 @@ impl NonReplacedFormattingContext {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
-        match &self.contents {
-            NonReplacedFormattingContextContents::Flow(bfc) => bfc.layout(
+        match self {
+            IndependentNonReplacedContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
             ),
-            NonReplacedFormattingContextContents::Flex(fc) => fc.layout(
-                layout_context,
-                positioning_context,
-                containing_block_for_children,
-                containing_block,
-            ),
-            NonReplacedFormattingContextContents::Grid(fc) => fc.layout(
+            IndependentNonReplacedContents::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
                 containing_block,
             ),
-            NonReplacedFormattingContextContents::Table(table) => table.layout(
+            IndependentNonReplacedContents::Grid(fc) => fc.layout(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+                containing_block,
+            ),
+            IndependentNonReplacedContents::Table(table) => table.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
@@ -304,47 +276,6 @@ impl NonReplacedFormattingContext {
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        let mut cache = self.content_sizes_result.borrow_mut();
-        if let Some((previous_cb_block_size, result)) = *cache {
-            if !result.depends_on_block_constraints ||
-                previous_cb_block_size == constraint_space.block_size
-            {
-                return result;
-            }
-            // TODO: Should we keep multiple caches for various block sizes?
-        }
-
-        let result = self
-            .contents
-            .inline_content_sizes(layout_context, constraint_space);
-        *cache = Some((constraint_space.block_size, result));
-        result
-    }
-
-    pub(crate) fn outer_inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        containing_block: &IndefiniteContainingBlock,
-        auto_minimum: &LogicalVec2<Au>,
-        auto_block_size_stretches_to_containing_block: bool,
-    ) -> InlineContentSizesResult {
-        sizing::outer_inline(
-            &self.style,
-            containing_block,
-            auto_minimum,
-            auto_block_size_stretches_to_containing_block,
-            |_| self.preferred_aspect_ratio(),
-            |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
-        )
-    }
-}
-
-impl NonReplacedFormattingContextContents {
-    pub(crate) fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        constraint_space: &ConstraintSpace,
-    ) -> InlineContentSizesResult {
         match self {
             Self::Flow(inner) => inner
                 .contents
@@ -353,15 +284,5 @@ impl NonReplacedFormattingContextContents {
             Self::Grid(inner) => inner.inline_content_sizes(layout_context, constraint_space),
             Self::Table(table) => table.inline_content_sizes(layout_context, constraint_space),
         }
-    }
-}
-
-impl ReplacedFormattingContext {
-    pub(crate) fn preferred_aspect_ratio(
-        &self,
-        padding_border_sums: &LogicalVec2<Au>,
-    ) -> Option<AspectRatio> {
-        self.contents
-            .preferred_aspect_ratio(&self.style, padding_border_sums)
     }
 }
