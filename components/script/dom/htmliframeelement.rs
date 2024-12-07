@@ -39,7 +39,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, Node, NodeDamage, UnbindContext,
+    document_from_node, window_from_node, Node, NodeDamage, UnbindContext,
 };
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
@@ -741,12 +741,11 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn post_connection_steps(&self) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.post_connection_steps();
         }
 
-        let tree_connected = context.tree_connected;
         let iframe = Trusted::new(self);
         document_from_node(self).add_delayed_task(task!(IFrameDelayedInitialize: move || {
             let this = iframe.root();
@@ -758,7 +757,6 @@ impl VirtualMethods for HTMLIFrameElement {
             // iframe attributes for the "first time"."
             if this.upcast::<Node>().is_connected_with_browsing_context() {
                 debug!("iframe bound to browsing context.");
-                debug_assert!(tree_connected, "is_connected_with_bc, but not tree_connected");
                 this.create_nested_browsing_context(CanGc::note());
                 this.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
             }
