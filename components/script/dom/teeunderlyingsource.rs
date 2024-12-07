@@ -6,8 +6,8 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
 use super::bindings::root::MutNullableDom;
@@ -43,10 +43,12 @@ pub struct TeeUnderlyingSource {
     canceled_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
     clone_for_branch_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
-    reason_1: Box<Heap<JSVal>>,
-    #[ignore_malloc_size_of = "Rc"]
-    reason_2: Box<Heap<JSVal>>,
+    #[ignore_malloc_size_of = "Arc"]
+    #[allow(clippy::redundant_allocation)]
+    reason_1: Rc<Box<Heap<Value>>>,
+    #[ignore_malloc_size_of = "Arc"]
+    #[allow(clippy::redundant_allocation)]
+    reason_2: Rc<Box<Heap<Value>>>,
     #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
     #[ignore_malloc_size_of = "TeeCancelAlgorithm"]
@@ -56,6 +58,7 @@ pub struct TeeUnderlyingSource {
 
 impl TeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::redundant_allocation)]
     #[allow(crown::unrooted_must_root)]
     pub fn new(
         reader: Dom<ReadableStreamDefaultReader>,
@@ -65,8 +68,8 @@ impl TeeUnderlyingSource {
         canceled_1: Rc<Cell<bool>>,
         canceled_2: Rc<Cell<bool>>,
         clone_for_branch_2: Rc<Cell<bool>>,
-        reason_1: SafeHandleValue,
-        reason_2: SafeHandleValue,
+        reason_1: Rc<Box<Heap<Value>>>,
+        reason_2: Rc<Box<Heap<Value>>>,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: TeeCancelAlgorithm,
     ) -> TeeUnderlyingSource {
@@ -81,8 +84,8 @@ impl TeeUnderlyingSource {
             canceled_1,
             canceled_2,
             clone_for_branch_2,
-            reason_1: Heap::boxed(reason_1.get()),
-            reason_2: Heap::boxed(reason_2.get()),
+            reason_1,
+            reason_2,
             cancel_promise,
             tee_cancel_algorithm,
         }
@@ -154,6 +157,7 @@ impl TeeUnderlyingSource {
     /// Let cancel1Algorithm be the following steps, taking a reason argument
     /// and
     /// Let cancel2Algorithm be the following steps, taking a reason argument
+    #[allow(unsafe_code)]
     pub fn cancel_algorithm(
         &self,
         reason: SafeHandleValue,
@@ -163,15 +167,13 @@ impl TeeUnderlyingSource {
             TeeCancelAlgorithm::Cancel1Algorithm => {
                 // Set canceled_1 to true.
                 self.canceled_1.set(true);
+
                 // Set reason_1 to reason.
                 self.reason_1.set(reason.get());
+
                 // If canceled_2 is true,
                 if self.canceled_2.get() {
-                    // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
-
-                    // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
-                    let _cancel_result = self.stream.cancel(reason, can_gc);
-                    // Resolve cancelPromise with cancelResult.
+                    self.resolve_cancel_promise(can_gc);
                 }
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
@@ -179,19 +181,37 @@ impl TeeUnderlyingSource {
             TeeCancelAlgorithm::Cancel2Algorithm => {
                 // Set canceled_2 to true.
                 self.canceled_2.set(true);
+
                 // Set reason_2 to reason.
                 self.reason_2.set(reason.get());
+
                 // If canceled_1 is true,
                 if self.canceled_1.get() {
-                    // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
-
-                    // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
-                    let _cancel_result = self.stream.cancel(reason, can_gc);
-                    // Resolve cancelPromise with cancelResult.
+                    self.resolve_cancel_promise(can_gc);
                 }
                 // Return cancelPromise.
                 Some(Ok(self.cancel_promise.clone()))
             },
         }
+    }
+
+    #[allow(unsafe_code)]
+    fn resolve_cancel_promise(&self, can_gc: CanGc) {
+        // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
+        let cx = GlobalScope::get_cx();
+        let composite_reason_value_array = unsafe {
+            HandleValueArray::from_rooted_slice(&[self.reason_1.get(), self.reason_2.get()])
+        };
+
+        rooted!(in(*cx) let composite_reason = unsafe {
+            NewArrayObject(*cx, &composite_reason_value_array)
+        });
+        rooted!(in(*cx) let composite_reason_value = ObjectValue(composite_reason.get()));
+
+        // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
+        let cancel_result = self.stream.cancel(composite_reason_value.handle(), can_gc);
+
+        // Resolve cancelPromise with cancelResult.
+        self.cancel_promise.resolve_native(&cancel_result);
     }
 }

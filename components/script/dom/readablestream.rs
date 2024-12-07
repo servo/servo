@@ -721,9 +721,11 @@ impl ReadableStream {
 
         let cx = GlobalScope::get_cx();
         // Let reason1 be undefined.
-        rooted!(in(*cx) let mut reason_1 = UndefinedValue());
+        rooted!(in(*cx) let mut reason_1_value = UndefinedValue());
+        let reason_1 = Rc::new(Heap::boxed(reason_1_value.get()));
         // Let reason2 be undefined.
-        rooted!(in(*cx) let mut reason_2 = UndefinedValue());
+        rooted!(in(*cx) let mut reason_2_value = UndefinedValue());
+        let reason_2 = Rc::new(Heap::boxed(reason_2_value.get()));
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), can_gc);
 
@@ -736,8 +738,8 @@ impl ReadableStream {
                 canceled_1.clone(),
                 canceled_2.clone(),
                 clone_for_branch_2.clone(),
-                reason_1.handle(),
-                reason_2.handle(),
+                reason_1.clone(),
+                reason_2.clone(),
                 cancel_promise.clone(),
                 TeeCancelAlgorithm::Cancel1Algorithm,
             )),
@@ -756,8 +758,8 @@ impl ReadableStream {
                 canceled_1.clone(),
                 canceled_2.clone(),
                 clone_for_branch_2,
-                reason_1.handle(),
-                reason_2.handle(),
+                reason_1,
+                reason_2,
                 cancel_promise.clone(),
                 TeeCancelAlgorithm::Cancel2Algorithm,
             )),

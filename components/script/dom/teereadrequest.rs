@@ -118,6 +118,7 @@ impl TeeReadRequest {
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[allow(unsafe_code)]
+    #[allow(clippy::borrowed_box)]
     pub fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
         // Set readAgain to false.
         self.read_again.set(false);
