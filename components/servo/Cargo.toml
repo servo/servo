@@ -73,6 +73,7 @@ media = { path = "../media" }
 mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+rayon = { workspace = true }
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
 script = { path = "../script" }

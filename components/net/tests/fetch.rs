@@ -226,7 +226,7 @@ fn test_file() {
         .origin(url.origin())
         .build();
 
-    let pool = CoreResourceThreadPool::new(1);
+    let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
     let mut context = new_fetch_context(None, None, Some(Arc::downgrade(&pool_handle)));
     let fetch_response = fetch_with_context(&mut request, &mut context);

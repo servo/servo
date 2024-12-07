@@ -4,7 +4,6 @@
 
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
@@ -425,8 +424,9 @@ impl ImageCache for ImageCacheImpl {
         // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
         // If no information can be obtained about the system, uses 4 threads as a default
         let thread_count = thread::available_parallelism()
-            .unwrap_or(NonZeroUsize::new(4).unwrap())
-            .get();
+            .map(|i| i.get())
+            .unwrap_or(servo_config::pref!(threadpools.fallback_worker_num) as usize)
+            .min(servo_config::pref!(threadpools.async_runtime_workers.max).max(1) as usize);
 
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
@@ -436,7 +436,7 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api,
             })),
-            thread_pool: CoreResourceThreadPool::new(thread_count),
+            thread_pool: CoreResourceThreadPool::new(thread_count, "ImageCache".to_string()),
         }
     }
 
