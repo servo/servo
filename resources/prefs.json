@@ -1,6 +1,7 @@
 {
   "devtools.server.enabled": false,
   "devtools.server.port": 0,
+  "dom.abort_controller.enabled": false,
   "dom.allow_scripts_to_close_windows": false,
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
