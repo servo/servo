@@ -22,6 +22,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::vec::Drain;
 
 pub use base::id::TopLevelBrowsingContextId;
@@ -352,6 +353,17 @@ where
             } else {
                 UploadMethod::PixelBuffer(ONE_TIME_USAGE_HINT)
             };
+            let worker_threads = thread::available_parallelism()
+                .map(|i| i.get())
+                .unwrap_or(pref!(threadpools.fallback_worker_num) as usize)
+                .min(pref!(threadpools.webrender_workers.max).max(1) as usize);
+            let workers = Some(Arc::new(
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(worker_threads)
+                    .thread_name(|idx| format!("WRWorker#{}", idx))
+                    .build()
+                    .unwrap(),
+            ));
             webrender::create_webrender_instance(
                 webrender_gl.clone(),
                 render_notifier,
@@ -374,6 +386,7 @@ where
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
                     upload_method,
+                    workers,
                     ..Default::default()
                 },
                 None,

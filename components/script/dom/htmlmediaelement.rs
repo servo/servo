@@ -1910,7 +1910,7 @@ impl HTMLMediaElement {
             return;
         }
         let shadow_root = element
-            .attach_shadow(IsUserAgentWidget::Yes, ShadowRootMode::Closed)
+            .attach_shadow(IsUserAgentWidget::Yes, ShadowRootMode::Closed, false)
             .unwrap();
         let document = document_from_node(self);
         let script = HTMLScriptElement::new(
