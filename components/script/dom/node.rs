@@ -2415,7 +2415,7 @@ impl Node {
 
                     // TODO: Should we handle the error case here and in step 6?
                     let _inserted_node =
-                        Node::pre_insert(&child_copy, &copy_shadow_root.upcast::<Node>(), None);
+                        Node::pre_insert(&child_copy, copy_shadow_root.upcast::<Node>(), None);
                 }
             }
         }
