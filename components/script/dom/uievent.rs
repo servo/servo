@@ -75,15 +75,28 @@ impl UIEvent {
         detail: i32,
         can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
-        let ev = UIEvent::new_uninitialized_with_proto(window, proto, can_gc);
-        ev.InitUIEvent(
-            type_,
-            bool::from(can_bubble),
-            bool::from(cancelable),
-            view,
-            detail,
-        );
-        ev
+        UIEvent::initialize_ui_event(window, proto, type_, can_bubble, cancelable, view, detail, can_gc)
+    }
+
+    /// based on <https://w3c.github.io/uievents/#initialize-a-uievent>
+    #[allow(clippy::too_many_arguments)]
+    pub fn initialize_ui_event(
+        window: &Window,
+        proto: Option<HandleObject>,
+        type_: DOMString,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        view: Option<&Window>,
+        detail: i32,
+        can_gc: CanGc,
+    ) -> DomRoot<UIEvent> {
+        let ui_event = UIEvent{
+            event: Event::new_inherited(),
+            view: MutNullableDom::new(view),
+            detail: Cell::new(detail),
+        };
+        ui_event.event.init_event(type_.into(), can_bubble.into(), cancelable.into());
+        reflect_dom_object_with_proto(Box::new(ui_event), window, proto, can_gc)
     }
 }
 
