@@ -51,6 +51,8 @@ mod init;
 #[warn(deprecated)]
 mod layout_image;
 
+#[warn(deprecated)]
+pub mod document_collection;
 pub mod layout_dom;
 #[warn(deprecated)]
 mod mem;

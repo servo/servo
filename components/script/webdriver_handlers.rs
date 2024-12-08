@@ -25,6 +25,7 @@ use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
 
+use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -61,10 +62,10 @@ use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-use crate::script_thread::{Documents, ScriptThread};
+use crate::script_thread::ScriptThread;
 
 fn find_node_by_unique_id(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<Node>, ErrorStatus> {
@@ -346,7 +347,7 @@ pub fn handle_execute_async_script(
 }
 
 pub fn handle_get_browsing_context_id(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     webdriver_frame_id: WebDriverFrameId,
     reply: IpcSender<Result<BrowsingContextId, ErrorStatus>>,
@@ -412,7 +413,7 @@ fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<
 }
 
 pub fn handle_get_element_in_view_center_point(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>,
@@ -429,7 +430,7 @@ pub fn handle_get_element_in_view_center_point(
 }
 
 pub fn handle_find_element_css(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
@@ -450,7 +451,7 @@ pub fn handle_find_element_css(
 }
 
 pub fn handle_find_element_link_text(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     partial: bool,
@@ -469,7 +470,7 @@ pub fn handle_find_element_link_text(
 }
 
 pub fn handle_find_element_tag_name(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
@@ -491,7 +492,7 @@ pub fn handle_find_element_tag_name(
 }
 
 pub fn handle_find_elements_css(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
@@ -517,7 +518,7 @@ pub fn handle_find_elements_css(
 }
 
 pub fn handle_find_elements_link_text(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     partial: bool,
@@ -536,7 +537,7 @@ pub fn handle_find_elements_link_text(
 }
 
 pub fn handle_find_elements_tag_name(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
@@ -558,7 +559,7 @@ pub fn handle_find_elements_tag_name(
 }
 
 pub fn handle_find_element_element_css(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
@@ -576,7 +577,7 @@ pub fn handle_find_element_element_css(
 }
 
 pub fn handle_find_element_element_link_text(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
@@ -592,7 +593,7 @@ pub fn handle_find_element_element_link_text(
 }
 
 pub fn handle_find_element_element_tag_name(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
@@ -615,7 +616,7 @@ pub fn handle_find_element_element_tag_name(
 }
 
 pub fn handle_find_element_elements_css(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
@@ -638,7 +639,7 @@ pub fn handle_find_element_elements_css(
 }
 
 pub fn handle_find_element_elements_link_text(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
@@ -654,7 +655,7 @@ pub fn handle_find_element_elements_link_text(
 }
 
 pub fn handle_find_element_elements_tag_name(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     selector: String,
@@ -677,7 +678,7 @@ pub fn handle_find_element_elements_tag_name(
 }
 
 pub fn handle_focus_element(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<(), ErrorStatus>>,
@@ -700,7 +701,7 @@ pub fn handle_focus_element(
 }
 
 pub fn handle_get_active_element(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<String>>,
 ) {
@@ -715,7 +716,7 @@ pub fn handle_get_active_element(
 }
 
 pub fn handle_get_page_source(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Result<String, ErrorStatus>>,
     can_gc: CanGc,
@@ -744,7 +745,7 @@ pub fn handle_get_page_source(
 }
 
 pub fn handle_get_cookies(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
 ) {
@@ -770,7 +771,7 @@ pub fn handle_get_cookies(
 
 // https://w3c.github.io/webdriver/webdriver-spec.html#get-cookie
 pub fn handle_get_cookie(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     name: String,
     reply: IpcSender<Vec<Serde<Cookie<'static>>>>,
@@ -801,7 +802,7 @@ pub fn handle_get_cookie(
 
 // https://w3c.github.io/webdriver/webdriver-spec.html#add-cookie
 pub fn handle_add_cookie(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     cookie: Cookie<'static>,
     reply: IpcSender<Result<(), WebDriverCookieError>>,
@@ -848,7 +849,7 @@ pub fn handle_add_cookie(
 }
 
 pub fn handle_delete_cookies(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Result<(), ErrorStatus>>,
 ) {
@@ -868,7 +869,11 @@ pub fn handle_delete_cookies(
     reply.send(Ok(())).unwrap();
 }
 
-pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcSender<String>) {
+pub fn handle_get_title(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: IpcSender<String>,
+) {
     reply
         .send(
             // TODO: Return an error if the pipeline doesn't exist
@@ -881,7 +886,7 @@ pub fn handle_get_title(documents: &Documents, pipeline: PipelineId, reply: IpcS
 }
 
 pub fn handle_get_rect(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Rect<f64>, ErrorStatus>>,
@@ -927,7 +932,7 @@ pub fn handle_get_rect(
 }
 
 pub fn handle_get_bounding_client_rect(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Rect<f32>, ErrorStatus>>,
@@ -952,7 +957,7 @@ pub fn handle_get_bounding_client_rect(
 }
 
 pub fn handle_get_text(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
@@ -966,7 +971,7 @@ pub fn handle_get_text(
 }
 
 pub fn handle_get_name(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
@@ -980,7 +985,7 @@ pub fn handle_get_name(
 }
 
 pub fn handle_get_attribute(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     name: String,
@@ -1000,7 +1005,7 @@ pub fn handle_get_attribute(
 
 #[allow(unsafe_code)]
 pub fn handle_get_property(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     name: String,
@@ -1039,7 +1044,7 @@ pub fn handle_get_property(
 }
 
 pub fn handle_get_css(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     name: String,
@@ -1061,7 +1066,11 @@ pub fn handle_get_css(
         .unwrap();
 }
 
-pub fn handle_get_url(documents: &Documents, pipeline: PipelineId, reply: IpcSender<ServoUrl>) {
+pub fn handle_get_url(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: IpcSender<ServoUrl>,
+) {
     reply
         .send(
             // TODO: Return an error if the pipeline doesn't exist.
@@ -1075,7 +1084,7 @@ pub fn handle_get_url(documents: &Documents, pipeline: PipelineId, reply: IpcSen
 
 // https://w3c.github.io/webdriver/#element-click
 pub fn handle_element_click(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
@@ -1172,7 +1181,7 @@ pub fn handle_element_click(
 }
 
 pub fn handle_is_enabled(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<bool, ErrorStatus>>,
@@ -1190,7 +1199,7 @@ pub fn handle_is_enabled(
 }
 
 pub fn handle_is_selected(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<bool, ErrorStatus>>,

@@ -16,6 +16,7 @@ use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use uuid::Uuid;
 
+use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
@@ -41,7 +42,6 @@ use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
-use crate::script_thread::Documents;
 
 #[allow(unsafe_code)]
 pub fn handle_evaluate_js(
@@ -98,7 +98,7 @@ pub fn handle_evaluate_js(
 }
 
 pub fn handle_get_root_node(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
 ) {
@@ -109,7 +109,7 @@ pub fn handle_get_root_node(
 }
 
 pub fn handle_get_document_element(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
 ) {
@@ -121,7 +121,7 @@ pub fn handle_get_document_element(
 }
 
 fn find_node_by_unique_id(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: &str,
 ) -> Option<DomRoot<Node>> {
@@ -134,7 +134,7 @@ fn find_node_by_unique_id(
 }
 
 pub fn handle_get_children(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeInfo>>>,
@@ -186,7 +186,7 @@ pub fn handle_get_children(
 }
 
 pub fn handle_get_attribute_style(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
@@ -218,7 +218,7 @@ pub fn handle_get_attribute_style(
 
 #[allow(crown::unrooted_must_root)]
 pub fn handle_get_stylesheet_style(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     selector: String,
@@ -265,7 +265,7 @@ pub fn handle_get_stylesheet_style(
 
 #[allow(crown::unrooted_must_root)]
 pub fn handle_get_selectors(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<(String, usize)>>>,
@@ -301,7 +301,7 @@ pub fn handle_get_selectors(
 }
 
 pub fn handle_get_computed_style(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
@@ -335,7 +335,7 @@ pub fn handle_get_computed_style(
 }
 
 pub fn handle_get_layout(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<ComputedNodeLayout>>,
@@ -396,7 +396,7 @@ fn determine_auto_margins(node: &Node, can_gc: CanGc) -> AutoMargins {
 }
 
 pub fn handle_modify_attribute(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<AttrModification>,
@@ -436,7 +436,7 @@ pub fn handle_modify_attribute(
 }
 
 pub fn handle_modify_rule(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<RuleModification>,
@@ -474,7 +474,7 @@ pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications:
 }
 
 pub fn handle_set_timeline_markers(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
     reply: IpcSender<Option<TimelineMarker>>,
@@ -486,7 +486,7 @@ pub fn handle_set_timeline_markers(
 }
 
 pub fn handle_drop_timeline_markers(
-    documents: &Documents,
+    documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
 ) {
@@ -495,13 +495,17 @@ pub fn handle_drop_timeline_markers(
     }
 }
 
-pub fn handle_request_animation_frame(documents: &Documents, id: PipelineId, actor_name: String) {
+pub fn handle_request_animation_frame(
+    documents: &DocumentCollection,
+    id: PipelineId,
+    actor_name: String,
+) {
     if let Some(doc) = documents.find_document(id) {
         doc.request_animation_frame(AnimationFrameCallback::DevtoolsFramerateTick { actor_name });
     }
 }
 
-pub fn handle_reload(documents: &Documents, id: PipelineId, can_gc: CanGc) {
+pub fn handle_reload(documents: &DocumentCollection, id: PipelineId, can_gc: CanGc) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check(can_gc);
     }
