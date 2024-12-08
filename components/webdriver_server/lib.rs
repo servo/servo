@@ -24,7 +24,7 @@ use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
 use euclid::{Rect, Size2D};
 use http::method::Method;
-use image::{DynamicImage, ImageFormat, RgbImage};
+use image::{DynamicImage, ImageFormat, RgbaImage};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
@@ -720,6 +720,11 @@ impl Handler {
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
+
+        if params.width.is_none() || params.height.is_none() {
+            return self.handle_window_size();
+        }
+
         let width = params.width.unwrap_or(0);
         let height = params.height.unwrap_or(0);
         let size = Size2D::new(width as u32, height as u32);
@@ -1614,16 +1619,16 @@ impl Handler {
             },
         };
 
-        // The compositor always sends RGB pixels.
+        // The compositor always sends RGBA pixels.
         assert_eq!(
             img.format,
-            PixelFormat::RGB8,
+            PixelFormat::RGBA8,
             "Unexpected screenshot pixel format"
         );
 
-        let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
+        let rgb = RgbaImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
         let mut png_data = Cursor::new(Vec::new());
-        DynamicImage::ImageRgb8(rgb)
+        DynamicImage::ImageRgba8(rgb)
             .write_to(&mut png_data, ImageFormat::Png)
             .unwrap();
 
