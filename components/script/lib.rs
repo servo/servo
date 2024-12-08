@@ -98,6 +98,7 @@ mod unminify;
 
 mod drag_data_store;
 mod links;
+mod xpath;
 
 pub use init::init;
 pub use script_runtime::JSEngineSetup;

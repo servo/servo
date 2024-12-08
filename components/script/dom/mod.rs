@@ -601,4 +601,7 @@ pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
 pub mod xmlserializer;
+pub mod xpathevaluator;
+pub mod xpathexpression;
+pub mod xpathresult;
 pub use self::webgl_extensions::ext::*;

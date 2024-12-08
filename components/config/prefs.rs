@@ -436,6 +436,9 @@ mod gen {
                     },
                     timeout_ms: i64,
                 },
+                xpath: {
+                    enabled: bool,
+                }
             },
             gfx: {
                 subpixel_text_antialiasing: {
