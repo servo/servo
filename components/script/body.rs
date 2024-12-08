@@ -187,7 +187,7 @@ impl TransmitBodyConnectHandler {
                     // TODO: Step 2, If body is null.
 
                     // Step 3, get a reader for stream.
-                    rooted_stream.start_reading().expect("Couldn't acquire a reader for the body stream.");
+                    rooted_stream.acquire_default_reader(CanGc::note()).expect("Couldn't acquire a reader for the body stream.");
 
                     // Note: this algorithm continues when the first chunk is requested by `net`.
                 }),
@@ -763,7 +763,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     };
 
     // Step 3.
-    if stream.start_reading().is_err() {
+    if stream.acquire_default_reader(can_gc).is_err() {
         return promise.reject_error(Error::Type(
             "The response's stream is disturbed or locked".to_string(),
         ));
