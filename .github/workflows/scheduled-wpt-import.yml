@@ -35,9 +35,10 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: wpt-full-logs-linux-layout-2020
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Prep environment
         run: |
-          python3 -m pip install --upgrade pip
           sudo apt update
           python3 ./mach bootstrap
       - name: Add upstream remote

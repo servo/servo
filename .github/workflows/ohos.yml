@@ -53,8 +53,8 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.6
       - name: Install crown
         run: cargo install --path support/crown
-      - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip virtualenv
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
         run: sudo apt update && python3 ./mach bootstrap --skip-lints
       - name: Setup OpenHarmony SDK

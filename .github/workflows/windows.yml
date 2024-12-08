@@ -114,13 +114,13 @@ jobs:
           choco install wixtoolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - uses: actions/setup-python@v5
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
         with:
-          python-version: "3.10"
+          skip-python-setup: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
       - name: Bootstrap
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
-          python -m pip install --upgrade pip
           python mach fetch
           python mach bootstrap-gstreamer
       # For some reason WiX isn't currently on the GitHub runner path. This is a
