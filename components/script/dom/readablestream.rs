@@ -26,7 +26,7 @@ use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
@@ -44,8 +44,6 @@ use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-
-use super::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
@@ -320,6 +318,7 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
+        error!("ReadableStream::add_read_request");
         match self.reader {
             // Assert: stream.[[reader]] implements ReadableStreamDefaultReader.
             ReaderType::Default(ref reader) => {
@@ -454,21 +453,18 @@ impl ReadableStream {
     /// must be done before `read_a_chunk`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    pub fn start_reading(&self) -> Result<(), ()> {
-        let reader = self.acquire_default_reader(CanGc::note()).map_err(|_| ())?;
-        self.set_reader(Some(&reader));
-        Ok(())
-    }
-
-    /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    fn acquire_default_reader(
+    pub fn acquire_default_reader(
         &self,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // Let reader be a new ReadableStreamDefaultReader.
+        let reader = ReadableStreamDefaultReader::new_inherited(&self.global(), can_gc);
+
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
+        reader.set_up(self, &self.global(), can_gc)?;
+
         // Return reader.
-        ReadableStreamDefaultReader::set_up(&self.global(), self, can_gc)
+        Ok(reflect_dom_object(Box::new(reader), &*self.global()))
     }
 
     pub fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
@@ -927,17 +923,9 @@ impl ReadableStreamMethods for ReadableStream {
     ) -> Fallible<ReadableStreamReader> {
         // 1, If options["mode"] does not exist, return ? AcquireReadableStreamDefaultReader(this).
         if options.mode.is_none() {
-            match self.reader {
-                ReaderType::Default(ref reader) => {
-                    // return ? AcquireReadableStreamDefaultReader(this).
-                    let acquired_reader = self.acquire_default_reader(can_gc)?;
-                    reader.set(Some(&*acquired_reader));
-                    return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
-                        reader.get().unwrap(),
-                    ));
-                },
-                _ => unreachable!("Getting BYOBReader can only be done when options.mode is set."),
-            }
+            return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
+                self.acquire_default_reader(can_gc)?,
+            ));
         }
         // 2. Assert: options["mode"] is "byob".
         assert!(options.mode.unwrap() == ReadableStreamReaderMode::Byob);
