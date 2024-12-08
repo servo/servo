@@ -808,6 +808,8 @@ pub enum WebDriverCommandMsg {
         Option<Rect<f32, CSSPixel>>,
         IpcSender<Option<Image>>,
     ),
+    ///
+    NewTab(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes

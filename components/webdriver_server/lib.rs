@@ -55,14 +55,14 @@ use webdriver::command::{
     ActionsParameters, AddCookieParameters, GetParameters, JavascriptCommandParameters,
     LocatorParameters, NewSessionParameters, SendKeysParameters, SwitchToFrameParameters,
     SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand, WebDriverExtensionCommand,
-    WebDriverMessage, WindowRectParameters,
+    WebDriverMessage, WindowRectParameters, NewWindowParameters,
 };
 use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{
     CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse, TimeoutsResponse,
-    ValueResponse, WebDriverResponse, WindowRectResponse,
+    ValueResponse, WebDriverResponse, WindowRectResponse, NewWindowResponse,
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
@@ -418,6 +418,8 @@ impl Handler {
     }
 
     fn focus_top_level_browsing_context_id(&self) -> WebDriverResult<TopLevelBrowsingContextId> {
+        thread::sleep(Duration::from_millis(1000));
+
         debug!("Getting focused context.");
         let interval = 20;
         let iterations = 30_000 / interval;
@@ -889,6 +891,23 @@ impl Handler {
             },
             Err(error) => Err(WebDriverError::new(error, "")),
         }
+    }
+
+    fn handle_new_window(&self, _parameters: &NewWindowParameters) -> WebDriverResult<WebDriverResponse> {
+        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
+
+        let cmd_msg = WebDriverCommandMsg::NewTab(
+            top_level_browsing_context_id,
+        );
+        self.constellation_chan
+            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .unwrap();
+
+        let handle = self.session.as_ref().unwrap().id.to_string();
+        Ok(WebDriverResponse::NewWindow(NewWindowResponse {
+            handle,
+            typ: "tab".to_string(),
+        }))
     }
 
     fn handle_switch_to_frame(
@@ -1391,6 +1410,7 @@ impl Handler {
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!("(function() {{ {} }})({})", func_body, args_string);
+        println!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
@@ -1404,7 +1424,13 @@ impl Handler {
         parameters: &JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
-        let args_string = "window.webdriverCallback";
+        let mut args_string: Vec<_> = parameters.args.as_deref().unwrap_or(&[]).iter().map(|v| {
+            match v {
+                serde_json::value::Value::String(ref s) => format!("\"{}\"", s),
+                v => { println!("ignoring {:?}", v); "\"\"".to_string() },
+            }
+        }).collect();
+        args_string.push("window.webdriverCallback".to_string());
 
         let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
@@ -1412,9 +1438,10 @@ impl Handler {
             "".into()
         };
         let script = format!(
-            "{} (function(callback) {{ {} }})({})",
-            timeout_script, func_body, args_string
+            "{} (function() {{ {} }})({})",
+            timeout_script, func_body, args_string.join(", "),
         );
+        println!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
@@ -1729,6 +1756,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetTitle => self.handle_title(),
             WebDriverCommand::GetWindowHandle => self.handle_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
+            WebDriverCommand::NewWindow(ref parameters) => self.handle_new_window(parameters),
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },

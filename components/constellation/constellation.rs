@@ -4606,6 +4606,9 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
+            WebDriverCommandMsg::NewTab(top_level_browsing_context_id) => {
+                self.handle_new_top_level_browsing_context(ServoUrl::parse_with_base(None, "about:blank").unwrap(), top_level_browsing_context_id);
+            }
             WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
                 let _ = response_sender.send(self.window_size);
             },
