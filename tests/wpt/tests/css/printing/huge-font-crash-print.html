@@ -1,0 +1,19 @@
+<!-- quirks -->
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1929461">
+<!-- Really a crashtest but since we can't really have print crashtests,
+     we just assert that we don't match the "nothing" reference. -->
+<link rel="mismatch" href="/css/reference/nothing.html">
+<style>
+* {
+  position: absolute;
+  transform: scale(50);
+  border-style: solid dashed;
+  border-right: none;
+  mix-blend-mode: screen;
+}
+</style>
+<q id="a">
+<font id="b">
+<q>
+<menu>
+<data>

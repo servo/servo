@@ -32,19 +32,10 @@ interface ML {
   Promise<MLContext> createContext(GPUDevice gpuDevice);
 };
 
-typedef record<USVString, ArrayBufferView> MLNamedArrayBufferViews;
 typedef record<USVString, MLTensor> MLNamedTensors;
-
-dictionary MLComputeResult {
-  MLNamedArrayBufferViews inputs;
-  MLNamedArrayBufferViews outputs;
-};
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLContext {
-  // ISSUE(791): compute() will soon be removed in favor of dispatch().
-  Promise<MLComputeResult> compute(
-      MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
   undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
 
   Promise<MLTensor> createTensor(MLTensorDescriptor descriptor);
@@ -141,7 +132,8 @@ interface MLGraphBuilder {
   MLOperand input(USVString name, MLOperandDescriptor descriptor);
 
   // Create an operand for a graph constant.
-  MLOperand constant(MLOperandDescriptor descriptor, ArrayBufferView bufferView);
+  MLOperand constant(MLOperandDescriptor descriptor,
+                     AllowSharedBufferSource buffer);
 
   // Create a scalar operand from the specified number of the specified type.
   MLOperand constant(MLOperandDataType type, MLNumber value);

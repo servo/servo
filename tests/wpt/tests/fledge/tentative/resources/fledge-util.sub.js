@@ -328,7 +328,7 @@ async function joinNegativeInterestGroup(
       `await joinInterestGroupWithoutDefaults(` +
           `test_instance, ${JSON.stringify(interestGroup)})`);
   } else {
-    await joinInterestGroupWithoutDefaults(test_instance, interestGroup);
+    await joinInterestGroupWithoutDefaults(test, interestGroup);
   }
 }
 

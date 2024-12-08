@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Vibration API (Second Edition) (https://w3c.github.io/vibration/)
+// Source: Vibration API (https://w3c.github.io/vibration/)
 
 typedef (unsigned long or sequence<unsigned long>) VibratePattern;
 

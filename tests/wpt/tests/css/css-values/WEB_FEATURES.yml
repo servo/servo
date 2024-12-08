@@ -44,3 +44,12 @@ features:
 - name: calc-constants
   files:
   - calc-infinity-*
+- name: viewport-unit-variants
+  files:
+  - viewport-units-compute.html
+  - viewport-units-invalidation.html
+  - viewport-units-keyframes.html
+  - viewport-units-media-queries.html
+  - viewport-units-parsing.html
+  - viewport-units-writing-mode-font-size.html
+  - viewport-units-writing-mode.html

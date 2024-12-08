@@ -6,3 +6,6 @@ features:
   files:
   - parse-has.html
   - parse-has-*
+- name: state
+  files:
+  - parse-state.html
