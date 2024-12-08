@@ -979,11 +979,10 @@ where
 
         let block_container = builder.finish();
         self.table_traversal.builder.add_cell(TableSlotCell {
+            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
             contents: BlockFormattingContext::from_block_container(block_container),
             colspan: 1,
             rowspan: 1,
-            style: anonymous_info.style,
-            base_fragment_info: BaseFragmentInfo::anonymous(),
         });
     }
 }
@@ -1041,11 +1040,10 @@ where
 
                     self.finish_current_anonymous_cell_if_needed();
                     self.table_traversal.builder.add_cell(TableSlotCell {
+                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         contents,
                         colspan,
                         rowspan,
-                        style: info.style.clone(),
-                        base_fragment_info: info.into(),
                     });
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
