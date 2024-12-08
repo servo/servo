@@ -11,6 +11,7 @@ from .base import (Protocol,
                    TestharnessExecutor,
                    TimedRunner,
                    strip_server)
+from .executorwebdriver import WebDriverProtocol, WebDriverTestharnessExecutor
 from .protocol import BaseProtocolPart
 from ..environment import wait_for_service
 
@@ -47,6 +48,7 @@ def do_delayed_imports():
 
         def change_prefs(self, old_prefs, new_prefs):
             # Servo interprets reset with an empty list as reset everything
+            print(old_prefs, new_prefs)
             if old_prefs:
                 self.reset_prefs(*old_prefs.keys())
             self.set_prefs({k: parse_pref_value(v) for k, v in new_prefs.items()})
@@ -83,6 +85,22 @@ class ServoBaseProtocolPart(BaseProtocolPart):
     def load(self, url):
         pass
 
+
+class ServoWebDriverProtocol2(WebDriverProtocol):
+    def __init__(self, executor, browser, capabilities, **kwargs):
+        do_delayed_imports()
+        WebDriverProtocol.__init__(self, executor, browser, capabilities, **kwargs)
+
+    def connect(self):
+        """Connect to browser via WebDriver and crete a WebDriver session."""
+        self.logger.debug("Connecting to WebDriver on URL: %s" % self.url)
+
+        host, port = self.url.split(":")[1].strip("/"), self.url.split(':')[-1].strip("/")
+
+        capabilities = {"alwaysMatch": self.capabilities}
+        self.webdriver = webdriver.Session(host, port, capabilities=capabilities, enable_bidi=self.enable_bidi, extension=ServoCommandExtensions)
+        self.webdriver.start()
+    
 
 class ServoWebDriverProtocol(Protocol):
     implements = [ServoBaseProtocolPart]
@@ -158,66 +176,18 @@ class ServoWebDriverRun(TimedRunner):
             self.result_flag.set()
 
 
-class ServoWebDriverTestharnessExecutor(TestharnessExecutor):
+class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
     supports_testdriver = True
+    protocol_cls = ServoWebDriverProtocol2
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, capabilities=None, debug_info=None,
                  **kwargs):
-        TestharnessExecutor.__init__(self, logger, browser, server_config, timeout_multiplier=1,
-                                     debug_info=None)
-        self.protocol = ServoWebDriverProtocol(self, browser, capabilities=capabilities)
-        with open(os.path.join(here, "testharness_servodriver.js")) as f:
-            self.script = f.read()
-        self.timeout = None
-
-    def on_protocol_change(self, new_protocol):
-        pass
-
-    def is_alive(self):
-        return self.protocol.is_alive()
-
-    def do_test(self, test):
-        url = self.test_url(test)
-
-        timeout = test.timeout * self.timeout_multiplier + self.extra_timeout
-
-        if timeout != self.timeout:
-            try:
-                self.protocol.session.timeouts.script = timeout
-                self.timeout = timeout
-            except OSError:
-                msg = "Lost WebDriver connection"
-                self.logger.error(msg)
-                return ("INTERNAL-ERROR", msg)
-
-        success, data = ServoWebDriverRun(self.logger,
-                                          self.do_testharness,
-                                          self.protocol,
-                                          url,
-                                          timeout,
-                                          self.extra_timeout).run()
-
-        if success:
-            return self.convert_result(test, data)
-
-        return (test.make_result(*data), [])
-
-    def do_testharness(self, session, url, timeout):
-        session.url = url
-        result = json.loads(
-            session.execute_async_script(
-                self.script % {"abs_url": url,
-                               "url": strip_server(url),
-                               "timeout_multiplier": self.timeout_multiplier,
-                               "timeout": timeout * 1000}))
-        # Prevent leaking every page in history until Servo develops a more sane
-        # page cache
-        session.back()
-        return result
+        WebDriverTestharnessExecutor.__init__(self, logger, browser, server_config, timeout_multiplier=1,
+                                              debug_info=debug_info, capabilities={})
 
     def on_environment_change(self, new_environment):
-        self.protocol.session.extension.change_prefs(
+        self.protocol.webdriver.extension.change_prefs(
             self.last_environment.get("prefs", {}),
             new_environment.get("prefs", {})
         )
