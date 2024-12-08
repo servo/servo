@@ -126,10 +126,6 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
-    pub fn set_target(&self, target_: &EventTarget) {
-        self.target.set(Some(target_));
-    }
-
     /// <https://dom.spec.whatwg.org/#event-path>
     // TODO: shadow roots put special flags in the path,
     // and it will stop just being a list of bare EventTargets
