@@ -9,15 +9,19 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 
+use super::node::document_from_node;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -75,32 +79,39 @@ impl UIEvent {
         detail: i32,
         can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
-        UIEvent::initialize_ui_event(
-            window, proto, type_, can_bubble, cancelable, view, detail, can_gc,
-        )
+        let ev = UIEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        ev.initialize_ui_event(
+            type_,
+            view.map(|window| window.upcast::<EventTarget>()),
+            can_bubble,
+            cancelable,
+        );
+        ev.detail.set(detail.into());
+        ev
     }
 
-    /// based on <https://w3c.github.io/uievents/#initialize-a-uievent>
-    #[allow(clippy::too_many_arguments)]
+    /// <https://w3c.github.io/uievents/#initialize-a-uievent>
     pub fn initialize_ui_event(
-        window: &Window,
-        proto: Option<HandleObject>,
+        &self,
         type_: DOMString,
-        can_bubble: EventBubbles,
+        target_: Option<&EventTarget>,
+        bubbles: EventBubbles,
         cancelable: EventCancelable,
-        view: Option<&Window>,
-        detail: i32,
-        can_gc: CanGc,
-    ) -> DomRoot<UIEvent> {
-        let ui_event = UIEvent {
-            event: Event::new_inherited(),
-            view: MutNullableDom::new(view),
-            detail: Cell::new(detail),
-        };
-        ui_event
-            .event
-            .init_event(type_.into(), can_bubble.into(), cancelable.into());
-        reflect_dom_object_with_proto(Box::new(ui_event), window, proto, can_gc)
+    ) {
+        // 1. Initialize the base Event attributes:
+        self.event
+            .init_event(type_.into(), bool::from(bubbles), bool::from(cancelable));
+        self.event.set_target(target_);
+        // 2. Initialize view/detail:
+        if let Some(target_) = target_ {
+            let element = target_.downcast::<Element>();
+            let document = match element {
+                Some(element) => document_from_node(element),
+                None => target_.downcast::<Window>().unwrap().Document(),
+            };
+            self.view.set(Some(document.window()));
+        }
+        self.detail.set(0_i32.into());
     }
 }
 
