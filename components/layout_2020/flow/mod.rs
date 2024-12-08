@@ -84,9 +84,7 @@ pub(crate) enum BlockLevelBox {
     OutOfFlowFloatBox(FloatBox),
     OutsideMarker(OutsideMarker),
     SameFormattingContextBlock {
-        base_fragment_info: BaseFragmentInfo,
-        #[serde(skip_serializing)]
-        style: Arc<ComputedValues>,
+        base: LayoutBoxBase,
         contents: BlockContainer,
         contains_floats: bool,
     },
@@ -109,7 +107,7 @@ impl BlockLevelBox {
         containing_block: &ContainingBlock,
     ) -> bool {
         let style = match self {
-            BlockLevelBox::SameFormattingContextBlock { ref style, .. } => style,
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => &base.style,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutOfFlowFloatBox(_) => return true,
             BlockLevelBox::OutsideMarker(_) => return false,
@@ -397,17 +395,17 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     ),
                 ))
             },
-            BlockLevelBox::SameFormattingContextBlock {
-                style, contents, ..
-            } => {
+            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
                 let inline_content_sizes_result = sizing::outer_inline(
-                    style,
+                    &base.style,
                     containing_block,
                     &LogicalVec2::zero(),
                     false,    /* auto_block_size_stretches_to_containing_block */
                     |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
                     |constraint_space| {
-                        contents.inline_content_sizes(layout_context, constraint_space)
+                        base.inline_content_sizes(constraint_space, || {
+                            contents.inline_content_sizes(layout_context, constraint_space)
+                        })
                     },
                 );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
@@ -693,28 +691,25 @@ impl BlockLevelBox {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
         match self {
-            BlockLevelBox::SameFormattingContextBlock {
-                base_fragment_info: tag,
-                style,
-                contents,
-                ..
-            } => Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
-                layout_context,
-                containing_block,
-                style,
-                |positioning_context| {
-                    layout_in_flow_non_replaced_block_level_same_formatting_context(
-                        layout_context,
-                        positioning_context,
-                        containing_block,
-                        *tag,
-                        style,
-                        contents,
-                        sequential_layout_state,
-                        collapsible_with_parent_start_margin,
-                    )
-                },
-            )),
+            BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
+                Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
+                    layout_context,
+                    containing_block,
+                    &base.style,
+                    |positioning_context| {
+                        layout_in_flow_non_replaced_block_level_same_formatting_context(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            base.base_fragment_info,
+                            &base.style,
+                            contents,
+                            sequential_layout_state,
+                            collapsible_with_parent_start_margin,
+                        )
+                    },
+                ))
+            },
             BlockLevelBox::Independent(independent) => {
                 Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
