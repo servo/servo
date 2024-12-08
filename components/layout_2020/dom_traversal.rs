@@ -16,7 +16,7 @@ use style::values::generics::counters::{Content, ContentItem};
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
-use crate::replaced::ReplacedContent;
+use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 
 #[derive(Clone, Copy, Debug)]
@@ -126,7 +126,7 @@ pub(super) enum Contents {
     NonReplaced(NonReplacedContents),
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
-    Replaced(ReplacedContent),
+    Replaced(ReplacedContents),
 }
 
 #[derive(Debug)]
@@ -141,7 +141,7 @@ pub(super) enum NonReplacedContents {
 #[derive(Debug)]
 pub(super) enum PseudoElementContentItem {
     Text(String),
-    Replaced(ReplacedContent),
+    Replaced(ReplacedContents),
 }
 
 pub(super) trait TraversalHandler<'dom, Node>
@@ -216,7 +216,7 @@ fn traverse_element<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
-    let replaced = ReplacedContent::for_element(element, context);
+    let replaced = ReplacedContents::for_element(element, context);
     let style = element.style(context);
     match Display::from(style.get_box().display) {
         Display::None => element.unset_all_boxes(),
@@ -421,7 +421,7 @@ where
                     },
                     ContentItem::Image(image) => {
                         if let Some(replaced_content) =
-                            ReplacedContent::from_image(element, context, image)
+                            ReplacedContents::from_image(element, context, image)
                         {
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }

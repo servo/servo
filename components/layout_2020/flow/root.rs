@@ -28,7 +28,7 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::FragmentTree;
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::replaced::ReplacedContent;
+use crate::replaced::ReplacedContents;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayInside};
 use crate::taffy::{TaffyItemBox, TaffyItemBoxInner};
 use crate::DefiniteContainingBlock;
@@ -222,7 +222,7 @@ impl BoxTree {
 
         loop {
             if let Some((primary_style, display_inside, update_point)) = update_point(dirty_node) {
-                let contents = ReplacedContent::for_element(dirty_node, context)
+                let contents = ReplacedContents::for_element(dirty_node, context)
                     .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
                 let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
                 let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
@@ -290,7 +290,7 @@ fn construct_for_root_element<'dom>(
         Display::GeneratingBox(display_generating_box) => display_generating_box.display_inside(),
     };
 
-    let contents = ReplacedContent::for_element(root_element, context)
+    let contents = ReplacedContents::for_element(root_element, context)
         .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
     let root_box = if box_style.position.is_absolutely_positioned() {
         BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(

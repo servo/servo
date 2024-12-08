@@ -30,7 +30,9 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::{
+    Baselines, IndependentFormattingContextContents, IndependentLayout,
+};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size};
 use crate::positioned::{
@@ -1893,8 +1895,8 @@ impl FlexItem<'_> {
             }),
         };
 
-        let context = &self.box_.independent_formatting_context;
-        let item_writing_mode = context.style().writing_mode;
+        let independent_formatting_context = &self.box_.independent_formatting_context;
+        let item_writing_mode = independent_formatting_context.style().writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
         let flex_axis = flex_context.config.flex_axis;
         let cross_axis_is_item_block_axis = cross_axis_is_item_block_axis(
@@ -1922,7 +1924,7 @@ impl FlexItem<'_> {
                         item_writing_mode,
                         self.preferred_aspect_ratio,
                     );
-                    context
+                    independent_formatting_context
                         .inline_content_sizes(flex_context.layout_context, &constraint_space)
                         .sizes
                         .shrink_to_fit(stretch_size)
@@ -1945,26 +1947,25 @@ impl FlexItem<'_> {
         };
 
         let container_writing_mode = containing_block.style.writing_mode;
-        match context {
-            IndependentFormattingContext::Replaced(replaced) => {
-                let size = replaced
-                    .contents
-                    .used_size_as_if_inline_element_from_content_box_sizes(
-                        containing_block,
-                        &replaced.style,
-                        self.preferred_aspect_ratio,
-                        LogicalVec2 {
-                            inline: Size::Numeric(inline_size),
-                            block: block_size.non_auto().map_or(Size::Initial, Size::Numeric),
-                        },
-                        flex_axis
-                            .vec2_to_flow_relative(self.content_min_size)
-                            .map(|size| Size::Numeric(*size)),
-                        flex_axis
-                            .vec2_to_flow_relative(self.content_max_size)
-                            .map(|size| size.map_or(Size::Initial, Size::Numeric)),
-                        flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
-                    );
+        let item_style = independent_formatting_context.style();
+        match &independent_formatting_context.contents {
+            IndependentFormattingContextContents::Replaced(replaced) => {
+                let size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
+                    containing_block,
+                    item_style,
+                    self.preferred_aspect_ratio,
+                    LogicalVec2 {
+                        inline: Size::Numeric(inline_size),
+                        block: block_size.non_auto().map_or(Size::Initial, Size::Numeric),
+                    },
+                    flex_axis
+                        .vec2_to_flow_relative(self.content_min_size)
+                        .map(|size| Size::Numeric(*size)),
+                    flex_axis
+                        .vec2_to_flow_relative(self.content_max_size)
+                        .map(|size| size.map_or(Size::Initial, Size::Numeric)),
+                    flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
+                );
                 let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
 
                 if let Some(non_stretch_layout_result) = non_stretch_layout_result {
@@ -1979,10 +1980,8 @@ impl FlexItem<'_> {
                     }
                 }
 
-                let fragments = replaced.contents.make_fragments(
-                    &replaced.style,
-                    size.to_physical_size(container_writing_mode),
-                );
+                let fragments = replaced
+                    .make_fragments(item_style, size.to_physical_size(container_writing_mode));
 
                 Some(FlexItemLayoutResult {
                     hypothetical_cross_size,
@@ -2000,7 +1999,7 @@ impl FlexItem<'_> {
                     baseline_relative_to_margin_box: None,
                 })
             },
-            IndependentFormattingContext::NonReplaced(non_replaced) => {
+            IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 let calculate_hypothetical_cross_size = |content_block_size| {
                     self.content_box_size
                         .cross
@@ -2020,7 +2019,7 @@ impl FlexItem<'_> {
                 let item_as_containing_block = ContainingBlock {
                     inline_size,
                     block_size,
-                    style: &non_replaced.style,
+                    style: item_style,
                 };
 
                 if let Some(non_stretch_layout_result) = non_stretch_layout_result {
@@ -2067,7 +2066,7 @@ impl FlexItem<'_> {
 
                 let item_writing_mode_is_orthogonal_to_container_writing_mode =
                     flex_context.config.writing_mode.is_horizontal() !=
-                        non_replaced.style.writing_mode.is_horizontal();
+                        item_style.writing_mode.is_horizontal();
                 let has_compatible_baseline = match flex_axis {
                     FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
                     FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
@@ -2752,8 +2751,9 @@ impl FlexItemBox {
                 .collects_for_nearest_positioned_ancestor(),
         );
 
-        match &self.independent_formatting_context {
-            IndependentFormattingContext::Replaced(replaced) => {
+        let style = self.independent_formatting_context.style();
+        match &self.independent_formatting_context.contents {
+            IndependentFormattingContextContents::Replaced(replaced) => {
                 content_box_size.inline = content_box_size.inline.map(|v| v.max(Au::zero()));
                 if intrinsic_sizing_mode == IntrinsicSizingMode::Size {
                     content_box_size.block = AuOrAuto::Auto;
@@ -2761,10 +2761,9 @@ impl FlexItemBox {
                     max_size.block = None;
                 }
                 replaced
-                    .contents
                     .used_size_as_if_inline_element_from_content_box_sizes(
                         flex_context.containing_block,
-                        &replaced.style,
+                        style,
                         preferred_aspect_ratio,
                         content_box_size
                             .map(|size| size.non_auto().map_or(Size::Initial, Size::Numeric)),
@@ -2775,7 +2774,7 @@ impl FlexItemBox {
                     )
                     .block
             },
-            IndependentFormattingContext::NonReplaced(non_replaced) => {
+            IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 // TODO: This is wrong if the item writing mode is different from the flex
                 // container's writing mode.
                 let inline_size = content_box_size
@@ -2792,7 +2791,7 @@ impl FlexItemBox {
                         } else {
                             let constraint_space = ConstraintSpace::new(
                                 SizeConstraint::default(),
-                                non_replaced.style.writing_mode,
+                                style.writing_mode,
                                 non_replaced.preferred_aspect_ratio(),
                             );
                             non_replaced
@@ -2808,7 +2807,7 @@ impl FlexItemBox {
                 let item_as_containing_block = ContainingBlock {
                     inline_size,
                     block_size: AuOrAuto::Auto,
-                    style: &non_replaced.style,
+                    style,
                 };
                 let content_block_size = || {
                     if let Some(cache) = &*self.block_content_size_cache.borrow() {

@@ -15,7 +15,10 @@ use taffy::{AvailableSpace, MaybeMath, RequestedAxis, RunMode};
 use super::{TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::{
+    Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
+    IndependentLayout,
+};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
@@ -43,13 +46,12 @@ fn resolve_content_size(constraint: AvailableSpace, content_sizes: ContentSizes)
 #[inline(always)]
 fn with_independant_formatting_context<T>(
     item: &mut TaffyItemBoxInner,
-    cb: impl FnOnce(&mut IndependentFormattingContext) -> T,
+    cb: impl FnOnce(&IndependentFormattingContext) -> T,
 ) -> T {
     match item {
         TaffyItemBoxInner::InFlowBox(ref mut context) => cb(context),
         TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref abspos_box) => {
-            let mut abspos_box = AtomicRefCell::borrow_mut(abspos_box);
-            cb(&mut abspos_box.context)
+            cb(&AtomicRefCell::borrow(abspos_box).context)
         },
     }
 }
@@ -132,13 +134,14 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         with_independant_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
-                match independent_context {
-                    IndependentFormattingContext::Replaced(replaced) => {
+                let style = independent_context.style();
+                match &independent_context.contents {
+                    IndependentFormattingContextContents::Replaced(replaced) => {
                         // TODO: re-evaluate sizing constraint conversions in light of recent layout_2020 changes
                         let containing_block = &self.content_box_size_override;
 
                         // Adjust known_dimensions from border box to content box
-                        let pbm = replaced.style.padding_border_margin(containing_block);
+                        let pbm = style.padding_border_margin(containing_block);
                         let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
                         let content_box_known_dimensions = taffy::Size {
                             width: inputs
@@ -152,11 +155,11 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         };
 
                         let content_box_size = replaced
-                            .contents
                             .used_size_as_if_inline_element_from_content_box_sizes(
                                 containing_block,
-                                &replaced.style,
-                                replaced.preferred_aspect_ratio(&pbm.padding_border_sums),
+                                style,
+                                independent_context
+                                    .preferred_aspect_ratio(&pbm.padding_border_sums),
                                 LogicalVec2 {
                                     inline: option_f32_to_size(content_box_known_dimensions.width),
                                     block: option_f32_to_size(content_box_known_dimensions.height),
@@ -176,9 +179,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         // Create fragments if the RunMode if PerformLayout
                         // If the RunMode is ComputeSize then only the returned size will be used
                         if inputs.run_mode == RunMode::PerformLayout {
-                            child.child_fragments = replaced
-                                .contents
-                                .make_fragments(&replaced.style, content_box_size);
+                            child.child_fragments =
+                                replaced.make_fragments(style, content_box_size);
                         }
 
                         let computed_size = taffy::Size {
@@ -198,12 +200,12 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         }
                     },
 
-                    IndependentFormattingContext::NonReplaced(non_replaced) => {
+                    IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                         // TODO: re-evaluate sizing constraint conversions in light of recent layout_2020 changes
                         let containing_block = &self.content_box_size_override;
 
                         // Adjust known_dimensions from border box to content box
-                        let pbm = non_replaced.style.padding_border_margin(containing_block);
+                        let pbm = style.padding_border_margin(containing_block);
                         let margin_sum = pbm.margin.auto_is(Au::zero).sum();
                         let content_box_inset =
                             (pbm.padding_border_sums + margin_sum).map(|v| v.to_f32_px());
@@ -256,7 +258,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         let content_box_size_override = ContainingBlock {
                             inline_size: Au::from_f32_px(inline_size),
                             block_size: maybe_block_size,
-                            style: &non_replaced.style,
+                            style,
                         };
 
                         let layout = {

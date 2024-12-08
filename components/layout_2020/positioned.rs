@@ -20,7 +20,9 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, HoistedSharedFragment,
 };
@@ -521,24 +523,22 @@ impl HoistedAbsolutelyPositionedBox {
             flip_anchor: false,
         };
 
-        if let IndependentFormattingContext::Replaced(replaced) = context {
+        if let IndependentFormattingContextContents::Replaced(replaced) = &context.contents {
             // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
             // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
             let inset_sums = LogicalVec2 {
                 inline: inline_axis_solver.inset_sum(),
                 block: block_axis_solver.inset_sum(),
             };
-            let used_size = replaced
-                .contents
-                .used_size_as_if_inline_element_from_content_box_sizes(
-                    containing_block,
-                    &style,
-                    replaced.preferred_aspect_ratio(&pbm.padding_border_sums),
-                    computed_size,
-                    computed_min_size,
-                    computed_max_size,
-                    pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum() + inset_sums,
-                );
+            let used_size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
+                containing_block,
+                &style,
+                context.preferred_aspect_ratio(&pbm.padding_border_sums),
+                computed_size,
+                computed_min_size,
+                computed_max_size,
+                pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum() + inset_sums,
+            );
             inline_axis_solver.override_size(used_size.inline);
             block_axis_solver.override_size(used_size.block);
         }
@@ -561,20 +561,20 @@ impl HoistedAbsolutelyPositionedBox {
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
-            match context {
-                IndependentFormattingContext::Replaced(replaced) => {
+            match &context.contents {
+                IndependentFormattingContextContents::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
                     content_size = LogicalVec2 {
                         inline: inline_axis.size.to_definite().unwrap(),
                         block: block_axis.size.to_definite().unwrap(),
                     };
-                    fragments = replaced.contents.make_fragments(
+                    fragments = replaced.make_fragments(
                         &style,
                         content_size.to_physical_size(containing_block_writing_mode),
                     );
                 },
-                IndependentFormattingContext::NonReplaced(non_replaced) => {
+                IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
                     let inline_size = inline_axis.size.to_definite().unwrap();

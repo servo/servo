@@ -34,7 +34,7 @@ use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAnd
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
 #[derive(Debug, Serialize)]
-pub(crate) struct ReplacedContent {
+pub(crate) struct ReplacedContents {
     pub kind: ReplacedContentKind,
     natural_size: NaturalSizes,
     base_fragment_info: BaseFragmentInfo,
@@ -140,7 +140,7 @@ pub(crate) enum ReplacedContentKind {
     Video(Option<VideoInfo>),
 }
 
-impl ReplacedContent {
+impl ReplacedContents {
     pub fn for_element<'dom>(element: impl NodeExt<'dom>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
