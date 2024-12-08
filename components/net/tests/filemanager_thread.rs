@@ -21,7 +21,7 @@ use crate::create_embedder_proxy;
 
 #[test]
 fn test_filemanager() {
-    let pool = CoreResourceThreadPool::new(1);
+    let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
     let filemanager = FileManager::new(create_embedder_proxy(), Arc::downgrade(&pool_handle));
     set_pref!(dom.testing.html_input_element.select_files.enabled, true);

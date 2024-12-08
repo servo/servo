@@ -145,10 +145,6 @@ impl SystemFontService {
         SystemFontServiceProxySender(sender)
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
     fn run(&mut self) {
         loop {
             let msg = self.port.recv().unwrap();

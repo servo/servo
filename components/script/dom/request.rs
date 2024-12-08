@@ -801,7 +801,7 @@ impl From<NetTraitsRequestMode> for RequestMode {
 impl From<ReferrerPolicy> for MsgReferrerPolicy {
     fn from(policy: ReferrerPolicy) -> Self {
         match policy {
-            ReferrerPolicy::_empty => MsgReferrerPolicy::default(),
+            ReferrerPolicy::_empty => MsgReferrerPolicy::EmptyString,
             ReferrerPolicy::No_referrer => MsgReferrerPolicy::NoReferrer,
             ReferrerPolicy::No_referrer_when_downgrade => {
                 MsgReferrerPolicy::NoReferrerWhenDowngrade

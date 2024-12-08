@@ -198,6 +198,28 @@ mod gen {
                 #[serde(rename = "fonts.default-monospace-size")]
                 default_monospace_size: i64,
             },
+            /// Allows customizing the different threadpools used by servo
+            threadpools: {
+                /// Number of workers per threadpool, if we fail to detect how much
+                /// parallelism is available at runtime.
+                fallback_worker_num: i64,
+                image_cache_workers: {
+                    /// Maximum number of workers for the Image Cache thread pool
+                    max: i64,
+                },
+                async_runtime_workers: {
+                    /// Maximum number of workers for the Networking async runtime thread pool
+                    max: i64
+                },
+                resource_workers: {
+                    /// Maximum number of workers for the Core Resource Manager
+                    max: i64,
+                },
+                webrender_workers: {
+                    /// Maximum number of workers for webrender
+                    max: i64,
+                },
+            },
             css: {
                 animations: {
                     testing: {

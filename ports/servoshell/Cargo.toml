@@ -102,7 +102,6 @@ surfman = { workspace = true, features = ["sm-angle-default"] }
 serde_json = { workspace = true }
 webxr = { workspace = true, optional = true }
 
-
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
