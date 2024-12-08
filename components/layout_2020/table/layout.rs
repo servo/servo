@@ -1613,7 +1613,7 @@ impl<'a> TableLayout<'a> {
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
         let context = caption.context.borrow();
-        let mut positioning_context = PositioningContext::new_for_style(&context.style);
+        let mut positioning_context = PositioningContext::new_for_style(context.style());
         let containing_block = &ContainingBlock {
             inline_size: self.table_width + table_pbm.padding_border_sums.inline,
             block_size: AuOrAuto::Auto,
@@ -1711,7 +1711,7 @@ impl<'a> TableLayout<'a> {
         table_layout
             .fragments
             .extend(self.table.captions.iter().filter_map(|caption| {
-                if caption.context.borrow().style.clone_caption_side() != CaptionSide::Top {
+                if caption.context.borrow().style().clone_caption_side() != CaptionSide::Top {
                     return None;
                 }
 
@@ -1811,7 +1811,7 @@ impl<'a> TableLayout<'a> {
         table_layout
             .fragments
             .extend(self.table.captions.iter().filter_map(|caption| {
-                if caption.context.borrow().style.clone_caption_side() != CaptionSide::Bottom {
+                if caption.context.borrow().style().clone_caption_side() != CaptionSide::Bottom {
                     return None;
                 }
 

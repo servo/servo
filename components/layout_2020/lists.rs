@@ -10,7 +10,7 @@ use style::values::computed::Image;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{NodeAndStyleInfo, PseudoElementContentItem};
-use crate::replaced::ReplacedContent;
+use crate::replaced::ReplacedContents;
 
 /// <https://drafts.csswg.org/css-lists/#content-property>
 pub(crate) fn make_marker<'dom, Node>(
@@ -32,7 +32,7 @@ where
     // https://drafts.csswg.org/css-lists/#marker-image
     let marker_image = || match &style.list_style_image {
         Image::Url(url) => Some(vec![
-            PseudoElementContentItem::Replaced(ReplacedContent::from_image_url(
+            PseudoElementContentItem::Replaced(ReplacedContents::from_image_url(
                 node, context, url,
             )?),
             PseudoElementContentItem::Text(" ".into()),

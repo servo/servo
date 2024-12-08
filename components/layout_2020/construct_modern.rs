@@ -15,9 +15,10 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
-    IndependentFormattingContext, NonReplacedFormattingContext,
-    NonReplacedFormattingContextContents,
+    IndependentFormattingContext, IndependentFormattingContextContents,
+    IndependentNonReplacedContents,
 };
+use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::DisplayGeneratingBox;
 
 /// <https://drafts.csswg.org/css-flexbox/#flex-items>
@@ -173,16 +174,12 @@ where
                         BlockContainer::InlineFormattingContext(inline_formatting_context),
                     );
                     let info = &self.info.new_anonymous(anonymous_style.clone().unwrap());
-                    let non_replaced = NonReplacedFormattingContext {
-                        base_fragment_info: info.into(),
-                        style: info.style.clone(),
-                        content_sizes_result: Default::default(),
-                        contents: NonReplacedFormattingContextContents::Flow(
-                            block_formatting_context,
+                    let formatting_context = IndependentFormattingContext {
+                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
+                        contents: IndependentFormattingContextContents::NonReplaced(
+                            IndependentNonReplacedContents::Flow(block_formatting_context),
                         ),
                     };
-                    let formatting_context =
-                        IndependentFormattingContext::NonReplaced(non_replaced);
 
                     Some(ModernItem {
                         kind: ModernItemKind::InFlow,
