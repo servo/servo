@@ -26,6 +26,7 @@ use crate::dom_traversal::{
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use crate::table::{AnonymousTableContent, Table};
@@ -654,9 +655,8 @@ where
                 let contents = intermediate_block_container.finish(context, info);
                 let contains_floats = contents.contains_floats();
                 ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
-                    base_fragment_info: info.into(),
+                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
                     contents,
-                    style: Arc::clone(&info.style),
                     contains_floats,
                 })
             },
