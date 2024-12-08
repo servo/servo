@@ -809,7 +809,9 @@ pub enum WebDriverCommandMsg {
         IpcSender<Option<Image>>,
     ),
     ///
-    NewTab(TopLevelBrowsingContextId),
+    NewTab(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
+    ///
+    FocusWebView(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes

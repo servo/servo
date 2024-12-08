@@ -675,13 +675,16 @@ impl Handler {
     }
 
     fn wait_for_load(&self) -> WebDriverResult<WebDriverResponse> {
+        info!("waiting for load");
         let timeout = self.session()?.load_timeout;
-        select! {
+        let result = select! {
             recv(self.load_status_receiver) -> _ => Ok(WebDriverResponse::Void),
             recv(after(Duration::from_millis(timeout))) -> _ => Err(
                 WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
             ),
-        }
+        };
+        info!("finished waiting for load with {:?}", result);
+        result
     }
 
     fn handle_current_url(&self) -> WebDriverResult<WebDriverResponse> {
@@ -898,15 +901,21 @@ impl Handler {
         }
     }
 
-    fn handle_new_window(&self, _parameters: &NewWindowParameters) -> WebDriverResult<WebDriverResponse> {
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
+    fn handle_new_window(&mut self, _parameters: &NewWindowParameters) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd_msg = WebDriverCommandMsg::NewTab(
-            top_level_browsing_context_id,
-        );
+        let cmd_msg = WebDriverCommandMsg::NewTab(sender, self.load_status_sender.clone());
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
+
+        if let Ok(new_top_level_browsing_context_id) = receiver.recv() {
+            let session = self.session_mut().unwrap();
+            session.top_level_browsing_context_id = new_top_level_browsing_context_id;
+            session.browsing_context_id = BrowsingContextId::from(new_top_level_browsing_context_id);
+        }
+
+        let _ = self.wait_for_load();
 
         let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
