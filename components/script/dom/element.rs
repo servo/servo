@@ -4146,7 +4146,7 @@ impl Element {
     // https://html.spec.whatwg.org/multipage/#language
     pub fn get_lang(&self) -> String {
         self.upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
                     el.get_attribute(&ns!(xml), &local_name!("lang"))
