@@ -54,6 +54,7 @@
   "dom.webxr.test": false,
   "dom.webxr.unsafe-assume-user-intent": false,
   "dom.worklet.timeout_ms": 10,
+  "dom.xpath.enabled": false,
   "gfx.subpixel-text-antialiasing.enabled": true,
   "gfx.texture-swizzling.enabled": true,
   "js.asmjs.enabled": true,

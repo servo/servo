@@ -6042,6 +6042,7 @@ dependencies = [
  "mozangle",
  "mozjs",
  "net_traits",
+ "nom",
  "num-traits",
  "num_cpus",
  "parking_lot",

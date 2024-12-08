@@ -10,7 +10,7 @@ use std::default::Default;
 use std::ops::Range;
 use std::slice::from_ref;
 use std::sync::Arc as StdArc;
-use std::{cmp, iter};
+use std::{cmp, fmt, iter};
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
@@ -166,6 +166,23 @@ pub struct Node {
     #[ignore_malloc_size_of = "trait object"]
     #[no_trace]
     layout_data: DomRefCell<Option<Box<GenericLayoutData>>>,
+}
+
+impl fmt::Debug for Node {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if matches!(self.type_id(), NodeTypeId::Element(_)) {
+            let el = self.downcast::<Element>().unwrap();
+            el.fmt(f)
+        } else {
+            write!(f, "[Node({:?})]", self.type_id())
+        }
+    }
+}
+
+impl fmt::Debug for DomRoot<Node> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        (**self).fmt(f)
+    }
 }
 
 /// Flags for node items
