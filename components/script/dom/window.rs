@@ -56,9 +56,7 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData, ScriptMsg,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerSchedulerMsg,
-    WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData, ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme, TimerSchedulerMsg, WindowSizeData, WindowSizeType
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -181,6 +179,7 @@ pub enum ReflowReason {
     Viewport,
     WindowResize,
     WorkletLoaded,
+    ThemeChange,
 }
 
 #[dom_struct]
@@ -223,6 +222,10 @@ pub struct Window {
     /// Most recent unhandled resize event, if any.
     #[no_trace]
     unhandled_resize_event: DomRefCell<Option<(WindowSizeData, WindowSizeType)>>,
+
+    /// Platform theme.
+    #[no_trace]
+    theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -1889,6 +1892,11 @@ impl Window {
             .or_else(|| document.GetDocumentElement())
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
+        let theme = match self.theme.get() {
+            Theme::Light => style::queries::values::PrefersColorScheme::Light,
+            Theme::Dark => style::queries::values::PrefersColorScheme::Dark,
+        };
+        
         // Send new document and relevant styles to layout.
         let needs_display = reflow_goal.needs_display();
         let reflow = ScriptReflow {
@@ -1906,6 +1914,7 @@ impl Window {
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
+            theme,
         };
 
         self.layout.borrow_mut().reflow(reflow);
@@ -2355,6 +2364,10 @@ impl Window {
         self.window_size.get()
     }
 
+    pub fn set_theme(&self, theme: Theme) {
+        self.theme.set(theme); 
+    }
+
     pub fn get_url(&self) -> ServoUrl {
         self.Document().url()
     }
@@ -2692,6 +2705,7 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
+            theme: Cell::new(Theme::Light),
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
