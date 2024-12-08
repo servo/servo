@@ -808,6 +808,8 @@ pub enum WebDriverCommandMsg {
     ///
     NewTab(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
     ///
+    CloseWindow(TopLevelBrowsingContextId),
+    ///
     FocusWebView(TopLevelBrowsingContextId),
 }
 
