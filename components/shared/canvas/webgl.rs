@@ -33,7 +33,7 @@ pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    base::generic_channel::channel(servo_config::opts::multiprocess())
+    base::generic_channel::channel(servo_config::opts::get().multiprocess)
 }
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.

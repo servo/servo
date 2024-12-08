@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#textmetrics
-[Exposed=(PaintWorklet, Window, Worker), Pref="dom.canvas_text.enabled"]
+[Exposed=(PaintWorklet, Window, Worker), Pref="dom_canvas_text_enabled"]
 interface TextMetrics {
   // x-direction
   readonly attribute double width; // advance width

@@ -280,7 +280,7 @@ impl Stream for BodyStream {
                     .content_length
                     .map_or(false, |c| c.0 == self.total_read);
                 if self.is_secure_scheme &&
-                    (all_content_read || pref!(network.tls.ignore_unexpected_eof))
+                    (all_content_read || pref!(network_tls_ignore_unexpected_eof))
                 {
                     let source = err.source();
                     let is_unexpected_eof = source

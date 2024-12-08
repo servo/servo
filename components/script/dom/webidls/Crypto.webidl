@@ -13,7 +13,7 @@ partial interface mixin WindowOrWorkerGlobalScope {
 
 [Exposed=(Window,Worker)]
 interface Crypto {
-  [SecureContext, Pref="dom.crypto.subtle.enabled"] readonly attribute SubtleCrypto subtle;
+  [SecureContext, Pref="dom_crypto_subtle_enabled"] readonly attribute SubtleCrypto subtle;
   [Throws] ArrayBufferView getRandomValues(ArrayBufferView array);
   [SecureContext] DOMString randomUUID();
 };

@@ -44,7 +44,7 @@ impl WebGPU {
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: WGPUImageMap,
     ) -> Option<(Self, IpcReceiver<WebGPUMsg>)> {
-        if !pref!(dom.webgpu.enabled) {
+        if !pref!(dom_webgpu_enabled) {
             return None;
         }
         let (sender, receiver) = match ipc::channel() {

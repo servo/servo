@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/IntersectionObserver/#intersection-observer-entry
 
-[Pref="dom.intersection_observer.enabled", Exposed=(Window)]
+[Pref="dom_intersection_observer_enabled", Exposed=(Window)]
 interface IntersectionObserverEntry {
   constructor(IntersectionObserverEntryInit intersectionObserverEntryInit);
   readonly attribute DOMHighResTimeStamp time;

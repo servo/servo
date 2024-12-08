@@ -5,7 +5,7 @@
 //! Machinery to conditionally expose things.
 
 use js::rust::HandleObject;
-use servo_config::prefs;
+use servo_config::prefs::get;
 
 use crate::dom::bindings::codegen::InterfaceObjectMap;
 use crate::dom::bindings::interface::is_exposed_in;
@@ -85,7 +85,7 @@ impl Condition {
         global: HandleObject,
     ) -> bool {
         match *self {
-            Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
+            Condition::Pref(name) => get().get_value(name).try_into().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),
             Condition::Exposed(globals) => is_exposed_in(global, globals),
             Condition::SecureContext() => is_secure_context(cx),

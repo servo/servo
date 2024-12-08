@@ -5,7 +5,7 @@
 // skip-unless CARGO_FEATURE_WEBXR
 
 // https://immersive-web.github.io/webxr/#xrsystem-interface
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRSystem: EventTarget {
   // Methods
   Promise<boolean> isSessionSupported(XRSessionMode mode);
@@ -17,7 +17,7 @@ interface XRSystem: EventTarget {
 
 [SecureContext]
 partial interface Navigator {
-  [SameObject, Pref="dom.webxr.enabled"] readonly attribute XRSystem xr;
+  [SameObject, Pref="dom_webxr_enabled"] readonly attribute XRSystem xr;
 };
 
 enum XRSessionMode {
@@ -33,5 +33,5 @@ dictionary XRSessionInit {
 
 partial interface XRSystem {
   // https://github.com/immersive-web/webxr-test-api/
-  [SameObject, Pref="dom.webxr.test"] readonly attribute XRTest test;
+  [SameObject, Pref="dom_webxr_test"] readonly attribute XRTest test;
 };

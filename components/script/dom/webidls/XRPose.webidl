@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrpose-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRPose {
   [SameObject] readonly attribute XRRigidTransform transform;
   [SameObject] readonly attribute DOMPointReadOnly? linearVelocity;

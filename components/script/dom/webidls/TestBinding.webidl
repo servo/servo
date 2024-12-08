@@ -100,7 +100,7 @@ dictionary TestURLLike {
   required DOMString href;
 };
 
-[Pref="dom.testbinding.enabled",
+[Pref="dom_testbinding_enabled",
  Exposed=(Window,Worker)
 ]
 interface TestBinding {
@@ -516,28 +516,28 @@ interface TestBinding {
   boolean BooleanMozPreference(DOMString pref_name);
   DOMString StringMozPreference(DOMString pref_name);
 
-  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  [Pref="dom_testbinding_prefcontrolled_enabled"]
   readonly attribute boolean prefControlledAttributeDisabled;
-  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  [Pref="dom_testbinding_prefcontrolled_enabled"]
   static readonly attribute boolean prefControlledStaticAttributeDisabled;
-  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  [Pref="dom_testbinding_prefcontrolled_enabled"]
   undefined prefControlledMethodDisabled();
-  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  [Pref="dom_testbinding_prefcontrolled_enabled"]
   static undefined prefControlledStaticMethodDisabled();
-  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  [Pref="dom_testbinding_prefcontrolled_enabled"]
   const unsigned short prefControlledConstDisabled = 0;
-  [Pref="layout.animations.test.enabled"]
+  [Pref="layout_animations_test_enabled"]
   undefined advanceClock(long millis);
 
-  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  [Pref="dom_testbinding_prefcontrolled2_enabled"]
   readonly attribute boolean prefControlledAttributeEnabled;
-  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  [Pref="dom_testbinding_prefcontrolled2_enabled"]
   static readonly attribute boolean prefControlledStaticAttributeEnabled;
-  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  [Pref="dom_testbinding_prefcontrolled2_enabled"]
   undefined prefControlledMethodEnabled();
-  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  [Pref="dom_testbinding_prefcontrolled2_enabled"]
   static undefined prefControlledStaticMethodEnabled();
-  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  [Pref="dom_testbinding_prefcontrolled2_enabled"]
   const unsigned short prefControlledConstEnabled = 0;
 
   [Func="TestBinding::condition_unsatisfied"]
@@ -609,11 +609,11 @@ callback SimpleCallback = undefined(any value);
 callback callbackWithOnlyOneOptionalArg = Promise<undefined> (optional any reason);
 
 partial interface TestBinding {
-  [Pref="dom.testable_crash.enabled"]
+  [Pref="dom_testable_crash_enabled"]
   undefined crashHard();
 };
 
-[Exposed=(Window,Worker), Pref="dom.testbinding.enabled"]
+[Exposed=(Window,Worker), Pref="dom_testbinding_enabled"]
 namespace TestNS {
     const unsigned long ONE   = 1;
     const unsigned long TWO   = 0x2;

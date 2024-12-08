@@ -695,8 +695,8 @@ impl CoreResourceManager {
     ) -> CoreResourceManager {
         let num_threads = thread::available_parallelism()
             .map(|i| i.get())
-            .unwrap_or(servo_config::pref!(threadpools.fallback_worker_num) as usize)
-            .min(servo_config::pref!(threadpools.resource_workers.max).max(1) as usize);
+            .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
+            .min(servo_config::pref!(threadpools_resource_workers_max).max(1) as usize);
         let pool = CoreResourceThreadPool::new(num_threads, "CoreResourceThreadPool".to_string());
         let pool_handle = Arc::new(pool);
         CoreResourceManager {

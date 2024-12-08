@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-
 use ipc_channel::Error;
 use script_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
-use servo_config::prefs::{self, PrefValue};
+use servo_config::prefs;
+use servo_config::prefs::Preferences;
 use servo_url::ImmutableOrigin;
 
 use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
@@ -18,7 +17,7 @@ use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
 #[derive(Deserialize, Serialize)]
 pub struct ServiceWorkerUnprivilegedContent {
     opts: Opts,
-    prefs: HashMap<String, PrefValue>,
+    prefs: Box<Preferences>,
     senders: SWManagerSenders,
     origin: ImmutableOrigin,
 }
@@ -30,7 +29,7 @@ impl ServiceWorkerUnprivilegedContent {
     ) -> ServiceWorkerUnprivilegedContent {
         ServiceWorkerUnprivilegedContent {
             opts: (*opts::get()).clone(),
-            prefs: prefs::pref_map().iter().collect(),
+            prefs: Box::new(prefs::get().clone()),
             senders,
             origin,
         }
@@ -53,7 +52,7 @@ impl ServiceWorkerUnprivilegedContent {
         self.opts.clone()
     }
 
-    pub fn prefs(&self) -> HashMap<String, PrefValue> {
-        self.prefs.clone()
+    pub fn prefs(&self) -> &Preferences {
+        &self.prefs
     }
 }

@@ -109,7 +109,7 @@ interface HTMLInputElement : HTMLElement {
   // also has obsolete members
 
   // Select with file-system paths for testing purpose
-  [Pref="dom.testing.htmlinputelement.select_files.enabled"]
+  [Pref="dom_testing_html_input_element_select_files_enabled"]
   undefined selectFiles(sequence<DOMString> path);
 };
 

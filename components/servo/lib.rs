@@ -78,6 +78,8 @@ use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
 use script_layout_interface::LayoutFactory;
 use script_traits::{ScriptToConstellationChan, WindowSizeData};
+use servo_config::opts::Opts;
+use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
@@ -232,6 +234,8 @@ where
     )]
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
+        opts: Opts,
+        preferences: Preferences,
         rendering_context: RenderingContext,
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
@@ -239,7 +243,12 @@ where
         composite_target: CompositeTarget,
     ) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
+        opts::set_options(opts);
         let opts = opts::get();
+
+        // Set the preferences globally.
+        // TODO: It would be better to make these private to a particular Servo instance.
+        servo_config::prefs::set(preferences);
 
         use std::sync::atomic::Ordering;
 
@@ -309,9 +318,9 @@ where
         );
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
 
-        let devtools_sender = if opts.devtools_server_enabled {
+        let devtools_sender = if pref!(devtools_server_enabled) {
             Some(devtools::start_server(
-                opts.devtools_port,
+                pref!(devtools_server_port) as u16,
                 embedder_proxy.clone(),
             ))
         } else {
@@ -330,7 +339,7 @@ where
             );
 
             let render_notifier = Box::new(RenderNotifier::new(compositor_proxy.clone()));
-            let clear_color = servo_config::pref!(shell.background_color.rgba);
+            let clear_color = servo_config::pref!(shell_background_color_rgba);
             let clear_color = ColorF::new(
                 clear_color[0] as f32,
                 clear_color[1] as f32,
@@ -346,8 +355,8 @@ where
             };
             let worker_threads = thread::available_parallelism()
                 .map(|i| i.get())
-                .unwrap_or(pref!(threadpools.fallback_worker_num) as usize)
-                .min(pref!(threadpools.webrender_workers.max).max(1) as usize);
+                .unwrap_or(pref!(threadpools_fallback_worker_num) as usize)
+                .min(pref!(threadpools_webrender_workers_max).max(1) as usize);
             let workers = Some(Arc::new(
                 rayon::ThreadPoolBuilder::new()
                     .num_threads(worker_threads)
@@ -372,9 +381,9 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
+                    enable_subpixel_aa: pref!(gfx_subpixel_text_antialiasing_enabled) &&
                         !opts.debug.disable_subpixel_text_antialiasing,
-                    allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
+                    allow_texture_swizzling: pref!(gfx_texture_swizzling_enabled),
                     clear_color,
                     upload_method,
                     workers,
@@ -427,7 +436,7 @@ where
             webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
                 .expect("Failed to create WebXR device registry");
         #[cfg(feature = "webxr")]
-        if pref!(dom.webxr.enabled) {
+        if pref!(dom_webxr_enabled) {
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
@@ -587,7 +596,7 @@ where
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         rendering_context: &RenderingContext,
     ) -> (WindowGLContext, Option<GLPlayerThreads>) {
-        if !pref!(media.glvideo.enabled) {
+        if !pref!(media_glvideo_enabled) {
             return (
                 WindowGLContext {
                     gl_context: GlContext::Unknown,
@@ -1192,7 +1201,7 @@ pub fn run_content_process(token: String) {
 
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_options(unprivileged_content.opts());
-    prefs::add_user_prefs(unprivileged_content.prefs());
+    prefs::set(unprivileged_content.prefs().clone());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {

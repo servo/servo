@@ -660,7 +660,7 @@ where
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
                 let (background_monitor_register, background_hang_monitor_control_ipc_senders) =
-                    if opts::multiprocess() {
+                    if opts::get().multiprocess {
                         (None, vec![])
                     } else {
                         let (
@@ -2502,7 +2502,7 @@ where
                 };
                 let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin);
 
-                if opts::multiprocess() {
+                if opts::get().multiprocess {
                     if content.spawn_multiprocess().is_err() {
                         return warn!("Failed to spawn process for SW manager.");
                     }
@@ -5034,7 +5034,7 @@ where
         let pipelines_to_evict = {
             let session_history = self.get_joint_session_history(top_level_browsing_context_id);
 
-            let history_length = pref!(session_history.max_length) as usize;
+            let history_length = pref!(session_history_max_length) as usize;
 
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then

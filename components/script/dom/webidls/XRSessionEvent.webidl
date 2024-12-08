@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrsessionevent-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRSessionEvent : Event {
   [Throws] constructor(DOMString type, XRSessionEventInit eventInitDict);
   [SameObject] readonly attribute XRSession session;

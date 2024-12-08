@@ -19,9 +19,9 @@ pub static HANDLE: LazyLock<Mutex<Option<Runtime>>> = LazyLock::new(|| {
             .worker_threads(
                 thread::available_parallelism()
                     .map(|i| i.get())
-                    .unwrap_or(servo_config::pref!(threadpools.fallback_worker_num) as usize)
+                    .unwrap_or(servo_config::pref!(threadpools_fallback_worker_num) as usize)
                     .min(
-                        servo_config::pref!(threadpools.async_runtime_workers.max).max(1) as usize,
+                        servo_config::pref!(threadpools_async_runtime_workers_max).max(1) as usize,
                     ),
             )
             .enable_io()

@@ -14,10 +14,11 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
 };
+use servo::config::opts::Opts;
 use servo::embedder_traits::Cursor;
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
-use servo::servo_config::{opts, pref};
+use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
@@ -57,14 +58,13 @@ pub struct Window {
 
 impl Window {
     pub fn new(
+        opts: &Opts,
         rendering_context: &RenderingContext,
         window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &ActiveEventLoop,
         no_native_titlebar: bool,
         device_pixel_ratio_override: Option<f32>,
     ) -> Window {
-        let opts = opts::get();
-
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
@@ -625,13 +625,13 @@ impl webxr::glwindow::GlWindow for XRWindow {
     }
 
     fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
-        if pref!(dom.webxr.glwindow.red_cyan) {
+        if pref!(dom_webxr_glwindow_red_cyan) {
             webxr::glwindow::GlWindowMode::StereoRedCyan
-        } else if pref!(dom.webxr.glwindow.left_right) {
+        } else if pref!(dom_webxr_glwindow_left_right) {
             webxr::glwindow::GlWindowMode::StereoLeftRight
-        } else if pref!(dom.webxr.glwindow.spherical) {
+        } else if pref!(dom_webxr_glwindow_spherical) {
             webxr::glwindow::GlWindowMode::Spherical
-        } else if pref!(dom.webxr.glwindow.cubemap) {
+        } else if pref!(dom_webxr_glwindow_cubemap) {
             webxr::glwindow::GlWindowMode::Cubemap
         } else {
             webxr::glwindow::GlWindowMode::Blit

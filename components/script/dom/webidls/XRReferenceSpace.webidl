@@ -14,7 +14,7 @@ enum XRReferenceSpaceType {
   "unbounded"
 };
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRReferenceSpace : XRSpace {
   [NewObject] XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
 

@@ -55,9 +55,6 @@ pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
 }
 
 pub enum Resource {
-    /// A json file of `servo_config::pref_util::Preferences` configuration.
-    /// It can be empty but lots of features will be disabled.
-    Preferences,
     /// A list of GATT services that are blocked from being used by web bluetooth.
     /// The format of the file is a list of UUIDs, one per line, with an optional second word to specify the
     /// type of blocklist.
@@ -121,7 +118,6 @@ pub enum Resource {
 impl Resource {
     pub fn filename(&self) -> &'static str {
         match self {
-            Resource::Preferences => "prefs.json",
             Resource::BluetoothBlocklist => "gatt_blocklist.txt",
             Resource::DomainList => "public_domains.txt",
             Resource::HstsPreloadList => "hsts_preload.json",
@@ -164,7 +160,6 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
         }
         fn read(&self, file: Resource) -> Vec<u8> {
             match file {
-                Resource::Preferences => &include_bytes!("../../../resources/prefs.json")[..],
                 Resource::BluetoothBlocklist => {
                     &include_bytes!("../../../resources/gatt_blocklist.txt")[..]
                 },

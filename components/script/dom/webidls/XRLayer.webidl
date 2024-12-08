@@ -5,5 +5,5 @@
 // skip-unless CARGO_FEATURE_WEBXR
 
 // https://immersive-web.github.io/webxr/#xrlayer
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRLayer : EventTarget {};

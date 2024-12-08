@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrinputsourceschangedevent-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.test"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_test"]
 interface XRInputSourcesChangeEvent : Event {
   constructor(DOMString type, XRInputSourcesChangeEventInit eventInitDict);
   [SameObject] readonly attribute XRSession session;

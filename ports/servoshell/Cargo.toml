@@ -56,6 +56,7 @@ webxr = ["dep:webxr", "libservo/webxr"]
 webgpu = ["libservo/webgpu"]
 
 [dependencies]
+euclid = { workspace = true }
 libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
@@ -104,10 +105,10 @@ webxr = { workspace = true, optional = true }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
+dirs = "5.0"
 egui = { version = "0.30.0" }
 egui_glow = { version = "0.30.0", features = ["winit"] }
 egui-winit = { version = "0.30.0", default-features = false, features = ["clipboard", "wayland"] }
-euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
 glow = "0.16.0"
@@ -116,6 +117,7 @@ http = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
 raw-window-handle = "0.6"
+serde_json = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"

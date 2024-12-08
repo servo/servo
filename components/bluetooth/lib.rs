@@ -76,7 +76,7 @@ pub trait BluetoothThreadFactory {
 impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let adapter = if pref!(dom.bluetooth.enabled) {
+        let adapter = if pref!(dom_bluetooth_enabled) {
             BluetoothAdapter::new()
         } else {
             BluetoothAdapter::new_mock()

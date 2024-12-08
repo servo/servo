@@ -802,7 +802,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             // https://html.spec.whatwg.org/multipage/#script-closable
             let is_script_closable = (self.is_top_level() && history_length == 1) ||
                 is_auxiliary ||
-                pref!(dom.allow_scripts_to_close_windows);
+                pref!(dom_allow_scripts_to_close_windows);
 
             // TODO: rest of Step 3:
             // Is the incumbent settings object's responsible browsing context familiar with current?

@@ -5,7 +5,7 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[Global=(Worklet,TestWorklet), Pref="dom.worklet.enabled", Exposed=TestWorklet]
+[Global=(Worklet,TestWorklet), Pref="dom_worklet_enabled", Exposed=TestWorklet]
 interface TestWorkletGlobalScope : WorkletGlobalScope {
     undefined registerKeyValue(DOMString key, DOMString value);
 };

@@ -20,5 +20,5 @@ partial interface CSS {
 
 // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
 partial interface CSS {
-    [SameObject, Pref="dom.worklet.enabled"] static readonly attribute Worklet paintWorklet;
+    [SameObject, Pref="dom_worklet_enabled"] static readonly attribute Worklet paintWorklet;
 };

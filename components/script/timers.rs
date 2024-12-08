@@ -237,7 +237,7 @@ impl OneshotTimers {
     }
 
     pub(crate) fn slow_down(&self) {
-        let min_duration_ms = pref!(js.timers.minimum_duration) as u64;
+        let min_duration_ms = pref!(js_timers_minimum_duration) as u64;
         self.js_timers
             .set_min_duration(Duration::from_millis(min_duration_ms));
     }

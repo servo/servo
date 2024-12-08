@@ -33,12 +33,12 @@ interface mixin NavigatorID {
 
 // https://webbluetoothcg.github.io/web-bluetooth/#navigator-extensions
 partial interface Navigator {
-  [SameObject, Pref="dom.bluetooth.enabled"] readonly attribute Bluetooth bluetooth;
+  [SameObject, Pref="dom_bluetooth_enabled"] readonly attribute Bluetooth bluetooth;
 };
 
 // https://w3c.github.io/ServiceWorker/#navigator-service-worker
 partial interface Navigator {
-  [SameObject, Pref="dom.serviceworker.enabled"] readonly attribute ServiceWorkerContainer serviceWorker;
+  [SameObject, Pref="dom_serviceworker_enabled"] readonly attribute ServiceWorkerContainer serviceWorker;
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorlanguage
@@ -63,12 +63,12 @@ interface mixin NavigatorCookies {
 // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
 [Exposed=(Window)]
 partial interface Navigator {
-  [Pref="dom.permissions.enabled"] readonly attribute Permissions permissions;
+  [Pref="dom_permissions_enabled"] readonly attribute Permissions permissions;
 };
 
 // https://w3c.github.io/gamepad/#navigator-interface-extension
 partial interface Navigator {
-  [Pref="dom.gamepad.enabled"] sequence<Gamepad?> getGamepads();
+  [Pref="dom_gamepad_enabled"] sequence<Gamepad?> getGamepads();
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorconcurrenthardware

@@ -48,7 +48,7 @@ impl EmbedderMethods for EmbedderCallbacks {
         xr: &mut webxr::MainThreadRegistry,
         _embedder_proxy: EmbedderProxy,
     ) {
-        if pref!(dom.webxr.test) {
+        if pref!(dom_webxr_test) {
             xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
         } else if let Some(xr_discovery) = self.xr_discovery.take() {
             match xr_discovery {

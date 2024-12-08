@@ -1356,8 +1356,8 @@ impl Document {
 
         if let Some((last_time, last_pos)) = opt {
             let DBL_CLICK_TIMEOUT =
-                Duration::from_millis(pref!(dom.document.dblclick_timeout) as u64);
-            let DBL_CLICK_DIST_THRESHOLD = pref!(dom.document.dblclick_dist) as u64;
+                Duration::from_millis(pref!(dom_document_dblclick_timeout) as u64);
+            let DBL_CLICK_DIST_THRESHOLD = pref!(dom_document_dblclick_dist) as u64;
 
             // Calculate distance between this click and the previous click.
             let line = click_pos - last_pos;
@@ -2469,7 +2469,7 @@ impl Document {
         // https://immersive-web.github.io/webxr/#user-intention
         // https://github.com/immersive-web/navigation/issues/10
         #[cfg(feature = "webxr")]
-        if pref!(dom.webxr.sessionavailable) && self.window.is_top_level() {
+        if pref!(dom_webxr_sessionavailable) && self.window.is_top_level() {
             self.window.Navigator().Xr().dispatch_sessionavailable();
         }
 
@@ -2850,7 +2850,7 @@ impl Document {
         local_name: &LocalName,
         is: Option<&LocalName>,
     ) -> Option<Rc<CustomElementDefinition>> {
-        if !pref!(dom.custom_elements.enabled) {
+        if !pref!(dom_customelements_enabled) {
             return None;
         }
 
@@ -3344,7 +3344,7 @@ impl Document {
             #[cfg(feature = "webgpu")]
             webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
-            animation_timeline: if pref!(layout.animations.test.enabled) {
+            animation_timeline: if pref!(layout_animations_test_enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())
             } else {
                 DomRefCell::new(AnimationTimeline::new())
@@ -3826,7 +3826,7 @@ impl Document {
             error = true;
         }
 
-        if pref!(dom.fullscreen.test) {
+        if pref!(dom_fullscreen_test) {
             // For reftests we just take over the current window,
             // and don't try to really enter fullscreen.
             info!("Tests don't really enter fullscreen.");
@@ -4109,7 +4109,7 @@ impl Document {
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
     pub(crate) fn update_animations_and_send_events(&self, can_gc: CanGc) {
         // Only update the time if it isn't being managed by a test.
-        if !pref!(layout.animations.test.enabled) {
+        if !pref!(layout_animations_test_enabled) {
             self.animation_timeline.borrow_mut().update();
         }
 

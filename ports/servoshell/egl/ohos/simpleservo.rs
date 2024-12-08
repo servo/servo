@@ -17,8 +17,6 @@ use servo::embedder_traits::resources;
 /// and that perform_updates need to be called
 pub use servo::embedder_traits::EventLoopWaker;
 use servo::euclid::Size2D;
-use servo::servo_config::opts;
-use servo::servo_config::opts::ArgumentParsingResult;
 use servo::servo_url::ServoUrl;
 use servo::webrender_traits::RenderingContext;
 use servo::{self, Servo};
@@ -31,6 +29,7 @@ use crate::egl::ohos::InitOpts;
 use crate::egl::servo_glue::{
     Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
 };
+use crate::prefs::{parse_command_line_arguments, ArgumentParsingResult};
 
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
@@ -46,52 +45,26 @@ pub fn init(
     crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
-    let mut args = vec!["servoshell".to_string()];
+
     // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
     // Then again, this code could and maybe even should be disabled in production builds.
-    let split_args: Vec<String> = options
-        .commandline_args
-        .split("\u{1f}")
-        .map(|arg| arg.to_string())
-        .collect();
-    args.extend(split_args);
+    let mut args = vec!["servoshell".to_string()];
+    args.extend(
+        options
+            .commandline_args
+            .split("\u{1f}")
+            .map(|arg| arg.to_string()),
+    );
     debug!("Servo commandline args: {:?}", args);
 
-    let mut opts = getopts::Options::new();
-    opts.optopt(
-        "u",
-        "user-agent",
-        "Set custom user agent string (or ios / android / desktop for platform default)",
-        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to enable",
-        "dom.bluetooth.enabled",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to disable",
-        "dom.webgpu.enabled=false",
-    );
-    opts.optmulti(
-        "",
-        "prefs-file",
-        "Load in additional prefs from a file.",
-        "--prefs-file /path/to/prefs.json",
-    );
-
-    let opts_matches = match opts::from_cmdline_args(opts, &args) {
-        ArgumentParsingResult::ContentProcess(matches, _token) => {
-            error!("Content Process mode not supported / tested yet on OpenHarmony!");
-            matches
+    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("OHOS does not have support for multiprocess yet.")
         },
-        ArgumentParsingResult::ChromeProcess(matches) => matches,
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
+        },
     };
-
-    crate::prefs::register_user_prefs(&opts_matches);
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
@@ -144,11 +117,12 @@ pub fn init(
     ));
 
     let servo = Servo::new(
+        opts,
+        preferences,
         rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
-        // User agent: Mozilla/5.0 (<Phone|PC|Tablet>; HarmonyOS 5.0) bla bla
-        None,
+        None, /* user_agent */
         CompositeTarget::Window,
     );
 
@@ -156,7 +130,7 @@ pub fn init(
         rendering_context,
         servo,
         window_callbacks,
-        Some(options.resource_dir),
+        servoshell_preferences,
     );
 
     let initial_url = ServoUrl::parse(options.url.as_str())

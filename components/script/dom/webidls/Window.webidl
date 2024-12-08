@@ -15,7 +15,7 @@
   [PutForwards=href, LegacyUnforgeable, CrossOriginReadable, CrossOriginWritable]
     readonly attribute Location location;
   readonly attribute History history;
-  [Pref="dom.customelements.enabled"]
+  [Pref="dom_customelements_enabled"]
   readonly attribute CustomElementRegistry customElements;
   //[Replaceable] readonly attribute BarProp locationbar;
   //[Replaceable] readonly attribute BarProp menubar;
@@ -136,11 +136,11 @@ partial interface Window {
 
 // Proprietary extensions.
 partial interface Window {
-  [Pref="dom.servo_helpers.enabled"]
+  [Pref="dom_servo_helpers_enabled"]
   undefined debug(DOMString arg);
-  [Pref="dom.servo_helpers.enabled"]
+  [Pref="dom_servo_helpers_enabled"]
   undefined gc();
-  [Pref="dom.servo_helpers.enabled"]
+  [Pref="dom_servo_helpers_enabled"]
   undefined js_backtrace();
 };
 
@@ -168,13 +168,13 @@ callback FrameRequestCallback = undefined (DOMHighResTimeStamp time);
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-interfaces
 partial interface Window {
-   [Pref="dom.bluetooth.testing.enabled", Exposed=Window]
+   [Pref="dom_bluetooth_testing_enabled", Exposed=Window]
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
 };
 
 partial interface Window {
-   [Pref="css.animations.testing.enabled"]
+   [Pref="css_animations_testing_enabled"]
    readonly attribute unsigned long runningAnimationCount;
 };
 

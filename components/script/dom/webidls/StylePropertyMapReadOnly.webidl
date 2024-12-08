@@ -4,7 +4,7 @@
 
 // https://drafts.css-houdini.org/css-typed-om-1/#stylepropertymapreadonly
 // NOTE: should this be exposed to Window?
-[Pref="dom.worklet.enabled", Exposed=(Worklet)]
+[Pref="dom_worklet_enabled", Exposed=(Worklet)]
 interface StylePropertyMapReadOnly {
     CSSStyleValue? get(DOMString property);
     // sequence<CSSStyleValue> getAll(DOMString property);

@@ -6,7 +6,7 @@
 
 // https://immersive-web.github.io/webxr/#xrreferencespaceevent-interface
 
-[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+[SecureContext, Exposed=Window, Pref="dom_webxr_enabled"]
 interface XRReferenceSpaceEvent : Event {
   [Throws] constructor(DOMString type, XRReferenceSpaceEventInit eventInitDict);
   [SameObject] readonly attribute XRReferenceSpace referenceSpace;

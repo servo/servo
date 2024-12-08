@@ -1325,7 +1325,7 @@ impl HTMLMediaElement {
             .render_poster_frame(image);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
-        if pref!(media.testing.enabled) {
+        if pref!(media_testing_enabled) {
             self.owner_global()
                 .task_manager()
                 .media_element_task_source()
