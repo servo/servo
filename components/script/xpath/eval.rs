@@ -83,6 +83,25 @@ where
     }
 }
 
+impl<T> Evaluatable for Option<T>
+where
+    T: Evaluatable,
+{
+    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+        match self {
+            Some(expr) => expr.evaluate(context),
+            None => Ok(Value::Nodeset(vec![])),
+        }
+    }
+
+    fn is_primitive(&self) -> bool {
+        match self {
+            Some(expr) => expr.is_primitive(),
+            None => false,
+        }
+    }
+}
+
 impl Evaluatable for Expr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         match self {
@@ -421,7 +440,11 @@ impl Evaluatable for StepExpr {
 
                 trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
 
-                if axis_step.predicates.predicates.is_empty() {
+                if axis_step
+                    .predicates
+                    .as_ref()
+                    .map_or(true, |plist| plist.predicates.is_empty())
+                {
                     trace!(
                         "[StepExpr] No predicates, returning nodes {:?}",
                         filtered_nodes
@@ -518,7 +541,10 @@ impl Evaluatable for PredicateExpr {
 impl Evaluatable for FilterExpr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         let primary_result = self.primary.evaluate(context)?;
-        let have_predicates = !self.predicates.predicates.is_empty();
+        let have_predicates = self
+            .predicates
+            .as_ref()
+            .map_or(false, |plist| !plist.predicates.is_empty());
 
         match (have_predicates, &primary_result) {
             (false, _) => {
@@ -545,7 +571,10 @@ impl Evaluatable for FilterExpr {
     }
 
     fn is_primitive(&self) -> bool {
-        self.predicates.predicates.is_empty() && self.primary.is_primitive()
+        self.predicates
+            .as_ref()
+            .map_or(true, |plist| plist.predicates.is_empty()) &&
+            self.primary.is_primitive()
     }
 }
 

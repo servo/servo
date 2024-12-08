@@ -18,7 +18,9 @@ use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
-use html5ever::{namespace_url, ns, serialize as html_serialize, Namespace, Prefix, QualName};
+use html5ever::{
+    local_name, namespace_url, ns, serialize as html_serialize, Namespace, Prefix, QualName,
+};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
@@ -1302,6 +1304,21 @@ impl Node {
             .borrow()
             .as_ref()
             .map(|data| data.element_data.borrow().styles.primary().clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#language
+    pub fn get_lang(&self) -> Option<String> {
+        self.inclusive_ancestors(ShadowIncluding::Yes)
+            .filter_map(|node| {
+                node.downcast::<Element>().and_then(|el| {
+                    el.get_attribute(&ns!(xml), &local_name!("lang"))
+                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
+                        .map(|attr| String::from(attr.Value()))
+                })
+                // TODO: Check meta tags for a pragma-set default language
+                // TODO: Check HTTP Content-Language header
+            })
+            .next()
     }
 }
 
