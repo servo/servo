@@ -1439,7 +1439,7 @@ where
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
             FromCompositorMsg::NewWebView(url, top_level_browsing_context_id) => {
-                self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id);
+                self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id, None);
             },
             // A top level browsing context is created and opened in both constellation and
             // compositor.
@@ -1463,14 +1463,7 @@ where
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
-                if self.webviews.get(top_level_browsing_context_id).is_none() {
-                    return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
-                }
-                self.webviews.focus(top_level_browsing_context_id);
-                self.embedder_proxy.send((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
-                ));
+                self.handle_focus_web_view(top_level_browsing_context_id);
             },
             FromCompositorMsg::BlurWebView => {
                 self.webviews.unfocus();
@@ -2932,6 +2925,21 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true))
     )]
+    fn handle_focus_web_view(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        if self.webviews.get(top_level_browsing_context_id).is_none() {
+            return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
+        }
+        self.webviews.focus(top_level_browsing_context_id);
+        self.embedder_proxy.send((
+            Some(top_level_browsing_context_id),
+            EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
+        ));
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn handle_log_entry(
         &mut self,
         top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
@@ -3019,6 +3027,7 @@ where
         &mut self,
         url: ServoUrl,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
+        response_sender: Option<IpcSender<webdriver_msg::LoadStatus>>,
     ) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
@@ -3079,6 +3088,10 @@ where
             }),
             window_size,
         });
+
+        if let Some(response_sender) = response_sender {
+            self.webdriver.load_channel = Some((pipeline_id, response_sender));
+        }
     }
 
     #[cfg_attr(
@@ -3734,7 +3747,7 @@ where
     ) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
-            debug!("Sending load to WebDriver");
+            debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
             if expected_pipeline_id == pipeline_id {
                 let _ = reply_chan.send(webdriver_msg::LoadStatus::LoadComplete);
                 webdriver_reset = true;
@@ -4545,8 +4558,17 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
-            WebDriverCommandMsg::NewTab(top_level_browsing_context_id) => {
-                self.handle_new_top_level_browsing_context(ServoUrl::parse_with_base(None, "about:blank").unwrap(), top_level_browsing_context_id);
+            WebDriverCommandMsg::NewTab(sender, load_sender) => {
+                let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
+                self.handle_new_top_level_browsing_context(
+                    ServoUrl::parse_with_base(None, "about:blank").unwrap(),
+                    top_level_browsing_context_id,
+                    Some(load_sender),
+                );
+                let _ = sender.send(top_level_browsing_context_id);
+            }
+            WebDriverCommandMsg::FocusWebView(top_level_browsing_context_id) => {
+                self.handle_focus_web_view(top_level_browsing_context_id);
             }
             WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
                 let _ = response_sender.send(self.window_size);
@@ -4830,13 +4852,17 @@ where
                 );
             },
         };
+
         if let Some(new_pipeline_id) = self.load_url(
             top_level_browsing_context_id,
             pipeline_id,
             load_data,
             replace,
         ) {
+            debug!("Setting up webdriver load notification for {:?}", new_pipeline_id);
             self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
+        } else {
+            let _ = response_sender.send(webdriver_msg::LoadStatus::LoadCanceled);
         }
     }
 
