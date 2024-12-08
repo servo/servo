@@ -62,7 +62,7 @@ use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{
     CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse, TimeoutsResponse,
-    ValueResponse, WebDriverResponse, WindowRectResponse, NewWindowResponse,
+    ValueResponse, WebDriverResponse, WindowRectResponse, NewWindowResponse, CloseWindowResponse
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
@@ -130,6 +130,8 @@ pub struct WebDriverSession {
     browsing_context_id: BrowsingContextId,
     top_level_browsing_context_id: TopLevelBrowsingContextId,
 
+    window_handles: HashMap<TopLevelBrowsingContextId, String>,
+
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
     script_timeout: Option<u64>,
@@ -158,10 +160,17 @@ impl WebDriverSession {
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) -> WebDriverSession {
+        let mut window_handles = HashMap::new();
+        let handle = Uuid::new_v4().to_string();
+        info!("Recording {:?} -> {:?}", top_level_browsing_context_id, handle);
+        window_handles.insert(top_level_browsing_context_id, handle);
+
         WebDriverSession {
             id: Uuid::new_v4(),
             browsing_context_id,
             top_level_browsing_context_id,
+
+            window_handles,
 
             script_timeout: Some(30_000),
             load_timeout: 300_000,
@@ -839,20 +848,24 @@ impl Handler {
     }
 
     fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
-        // For now we assume there's only one window so just use the session
-        // id as the window id
-        let handle = self.session.as_ref().unwrap().id.to_string();
-        Ok(WebDriverResponse::Generic(ValueResponse(
-            serde_json::to_value(handle)?,
-        )))
+        let session = self.session.as_ref().unwrap();
+        match session.window_handles.get(&session.top_level_browsing_context_id) {
+            Some(handle) => Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(handle)?,
+            ))),
+            None => Ok(WebDriverResponse::Void)
+        }
     }
 
     fn handle_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
-        // For now we assume there's only one window so just use the session
-        // id as the window id
-        let handles = vec![serde_json::to_value(
-            self.session.as_ref().unwrap().id.to_string(),
-        )?];
+        let handles = self
+            .session
+            .as_ref()
+            .unwrap()
+            .window_handles
+            .values()
+            .map(serde_json::to_value)
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(handles)?,
         )))
@@ -901,6 +914,31 @@ impl Handler {
         }
     }
 
+    fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
+        {
+            let session = self.session_mut().unwrap();
+            if let Some(handle) = session.window_handles.remove(&session.top_level_browsing_context_id) {
+                info!("Removing mapping for {:?} -> {:?}", handle, session.top_level_browsing_context_id);
+            }
+            let cmd_msg = WebDriverCommandMsg::CloseWindow(session.top_level_browsing_context_id);
+            self.constellation_chan
+                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .unwrap();
+        }
+
+        let top_level_browsing_context_id =
+            self.focus_top_level_browsing_context_id()?;
+        let browsing_context_id =
+            BrowsingContextId::from(top_level_browsing_context_id);
+        let session = self.session_mut().unwrap();
+        session.top_level_browsing_context_id = top_level_browsing_context_id;
+        session.browsing_context_id = browsing_context_id;
+
+        Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
+            session.window_handles.values().cloned().collect()
+        )))
+    }
+
     fn handle_new_window(&mut self, _parameters: &NewWindowParameters) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -913,6 +951,9 @@ impl Handler {
             let session = self.session_mut().unwrap();
             session.top_level_browsing_context_id = new_top_level_browsing_context_id;
             session.browsing_context_id = BrowsingContextId::from(new_top_level_browsing_context_id);
+            let new_handle = Uuid::new_v4().to_string();
+            info!("Recording {:?} -> {:?}", new_top_level_browsing_context_id, new_handle);
+            session.window_handles.insert(new_top_level_browsing_context_id, new_handle);
         }
 
         let _ = self.wait_for_load();
@@ -952,9 +993,19 @@ impl Handler {
         &mut self,
         parameters: &SwitchToWindowParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        // For now we assume there is only one window which has the current
-        // session's id as window id
-        if parameters.handle == self.session.as_ref().unwrap().id.to_string() {
+        let session = self.session_mut().unwrap();
+        if session.id.to_string() == parameters.handle {
+            // There's only one main window, so there's nothing to do here.
+            Ok(WebDriverResponse::Void)
+        } else if let Some((top_level_browsing_context_id, _)) =
+            session.window_handles.iter().find(|(_k, v)| **v == parameters.handle)
+        {
+            let top_level_browsing_context_id = *top_level_browsing_context_id;
+            session.top_level_browsing_context_id = top_level_browsing_context_id;
+            session.browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+
+            let msg = ConstellationMsg::FocusWebView(top_level_browsing_context_id);
+            self.constellation_chan.send(msg).unwrap();
             Ok(WebDriverResponse::Void)
         } else {
             Err(WebDriverError::new(
@@ -1771,6 +1822,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetWindowHandle => self.handle_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
             WebDriverCommand::NewWindow(ref parameters) => self.handle_new_window(parameters),
+            WebDriverCommand::CloseWindow => self.handle_close_window(),
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },
