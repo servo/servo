@@ -24,6 +24,8 @@ interface HTMLIFrameElement : HTMLElement {
   [CEReactions]
            attribute DOMString width;
   [CEReactions]
+           attribute DOMString referrerPolicy;
+  [CEReactions]
            attribute DOMString height;
   readonly attribute Document? contentDocument;
   readonly attribute WindowProxy? contentWindow;
