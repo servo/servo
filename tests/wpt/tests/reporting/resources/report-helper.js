@@ -36,3 +36,12 @@ function checkReportExists(reports, type, url) {
   }
   assert_unreached(`A report of ${type} from ${url} is not found.`);
 }
+
+function getReport(reports, type, document_url, subresource_url) {
+  for (const report of reports) {
+    if (report.type !== type) continue;
+    if (report.body.documentURL === document_url && report.body.subresourceURL == subresource_url) return report;
+  }
+  return null;
+}
+

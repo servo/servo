@@ -66,7 +66,8 @@ function run() {
                      "multiplication of number and length");
   assert_invalid_value("margin-left", "calc(2px * 1px)", // invalid calc expression
                        "multiplication of length and length");
-
+  assert_invalid_value("margin-left", "calc(20 / 0.75rem)", // invalid calc expression
+                       "division by non-number");
 }
 
 run();

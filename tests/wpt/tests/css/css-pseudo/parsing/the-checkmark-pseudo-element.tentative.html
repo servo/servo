@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS ::checkmark Pseudo-Element Test</title>
+<link rel="help" href="https://drafts.csswg.org/css-forms/#checkmark-element">
+<meta name="assert" content="This test checks the validity of the ::checkmark pseudo element selector." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_selector("::checkmark");
+test_valid_selector("*::checkmark", "::checkmark");
+test_valid_selector("foo.bar[baz]::checkmark");
+test_invalid_selector("::checkmark *");
+
+// Combinations
+test_invalid_selector("::checkmark::checkmark");
+
+test_invalid_selector("::before::checkmark");
+test_invalid_selector("::after::checkmark");
+test_invalid_selector("::marker::checkmark");
+test_invalid_selector("::placeholder::checkmark");
+
+test_invalid_selector("::checkmark::before");
+test_invalid_selector("::checkmark::after");
+test_invalid_selector("::checkmark::marker");
+test_invalid_selector("::checkmark::placeholder");
+
+test_invalid_selector("::slotted(*)::checkmark::slotted(*)");
+test_valid_selector("::slotted(*)::checkmark");
+
+test_valid_selector("::part(foo)::checkmark");
+</script>

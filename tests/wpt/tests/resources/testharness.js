@@ -1094,7 +1094,7 @@
     {
         if (typeof func !== "function") {
             tests.set_status(tests.status.ERROR,
-                             "promise_test invoked without a function");
+                             "`promise_setup` invoked without a function");
             tests.complete();
             return;
         }

@@ -1,3 +1,6 @@
 features:
 - name: popover
   files: "**"
+- name: closewatcher
+  files:
+  - "popover-close-request.html"

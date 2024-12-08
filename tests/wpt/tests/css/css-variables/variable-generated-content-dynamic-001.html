@@ -5,10 +5,8 @@
 <link rel="help" href="https://drafts.csswg.org/css-variables/#using-variables">
 <link rel="match" href="variable-generated-content-dynamic-001-ref.html">
 <style>
-:root {
-  --my-attr: attr(data-foo);
-}
 div::before {
+  --my-attr: attr(data-foo);
   content: var(--my-attr);
 }
 </style>

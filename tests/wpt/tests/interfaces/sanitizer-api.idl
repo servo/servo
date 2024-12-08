@@ -9,9 +9,22 @@ dictionary SetHTMLOptions {
 
 [Exposed=(Window,Worker)]
 interface Sanitizer {
-  constructor(optional SanitizerConfig config = {});
+  constructor(optional SanitizerConfig configuration = {});
+
+  // Query configuration:
   SanitizerConfig get();
-  SanitizerConfig getUnsafe();
+
+  // Modify a Sanitizer’s lists and fields:
+  undefined allowElement(SanitizerElementWithAttributes element);
+  undefined removeElement(SanitizerElement element);
+  undefined replaceElementWithChildren(SanitizerElement element);
+  undefined allowAttribute(SanitizerAttribute attribute);
+  undefined removeAttribute(SanitizerAttribute attribute);
+  undefined setComments(boolean allow);
+  undefined setDataAttributes(boolean allow);
+
+  // Remove markup that executes script. May modify multiple lists:
+  undefined removeUnsafe();
 };
 
 dictionary SanitizerElementNamespace {

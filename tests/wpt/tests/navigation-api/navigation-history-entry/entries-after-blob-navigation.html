@@ -19,7 +19,7 @@ async_test(t => {
       assert_true(isUUID(entries[1].key));
       assert_true(isUUID(entries[1].id));
     });
-    i.src = URL.createObjectURL(new Blob(["<body></body>"]));
+    i.src = URL.createObjectURL(new Blob(["<body></body>"], { type: "text/html" }));
   });
 }, "entries() after navigation to a blob: URL");
 </script>

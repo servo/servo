@@ -1,3 +1,7 @@
 features:
 - name: dialog
   files: "**"
+- name: closewatcher
+  files:
+  - "dialog-cancel-events.html"
+  - "dialog-canceling.html"

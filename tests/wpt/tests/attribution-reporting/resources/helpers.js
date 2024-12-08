@@ -63,6 +63,23 @@ const resetRegisteredSources = () => {
   return fetch(`${blankURL()}?clear-stash=true`);
 }
 
+function prepareAnchorOrArea(tag, referrerPolicy, eligible, url) {
+  const el = document.createElement(tag);
+  el.referrerPolicy = referrerPolicy;
+  el.target = '_blank';
+  el.textContent = 'link';
+  if (eligible === null) {
+    el.attributionSrc = url;
+    el.href = blankURL();
+  } else {
+    el.attributionSrc = '';
+    el.href = url;
+  }
+  return el;
+}
+
+let nextMapId = 0;
+
 /**
  * Method to clear the stash. Takes the URL as parameter. This could be for
  * event-level or aggregatable reports.
@@ -193,7 +210,7 @@ const registerAttributionSrc = ({
       .forEach(([key, value]) => url.searchParams.set(key, value));
 
   switch (method) {
-    case 'img':
+    case 'img': {
       const img = document.createElement('img');
       img.referrerPolicy = referrerPolicy;
       if (eligible === null) {
@@ -203,6 +220,7 @@ const registerAttributionSrc = ({
         img.src = url;
       }
       return 'event';
+    }
     case 'script':
       const script = document.createElement('script');
       script.referrerPolicy = referrerPolicy;
@@ -215,20 +233,26 @@ const registerAttributionSrc = ({
       }
       return 'event';
     case 'a':
-      const a = document.createElement('a');
-      a.referrerPolicy = referrerPolicy;
-      a.target = '_blank';
-      a.textContent = 'link';
-      if (eligible === null) {
-        a.attributionSrc = url;
-        a.href = blankURL();
-      } else {
-        a.attributionSrc = '';
-        a.href = url;
-      }
+      const a = prepareAnchorOrArea('a', referrerPolicy, eligible, url);
       document.body.appendChild(a);
       test_driver.click(a);
       return 'navigation';
+    case 'area': {
+      const area = prepareAnchorOrArea('area', referrerPolicy, eligible, url);
+      const size = 100;
+      area.coords = `0,0,${size},${size}`;
+      area.shape = 'rect';
+      const map = document.createElement('map');
+      map.name = `map-${nextMapId++}`;
+      map.append(area);
+      const img = document.createElement('img');
+      img.width = size;
+      img.height = size;
+      img.useMap = `#${map.name}`;
+      document.body.append(map, img);
+      test_driver.click(area);
+      return 'navigation';
+    }
     case 'open':
       test_driver.bless('open window', () => {
         const feature = referrerPolicy === 'no-referrer' ? 'noreferrer' : '';

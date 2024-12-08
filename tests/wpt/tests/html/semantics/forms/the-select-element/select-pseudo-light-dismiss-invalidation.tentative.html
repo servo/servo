@@ -14,7 +14,7 @@
 select {
   background-color: rgb(0, 0, 255);
 }
-select:closed {
+select:not(:open) {
   background-color: rgb(0, 255, 0);
 }
 select:open {
@@ -29,7 +29,7 @@ select, ::picker(select) {
 <script>
 promise_test(async () => {
   assert_equals(getComputedStyle(select).backgroundColor, 'rgb(0, 255, 0)',
-    'The select should match :closed at the start of the test.');
+    'The select should match :not(:open) at the start of the test.');
 
   await test_driver.click(select);
   assert_equals(getComputedStyle(select).backgroundColor, 'rgb(255, 0, 0)',
@@ -37,7 +37,7 @@ promise_test(async () => {
 
   await test_driver.click(opttwo);
   assert_equals(getComputedStyle(select).backgroundColor, 'rgb(0, 255, 0)',
-    'The select should match :closed after clicking an option.');
+    'The select should match :not(:open) after clicking an option.');
 
   await test_driver.click(select);
   assert_equals(getComputedStyle(select).backgroundColor, 'rgb(255, 0, 0)',
@@ -45,6 +45,6 @@ promise_test(async () => {
 
   await test_driver.click(button);
   assert_equals(getComputedStyle(select).backgroundColor, 'rgb(0, 255, 0)',
-    'The select should match :closed after light dismiss.');
+    'The select should match :not(:open) after light dismiss.');
 }, 'select should not match :open when light dismissed.');
 </script>

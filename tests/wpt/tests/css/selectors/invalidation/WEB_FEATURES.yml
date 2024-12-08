@@ -13,3 +13,6 @@ features:
 - name: user-pseudos
   files:
   - user-valid-user-invalid.html
+- name: state
+  files:
+  - state-in-has.html

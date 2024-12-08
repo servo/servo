@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Ensure that padding inflation for inline elements are carried out as part of containing line box's bounds.</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1934960">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+.scroller {
+  width: 100px;
+  height: 100px;
+  font: 10px/1 Ahem;
+  padding: 10px;
+  overflow: scroll;
+}
+.filler {
+  width: 1px;
+  height: 100px;
+  background: purple;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.scroller')">
+<!-- Block-end is padding-inflated from the last line,
+even if it only consists of inline elements -->
+<div class="scroller" data-expected-scroll-height="130">
+  <div class="filler"></div>
+  <span>X</span>
+</div>
+<!-- Inline element's margin should not add to scrollable overflow,
+just like how it does not affect the next line's positioning -->
+<div class="scroller" data-expected-scroll-height="130">
+  <div class="filler"></div>
+  <span style="margin-bottom: 100px;">X</span>
+</div>
+<!-- Line bound is padding-inflated, but not its overflow. -->
+<div class="scroller" data-expected-scroll-height="120" style="line-height: 0;">
+  <div class="filler"></div>
+  <span>X</span>
+</div>
+<div class="scroller" data-expected-scroll-height="125" style="line-height: 5px;">
+  <div class="filler"></div>
+  <span>X</span>
+</div>
+<!-- Ruby element, despite being `display: ruby`, behaves as if inline -->
+<div class="scroller" data-expected-scroll-height="120" style="line-height: 0;">
+  <div class="filler"></div>
+  <ruby>X</ruby>
+</div>
+<!-- Inline replaced elements still trigger padding-inflation -->
+<div class="scroller" data-expected-scroll-height="280" style="line-height: 0px;">
+  <div class="filler"></div>
+  <img src="../css-images/support/60x60-green.png" style="margin-bottom: 100px;"></img>
+</div>
+</body>

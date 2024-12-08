@@ -1,0 +1,3 @@
+Reporting-Endpoints: csp-endpoint="/reporting/resources/report.py?reportID={{$id:uuid()}}"
+Content-Security-Policy: script-src 'self' {{hosts[alt][www]}}:{{ports[https][0]}} 'unsafe-inline' 'report-sha512' 'report-sha384' 'report-sha256'; report-to csp-endpoint
+Server-Timing: uuid;desc="{{$id}}",hash;desc="sha512-hG4x56V5IhUUepZdYU/lX7UOQJ2M7f6ud2EI7os4JV3OwXSZ002P3zkb9tXQkjpOO8UbtjuEufvdcU67Qt2tlw=="

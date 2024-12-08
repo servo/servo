@@ -4,10 +4,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/css-animations/support/testcommon.js"></script>
-
-<div class=testcase id=discrete>Allow discrete</div>
-<div class=testcase id=normal>No discrete</div>
-
 <style>
 .testcase {
   float: left;
@@ -22,7 +18,10 @@
   float: right;
 }
 </style>
-
+<body>
+  <div class=testcase id=discrete>Allow discrete</div>
+  <div class=testcase id=normal>No discrete</div>
+</body>
 <script>
 promise_test(async () => {
   await waitForAnimationFrames(2);

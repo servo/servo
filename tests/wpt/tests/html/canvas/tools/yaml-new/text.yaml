@@ -1082,6 +1082,34 @@
   variants:
   - *load-font-variant-definition
 
+- name: 2d.text.measure.actualBoundingBox.whitespace
+  desc: Testing actualBoundingBox with leading/trailing whitespace
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    ctx.baseline = 'alphabetic'
+    // Different platforms may render text slightly different.
+    // Values that are nominally expected to be zero might actually vary by a
+    // pixel or so if the UA accounts for antialiasing at glyph edges, so we
+    // allow a slight deviation.
+    var whitespaces = [0x9, 0xa, 0xc, 0xd, 0x20, 0x3000];
+    for (var codepoint of whitespaces) {
+      let whitespace = String.fromCharCode(codepoint);
+
+      @assert Math.abs(ctx.measureText('A' + whitespace).actualBoundingBoxLeft) <= 1;
+      @assert ctx.measureText('A' + whitespace).actualBoundingBoxRight >= 50;
+
+      @assert Math.abs(ctx.measureText(whitespace + 'A').actualBoundingBoxLeft) >= 49;
+      @assert ctx.measureText(whitespace + 'A').actualBoundingBoxRight <= 101;
+    }
+  variants:
+  - *load-font-variant-definition
+
 - name: 2d.text.measure.fontBoundingBox
   desc: Testing fontBoundingBox measurements
   test_type: promise

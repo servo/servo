@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+    <h2>Description</h2>
+    <p>This test validates that pointer lock accepts the unadjustedMovement option.</p>
+    <hr/>
+
+    <button id="Button">lockTarget</button>
+    <div id="target">Target</div>
+
+    <script type="text/javascript" >
+        const button = document.getElementById('Button');
+        const target = document.getElementById('target');
+
+        async_test(t => {
+            button.addEventListener('mousedown', t.step_func(() => {
+                const p = target.requestPointerLock({unadjustedMovement: true});
+                p.then(t.step_func(() => {
+                    assert_equals(document.pointerLockElement, target);
+                    t.done();
+                })).catch(t.step_func((error) => {
+                    // requestPointerLock may throw NotSupportedError to say unadjustedMovement isn't supported.
+                    assert_throws_dom("NotSupportedError", () => { throw error; });
+                    // but to pass this test fully, it unadjustedMovement must be supported.
+                    assert_unreached("unadjustedMovement must be implemented.");
+                    t.done();
+                }));
+            }));
+        });
+
+        // Automated testing
+        test_driver.click(button);
+    </script>
+    </body>
+</html>
