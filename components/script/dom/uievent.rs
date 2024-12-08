@@ -86,7 +86,7 @@ impl UIEvent {
             can_bubble,
             cancelable,
         );
-        ev.detail.set(detail.into());
+        ev.detail.set(detail);
         ev
     }
 
@@ -111,7 +111,7 @@ impl UIEvent {
             };
             self.view.set(Some(document.window()));
         }
-        self.detail.set(0_i32.into());
+        self.detail.set(0_i32);
     }
 }
 
