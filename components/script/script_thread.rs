@@ -2945,8 +2945,8 @@ impl ScriptThread {
     ) {
         let window = self.documents.borrow().find_window(id);
         if let Some(ref window) = window {
-            self.rendering_opportunity(id);
-            let layout = window.layout_mut();
+            window.set_theme(theme);
+            window.force_reflow(ReflowGoal::Full, ReflowReason::ThemeChange, None);
             return;
         }
         warn!("theme change sent to nonexistent pipeline");
