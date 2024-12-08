@@ -3812,7 +3812,10 @@ impl SelectorsElement for DomRoot<Element> {
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
             // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&self.get_lang(), lang),
+            NonTSPseudoClass::Lang(ref lang) => extended_filtering(
+                &self.upcast::<Node>().get_lang().unwrap_or(String::new()),
+                lang,
+            ),
 
             NonTSPseudoClass::ReadOnly => {
                 !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
@@ -4141,23 +4144,6 @@ impl Element {
                 None
             },
         }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#language
-    pub fn get_lang(&self) -> String {
-        self.upcast::<Node>()
-            .inclusive_ancestors(ShadowIncluding::Yes)
-            .filter_map(|node| {
-                node.downcast::<Element>().and_then(|el| {
-                    el.get_attribute(&ns!(xml), &local_name!("lang"))
-                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
-                        .map(|attr| String::from(attr.Value()))
-                })
-                // TODO: Check meta tags for a pragma-set default language
-                // TODO: Check HTTP Content-Language header
-            })
-            .next()
-            .unwrap_or(String::new())
     }
 
     pub fn state(&self) -> ElementState {

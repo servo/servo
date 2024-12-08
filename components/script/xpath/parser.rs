@@ -81,7 +81,7 @@ pub struct PredicateExpr {
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct FilterExpr {
     pub primary: PrimaryExpr,
-    pub predicates: PredicateListExpr,
+    pub predicates: Option<PredicateListExpr>,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -94,7 +94,7 @@ pub enum StepExpr {
 pub struct AxisStep {
     pub axis: Axis,
     pub node_test: NodeTest,
-    pub predicates: PredicateListExpr,
+    pub predicates: Option<PredicateListExpr>,
 }
 
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
@@ -542,7 +542,7 @@ fn relative_path_expr(input: &str) -> IResult<&str, Expr> {
     let (input, first) = step_expr(input)?;
     let (input, steps) = many0(pair(
         // ("/" | "//")
-        ws(alt((value(false, char('/')), value(true, tag("//"))))),
+        ws(alt((value(true, tag("//")), value(false, char('/'))))),
         step_expr,
     ))(input)?;
 
@@ -553,7 +553,7 @@ fn relative_path_expr(input: &str) -> IResult<&str, Expr> {
             all_steps.push(StepExpr::Axis(AxisStep {
                 axis: Axis::DescendantOrSelf,
                 node_test: NodeTest::Kind(KindTest::Node),
-                predicates: PredicateListExpr { predicates: vec![] },
+                predicates: None,
             }));
         }
         all_steps.push(step);
@@ -592,12 +592,7 @@ fn axis_step(input: &str) -> IResult<&str, AxisStep> {
 }
 
 fn forward_step(input: &str) -> IResult<&str, (Axis, NodeTest)> {
-    alt((
-        // ForwardAxis NodeTest
-        pair(forward_axis, node_test),
-        // AbbrevForwardStep
-        abbrev_forward_step,
-    ))(input)
+    alt((pair(forward_axis, node_test), abbrev_forward_step))(input)
 }
 
 fn forward_axis(input: &str) -> IResult<&str, Axis> {
@@ -702,9 +697,17 @@ fn filter_expr(input: &str) -> IResult<&str, FilterExpr> {
     ))
 }
 
-fn predicate_list(input: &str) -> IResult<&str, PredicateListExpr> {
+fn predicate_list(input: &str) -> IResult<&str, Option<PredicateListExpr>> {
     let (input, predicates) = many0(predicate)(input)?;
-    Ok((input, PredicateListExpr { predicates }))
+
+    Ok((
+        input,
+        if predicates.is_empty() {
+            None
+        } else {
+            Some(PredicateListExpr { predicates })
+        },
+    ))
 }
 
 fn predicate(input: &str) -> IResult<&str, PredicateExpr> {
@@ -1010,7 +1013,7 @@ mod tests {
                     steps: vec![StepExpr::Axis(AxisStep {
                         axis: Axis::Child,
                         node_test: NodeTest::Kind(KindTest::PI(Some("test".to_string()))),
-                        predicates: PredicateListExpr {
+                        predicates: Some(PredicateListExpr {
                             predicates: vec![PredicateExpr {
                                 expr: Expr::Path(PathExpr {
                                     is_absolute: false,
@@ -1019,11 +1022,11 @@ mod tests {
                                         primary: PrimaryExpr::Literal(Literal::Numeric(
                                             NumericLiteral::Integer(2),
                                         )),
-                                        predicates: PredicateListExpr { predicates: vec![] },
+                                        predicates: None,
                                     })],
                                 }),
                             }],
-                        },
+                        }),
                     })],
                 }),
             ),
@@ -1041,7 +1044,7 @@ mod tests {
                                     primary: PrimaryExpr::Literal(Literal::String(
                                         "hello".to_string(),
                                     )),
-                                    predicates: PredicateListExpr { predicates: vec![] },
+                                    predicates: None,
                                 })],
                             }),
                             Expr::Path(PathExpr {
@@ -1049,7 +1052,7 @@ mod tests {
                                 is_descendant: false,
                                 steps: vec![StepExpr::Filter(FilterExpr {
                                     primary: PrimaryExpr::Literal(Literal::String(" ".to_string())),
-                                    predicates: PredicateListExpr { predicates: vec![] },
+                                    predicates: None,
                                 })],
                             }),
                             Expr::Path(PathExpr {
@@ -1059,11 +1062,11 @@ mod tests {
                                     primary: PrimaryExpr::Literal(Literal::String(
                                         "world".to_string(),
                                     )),
-                                    predicates: PredicateListExpr { predicates: vec![] },
+                                    predicates: None,
                                 })],
                             }),
                         ])),
-                        predicates: PredicateListExpr { predicates: vec![] },
+                        predicates: None,
                     })],
                 }),
             ),
@@ -1090,7 +1093,7 @@ mod tests {
                     steps: vec![StepExpr::Axis(AxisStep {
                         axis: Axis::Child,
                         node_test: NodeTest::Wildcard,
-                        predicates: PredicateListExpr {
+                        predicates: Some(PredicateListExpr {
                             predicates: vec![PredicateExpr {
                                 expr: Expr::Path(PathExpr {
                                     is_absolute: false,
@@ -1106,9 +1109,7 @@ mod tests {
                                                         prefix: None,
                                                         local_part: "class".to_string(),
                                                     }),
-                                                    predicates: PredicateListExpr {
-                                                        predicates: vec![],
-                                                    },
+                                                    predicates: None,
                                                 })],
                                             })),
                                             Box::new(Expr::Path(PathExpr {
@@ -1118,17 +1119,15 @@ mod tests {
                                                     primary: PrimaryExpr::Literal(Literal::String(
                                                         "test".to_string(),
                                                     )),
-                                                    predicates: PredicateListExpr {
-                                                        predicates: vec![],
-                                                    },
+                                                    predicates: None,
                                                 })],
                                             })),
                                         )),
-                                        predicates: PredicateListExpr { predicates: vec![] },
+                                        predicates: None,
                                     })],
                                 }),
                             }],
-                        },
+                        }),
                     })],
                 }),
             ),
@@ -1144,7 +1143,7 @@ mod tests {
                                 prefix: None,
                                 local_part: "div".to_string(),
                             }),
-                            predicates: PredicateListExpr {
+                            predicates: Some(PredicateListExpr {
                                 predicates: vec![PredicateExpr {
                                     expr: Expr::Relational(
                                         Box::new(Expr::Path(PathExpr {
@@ -1154,9 +1153,7 @@ mod tests {
                                                 primary: PrimaryExpr::Function(
                                                     CoreFunction::Position,
                                                 ),
-                                                predicates: PredicateListExpr {
-                                                    predicates: vec![],
-                                                },
+                                                predicates: None,
                                             })],
                                         })),
                                         RelationalOp::Gt,
@@ -1167,30 +1164,130 @@ mod tests {
                                                 primary: PrimaryExpr::Literal(Literal::Numeric(
                                                     NumericLiteral::Integer(1),
                                                 )),
-                                                predicates: PredicateListExpr {
-                                                    predicates: vec![],
-                                                },
+                                                predicates: None,
                                             })],
                                         })),
                                     ),
                                 }],
-                            },
+                            }),
                         }),
                         StepExpr::Axis(AxisStep {
                             axis: Axis::Child,
                             node_test: NodeTest::Wildcard,
-                            predicates: PredicateListExpr {
+                            predicates: Some(PredicateListExpr {
                                 predicates: vec![PredicateExpr {
                                     expr: Expr::Path(PathExpr {
                                         is_absolute: false,
                                         is_descendant: false,
                                         steps: vec![StepExpr::Filter(FilterExpr {
                                             primary: PrimaryExpr::Function(CoreFunction::Last),
-                                            predicates: PredicateListExpr { predicates: vec![] },
+                                            predicates: None,
                                         })],
                                     }),
                                 }],
-                            },
+                            }),
+                        }),
+                    ],
+                }),
+            ),
+            (
+                "//mu[@xml:id=\"id1\"]//rho[@title][@xml:lang=\"en-GB\"]",
+                Expr::Path(PathExpr {
+                    is_absolute: true,
+                    is_descendant: true,
+                    steps: vec![
+                        StepExpr::Axis(AxisStep {
+                            axis: Axis::Child,
+                            node_test: NodeTest::Name(QName {
+                                prefix: None,
+                                local_part: "mu".to_string(),
+                            }),
+                            predicates: Some(PredicateListExpr {
+                                predicates: vec![PredicateExpr {
+                                    expr: Expr::Equality(
+                                        Box::new(Expr::Path(PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: vec![StepExpr::Axis(AxisStep {
+                                                axis: Axis::Attribute,
+                                                node_test: NodeTest::Name(QName {
+                                                    prefix: Some("xml".to_string()),
+                                                    local_part: "id".to_string(),
+                                                }),
+                                                predicates: None,
+                                            })],
+                                        })),
+                                        EqualityOp::Eq,
+                                        Box::new(Expr::Path(PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: vec![StepExpr::Filter(FilterExpr {
+                                                primary: PrimaryExpr::Literal(Literal::String(
+                                                    "id1".to_string(),
+                                                )),
+                                                predicates: None,
+                                            })],
+                                        })),
+                                    ),
+                                }],
+                            }),
+                        }),
+                        StepExpr::Axis(AxisStep {
+                            axis: Axis::DescendantOrSelf, // Represents the second '//'
+                            node_test: NodeTest::Kind(KindTest::Node),
+                            predicates: None,
+                        }),
+                        StepExpr::Axis(AxisStep {
+                            axis: Axis::Child,
+                            node_test: NodeTest::Name(QName {
+                                prefix: None,
+                                local_part: "rho".to_string(),
+                            }),
+                            predicates: Some(PredicateListExpr {
+                                predicates: vec![
+                                    PredicateExpr {
+                                        expr: Expr::Path(PathExpr {
+                                            is_absolute: false,
+                                            is_descendant: false,
+                                            steps: vec![StepExpr::Axis(AxisStep {
+                                                axis: Axis::Attribute,
+                                                node_test: NodeTest::Name(QName {
+                                                    prefix: None,
+                                                    local_part: "title".to_string(),
+                                                }),
+                                                predicates: None,
+                                            })],
+                                        }),
+                                    },
+                                    PredicateExpr {
+                                        expr: Expr::Equality(
+                                            Box::new(Expr::Path(PathExpr {
+                                                is_absolute: false,
+                                                is_descendant: false,
+                                                steps: vec![StepExpr::Axis(AxisStep {
+                                                    axis: Axis::Attribute,
+                                                    node_test: NodeTest::Name(QName {
+                                                        prefix: Some("xml".to_string()),
+                                                        local_part: "lang".to_string(),
+                                                    }),
+                                                    predicates: None,
+                                                })],
+                                            })),
+                                            EqualityOp::Eq,
+                                            Box::new(Expr::Path(PathExpr {
+                                                is_absolute: false,
+                                                is_descendant: false,
+                                                steps: vec![StepExpr::Filter(FilterExpr {
+                                                    primary: PrimaryExpr::Literal(Literal::String(
+                                                        "en-GB".to_string(),
+                                                    )),
+                                                    predicates: None,
+                                                })],
+                                            })),
+                                        ),
+                                    },
+                                ],
+                            }),
                         }),
                     ],
                 }),
