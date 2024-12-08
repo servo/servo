@@ -9,15 +9,19 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 
+use super::node::document_from_node;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -76,14 +80,38 @@ impl UIEvent {
         can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
         let ev = UIEvent::new_uninitialized_with_proto(window, proto, can_gc);
-        ev.InitUIEvent(
+        ev.initialize_ui_event(
             type_,
-            bool::from(can_bubble),
-            bool::from(cancelable),
-            view,
-            detail,
+            view.map(|window| window.upcast::<EventTarget>()),
+            can_bubble,
+            cancelable,
         );
+        ev.detail.set(detail);
         ev
+    }
+
+    /// <https://w3c.github.io/uievents/#initialize-a-uievent>
+    pub fn initialize_ui_event(
+        &self,
+        type_: DOMString,
+        target_: Option<&EventTarget>,
+        bubbles: EventBubbles,
+        cancelable: EventCancelable,
+    ) {
+        // 1. Initialize the base Event attributes:
+        self.event
+            .init_event(type_.into(), bool::from(bubbles), bool::from(cancelable));
+        self.event.set_target(target_);
+        // 2. Initialize view/detail:
+        if let Some(target_) = target_ {
+            let element = target_.downcast::<Element>();
+            let document = match element {
+                Some(element) => document_from_node(element),
+                None => target_.downcast::<Window>().unwrap().Document(),
+            };
+            self.view.set(Some(document.window()));
+        }
+        self.detail.set(0_i32);
     }
 }
 
