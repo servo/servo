@@ -822,7 +822,9 @@ impl ReadableStreamDefaultController {
     }
 }
 
-impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController {
+impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
+    for ReadableStreamDefaultController
+{
     /// <https://streams.spec.whatwg.org/#rs-default-controller-desired-size>
     fn GetDesiredSize(&self) -> Option<f64> {
         self.get_desired_size()
