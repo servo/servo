@@ -79,6 +79,26 @@ fn is_unrooted_ty<'tcx>(
                     false
                 } else if has_attr(did.did(), sym.allow_unrooted_interior) {
                     false
+                } else if match_def_path(
+                    cx,
+                    did.did(),
+                    &[sym.js, sym.gc, sym.custom, sym.CustomAutoRooter],
+                ) || match_def_path(
+                    cx,
+                    did.did(),
+                    &[sym.js, sym.rust, sym.custom, sym.CustomAutoRooterGuard],
+                ) || match_def_path(
+                    cx,
+                    did.did(),
+                    &[sym.mozjs_sys, sym.jsgc, sym.Rooted],
+                ) || match_def_path(
+                    cx,
+                    did.did(),
+                    &[sym.mozjs, sym.gc, sym.root, sym.RootedGuard],
+            ) {
+                    // CustomAutoRooter[Guard]/Rooted[Guard] would use #[allow_unrooted_interior]
+                    // if they were not defined in another crate.
+                    false
                 } else if match_def_path(cx, did.did(), &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
@@ -423,4 +443,16 @@ symbols! {
     Entry
     OccupiedEntry
     VacantEntry
+    CustomAutoRooter
+    CustomAutoRooterGuard
+    Rooted
+    RootedGuard
+    js
+    gc
+    rust
+    custom
+    root
+    mozjs_sys
+    jsgc
+    mozjs
 }

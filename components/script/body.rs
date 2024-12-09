@@ -623,6 +623,13 @@ struct ConsumeBodyPromiseHandler {
     bytes: DomRefCell<Option<Vec<u8>>>,
 }
 
+#[allow(unsafe_code)]
+unsafe impl js::gc::TraceableTrace for ConsumeBodyPromiseHandler {
+    unsafe fn do_trace(&mut self, trc: *mut js::jsapi::JSTracer) {
+        <Self as crate::JSTraceable>::trace(self, trc);
+    }
+}
+
 impl ConsumeBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     fn resolve_result_promise(&self, cx: JSContext, can_gc: CanGc) {
@@ -746,7 +753,6 @@ pub fn consume_body<T: BodyMixin + DomObject>(
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
-#[allow(crown::unrooted_must_root)]
 fn consume_body_with_promise<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,
@@ -776,14 +782,15 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     // https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream
     let read_promise = stream.read_a_chunk();
 
-    let promise_handler = Box::new(ConsumeBodyPromiseHandler {
+    let cx = GlobalScope::get_cx();
+    rooted!(in(*cx) let mut promise_handler = Some(Box::new(ConsumeBodyPromiseHandler {
         result_promise: promise.clone(),
         stream: Some(Dom::from_ref(&stream)),
         body_type: DomRefCell::new(Some(body_type)),
         mime_type: DomRefCell::new(Some(object.get_mime_type(can_gc))),
         // Step 2.
         bytes: DomRefCell::new(Some(vec![])),
-    });
+    })));
 
     let rejection_handler = Box::new(ConsumeBodyPromiseRejectionHandler {
         result_promise: promise,
@@ -791,7 +798,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     let handler = PromiseNativeHandler::new(
         &object.global(),
-        Some(promise_handler),
+        promise_handler.take().map(|h| h as Box<dyn Callback>),
         Some(rejection_handler),
     );
     // We are already in a realm and a script.
