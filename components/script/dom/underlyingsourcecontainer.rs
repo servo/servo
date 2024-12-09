@@ -15,9 +15,10 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::Underlying
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::teeunderlyingsource::TeeUnderlyingSource;
 use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
@@ -37,6 +38,8 @@ pub enum UnderlyingSourceType {
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
+    /// Tee
+    Tee(Dom<TeeUnderlyingSource>),
 }
 
 impl UnderlyingSourceType {
@@ -105,20 +108,28 @@ impl UnderlyingSourceContainer {
     pub fn call_cancel_algorithm(
         &self,
         reason: SafeHandleValue,
+        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
-        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(algo) = &source.cancel {
-                let result = unsafe {
-                    algo.Call_(
-                        &SafeHandle::from_raw(this_obj.handle()),
-                        Some(reason),
-                        ExceptionHandling::Rethrow,
-                    )
-                };
-                return Some(result);
-            }
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, this_obj) => {
+                if let Some(algo) = &source.cancel {
+                    let result = unsafe {
+                        algo.Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            Some(reason),
+                            ExceptionHandling::Rethrow,
+                        )
+                    };
+                    return Some(result);
+                }
+                None
+            },
+            UnderlyingSourceType::Tee(tee_underlyin_source) => {
+                // Call the cancel algorithm for the appropriate branch.
+                tee_underlyin_source.cancel_algorithm(reason, can_gc)
+            },
+            _ => None,
         }
-        None
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
@@ -127,20 +138,27 @@ impl UnderlyingSourceContainer {
         &self,
         controller: Controller,
     ) -> Option<Result<Rc<Promise>, Error>> {
-        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(algo) = &source.pull {
-                let result = unsafe {
-                    algo.Call_(
-                        &SafeHandle::from_raw(this_obj.handle()),
-                        controller,
-                        ExceptionHandling::Rethrow,
-                    )
-                };
-                return Some(result);
-            }
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, this_obj) => {
+                if let Some(algo) = &source.pull {
+                    let result = unsafe {
+                        algo.Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            controller,
+                            ExceptionHandling::Rethrow,
+                        )
+                    };
+                    return Some(result);
+                }
+                None
+            },
+            UnderlyingSourceType::Tee(tee_underlyin_source) => {
+                // Call the pull algorithm for the appropriate branch.
+                tee_underlyin_source.pull_algorithm()
+            },
+            // Note: other source type have no pull steps for now.
+            _ => None,
         }
-        // Note: other source type have no pull steps for now.
-        None
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
@@ -156,41 +174,48 @@ impl UnderlyingSourceContainer {
         controller: Controller,
         can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
-        if let UnderlyingSourceType::Js(source, this_obj) = &self.underlying_source_type {
-            if let Some(start) = &source.start {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-                rooted!(in(*cx) let mut result: JSVal);
-                unsafe {
-                    if let Err(error) = start.Call_(
-                        &SafeHandle::from_raw(this_obj.handle()),
-                        controller,
-                        result.handle_mut(),
-                        ExceptionHandling::Rethrow,
-                    ) {
-                        return Some(Err(error));
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, this_obj) => {
+                if let Some(start) = &source.start {
+                    let cx = GlobalScope::get_cx();
+                    rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
+                    rooted!(in(*cx) let mut result: JSVal);
+                    unsafe {
+                        if let Err(error) = start.Call_(
+                            &SafeHandle::from_raw(this_obj.handle()),
+                            controller,
+                            result.handle_mut(),
+                            ExceptionHandling::Rethrow,
+                        ) {
+                            return Some(Err(error));
+                        }
                     }
-                }
-                let is_promise = unsafe {
-                    if result.is_object() {
-                        result_object.set(result.to_object());
-                        IsPromiseObject(result_object.handle().into_handle())
+                    let is_promise = unsafe {
+                        if result.is_object() {
+                            result_object.set(result.to_object());
+                            IsPromiseObject(result_object.handle().into_handle())
+                        } else {
+                            false
+                        }
+                    };
+                    let promise = if is_promise {
+                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
+                        promise
                     } else {
-                        false
-                    }
-                };
-                let promise = if is_promise {
-                    let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                    promise
-                } else {
-                    let promise = Promise::new(&self.global(), can_gc);
-                    promise.resolve_native(&result.get());
-                    promise
-                };
-                return Some(Ok(promise));
-            }
+                        let promise = Promise::new(&self.global(), can_gc);
+                        promise.resolve_native(&result.get());
+                        promise
+                    };
+                    return Some(Ok(promise));
+                }
+                None
+            },
+            UnderlyingSourceType::Tee(_) => {
+                // Let startAlgorithm be an algorithm that returns undefined.
+                None
+            },
+            _ => None,
         }
-        None
     }
 
     /// Does the source have all data in memory?
