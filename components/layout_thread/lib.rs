@@ -59,7 +59,7 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
-use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
+use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
@@ -844,7 +844,6 @@ impl LayoutThread {
         &self,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
         layout_root: &mut dyn Flow,
         layout_context: &mut LayoutContext,
     ) {
@@ -901,17 +900,7 @@ impl LayoutThread {
                 }
 
                 if !reflow_goal.needs_display() {
-                    // Defer the paint step until the next ForDisplay.
-                    //
-                    // We need to tell the document about this so it doesn't
-                    // incorrectly suppress reflows. See #13131.
-                    document
-                        .expect("No document in a non-display reflow?")
-                        .needs_paint_from_layout();
                     return;
-                }
-                if let Some(document) = document {
-                    document.will_paint();
                 }
 
                 let mut display_list = self.display_list.borrow_mut();
@@ -1176,7 +1165,6 @@ impl LayoutThread {
                 &mut root_flow,
                 &data.reflow_info,
                 &data.reflow_goal,
-                Some(&document),
                 &mut layout_context,
                 thread_pool,
             );
@@ -1251,7 +1239,6 @@ impl LayoutThread {
         root_flow: &mut FlowRef,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
         thread_pool: Option<&rayon::ThreadPool>,
     ) {
@@ -1337,7 +1324,7 @@ impl LayoutThread {
             },
         );
 
-        self.perform_post_main_layout_passes(data, root_flow, reflow_goal, document, context);
+        self.perform_post_main_layout_passes(data, root_flow, reflow_goal, context);
     }
 
     fn perform_post_main_layout_passes(
@@ -1345,14 +1332,12 @@ impl LayoutThread {
         data: &Reflow,
         root_flow: &mut FlowRef,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
         layout_context: &mut LayoutContext,
     ) {
         // Build the display list if necessary, and send it to the painter.
         self.compute_abs_pos_and_build_display_list(
             data,
             reflow_goal,
-            document,
             FlowRef::deref_mut(root_flow),
             &mut *layout_context,
         );

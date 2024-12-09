@@ -1635,9 +1635,8 @@ impl ScriptThread {
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
-            let pending_reflows = window.get_pending_reflow_count();
-            if document.is_fully_active() && pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow, can_gc);
+            if document.is_fully_active() {
+                window.reflow(ReflowGoal::Full, ReflowReason::UpdateTheRendering, can_gc);
             }
 
             // TODO: Process top layer removals according to
@@ -1790,7 +1789,7 @@ impl ScriptThread {
                 },
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
-                        self.handle_viewport(id, rect, can_gc);
+                        self.handle_viewport(id, rect);
                     }),
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                     pipeline_id,
@@ -2492,7 +2491,7 @@ impl ScriptThread {
                 self.collect_reports(chan)
             },
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
-                self.handle_worklet_loaded(pipeline_id, CanGc::note())
+                self.handle_worklet_loaded(pipeline_id)
             },
             MainThreadScriptMsg::RegisterPaintWorklet {
                 pipeline_id,
@@ -2867,12 +2866,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>, can_gc: CanGc) {
+    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            if document.window().set_page_clip_rect_with_new_viewport(rect) {
-                self.rebuild_and_force_reflow(&document, ReflowReason::Viewport, can_gc);
-            }
+            document.window().set_page_clip_rect_with_new_viewport(rect);
             return;
         }
         let loads = self.incomplete_loads.borrow();
@@ -3381,7 +3378,6 @@ impl ScriptThread {
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
         document.dirty_all_nodes();
-        document.window().add_pending_reflow();
 
         // This is required because the handlers added to the promise exposed at
         // `document.fonts.ready` are run by the event loop only when it performs a microtask
@@ -3390,11 +3386,11 @@ impl ScriptThread {
         self.rendering_opportunity(pipeline_id);
     }
 
-    /// Handles a worklet being loaded. Does nothing if the page no longer exists.
-    fn handle_worklet_loaded(&self, pipeline_id: PipelineId, can_gc: CanGc) {
-        let document = self.documents.borrow().find_document(pipeline_id);
-        if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded, can_gc);
+    /// Handles a worklet being loaded by triggering a relayout of the page. Does nothing if the
+    /// page no longer exists.
+    fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            document.set_needs_paint(true)
         }
     }
 
@@ -3855,13 +3851,6 @@ impl ScriptThread {
             let state = NavigationState::Stop(p, page_info);
             let _ = chan.send(ScriptToDevtoolsControlMsg::Navigate(bc, state));
         }
-    }
-
-    /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
-    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason, can_gc: CanGc) {
-        let window = window_from_node(document);
-        document.dirty_all_nodes();
-        window.reflow(ReflowGoal::Full, reason, can_gc);
     }
 
     /// Queue compositor events for later dispatching as part of a
