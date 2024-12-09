@@ -19,7 +19,7 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
-use std::collections::{hash_map, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
@@ -99,6 +99,7 @@ use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
 
+use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -443,81 +444,6 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
         self.send(MainThreadScriptMsg::Common(msg)).unwrap()
     }
 }
-
-/// The set of all documents managed by this script thread.
-#[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
-pub struct Documents {
-    map: HashMapTracedValues<PipelineId, Dom<Document>>,
-}
-
-impl Documents {
-    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
-        self.map.insert(pipeline_id, Dom::from_ref(doc));
-    }
-
-    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map
-            .remove(&pipeline_id)
-            .map(|ref doc| DomRoot::from_ref(&**doc))
-    }
-
-    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map
-            .get(&pipeline_id)
-            .map(|doc| DomRoot::from_ref(&**doc))
-    }
-
-    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
-        self.find_document(pipeline_id)
-            .map(|doc| DomRoot::from_ref(doc.window()))
-    }
-
-    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
-        self.find_window(pipeline_id)
-            .map(|window| DomRoot::from_ref(window.upcast()))
-    }
-
-    pub fn find_iframe(
-        &self,
-        pipeline_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-    ) -> Option<DomRoot<HTMLIFrameElement>> {
-        self.find_document(pipeline_id)
-            .and_then(|doc| doc.find_iframe(browsing_context_id))
-    }
-
-    pub fn iter(&self) -> DocumentsIter<'_> {
-        DocumentsIter {
-            iter: self.map.iter(),
-        }
-    }
-}
-
-impl Default for Documents {
-    #[allow(crown::unrooted_must_root)]
-    fn default() -> Self {
-        Self {
-            map: HashMapTracedValues::new(),
-        }
-    }
-}
-
-#[allow(crown::unrooted_must_root)]
-pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
-}
-
-impl<'a> Iterator for DocumentsIter<'a> {
-    type Item = (PipelineId, DomRoot<Document>);
-
-    fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
-        self.iter
-            .next()
-            .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
-    }
-}
-
 // We borrow the incomplete parser contexts mutably during parsing,
 // which is fine except that parsing can trigger evaluation,
 // which can trigger GC, and so we can end up tracing the script
@@ -537,7 +463,7 @@ pub struct ScriptThread {
     #[no_trace]
     update_the_rendering_task_queued_for_pipeline: DomRefCell<HashSet<PipelineId>>,
     /// The documents for pipelines managed by this thread
-    documents: DomRefCell<Documents>,
+    documents: DomRefCell<DocumentCollection>,
     /// The window proxies known by this thread
     /// TODO: this map grows, but never shrinks. Issue #15258.
     window_proxies: DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>>>,
@@ -1274,7 +1200,7 @@ impl ScriptThread {
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
 
         ScriptThread {
-            documents: DomRefCell::new(Documents::default()),
+            documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
             update_the_rendering_task_queued_for_pipeline: Default::default(),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
@@ -1594,13 +1520,15 @@ impl ScriptThread {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
-    fn update_the_rendering(&self, can_gc: CanGc) {
+    ///
+    /// Returns true if the rendering was actually updated.
+    fn update_the_rendering(&self, requested_by_compositor: bool, can_gc: CanGc) -> bool {
         self.update_the_rendering_task_queued_for_pipeline
             .borrow_mut()
             .clear();
 
         if !self.can_continue_running_inner() {
-            return;
+            return false;
         }
 
         // Run rafs for all pipeline, if a raf tick was received for any.
@@ -1611,34 +1539,47 @@ impl ScriptThread {
             .iter()
             .any(|(_, doc)| doc.has_received_raf_tick());
 
-        // TODO: The specification says to filter out non-renderable documents,
-        // as well as those for which a rendering update would be unnecessary,
-        // but this isn't happening here.
-        let pipelines_to_update: Vec<PipelineId> = self
+        let any_animations_running = self
             .documents
             .borrow()
             .iter()
-            .filter(|(_, document)| document.window().is_top_level())
-            .flat_map(|(id, document)| {
-                std::iter::once(id).chain(
-                    document
-                        .iter_iframes()
-                        .filter_map(|iframe| iframe.pipeline_id()),
-                )
-            })
-            .collect();
+            .any(|(_, document)| document.animations().running_animation_count() != 0);
+
+        // TODO: The specification says to filter out non-renderable documents,
+        // as well as those for which a rendering update would be unnecessary,
+        // but this isn't happening here.
+
+        // If we aren't explicitly running rAFs, this update wasn't requested by the compositor,
+        // and we are running animations, then wait until the compositor tells us it is time to
+        // update the rendering via a TickAllAnimations message.
+        if !requested_by_compositor && any_animations_running {
+            return false;
+        }
+
+        // > 2. Let docs be all fully active Document objects whose relevant agent's event loop
+        // > is eventLoop, sorted arbitrarily except that the following conditions must be
+        // > met:
+        //
+        // > Any Document B whose container document is A must be listed after A in the
+        // > list.
+        //
+        // > If there are two documents A and B that both have the same non-null container
+        // > document C, then the order of A and B in the list must match the
+        // > shadow-including tree order of their respective navigable containers in C's
+        // > node tree.
+        //
+        // > In the steps below that iterate over docs, each Document must be processed in
+        // > the order it is found in the list.
+        let documents_in_order = self.documents.borrow().documents_in_order();
+
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
-        for pipeline_id in pipelines_to_update {
-            // This document is not managed by this script thread. This can happen is the pipeline is
-            // unexpectedly closed or simply that it is managed by a different script thread.
-            // TODO: It would be better if iframes knew whether or not their Document was managed
-            // by the same script thread.
-            let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-                continue;
-            };
-            // TODO(#32004): The rendering should be updated according parent and shadow root order
-            // in the specification, but this isn't happening yet.
+        for pipeline_id in documents_in_order {
+            let document = self
+                .documents
+                .borrow()
+                .find_document(pipeline_id)
+                .expect("Got pipeline for Document not managed by this ScriptThread.");
 
             // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
             // `process_pending_compositor_events` handles the focusing steps as well as other events
@@ -1708,9 +1649,19 @@ impl ScriptThread {
 
             // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
 
+            // > Step 22: For each doc of docs, update the rendering or user interface of
+            // > doc and its node navigable to reflect the current state.
+            let window = document.window();
+            let pending_reflows = window.get_pending_reflow_count();
+            if document.is_fully_active() && pending_reflows > 0 {
+                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow, can_gc);
+            }
+
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
+
+        true
     }
 
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:rendering-opportunity>
@@ -1744,7 +1695,7 @@ impl ScriptThread {
                 // Note: spec says to queue a task using the navigable's active window,
                 // but then updates the rendering for all docs in the same event-loop.
                 with_script_thread(|script_thread| {
-                    script_thread.update_the_rendering(CanGc::note());
+                    script_thread.update_the_rendering(false, CanGc::note());
                 })
             }),
             &canceller,
@@ -1798,13 +1749,14 @@ impl ScriptThread {
                 }
             },
         };
-        debug!("Got event.");
-
         // Prioritize only a single update of the rendering;
         // others will run together with the other sequential tasks.
         let mut rendering_update_already_prioritized = false;
+        let mut compositor_requested_update_the_rendering = false;
 
         loop {
+            debug!("Handling event: {event:?}");
+
             let pipeline_id = self.message_to_pipeline(&event);
             let _realm = pipeline_id.map(|id| {
                 let global = self.documents.borrow().find_global(id);
@@ -1863,9 +1815,9 @@ impl ScriptThread {
                     pipeline_id,
                     tick_type,
                 )) => {
-                    if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
-                        self.rendering_opportunity(pipeline_id);
-                        doc.note_pending_animation_tick(tick_type);
+                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                        document.note_pending_animation_tick(tick_type);
+                        compositor_requested_update_the_rendering = true;
                     } else {
                         warn!(
                             "Trying to note pending animation tick for closed pipeline {}.",
@@ -1975,11 +1927,11 @@ impl ScriptThread {
                 continue;
             }
 
-            let result = self.profile_event(category, pipeline_id, move || {
+            let exiting = self.profile_event(category, pipeline_id, move || {
                 match msg {
                     FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
                         self.handle_exit_script_thread_msg(can_gc);
-                        return Some(false);
+                        return true;
                     },
                     FromConstellation(inner_msg) => {
                         self.handle_msg_from_constellation(inner_msg, can_gc)
@@ -1993,11 +1945,12 @@ impl ScriptThread {
                     },
                 }
 
-                None
+                false
             });
 
-            if let Some(retval) = result {
-                return retval;
+            // If an `ExitScriptThread` message was handled above, bail out now.
+            if exiting {
+                return false;
             }
 
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
@@ -2018,39 +1971,13 @@ impl ScriptThread {
             docs.clear();
         }
 
-        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
-
-        // Issue batched reflows on any pages that require it (e.g. if images loaded)
-        // TODO(gw): In the future we could probably batch other types of reflows
-        // into this loop too, but for now it's only images.
-        debug!("Issuing batched reflows.");
-        for (_, document) in self.documents.borrow().iter() {
-            // Step 13
-            if !document.is_fully_active() {
-                continue;
-            }
-            let window = document.window();
-
-            let _realm = enter_realm(&*document);
-
-            window
-                .upcast::<GlobalScope>()
-                .perform_a_dom_garbage_collection_checkpoint();
-
-            let pending_reflows = window.get_pending_reflow_count();
-            if pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow, can_gc);
-            } else {
-                // Reflow currently happens when explicitly invoked by code that
-                // knows the document could have been modified. This should really
-                // be driven by the compositor on an as-needed basis instead, to
-                // minimize unnecessary work.
-                window.reflow(
-                    ReflowGoal::Full,
-                    ReflowReason::MissingExplicitReflow,
-                    can_gc,
-                );
-            }
+        // Update the rendering whenever we receive an IPC message. This may not actually do anything if
+        // we are running animations and the compositor hasn't requested a new frame yet via a TickAllAnimatons
+        // message.
+        if self.update_the_rendering(compositor_requested_update_the_rendering, can_gc) {
+            // Perform a microtask checkpoint as the specifications says that *update the rendering* should be
+            // run in a task and a microtask checkpoint is always done when running tasks.
+            self.perform_a_microtask_checkpoint(can_gc);
         }
 
         true
