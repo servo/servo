@@ -151,21 +151,22 @@ impl ReadableStreamDefaultReader {
         can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        error!("ReadableStreamDefaultReader::Constructor");
-        let reader = ReadableStreamDefaultReader::new_inherited(global, can_gc);
+        let reader = reflect_dom_object(
+            Box::new(ReadableStreamDefaultReader::new_inherited(global, can_gc)),
+            global,
+        );
 
         // Perform ? SetUpReadableStreamDefaultReader(this, stream).
         Self::set_up(&reader, stream, global, can_gc)?;
 
-        Ok(reflect_dom_object(Box::new(reader), global))
+        Ok(reader)
     }
 
     pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamDefaultReader {
-        error!("ReadableStreamDefaultReader::new_inherited");
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
             stream: MutNullableDom::new(None),
-            read_requests: DomRefCell::new(VecDeque::new()),
+            read_requests: DomRefCell::new(Default::default()),
             closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
         }
     }
@@ -177,7 +178,6 @@ impl ReadableStreamDefaultReader {
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<()> {
-        error!("ReadableStreamDefaultReader::set_up");
         // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type("stream is locked".to_owned()));
@@ -199,7 +199,6 @@ impl ReadableStreamDefaultReader {
         stream: &ReadableStream,
         can_gc: CanGc,
     ) -> Fallible<()> {
-        error!("ReadableStreamDefaultReader::generic_initialize");
         // Set reader.[[stream]] to stream.
         self.stream.set(Some(stream));
 
@@ -239,7 +238,6 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
-        error!("ReadableStreamDefaultReader::close");
         // step 5
         self.closed_promise.borrow().resolve_native(&());
         // step 6
@@ -251,19 +249,16 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
-        error!("ReadableStreamDefaultReader::add_read_request");
         self.read_requests.borrow_mut().push_back(read_request);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
     pub fn get_num_read_requests(&self) -> usize {
-        error!("ReadableStreamDefaultReader::get_num_read_requests");
         self.read_requests.borrow().len()
     }
 
     /// steps 6, 7, 8 of <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
-        error!("ReadableStreamDefaultReader::error");
         // step 6
         self.closed_promise.borrow().reject_native(&e);
 
@@ -276,7 +271,6 @@ impl ReadableStreamDefaultReader {
 
     /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     pub fn remove_read_request(&self) -> ReadRequest {
-        error!("ReadableStreamDefaultReader::remove_read_request");
         self.read_requests
             .borrow_mut()
             .pop_front()
@@ -286,7 +280,6 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
     #[allow(unsafe_code)]
     pub fn generic_release(&self) {
-        error!("ReadableStreamDefaultReader::generic_release");
         // step 1 & 2
         assert!(self.stream.get().is_some());
 
@@ -328,7 +321,6 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     #[allow(unsafe_code)]
     pub fn release(&self) {
-        error!("ReadableStreamDefaultReader::release");
         // step 1
         self.generic_release();
         // step 2
@@ -350,7 +342,6 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel>
     fn generic_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        error!("ReadableStreamDefaultReader::generic_cancel");
         // Let stream be reader.[[stream]].
         let stream = self.stream.get();
 
@@ -364,7 +355,6 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
     fn error_read_requests(&self, rval: SafeHandleValue) {
-        error!("ReadableStreamDefaultReader::error_read_requests");
         // step 1
         let mut read_requests = self.take_read_requests();
 
@@ -447,7 +437,6 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     #[allow(unsafe_code)]
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
-        error!("ReadableStreamDefaultReader::Read");
         // step 1
         if self.stream.get().is_none() {
             let cx = GlobalScope::get_cx();

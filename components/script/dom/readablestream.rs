@@ -318,7 +318,6 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
-        error!("ReadableStream::add_read_request");
         match self.reader {
             // Assert: stream.[[reader]] implements ReadableStreamDefaultReader.
             ReaderType::Default(ref reader) => {
@@ -458,13 +457,19 @@ impl ReadableStream {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // Let reader be a new ReadableStreamDefaultReader.
-        let reader = ReadableStreamDefaultReader::new_inherited(&self.global(), can_gc);
+        let reader = reflect_dom_object(
+            Box::new(ReadableStreamDefaultReader::new_inherited(
+                &self.global(),
+                can_gc,
+            )),
+            &*self.global(),
+        );
 
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
         reader.set_up(self, &self.global(), can_gc)?;
 
         // Return reader.
-        Ok(reflect_dom_object(Box::new(reader), &*self.global()))
+        Ok(reader)
     }
 
     pub fn get_default_controller(&self) -> DomRoot<ReadableStreamDefaultController> {
