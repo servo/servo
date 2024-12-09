@@ -113,6 +113,10 @@ impl UIEvent {
         }
         self.detail.set(0_i32);
     }
+
+    pub fn set_detail(&self, detail_: i32) {
+        self.detail.set(detail_);
+    }
 }
 
 impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
