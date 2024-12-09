@@ -1206,38 +1206,43 @@ where
         // produces undefined behaviour, resulting in the destructor
         // being called. If this happens, there's not much we can do
         // other than panic.
-        let request = select! {
-            recv(self.namespace_receiver) -> msg => {
-                msg.expect("Unexpected script channel panic in constellation").map(Request::PipelineNamespace)
+        let request = {
+            #[cfg(feature = "tracing")]
+            let _span =
+                tracing::trace_span!("handle_request::select", servo_profiling = true).entered();
+            select! {
+                recv(self.namespace_receiver) -> msg => {
+                    msg.expect("Unexpected script channel panic in constellation").map(Request::PipelineNamespace)
+                }
+                recv(self.script_receiver) -> msg => {
+                    msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
+                }
+                recv(self.background_hang_monitor_receiver) -> msg => {
+                    msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
+                }
+                recv(self.compositor_receiver) -> msg => {
+                    Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
+                }
+                recv(self.layout_receiver) -> msg => {
+                    msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
+                }
+                recv(self.network_listener_receiver) -> msg => {
+                    Ok(Request::NetworkListener(
+                        msg.expect("Unexpected network listener channel panic in constellation")
+                    ))
+                }
+                recv(self.swmanager_receiver) -> msg => {
+                    msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
+                }
+                recv(self.scheduler_receiver) -> msg => {
+                    msg.expect("Unexpected schedule channel panic in constellation").map(Request::Timer)
+                }
+                recv(scheduler_timeout) -> _ => {
+                    // Note: by returning, we go back to the top,
+                    // where check_timers will be called.
+                    return;
+                },
             }
-            recv(self.script_receiver) -> msg => {
-                msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
-            }
-            recv(self.background_hang_monitor_receiver) -> msg => {
-                msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
-            }
-            recv(self.compositor_receiver) -> msg => {
-                Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
-            }
-            recv(self.layout_receiver) -> msg => {
-                msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
-            }
-            recv(self.network_listener_receiver) -> msg => {
-                Ok(Request::NetworkListener(
-                    msg.expect("Unexpected network listener channel panic in constellation")
-                ))
-            }
-            recv(self.swmanager_receiver) -> msg => {
-                msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
-            }
-            recv(self.scheduler_receiver) -> msg => {
-                msg.expect("Unexpected schedule channel panic in constellation").map(Request::Timer)
-            }
-            recv(scheduler_timeout) -> _ => {
-                // Note: by returning, we go back to the top,
-                // where check_timers will be called.
-                return;
-            },
         };
 
         let request = match request {
