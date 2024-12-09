@@ -842,6 +842,23 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('try_strings', default=["full"], nargs='...',
                      help="A list of try strings specifying what kind of job to run.")
     def try_command(self, remote: str, try_strings: list[str]):
+        staged_changes = subprocess.check_output(["git", "diff", "--cached", "--name-only"]).decode().strip()
+        unstaged_changes = subprocess.check_output(["git", "diff", "--name-only"]).decode().strip()
+
+        if staged_changes and unstaged_changes:
+            print("Error: You have both staged and unstaged changes. This is unsafe for stashing.")
+            return 1
+
+        stash_needed = bool(staged_changes)
+        stash_created = False
+
+        if stash_needed:
+            stash_result = call(["git", "stash", "push", "--staged", "--quiet"])
+            stash_created = (stash_result == 0)
+            if not stash_created:
+                print("Failed to stash staged changes. Exiting...")
+                return 1
+
         remote_url = subprocess.check_output(["git", "config", "--get", f"remote.{remote}.url"]).decode().strip()
         if "github.com" not in remote_url:
             print(f"The remote provided ({remote_url}) isn't a GitHub remote.")
@@ -883,4 +900,9 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
             result = call(["git", "reset", "--quiet", "--soft", "HEAD~1"])
             if result != 0:
                 print("Could not clean up try commit. Sorry! Please try to reset to the previous commit.")
+
+            if stash_created:
+                stash_pop_result = call(["git", "stash", "pop", "--quiet"])
+                if stash_pop_result != 0:
+                    print("Failed to reapply stashed changes. Please check your working directory.")
             return result
