@@ -151,53 +151,70 @@ impl ReadableStreamDefaultReader {
         can_gc: CanGc,
         stream: &ReadableStream,
     ) -> Fallible<DomRoot<Self>> {
-        // step 1
-        Self::set_up(global, stream, can_gc)
+        let reader = reflect_dom_object(
+            Box::new(ReadableStreamDefaultReader::new_inherited(global, can_gc)),
+            global,
+        );
+
+        // Perform ? SetUpReadableStreamDefaultReader(this, stream).
+        Self::set_up(&reader, stream, global, can_gc)?;
+
+        Ok(reader)
     }
 
-    fn new_inherited(
-        stream: &ReadableStream,
-        closed_promise: Rc<Promise>,
-    ) -> ReadableStreamDefaultReader {
+    pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
-            stream: MutNullableDom::new(Some(stream)),
+            stream: MutNullableDom::new(None),
             read_requests: DomRefCell::new(Default::default()),
-            closed_promise: DomRefCell::new(closed_promise),
+            closed_promise: DomRefCell::new(Promise::new(global, can_gc)),
         }
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>
     pub fn set_up(
-        global: &GlobalScope,
+        &self,
         stream: &ReadableStream,
+        global: &GlobalScope,
         can_gc: CanGc,
-    ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
-        // step 1
+    ) -> Fallible<()> {
+        // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
             return Err(Error::Type("stream is locked".to_owned()));
         }
-        // step 2 & 3
-        Ok(Self::generic_initialize(global, stream, can_gc))
+        // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
+
+        self.generic_initialize(global, stream, can_gc)?;
+
+        // Set reader.[[readRequests]] to a new empty list.
+        self.read_requests.borrow_mut().clear();
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
     pub fn generic_initialize(
+        &self,
         global: &GlobalScope,
         stream: &ReadableStream,
         can_gc: CanGc,
-    ) -> DomRoot<ReadableStreamDefaultReader> {
-        let promise;
+    ) -> Fallible<()> {
+        // Set reader.[[stream]] to stream.
+        self.stream.set(Some(stream));
+
+        // Set stream.[[reader]] to reader.
+        stream.set_reader(Some(self));
+
         if stream.is_readable() {
             // If stream.[[state]] is "readable
             // Set reader.[[closedPromise]] to a new promise.
-            promise = Promise::new(global, can_gc);
+            *self.closed_promise.borrow_mut() = Promise::new(global, can_gc);
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            promise = Promise::new_resolved(global, cx, rval.handle()).unwrap();
+            *self.closed_promise.borrow_mut() = Promise::new_resolved(global, cx, rval.handle())?;
         } else {
             // Assert: stream.[[state]] is "errored"
             assert!(stream.is_errored());
@@ -206,15 +223,13 @@ impl ReadableStreamDefaultReader {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             stream.get_stored_error(rval.handle_mut());
-            promise = Promise::new_rejected(global, cx, rval.handle()).unwrap();
+            *self.closed_promise.borrow_mut() = Promise::new_rejected(global, cx, rval.handle())?;
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
-            promise.set_promise_is_handled();
+            self.closed_promise.borrow().set_promise_is_handled();
         }
-        reflect_dom_object(
-            Box::new(ReadableStreamDefaultReader::new_inherited(stream, promise)),
-            global,
-        )
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
@@ -404,7 +419,7 @@ impl ReadableStreamDefaultReader {
     }
 }
 
-impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
+impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     fn Constructor(
         global: &GlobalScope,
