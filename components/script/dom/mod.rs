@@ -519,6 +519,8 @@ pub mod subtlecrypto;
 pub mod svgelement;
 pub mod svggraphicselement;
 pub mod svgsvgelement;
+pub mod teereadrequest;
+pub mod teeunderlyingsource;
 pub mod testbinding;
 pub mod testbindingiterable;
 pub mod testbindingmaplike;

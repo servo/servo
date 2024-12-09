@@ -26,8 +26,8 @@ interface _ReadableStream {
   // [NewObject]
   // Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
 
-  // [Throws]
-  // sequence<ReadableStream> tee();
+  [Throws]
+  sequence<ReadableStream> tee();
 
   // [GenerateReturnMethod]
   // async iterable<any>(optional ReadableStreamIteratorOptions options = {});

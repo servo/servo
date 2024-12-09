@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::mem;
 use std::rc::Rc;
@@ -11,7 +12,9 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
+use super::bindings::refcounted::Trusted;
 use super::bindings::root::MutNullableDom;
+use super::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
@@ -19,11 +22,14 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding:
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
+use crate::dom::teereadrequest::TeeReadRequest;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-request>
@@ -32,11 +38,14 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 pub enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     Read(Rc<Promise>),
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
+    Tee {
+        tee_read_request: Dom<TeeReadRequest>,
+    },
 }
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    #[allow(unsafe_code)]
     pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
@@ -44,6 +53,9 @@ impl ReadRequest {
                     done: Some(false),
                     value: chunk,
                 });
+            },
+            ReadRequest::Tee { tee_read_request } => {
+                tee_read_request.enqueue_chunk_steps(chunk);
             },
         }
     }
@@ -61,6 +73,9 @@ impl ReadRequest {
                     value: result,
                 });
             },
+            ReadRequest::Tee { tee_read_request } => {
+                tee_read_request.close_steps();
+            },
         }
     }
 
@@ -68,6 +83,45 @@ impl ReadRequest {
     pub fn error_steps(&self, e: SafeHandleValue) {
         match self {
             ReadRequest::Read(promise) => promise.reject_native(&e),
+            ReadRequest::Tee { tee_read_request } => {
+                tee_read_request.error_steps();
+            },
+        }
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#readable-stream-tee>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct ClosedPromiseRejectionHandler {
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    branch_1_controller: Trusted<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    branch_2_controller: Trusted<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Rc"]
+    canceled_1: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
+    canceled_2: Rc<Cell<bool>>,
+    #[ignore_malloc_size_of = "Rc"]
+    cancel_promise: Rc<Promise>,
+}
+
+impl Callback for ClosedPromiseRejectionHandler {
+    /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    /// Upon rejection of reader.[[closedPromise]] with reason r,
+    fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
+        let branch_1_controller = self.branch_1_controller.root();
+        let branch_2_controller = self.branch_2_controller.root();
+
+        // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], r).
+        branch_1_controller.error(v);
+        // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], r).
+        branch_2_controller.error(v);
+
+        // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
+        if !self.canceled_1.get() || !self.canceled_2.get() {
+            self.cancel_promise.resolve_native(&());
         }
     }
 }
@@ -292,7 +346,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    fn read(&self, read_request: ReadRequest) {
+    pub fn read(&self, read_request: ReadRequest) {
         // step 1 & 2
         assert!(self.stream.get().is_some());
 
@@ -314,6 +368,39 @@ impl ReadableStreamDefaultReader {
                 stream.perform_pull_steps(read_request);
             }
         }
+    }
+
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
+    #[allow(crown::unrooted_must_root)]
+    pub fn append_native_handler_to_closed_promise(
+        &self,
+        branch_1: &ReadableStream,
+        branch_2: &ReadableStream,
+        canceled_1: Rc<Cell<bool>>,
+        canceled_2: Rc<Cell<bool>>,
+        cancel_promise: Rc<Promise>,
+        can_gc: CanGc,
+    ) {
+        let branch_1_controller = branch_1.get_default_controller();
+
+        let branch_2_controller = branch_2.get_default_controller();
+
+        let global = self.global();
+        let rejection_handler = Box::new(ClosedPromiseRejectionHandler {
+            branch_1_controller: Trusted::new(&branch_1_controller),
+            branch_2_controller: Trusted::new(&branch_2_controller),
+            canceled_1,
+            canceled_2,
+            cancel_promise,
+        });
+        let handler = PromiseNativeHandler::new(&global, None, Some(rejection_handler));
+
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+
+        self.closed_promise
+            .borrow()
+            .append_native_handler(&handler, comp, can_gc);
     }
 }
 
