@@ -208,14 +208,12 @@ impl ReadableStreamDefaultReader {
         if stream.is_readable() {
             // If stream.[[state]] is "readable
             // Set reader.[[closedPromise]] to a new promise.
-
             *self.closed_promise.borrow_mut() = Promise::new(global, can_gc);
         } else if stream.is_closed() {
             // Otherwise, if stream.[[state]] is "closed",
             // Set reader.[[closedPromise]] to a promise resolved with undefined.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-
             *self.closed_promise.borrow_mut() = Promise::new_resolved(global, cx, rval.handle())?;
         } else {
             // Assert: stream.[[state]] is "errored"
@@ -225,11 +223,9 @@ impl ReadableStreamDefaultReader {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             stream.get_stored_error(rval.handle_mut());
-
             *self.closed_promise.borrow_mut() = Promise::new_rejected(global, cx, rval.handle())?;
 
             // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true
-
             self.closed_promise.borrow().set_promise_is_handled();
         }
 
