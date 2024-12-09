@@ -201,30 +201,37 @@ impl MouseEvent {
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32>>,
     ) {
-        // TODO: InitMouseEvent has been deprecated. We should follow the link to create an UI
-        // Event instead.
-        self.InitMouseEvent(
+        self.uievent.initialize_ui_event(
             type_,
-            bool::from(can_bubble),
-            bool::from(cancelable),
-            view,
-            detail,
-            screen_x,
-            screen_y,
-            client_x,
-            client_y,
-            ctrl_key,
-            alt_key,
-            shift_key,
-            meta_key,
-            button,
-            related_target,
+            view.map(|window| window.upcast::<EventTarget>()),
+            can_bubble,
+            cancelable,
         );
+
+        self.uievent.set_detail(detail);
+
+        self.screen_x.set(screen_x);
+        self.screen_y.set(screen_y);
+        self.client_x.set(client_x);
+        self.client_y.set(client_y);
+        self.page_x.set(self.PageX());
+        self.page_y.set(self.PageY());
+
+        // skip setting flags as they are absent
+        self.shift_key.set(shift_key);
+        self.ctrl_key.set(ctrl_key);
+        self.alt_key.set(alt_key);
+        self.meta_key.set(meta_key);
+
+        self.button.set(button);
         self.buttons.set(buttons);
+        // skip step 3: Initialize PointerLock attributes for MouseEvent with event,
+        // as movementX, movementY is absent
+
+        self.related_target.set(related_target);
+
+        // below is not in the spec
         self.point_in_target.set(point_in_target);
-        // TODO: Set proper values in https://github.com/servo/servo/issues/24415
-        self.page_x.set(client_x);
-        self.page_y.set(client_y);
     }
 
     pub fn point_in_target(&self) -> Option<Point2D<f32>> {
