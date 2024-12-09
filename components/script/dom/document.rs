@@ -823,8 +823,8 @@ impl Document {
         }
     }
 
-    pub fn needs_paint(&self) -> bool {
-        self.needs_paint.get()
+    pub(crate) fn set_needs_paint(&self, value: bool) {
+        self.needs_paint.set(value)
     }
 
     pub fn needs_reflow(&self) -> Option<ReflowTriggerCondition> {
@@ -844,7 +844,7 @@ impl Document {
             return Some(ReflowTriggerCondition::PendingRestyles);
         }
 
-        if self.needs_paint() {
+        if self.needs_paint.get() {
             return Some(ReflowTriggerCondition::PaintPostponed);
         }
 
@@ -4171,14 +4171,10 @@ impl Document {
 
     pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self) {
         let current_timeline_value = self.current_animation_timeline_value();
-        let marked_dirty = self
+        self
             .animations
             .borrow()
             .mark_animating_nodes_as_dirty(current_timeline_value);
-
-        if marked_dirty {
-            self.window().add_pending_reflow();
-        }
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {

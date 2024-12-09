@@ -173,14 +173,12 @@ pub enum ReflowReason {
     CachedPageNeededReflow,
     ElementStateChanged,
     FirstLoad,
-    MissingExplicitReflow,
-    PendingReflow,
     Query,
     RefreshTick,
     RequestAnimationFrame,
     ScrollFromScript,
+    UpdateTheRendering,
     Viewport,
-    WindowResize,
     WorkletLoaded,
 }
 
@@ -256,9 +254,6 @@ pub struct Window {
     /// RefreshTick or with FirstLoad. Until those first reflows, we want to
     /// suppress others like MissingExplicitReflow.
     suppress_reflow: Cell<bool>,
-
-    /// A counter of the number of pending reflows for this window.
-    pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_malloc_size_of = "channels are hard"]
@@ -529,7 +524,6 @@ impl Window {
                 nodes.remove();
             },
         }
-        self.add_pending_reflow();
     }
 
     pub fn compositor_api(&self) -> &CrossProcessCompositorApi {
@@ -1891,7 +1885,6 @@ impl Window {
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
         // Send new document and relevant styles to layout.
-        let needs_display = reflow_goal.needs_display();
         let reflow = ScriptReflow {
             reflow_info: Reflow {
                 page_clip_rect: self.page_clip_rect.get(),
@@ -1923,12 +1916,6 @@ impl Window {
         };
 
         debug!("script: layout complete");
-
-        // Pending reflows require display, so only reset the pending reflow count if this reflow
-        // was to be displayed.
-        if needs_display {
-            self.pending_reflow_count.set(0);
-        }
 
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
@@ -1962,6 +1949,10 @@ impl Window {
 
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
+
+        if for_display {
+            document.set_needs_paint(false);
+        }
 
         true
     }
@@ -2365,15 +2356,6 @@ impl Window {
         self.dom_static.windowproxy_handler
     }
 
-    pub fn get_pending_reflow_count(&self) -> u32 {
-        self.pending_reflow_count.get()
-    }
-
-    pub fn add_pending_reflow(&self) {
-        self.pending_reflow_count
-            .set(self.pending_reflow_count.get() + 1);
-    }
-
     pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
         // Whenever we receive a new resize event we forget about all the ones that came before
         // it, to avoid unnecessary relayouts
@@ -2504,9 +2486,6 @@ impl Window {
         );
         self.set_window_size(new_size);
 
-        // TODO: This should just trigger a pending reflow instead of forcing one now.
-        self.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize, None);
-
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
@@ -2521,7 +2500,7 @@ impl Window {
             uievent.upcast::<Event>().fire(self.upcast(), can_gc);
         }
 
-        ScriptThread::note_rendering_opportunity(self.pipeline_id());
+        self.Document().set_needs_paint(true);
         true
     }
 
@@ -2708,7 +2687,6 @@ impl Window {
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             suppress_reflow: Cell::new(true),
-            pending_reflow_count: Default::default(),
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),

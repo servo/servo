@@ -1635,9 +1635,8 @@ impl ScriptThread {
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
-            let pending_reflows = window.get_pending_reflow_count();
-            if document.is_fully_active() && pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow, can_gc);
+            if document.is_fully_active() {
+                window.reflow(ReflowGoal::Full, ReflowReason::UpdateTheRendering, can_gc);
             }
 
             // TODO: Process top layer removals according to
@@ -3382,7 +3381,6 @@ impl ScriptThread {
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
         document.dirty_all_nodes();
-        document.window().add_pending_reflow();
 
         // This is required because the handlers added to the promise exposed at
         // `document.fonts.ready` are run by the event loop only when it performs a microtask
