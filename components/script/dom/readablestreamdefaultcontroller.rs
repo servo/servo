@@ -4,15 +4,18 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
+use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_GetPendingException;
-use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
+use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
+use js::typedarray::Uint8;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
@@ -145,6 +148,21 @@ impl EnqueuedValue {
         match self {
             EnqueuedValue::Native(v) => v.len() as f64,
             EnqueuedValue::Js(v) => v.size,
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn to_jsval(&self, cx: SafeJSContext, rval: MutableHandleValue) {
+        match self {
+            EnqueuedValue::Native(chunk) => {
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                create_buffer_source::<Uint8>(cx, &chunk, array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for native chunk.");
+                unsafe { array_buffer_ptr.to_jsval(*cx, rval) };
+            },
+            EnqueuedValue::Js(value_with_size) => unsafe {
+                value_with_size.value.to_jsval(*cx, rval);
+            },
         }
     }
 }
@@ -544,7 +562,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
-    #[allow(unsafe_code)]
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         // Let stream be this.[[stream]].
         // Note: the spec does not assert that there is a stream.
@@ -571,14 +588,7 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let result = RootedTraceableBox::new(Heap::default());
-            match chunk {
-                EnqueuedValue::Native(chunk) => unsafe {
-                    chunk.to_jsval(*cx, rval.handle_mut());
-                },
-                EnqueuedValue::Js(value_with_size) => unsafe {
-                    value_with_size.value.to_jsval(*cx, rval.handle_mut());
-                },
-            }
+            chunk.to_jsval(cx, rval.handle_mut());
             result.set(*rval);
             // Perform readRequest’s chunk steps, given chunk.
             read_request.chunk_steps(result);
@@ -697,7 +707,6 @@ impl ReadableStreamDefaultController {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    #[allow(unsafe_code)]
     pub fn enqueue_native(&self, chunk: Vec<u8>) {
         let stream = self
             .stream
@@ -706,7 +715,8 @@ impl ReadableStreamDefaultController {
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            unsafe { chunk.to_jsval(*cx, rval.handle_mut()) };
+            let enqueued_chunk = EnqueuedValue::Native(chunk.into_boxed_slice());
+            enqueued_chunk.to_jsval(cx, rval.handle_mut());
             stream.fulfill_read_request(rval.handle(), false);
         } else {
             let mut queue = self.queue.borrow_mut();
