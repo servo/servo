@@ -135,4 +135,5 @@ pub enum WebDriverFrameId {
 pub enum LoadStatus {
     LoadComplete,
     LoadTimeout,
+    LoadCanceled,
 }
