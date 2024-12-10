@@ -4623,10 +4623,10 @@ where
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
-            WebDriverCommandMsg::CloseWindow(top_level_browsing_context_id) => {
+            WebDriverCommandMsg::CloseWebView(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             },
-            WebDriverCommandMsg::NewTab(sender, load_sender) => {
+            WebDriverCommandMsg::NewWebView(sender, load_sender) => {
                 let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
                 self.handle_new_top_level_browsing_context(
                     ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),

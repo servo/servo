@@ -925,7 +925,7 @@ impl Handler {
             session
                 .window_handles
                 .remove(&session.top_level_browsing_context_id);
-            let cmd_msg = WebDriverCommandMsg::CloseWindow(session.top_level_browsing_context_id);
+            let cmd_msg = WebDriverCommandMsg::CloseWebView(session.top_level_browsing_context_id);
             self.constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                 .unwrap();
@@ -967,7 +967,7 @@ impl Handler {
         let _ = self.wait_for_load();
 
         let handle = self.session.as_ref().unwrap().id.to_string();
-        Ok(WebDriverResponse::NewWindow(NewWindowResponse {
+        Ok(WebDriverResponse::NewWebView(NewWindowResponse {
             handle,
             typ: "tab".to_string(),
         }))
