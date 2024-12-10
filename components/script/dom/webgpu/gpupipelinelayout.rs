@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::binding_model::PipelineLayoutDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUPipelineLayoutDescriptor, GPUPipelineLayoutMethods,
@@ -87,7 +88,7 @@ impl GPUPipelineLayout {
             .collect::<Vec<_>>();
 
         let desc = PipelineLayoutDescriptor {
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
             bind_group_layouts: Cow::Owned(bgls.iter().map(|l| l.0).collect::<Vec<_>>()),
             push_constant_ranges: Cow::Owned(vec![]),
         };

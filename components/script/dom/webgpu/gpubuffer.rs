@@ -12,6 +12,7 @@ use js::typedarray::ArrayBuffer;
 use webgpu::wgc::device::HostMap;
 use webgpu::{wgt, Mapping, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -136,7 +137,7 @@ impl GPUBuffer {
         descriptor: &GPUBufferDescriptor,
     ) -> Fallible<DomRoot<GPUBuffer>> {
         let desc = wgt::BufferDescriptor {
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
             size: descriptor.size as wgt::BufferAddress,
             usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
             mapped_at_creation: descriptor.mappedAtCreation,

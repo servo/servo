@@ -11,6 +11,7 @@ use servo_media::audio::node::{
     ChannelInterpretation as ServoMediaChannelInterpretation,
 };
 
+use crate::conversions::Convert;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -56,8 +57,8 @@ impl AudioNode {
         }
         let ch = ChannelInfo {
             count: options.count as u8,
-            mode: options.mode.into(),
-            interpretation: options.interpretation.into(),
+            mode: options.mode.convert(),
+            interpretation: options.interpretation.convert(),
             context_channel_count: context.channel_count() as u8,
         };
         let node_id = context
@@ -339,7 +340,7 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         };
 
         self.channel_count_mode.set(value);
-        self.message(AudioNodeMessage::SetChannelMode(value.into()));
+        self.message(AudioNodeMessage::SetChannelMode(value.convert()));
         Ok(())
     }
 
@@ -362,14 +363,14 @@ impl AudioNodeMethods<crate::DomTypeHolder> for AudioNode {
         };
 
         self.channel_interpretation.set(value);
-        self.message(AudioNodeMessage::SetChannelInterpretation(value.into()));
+        self.message(AudioNodeMessage::SetChannelInterpretation(value.convert()));
         Ok(())
     }
 }
 
-impl From<ChannelCountMode> for ServoMediaChannelCountMode {
-    fn from(mode: ChannelCountMode) -> Self {
-        match mode {
+impl Convert<ServoMediaChannelCountMode> for ChannelCountMode {
+    fn convert(self) -> ServoMediaChannelCountMode {
+        match self {
             ChannelCountMode::Max => ServoMediaChannelCountMode::Max,
             ChannelCountMode::Clamped_max => ServoMediaChannelCountMode::ClampedMax,
             ChannelCountMode::Explicit => ServoMediaChannelCountMode::Explicit,
@@ -377,9 +378,9 @@ impl From<ChannelCountMode> for ServoMediaChannelCountMode {
     }
 }
 
-impl From<ChannelInterpretation> for ServoMediaChannelInterpretation {
-    fn from(interpretation: ChannelInterpretation) -> Self {
-        match interpretation {
+impl Convert<ServoMediaChannelInterpretation> for ChannelInterpretation {
+    fn convert(self) -> ServoMediaChannelInterpretation {
+        match self {
             ChannelInterpretation::Discrete => ServoMediaChannelInterpretation::Discrete,
             ChannelInterpretation::Speakers => ServoMediaChannelInterpretation::Speakers,
         }

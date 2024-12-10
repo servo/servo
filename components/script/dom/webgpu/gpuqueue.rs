@@ -9,6 +9,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::gpu::{response_async, AsyncWGPUListener};
+use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUExtent3D, GPUImageCopyTexture, GPUImageDataLayout, GPUQueueMethods, GPUSize64,
@@ -162,9 +163,9 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
             return Err(Error::Operation);
         }
 
-        let texture_cv = destination.try_into()?;
-        let texture_layout = data_layout.into();
-        let write_size = (&size).try_into()?;
+        let texture_cv = destination.try_convert()?;
+        let texture_layout = data_layout.convert();
+        let write_size = (&size).try_convert()?;
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {

@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use webgpu::{wgt, RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
+use crate::conversions::TryConvert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUColor, GPUIndexFormat, GPURenderPassEncoderMethods,
@@ -130,7 +131,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor>
     fn SetBlendConstant(&self, color: GPUColor) -> Fallible<()> {
-        self.send_render_command(RenderCommand::SetBlendConstant((&color).try_into()?));
+        self.send_render_command(RenderCommand::SetBlendConstant((&color).try_convert()?));
         Ok(())
     }
 

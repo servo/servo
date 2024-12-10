@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::resource::SamplerDescriptor;
 use webgpu::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUSamplerDescriptor, GPUSamplerMethods,
@@ -79,18 +80,18 @@ impl GPUSampler {
         let sampler_id = device.global().wgpu_id_hub().create_sampler_id();
         let compare_enable = descriptor.compare.is_some();
         let desc = SamplerDescriptor {
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
             address_modes: [
-                descriptor.addressModeU.into(),
-                descriptor.addressModeV.into(),
-                descriptor.addressModeW.into(),
+                descriptor.addressModeU.convert(),
+                descriptor.addressModeV.convert(),
+                descriptor.addressModeW.convert(),
             ],
-            mag_filter: descriptor.magFilter.into(),
-            min_filter: descriptor.minFilter.into(),
-            mipmap_filter: descriptor.mipmapFilter.into(),
+            mag_filter: descriptor.magFilter.convert(),
+            min_filter: descriptor.minFilter.convert(),
+            mipmap_filter: descriptor.mipmapFilter.convert(),
             lod_min_clamp: *descriptor.lodMinClamp,
             lod_max_clamp: *descriptor.lodMaxClamp,
-            compare: descriptor.compare.map(Into::into),
+            compare: descriptor.compare.map(Convert::convert),
             anisotropy_clamp: 1,
             border_color: None,
         };

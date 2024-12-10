@@ -9,6 +9,7 @@ use webxr_api::{
     SelectKind, TargetRayMode,
 };
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::FakeXRRigidTransformInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::{
     FakeXRButtonStateInit, FakeXRButtonType, FakeXRInputControllerMethods,
@@ -165,9 +166,9 @@ impl FakeXRInputControllerMethods<crate::DomTypeHolder> for FakeXRInputControlle
     }
 }
 
-impl From<FakeXRButtonType> for MockButtonType {
-    fn from(b: FakeXRButtonType) -> Self {
-        match b {
+impl Convert<MockButtonType> for FakeXRButtonType {
+    fn convert(self) -> MockButtonType {
+        match self {
             FakeXRButtonType::Grip => MockButtonType::Grip,
             FakeXRButtonType::Touchpad => MockButtonType::Touchpad,
             FakeXRButtonType::Thumbstick => MockButtonType::Thumbstick,
@@ -182,7 +183,7 @@ pub fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton
     let supported: Vec<MockButton> = buttons
         .iter()
         .map(|b| MockButton {
-            button_type: b.buttonType.into(),
+            button_type: b.buttonType.convert(),
             pressed: b.pressed,
             touched: b.touched,
             pressed_value: *b.pressedValue,

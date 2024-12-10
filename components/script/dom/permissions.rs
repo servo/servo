@@ -12,6 +12,7 @@ use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use servo_config::pref;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionDescriptor, PermissionName, PermissionState, PermissionStatusMethods,
 };
@@ -251,8 +252,7 @@ impl PermissionAlgorithm for Permissions {
             // Step 3.
             PermissionState::Prompt => {
                 let perm_name = status.get_query();
-                let prompt =
-                    PermissionPrompt::Request(embedder_traits::PermissionName::from(perm_name));
+                let prompt = PermissionPrompt::Request(perm_name.convert());
 
                 // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
                 let globalscope = GlobalScope::current().expect("No current global object");
@@ -305,7 +305,7 @@ pub fn get_descriptor_permission_state(
             .borrow_mut()
             .remove(&permission_name.to_string());
         prompt_user_from_embedder(
-            PermissionPrompt::Insecure(embedder_traits::PermissionName::from(permission_name)),
+            PermissionPrompt::Insecure(permission_name.convert()),
             &globalscope,
         )
     };
@@ -374,9 +374,9 @@ fn prompt_user_from_embedder(prompt: PermissionPrompt, gs: &GlobalScope) -> Perm
     }
 }
 
-impl From<PermissionName> for embedder_traits::PermissionName {
-    fn from(permission_name: PermissionName) -> Self {
-        match permission_name {
+impl Convert<embedder_traits::PermissionName> for PermissionName {
+    fn convert(self) -> embedder_traits::PermissionName {
+        match self {
             PermissionName::Geolocation => embedder_traits::PermissionName::Geolocation,
             PermissionName::Notifications => embedder_traits::PermissionName::Notifications,
             PermissionName::Push => embedder_traits::PermissionName::Push,

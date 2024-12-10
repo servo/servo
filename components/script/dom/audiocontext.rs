@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 
+use crate::conversions::Convert;
 use crate::dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
     AudioContextLatencyCategory, AudioContextMethods, AudioContextOptions, AudioTimestamp,
@@ -55,7 +56,7 @@ impl AudioContext {
     ) -> Fallible<AudioContext> {
         // Steps 1-3.
         let context = BaseAudioContext::new_inherited(
-            BaseAudioContextOptions::AudioContext(options.into()),
+            BaseAudioContextOptions::AudioContext(options.convert()),
             pipeline_id,
         )?;
 
@@ -305,9 +306,9 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     }
 }
 
-impl From<AudioContextLatencyCategory> for LatencyCategory {
-    fn from(category: AudioContextLatencyCategory) -> Self {
-        match category {
+impl Convert<LatencyCategory> for AudioContextLatencyCategory {
+    fn convert(self) -> LatencyCategory {
+        match self {
             AudioContextLatencyCategory::Balanced => LatencyCategory::Balanced,
             AudioContextLatencyCategory::Interactive => LatencyCategory::Interactive,
             AudioContextLatencyCategory::Playback => LatencyCategory::Playback,
@@ -315,13 +316,13 @@ impl From<AudioContextLatencyCategory> for LatencyCategory {
     }
 }
 
-impl<'a> From<&'a AudioContextOptions> for RealTimeAudioContextOptions {
-    fn from(options: &AudioContextOptions) -> Self {
-        Self {
-            sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(44100.)),
-            latency_hint: match options.latencyHint {
+impl<'a> Convert<RealTimeAudioContextOptions> for &'a AudioContextOptions {
+    fn convert(self) -> RealTimeAudioContextOptions {
+        RealTimeAudioContextOptions {
+            sample_rate: *self.sampleRate.unwrap_or(Finite::wrap(44100.)),
+            latency_hint: match self.latencyHint {
                 AudioContextLatencyCategoryOrDouble::AudioContextLatencyCategory(category) => {
-                    category.into()
+                    category.convert()
                 },
                 AudioContextLatencyCategoryOrDouble::Double(_) => LatencyCategory::Interactive, // TODO
             },
