@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::binding_model::BindGroupLayoutDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutMethods,
@@ -80,7 +81,7 @@ impl GPUBindGroupLayout {
 
         let desc = match entries {
             Ok(entries) => Some(BindGroupLayoutDescriptor {
-                label: (&descriptor.parent).into(),
+                label: (&descriptor.parent).convert(),
                 entries: Cow::Owned(entries),
             }),
             Err(error) => {

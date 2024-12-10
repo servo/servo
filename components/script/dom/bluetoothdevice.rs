@@ -14,6 +14,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
@@ -249,7 +250,7 @@ impl BluetoothDevice {
                 sender,
             ))
             .unwrap();
-        receiver.recv().unwrap().map_err(Error::from)
+        receiver.recv().unwrap().map_err(Convert::convert)
     }
 }
 

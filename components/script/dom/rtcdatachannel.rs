@@ -16,6 +16,7 @@ use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::{
     RTCDataChannelInit, RTCDataChannelMethods, RTCDataChannelState,
@@ -61,7 +62,7 @@ impl RTCDataChannel {
         options: &RTCDataChannelInit,
         servo_media_id: Option<DataChannelId>,
     ) -> RTCDataChannel {
-        let mut init: DataChannelInit = options.into();
+        let mut init: DataChannelInit = options.convert();
         init.label = label.to_string();
 
         let controller = peer_connection.get_webrtc_controller().borrow();
@@ -215,7 +216,7 @@ impl RTCDataChannel {
             );
             event.upcast::<Event>().fire(self.upcast(), can_gc);
         };
-        self.ready_state.set(state.into());
+        self.ready_state.set(state.convert());
     }
 
     fn send(&self, source: &SendSource) -> Fallible<()> {
@@ -364,23 +365,23 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     }
 }
 
-impl From<&RTCDataChannelInit> for DataChannelInit {
-    fn from(init: &RTCDataChannelInit) -> DataChannelInit {
+impl Convert<DataChannelInit> for &RTCDataChannelInit {
+    fn convert(self) -> DataChannelInit {
         DataChannelInit {
             label: String::new(),
-            id: init.id,
-            max_packet_life_time: init.maxPacketLifeTime,
-            max_retransmits: init.maxRetransmits,
-            negotiated: init.negotiated,
-            ordered: init.ordered,
-            protocol: init.protocol.to_string(),
+            id: self.id,
+            max_packet_life_time: self.maxPacketLifeTime,
+            max_retransmits: self.maxRetransmits,
+            negotiated: self.negotiated,
+            ordered: self.ordered,
+            protocol: self.protocol.to_string(),
         }
     }
 }
 
-impl From<DataChannelState> for RTCDataChannelState {
-    fn from(state: DataChannelState) -> RTCDataChannelState {
-        match state {
+impl Convert<RTCDataChannelState> for DataChannelState {
+    fn convert(self) -> RTCDataChannelState {
+        match self {
             DataChannelState::Connecting | DataChannelState::__Unknown(_) => {
                 RTCDataChannelState::Connecting
             },

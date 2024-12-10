@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::binding_model::BindGroupDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupDescriptor, GPUBindGroupMethods,
@@ -81,11 +82,11 @@ impl GPUBindGroup {
         let entries = descriptor
             .entries
             .iter()
-            .map(|bind| bind.into())
+            .map(|bind| bind.convert())
             .collect::<Vec<_>>();
 
         let desc = BindGroupDescriptor {
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
             layout: descriptor.layout.id().0,
             entries: Cow::Owned(entries),
         };

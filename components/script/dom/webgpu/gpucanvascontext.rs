@@ -20,6 +20,7 @@ use webrender_api::ImageKey;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -196,7 +197,7 @@ impl GPUCanvasContext {
             drawing_buffer.config = Some(ContextConfiguration {
                 device_id: configuration.device.id().0,
                 queue_id: configuration.device.queue_id().0,
-                format: configuration.format.into(),
+                format: configuration.format.convert(),
                 is_opaque: matches!(configuration.alphaMode, GPUCanvasAlphaMode::Opaque),
             });
         } else {

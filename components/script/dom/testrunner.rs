@@ -7,8 +7,9 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use profile_traits::ipc;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -46,7 +47,7 @@ impl TestRunnerMethods<crate::DomTypeHolder> for TestRunner {
             .unwrap();
         match receiver.recv().unwrap() {
             Ok(()) => Ok(()),
-            Err(error) => Err(Error::from(error)),
+            Err(error) => Err(error.convert()),
         }
     }
 }

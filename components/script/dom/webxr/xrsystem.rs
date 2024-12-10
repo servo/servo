@@ -13,6 +13,7 @@ use profile_traits::ipc;
 use servo_config::pref;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{
     XRSessionInit, XRSessionMode, XRSystemMethods,
@@ -100,9 +101,9 @@ impl XRSystem {
     }
 }
 
-impl From<XRSessionMode> for SessionMode {
-    fn from(mode: XRSessionMode) -> SessionMode {
-        match mode {
+impl Convert<SessionMode> for XRSessionMode {
+    fn convert(self) -> SessionMode {
+        match self {
             XRSessionMode::Immersive_vr => SessionMode::ImmersiveVR,
             XRSessionMode::Immersive_ar => SessionMode::ImmersiveAR,
             XRSessionMode::Inline => SessionMode::Inline,
@@ -148,7 +149,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             }),
         );
         if let Some(mut r) = window.webxr_registry() {
-            r.supports_session(mode.into(), sender);
+            r.supports_session(mode.convert(), sender);
         }
 
         promise
@@ -266,7 +267,7 @@ impl XRSystemMethods<crate::DomTypeHolder> for XRSystem {
             }),
         );
         if let Some(mut r) = window.webxr_registry() {
-            r.request_session(mode.into(), init, sender, frame_sender);
+            r.request_session(mode.convert(), init, sender, frame_sender);
         }
         promise
     }

@@ -30,6 +30,7 @@ use style::thread_state::{self, ThreadState};
 use swapper::{swapper, Swapper};
 use uuid::Uuid;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, WorkletOptions};
@@ -655,7 +656,7 @@ impl WorkletThread {
         )
         .destination(Destination::Script)
         .mode(RequestMode::CorsMode)
-        .credentials_mode(credentials.into())
+        .credentials_mode(credentials.convert())
         .origin(origin);
 
         let script = load_whole_resource(

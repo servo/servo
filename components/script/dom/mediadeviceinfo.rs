@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use servo_media::streams::device_monitor::MediaDeviceKind as ServoMediaDeviceKind;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::MediaDeviceInfoBinding::{
     MediaDeviceInfoMethods, MediaDeviceKind,
 };
@@ -76,9 +77,9 @@ impl MediaDeviceInfoMethods<crate::DomTypeHolder> for MediaDeviceInfo {
     }
 }
 
-impl From<ServoMediaDeviceKind> for MediaDeviceKind {
-    fn from(kind: ServoMediaDeviceKind) -> MediaDeviceKind {
-        match kind {
+impl Convert<MediaDeviceKind> for ServoMediaDeviceKind {
+    fn convert(self) -> MediaDeviceKind {
+        match self {
             ServoMediaDeviceKind::AudioInput => MediaDeviceKind::Audioinput,
             ServoMediaDeviceKind::AudioOutput => MediaDeviceKind::Audiooutput,
             ServoMediaDeviceKind::VideoInput => MediaDeviceKind::Videoinput,

@@ -21,6 +21,7 @@ use servo_media::audio::graph::NodeId;
 use servo_media::{ClientContextId, ServoMedia};
 use uuid::Uuid;
 
+use crate::conversions::Convert;
 use crate::dom::analysernode::AnalyserNode;
 use crate::dom::audiobuffer::AudioBuffer;
 use crate::dom::audiobuffersourcenode::AudioBufferSourceNode;
@@ -129,7 +130,7 @@ impl BaseAudioContext {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let audio_context_impl = ServoMedia::get()
             .unwrap()
-            .create_audio_context(&client_context_id, options.into())
+            .create_audio_context(&client_context_id, options.convert())
             .map_err(|_| Error::NotSupported)?;
 
         Ok(BaseAudioContext {
@@ -613,9 +614,9 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     }
 }
 
-impl From<BaseAudioContextOptions> for AudioContextOptions {
-    fn from(options: BaseAudioContextOptions) -> Self {
-        match options {
+impl Convert<AudioContextOptions> for BaseAudioContextOptions {
+    fn convert(self) -> AudioContextOptions {
+        match self {
             BaseAudioContextOptions::AudioContext(options) => {
                 AudioContextOptions::RealTimeAudioContext(options)
             },
@@ -626,9 +627,9 @@ impl From<BaseAudioContextOptions> for AudioContextOptions {
     }
 }
 
-impl From<ProcessingState> for AudioContextState {
-    fn from(state: ProcessingState) -> Self {
-        match state {
+impl Convert<AudioContextState> for ProcessingState {
+    fn convert(self) -> AudioContextState {
+        match self {
             ProcessingState::Suspended => AudioContextState::Suspended,
             ProcessingState::Running => AudioContextState::Running,
             ProcessingState::Closed => AudioContextState::Closed,
