@@ -5,15 +5,7 @@ import os
 import socket
 import traceback
 
-from .base import (Protocol,
-                   RefTestExecutor,
-                   RefTestImplementation,
-                   TestharnessExecutor,
-                   TimedRunner,
-                   strip_server)
 from .executorwebdriver import WebDriverProtocol, WebDriverTestharnessExecutor, WebDriverRefTestExecutor
-from .protocol import BaseProtocolPart
-from ..environment import wait_for_service
 
 webdriver = None
 ServoCommandExtensions = None
@@ -65,7 +57,7 @@ def parse_pref_value(value):
         return value
 
 
-class ServoWebDriverProtocol2(WebDriverProtocol):
+class ServoWebDriverProtocol(WebDriverProtocol):
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
         WebDriverProtocol.__init__(self, executor, browser, capabilities, **kwargs)
@@ -83,13 +75,15 @@ class ServoWebDriverProtocol2(WebDriverProtocol):
 
 class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
     supports_testdriver = True
-    protocol_cls = ServoWebDriverProtocol2
+    protocol_cls = ServoWebDriverProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
-                 close_after_done=True, capabilities=None, debug_info=None,
+                 close_after_done=True, capabilities={}, debug_info=None,
                  **kwargs):
-        WebDriverTestharnessExecutor.__init__(self, logger, browser, server_config, timeout_multiplier=1,
-                                              debug_info=debug_info, capabilities={})
+        WebDriverTestharnessExecutor.__init__(self, logger, browser, server_config,
+                                              timeout_multiplier, capabilities=capabilities,
+                                              debug_info=debug_info, close_after_done=close_after_done,
+                                              cleanup_after_test=False)
 
     def on_environment_change(self, new_environment):
         self.protocol.webdriver.extension.change_prefs(
@@ -99,7 +93,7 @@ class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
 
 
 class ServoWebDriverRefTestExecutor(WebDriverRefTestExecutor):
-    protocol_cls = ServoWebDriverProtocol2
+    protocol_cls = ServoWebDriverProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  screenshot_cache=None, capabilities={}, debug_info=None,
