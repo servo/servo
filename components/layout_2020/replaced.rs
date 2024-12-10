@@ -521,9 +521,10 @@ impl ReplacedContents {
         };
 
         // <https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing>
-        let inline_stretch_size = Au::zero().max(containing_block.inline_size - pbm_sums.inline);
+        let inline_stretch_size = Au::zero().max(containing_block.size.inline - pbm_sums.inline);
         let block_stretch_size = containing_block
-            .block_size
+            .size
+            .block
             .non_auto()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
 

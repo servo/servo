@@ -32,7 +32,9 @@ use crate::geom::{
 };
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
-use crate::{ConstraintSpace, ContainingBlock, DefiniteContainingBlock, SizeConstraint};
+use crate::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock, SizeConstraint,
+};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
@@ -579,8 +581,10 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
                     let inline_size = inline_axis.size.to_definite().unwrap();
                     let containing_block_for_children = ContainingBlock {
-                        inline_size,
-                        block_size: block_axis.size.to_auto_or(),
+                        size: ContainingBlockSize {
+                            inline: inline_size,
+                            block: block_axis.size.to_auto_or(),
+                        },
                         style: &style,
                     };
                     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -664,7 +668,7 @@ impl HoistedAbsolutelyPositionedBox {
                 context.base_fragment_info(),
                 style,
                 fragments,
-                content_rect.to_physical(Some(containing_block)),
+                content_rect.as_physical(Some(containing_block)),
                 pbm.padding.to_physical(containing_block_writing_mode),
                 pbm.border.to_physical(containing_block_writing_mode),
                 margin.to_physical(containing_block_writing_mode),
@@ -1009,8 +1013,8 @@ pub(crate) fn relative_adjustement(
     // It's not completely clear what to do with indefinite percentages
     // (https://github.com/w3c/csswg-drafts/issues/9353), so we match
     // other browsers and treat them as 'auto' offsets.
-    let cbis = containing_block.inline_size;
-    let cbbs = containing_block.block_size;
+    let cbis = containing_block.size.inline;
+    let cbbs = containing_block.size.block;
     let box_offsets = style
         .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(

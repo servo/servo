@@ -28,7 +28,7 @@ use crate::geom::{AuOrAuto, LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::ContainingBlock;
+use crate::{ContainingBlock, ContainingBlockSize};
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -293,7 +293,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 // we know the width of the containing inline block. This step converts the logical rectangle
                 // into a physical one based on the inline formatting context width.
                 if let Some(content_rect) = fragment.content_rect_mut() {
-                    *content_rect = logical_rect.to_physical(Some(self.layout.containing_block))
+                    *content_rect = logical_rect.as_physical(Some(self.layout.containing_block))
                 }
 
                 fragment
@@ -430,8 +430,10 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         let ifc_writing_mode = self.layout.containing_block.style.writing_mode;
         let inline_box_containing_block = ContainingBlock {
-            inline_size: content_rect.size.inline,
-            block_size: AuOrAuto::Auto,
+            size: ContainingBlockSize {
+                inline: content_rect.size.inline,
+                block: AuOrAuto::Auto,
+            },
             style: self.layout.containing_block.style,
         };
         let fragments = inner_state
@@ -447,7 +449,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                         // We do not know the actual physical position of a logically laid out inline element, until
                         // we know the width of the containing inline block. This step converts the logical rectangle
                         // into a physical one now that we've computed inline size of the containing inline block above.
-                        *content_rect = logical_rect.to_physical(Some(&inline_box_containing_block))
+                        *content_rect = logical_rect.as_physical(Some(&inline_box_containing_block))
                     }
                 }
                 fragment
@@ -456,7 +458,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         // Previously all the fragment's children were positioned relative to the linebox,
         // but they need to be made relative to this fragment.
-        let physical_content_rect = content_rect.to_physical(Some(self.layout.containing_block));
+        let physical_content_rect = content_rect.as_physical(Some(self.layout.containing_block));
         let mut fragment = BoxFragment::new(
             inline_box.base_fragment_info,
             style.clone(),
@@ -619,7 +621,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         if let Some(mut positioning_context) = atomic.positioning_context {
             let physical_rect_as_if_in_root =
-                content_rect.to_physical(Some(self.layout.containing_block));
+                content_rect.as_physical(Some(self.layout.containing_block));
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
                 &physical_rect_as_if_in_root.origin.to_vector(),
                 PositioningContextLength::zero(),
@@ -672,7 +674,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             start_corner: initial_start_corner,
             size: LogicalVec2::zero(),
         }
-        .to_physical(Some(self.layout.containing_block));
+        .as_physical(Some(self.layout.containing_block));
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),
