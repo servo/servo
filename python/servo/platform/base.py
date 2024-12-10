@@ -82,9 +82,9 @@ class Base:
         if not force and shutil.which("cargo-deny") is not None:
             return False
 
+        # Tidy needs at least version 0.16.3 installed.
         print(" * Installing cargo-deny...")
-        # cargo-deny 0.16.2 requires Rust 1.81.
-        if subprocess.call(["cargo", "install", "cargo-deny", "--locked", "--version", "0.16.1"]) != 0:
+        if subprocess.call(["cargo", "install", "cargo-deny", "--locked", "--version", "> 0.16.3"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
 
         return True
