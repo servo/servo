@@ -4629,7 +4629,7 @@ where
             WebDriverCommandMsg::NewTab(sender, load_sender) => {
                 let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
                 self.handle_new_top_level_browsing_context(
-                    ServoUrl::parse_with_base(None, "about:blank").unwrap(),
+                    ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
                     top_level_browsing_context_id,
                     Some(load_sender),
                 );

@@ -162,10 +162,6 @@ impl WebDriverSession {
     ) -> WebDriverSession {
         let mut window_handles = HashMap::new();
         let handle = Uuid::new_v4().to_string();
-        info!(
-            "Recording {:?} -> {:?}",
-            top_level_browsing_context_id, handle
-        );
         window_handles.insert(top_level_browsing_context_id, handle);
 
         WebDriverSession {
@@ -430,6 +426,7 @@ impl Handler {
     }
 
     fn focus_top_level_browsing_context_id(&self) -> WebDriverResult<TopLevelBrowsingContextId> {
+        // FIXME(#34550): This is a hack for unexpected behaviour in the constellation.
         thread::sleep(Duration::from_millis(1000));
 
         debug!("Getting focused context.");
@@ -687,7 +684,7 @@ impl Handler {
     }
 
     fn wait_for_load(&self) -> WebDriverResult<WebDriverResponse> {
-        info!("waiting for load");
+        debug!("waiting for load");
         let timeout = self.session()?.load_timeout;
         let result = select! {
             recv(self.load_status_receiver) -> _ => Ok(WebDriverResponse::Void),
@@ -695,7 +692,7 @@ impl Handler {
                 WebDriverError::new(ErrorStatus::Timeout, "Load timed out")
             ),
         };
-        info!("finished waiting for load with {:?}", result);
+        debug!("finished waiting for load with {:?}", result);
         result
     }
 
@@ -736,6 +733,8 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
+        // We don't current allow modifying the window x/y positions, so we can just
+        // return the current window rectangle.
         if params.width.is_none() || params.height.is_none() {
             return self.handle_window_size();
         }
@@ -923,15 +922,9 @@ impl Handler {
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
         {
             let session = self.session_mut().unwrap();
-            if let Some(handle) = session
+            session
                 .window_handles
-                .remove(&session.top_level_browsing_context_id)
-            {
-                info!(
-                    "Removing mapping for {:?} -> {:?}",
-                    handle, session.top_level_browsing_context_id
-                );
-            }
+                .remove(&session.top_level_browsing_context_id);
             let cmd_msg = WebDriverCommandMsg::CloseWindow(session.top_level_browsing_context_id);
             self.constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
@@ -966,10 +959,6 @@ impl Handler {
             session.browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_handle = Uuid::new_v4().to_string();
-            info!(
-                "Recording {:?} -> {:?}",
-                new_top_level_browsing_context_id, new_handle
-            );
             session
                 .window_handles
                 .insert(new_top_level_browsing_context_id, new_handle);
@@ -1501,7 +1490,11 @@ impl Handler {
         // This is pretty ugly; we really want something that acts like
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
-        let script = format!("(function() {{ {} }})({})", func_body, args_string.join(", "));
+        let script = format!(
+            "(function() {{ {} }})({})",
+            func_body,
+            args_string.join(", ")
+        );
         debug!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1536,7 +1529,7 @@ impl Handler {
             func_body,
             args_string.join(", "),
         );
-        println!("{}", script);
+        debug!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
@@ -1926,15 +1919,17 @@ fn webdriver_value_to_js_argument(v: &Value) -> String {
         Value::Bool(b) => b.to_string(),
         Value::Number(n) => n.to_string(),
         Value::Array(list) => {
-            let elems = list.iter().map(|v|
-                format!("{}", webdriver_value_to_js_argument(v))
-            ).collect::<Vec<_>>();
+            let elems = list
+                .iter()
+                .map(|v| webdriver_value_to_js_argument(v).to_string())
+                .collect::<Vec<_>>();
             format!("[{}]", elems.join(", "))
         },
         Value::Object(map) => {
-            let elems = map.iter().map(|(k, v)|
-                format!("{}: {}", k, webdriver_value_to_js_argument(v))
-            ).collect::<Vec<_>>();
+            let elems = map
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k, webdriver_value_to_js_argument(v)))
+                .collect::<Vec<_>>();
             format!("{{{}}}", elems.join(", "))
         },
     }

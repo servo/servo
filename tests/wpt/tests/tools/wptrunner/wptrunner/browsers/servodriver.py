@@ -9,11 +9,8 @@ from mozprocess import ProcessHandler
 from tools.serve.serve import make_hosts_file
 
 from .base import (WebDriverBrowser,
-                   ExecutorBrowser,
-                   OutputHandler,
                    require_arg,
-                   get_free_port,
-                   browser_command)
+                   get_free_port)
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorservodriver import (ServoWebDriverTestharnessExecutor,  # noqa: F401
@@ -64,8 +61,7 @@ def env_extras(**kwargs):
 
 def env_options():
     return {"server_host": "127.0.0.1",
-            "testharnessreport": "testharnessreport-servodriver.js",
-            "supports_debugger": True}
+            "supports_debugger": False}
 
 
 def update_properties():
