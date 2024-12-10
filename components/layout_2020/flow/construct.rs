@@ -448,7 +448,8 @@ where
 
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
-        self.inline_formatting_context_builder
+        let inline_item = self
+            .inline_formatting_context_builder
             .start_inline_box(InlineBox::new(info));
 
         if is_list_item {
@@ -467,9 +468,8 @@ where
 
         self.finish_anonymous_table_if_needed();
 
-        box_slot.set(LayoutBox::InlineBox(
-            self.inline_formatting_context_builder.end_inline_box(),
-        ));
+        self.inline_formatting_context_builder.end_inline_box();
+        box_slot.set(LayoutBox::InlineLevel(inline_item));
     }
 
     fn handle_block_level_element(

@@ -180,16 +180,16 @@ pub(crate) struct FontKeyAndMetrics {
 
 #[derive(Debug, Serialize)]
 pub(crate) enum InlineItem {
-    StartInlineBox(InlineBoxIdentifier),
+    StartInlineBox(ArcRefCell<InlineBox>),
     EndInlineBox,
-    TextRun(TextRun),
+    TextRun(ArcRefCell<TextRun>),
     OutOfFlowAbsolutelyPositionedBox(
         ArcRefCell<AbsolutelyPositionedBox>,
         usize, /* offset_in_text */
     ),
-    OutOfFlowFloatBox(FloatBox),
+    OutOfFlowFloatBox(Arc<FloatBox>),
     Atomic(
-        IndependentFormattingContext,
+        Arc<IndependentFormattingContext>,
         usize, /* offset_in_text */
         Level, /* bidi_level */
     ),
@@ -1536,7 +1536,7 @@ impl InlineFormattingContext {
         for item in builder.inline_items.iter() {
             match &mut *item.borrow_mut() {
                 InlineItem::TextRun(ref mut text_run) => {
-                    text_run.segment_and_shape(
+                    text_run.borrow_mut().segment_and_shape(
                         &text_content,
                         &layout_context.font_context,
                         &mut new_linebreaker,
@@ -1544,8 +1544,7 @@ impl InlineFormattingContext {
                         &bidi_info,
                     );
                 },
-                InlineItem::StartInlineBox(identifier) => {
-                    let inline_box = builder.inline_boxes.get(identifier);
+                InlineItem::StartInlineBox(inline_box) => {
                     let inline_box = &mut *inline_box.borrow_mut();
                     if let Some(font) = get_font_for_first_font_for_style(
                         &inline_box.style,
@@ -1676,11 +1675,11 @@ impl InlineFormattingContext {
             }
 
             match item {
-                InlineItem::StartInlineBox(identifier) => {
-                    layout.start_inline_box(&self.inline_boxes.get(identifier).borrow());
+                InlineItem::StartInlineBox(inline_box) => {
+                    layout.start_inline_box(&inline_box.borrow());
                 },
                 InlineItem::EndInlineBox => layout.finish_inline_box(),
-                InlineItem::TextRun(run) => run.layout_into_line_items(&mut layout),
+                InlineItem::TextRun(run) => run.borrow().layout_into_line_items(&mut layout),
                 InlineItem::Atomic(atomic_formatting_context, offset_in_text, bidi_level) => {
                     atomic_formatting_context.layout_into_line_items(
                         &mut layout,
@@ -2237,12 +2236,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         inline_formatting_context: &InlineFormattingContext,
     ) {
         match inline_item {
-            InlineItem::StartInlineBox(identifier) => {
+            InlineItem::StartInlineBox(inline_box) => {
                 // For margins and paddings, a cyclic percentage is resolved against zero
                 // for determining intrinsic size contributions.
                 // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
-                let inline_box = inline_formatting_context.inline_boxes.get(identifier);
-                let inline_box = (*inline_box).borrow();
+                let inline_box = inline_box.borrow();
                 let zero = Au::zero();
                 let writing_mode = self.constraint_space.writing_mode;
                 let padding = inline_box
@@ -2271,6 +2269,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 self.add_inline_size(length);
             },
             InlineItem::TextRun(text_run) => {
+                let text_run = &*text_run.borrow();
                 for segment in text_run.shaped_text.iter() {
                     let style_text = text_run.parent_style.get_inherited_text();
                     let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
