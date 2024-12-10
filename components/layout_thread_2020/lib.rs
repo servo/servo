@@ -47,7 +47,7 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
-use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
+use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse,
     ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
@@ -899,7 +899,6 @@ impl LayoutThread {
             self.perform_post_style_recalc_layout_passes(
                 root.clone(),
                 &data.reflow_goal,
-                Some(&document),
                 &mut layout_context,
             );
         }
@@ -929,7 +928,6 @@ impl LayoutThread {
         &self,
         fragment_tree: Arc<FragmentTree>,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(
@@ -944,18 +942,7 @@ impl LayoutThread {
         }
 
         if !reflow_goal.needs_display_list() {
-            // Defer the paint step until the next ForDisplay.
-            //
-            // We need to tell the document about this so it doesn't
-            // incorrectly suppress reflows. See #13131.
-            document
-                .expect("No document in a non-display reflow?")
-                .needs_paint_from_layout();
             return;
-        }
-
-        if let Some(document) = document {
-            document.will_paint();
         }
 
         let mut epoch = self.epoch.get();

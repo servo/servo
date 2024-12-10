@@ -503,9 +503,7 @@ impl HTMLImageElement {
                 .fire_event(atom!("loadend"), can_gc);
         }
 
-        // Trigger reflow
-        let window = window_from_node(self);
-        window.add_pending_reflow();
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn process_image_response_for_environment_change(

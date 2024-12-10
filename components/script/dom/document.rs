@@ -345,8 +345,10 @@ pub struct Document {
     /// Information on elements needing restyle to ship over to layout when the
     /// time comes.
     pending_restyles: DomRefCell<HashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
-    /// This flag will be true if layout suppressed a reflow attempt that was
-    /// needed in order for the page to be painted.
+    /// This flag will be true if the `Document` needs to be painted again
+    /// during the next full layout attempt due to some external change such as
+    /// the web view changing size, or because the previous layout was only for
+    /// layout queries (which do not trigger display).
     needs_paint: Cell<bool>,
     /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
@@ -823,8 +825,8 @@ impl Document {
         }
     }
 
-    pub fn needs_paint(&self) -> bool {
-        self.needs_paint.get()
+    pub(crate) fn set_needs_paint(&self, value: bool) {
+        self.needs_paint.set(value)
     }
 
     pub fn needs_reflow(&self) -> Option<ReflowTriggerCondition> {
@@ -844,7 +846,7 @@ impl Document {
             return Some(ReflowTriggerCondition::PendingRestyles);
         }
 
-        if self.needs_paint() {
+        if self.needs_paint.get() {
             return Some(ReflowTriggerCondition::PaintPostponed);
         }
 
@@ -3169,8 +3171,6 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers<'dom> {
     fn is_html_document_for_layout(&self) -> bool;
-    fn needs_paint_from_layout(self);
-    fn will_paint(self);
     fn quirks_mode(self) -> QuirksMode;
     fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
     fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
@@ -3183,16 +3183,6 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
     fn is_html_document_for_layout(&self) -> bool {
         self.unsafe_get().is_html_document
-    }
-
-    #[inline]
-    fn needs_paint_from_layout(self) {
-        (self.unsafe_get()).needs_paint.set(true)
-    }
-
-    #[inline]
-    fn will_paint(self) {
-        (self.unsafe_get()).needs_paint.set(false)
     }
 
     #[inline]
@@ -4171,14 +4161,9 @@ impl Document {
 
     pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self) {
         let current_timeline_value = self.current_animation_timeline_value();
-        let marked_dirty = self
-            .animations
+        self.animations
             .borrow()
             .mark_animating_nodes_as_dirty(current_timeline_value);
-
-        if marked_dirty {
-            self.window().add_pending_reflow();
-        }
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
