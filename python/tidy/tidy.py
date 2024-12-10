@@ -905,7 +905,7 @@ def check_spec(file_name, lines):
 
     brace_count = 0
     in_impl = False
-    pattern = "impl {}Methods for {} {{".format(file_name, file_name)
+    pattern = "impl {}Methods<crate::DomTypeHolder> for {} {{".format(file_name, file_name)
 
     for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         if "// check-tidy: no specs after this line" in line:
