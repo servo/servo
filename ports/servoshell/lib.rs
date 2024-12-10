@@ -78,10 +78,11 @@ pub fn init_tracing() {
     }
 }
 
-pub fn servo_version() -> String {
-    format!(
-        "Servo {}-{}",
+pub fn servo_version() -> &'static str {
+    concat!(
+        "Servo ",
         env!("CARGO_PKG_VERSION"),
+        "-",
         env!("VERGEN_GIT_SHA")
     )
 }

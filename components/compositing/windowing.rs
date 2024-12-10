@@ -238,7 +238,7 @@ pub trait EmbedderMethods {
     }
 
     /// Returns the version string of this embedder.
-    fn get_version_string(&self) -> Option<String> {
+    fn get_version_str(&self) -> Option<&'static str> {
         None
     }
 

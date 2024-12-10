@@ -221,7 +221,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// The string representing the version of Servo that is running. This is used to tag
     /// WebRender capture output.
-    version_string: String,
+    version_str: &'static str,
 }
 
 #[derive(Clone, Copy)]
@@ -364,7 +364,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        version_string: String,
+        version_str: &'static str,
     ) -> Self {
         let embedder_coordinates = window.get_coordinates();
         let mut webviews = WebViewManager::default();
@@ -424,7 +424,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             pending_frames: 0,
             waiting_on_present: false,
             last_animation_tick: Instant::now(),
-            version_string,
+            version_str,
         };
 
         compositor.assert_gl_framebuffer_complete();
@@ -2509,7 +2509,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let version_file_path = capture_path.join("servo-version.txt");
         if let Err(error) = File::create(version_file_path)
-            .and_then(|mut file| write!(file, "{}", self.version_string))
+            .and_then(|mut file| write!(file, "{}", self.version_str))
         {
             eprintln!("Unable to write servo version for WebRender Capture: {error:?}");
         }
