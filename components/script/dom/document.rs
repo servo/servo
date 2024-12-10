@@ -2064,6 +2064,12 @@ impl Document {
         }
     }
 
+    /// Whether or not this `Document` has any active requestAnimationFrame callbacks
+    /// registered.
+    pub(crate) fn has_active_request_animation_frame_callbacks(&self) -> bool {
+        !self.animation_frame_list.borrow().is_empty()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
     pub(crate) fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;

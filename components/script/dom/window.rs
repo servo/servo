@@ -1804,6 +1804,10 @@ impl Window {
         ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
     }
 
+    pub(crate) fn reflows_suppressed(&self) -> bool {
+        self.suppress_reflow.get()
+    }
+
     /// Reflows the page unconditionally if possible and not suppressed. This method will wait for
     /// the layout to complete. If there is no window size yet, the page is presumed invisible and
     /// no reflow is performed. If reflow is suppressed, no reflow will be performed for ForDisplay
@@ -2018,6 +2022,7 @@ impl Window {
         // a "rendering opportunity" in `ScriptThread::handle_web_font_loaded, which should also
         // make sure a microtask checkpoint happens, triggering the promise callback.
         if !pending_web_fonts && is_ready_state_complete {
+            println!("fulfilling promise");
             font_face_set.fulfill_ready_promise_if_needed();
         }
 
