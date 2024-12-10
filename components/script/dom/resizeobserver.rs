@@ -26,7 +26,6 @@ use crate::dom::resizeobserverentry::ResizeObserverEntry;
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-use crate::script_thread::ScriptThread;
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
 #[derive(Debug, Default, PartialEq, PartialOrd)]
@@ -191,10 +190,6 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
-
-        // Note: noting a rendering opportunity here is necessary
-        // to make /resize-observer/iframe-same-origin.html PASS.
-        ScriptThread::note_rendering_opportunity(window_from_node(target).pipeline_id());
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>
