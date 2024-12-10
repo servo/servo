@@ -14,8 +14,7 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
 use script_traits::{
-    GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
-    WheelDelta,
+    GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType, TouchId, TraversalDirection, WheelDelta
 };
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
@@ -55,6 +54,8 @@ pub enum EmbedderEvent {
     Refresh,
     /// Sent when the window is resized.
     WindowResize,
+    /// Sent when the platform theme changes.
+    ThemeChange(Theme),
     /// Sent when a navigation request from script is allowed/refused.
     AllowNavigationResponse(PipelineId, bool),
     /// Sent when a new URL is to be loaded.
@@ -141,6 +142,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Idle => write!(f, "Idle"),
             EmbedderEvent::Refresh => write!(f, "Refresh"),
             EmbedderEvent::WindowResize => write!(f, "Resize"),
+            EmbedderEvent::ThemeChange(..) => write!(f, "ThemeChange"),
             EmbedderEvent::Keyboard(..) => write!(f, "Keyboard"),
             EmbedderEvent::IMEComposition(..) => write!(f, "IMEComposition"),
             EmbedderEvent::AllowNavigationResponse(..) => write!(f, "AllowNavigationResponse"),

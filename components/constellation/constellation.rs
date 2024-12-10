@@ -136,15 +136,7 @@ use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
-    webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
-    BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, GamepadEvent, HistoryEntryReplacement, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
-    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
-    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
-    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
-    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity, DocumentState, GamepadEvent, HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg, ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, Theme, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -1505,6 +1497,10 @@ where
             },
             FromCompositorMsg::WindowSize(top_level_browsing_context_id, new_size, size_type) => {
                 self.handle_window_size_msg(top_level_browsing_context_id, new_size, size_type);
+            },
+            FromCompositorMsg::ThemeChange(theme) => {
+                dbg!(theme);
+                self.handle_theme_change(theme);
             },
             FromCompositorMsg::TickAnimation(pipeline_id, tick_type) => {
                 self.handle_tick_animation(pipeline_id, tick_type)
@@ -5435,6 +5431,44 @@ where
                     size_type,
                 ));
             }
+        }
+    }
+    /// Handle GamepadEvents from the embedder and forward them to the script thread
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_theme_change(&mut self, theme: Theme) {
+        // Send to the focused browsing contexts' current pipeline.
+        let focused_browsing_context_id = self
+            .webviews
+            .focused_webview()
+            .map(|(_, webview)| webview.focused_browsing_context_id);
+        match focused_browsing_context_id {
+            Some(browsing_context_id) => {
+                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                    Some(ctx) => ctx.pipeline_id,
+                    None => {
+                        return warn!(
+                            "{}: Got gamepad event for nonexistent browsing context",
+                            browsing_context_id,
+                        );
+                    },
+                };
+                let msg = ConstellationControlMsg::ThemeChange(pipeline_id, theme);
+                let result = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.event_loop.send(msg),
+                    None => {
+                        return debug!("{}: Got gamepad event after closure", pipeline_id);
+                    },
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(pipeline_id, e);
+                }
+            },
+            None => {
+                warn!("No focused webview to handle gamepad event");
+            },
         }
     }
 

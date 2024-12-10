@@ -487,6 +487,14 @@ impl WindowPortsMethods for Window {
                         .push(EmbedderEvent::WindowResize);
                 }
             },
+            winit::event::WindowEvent::ThemeChanged(theme) => {
+                dbg!(theme);
+                let theme = match theme {
+                    winit::window::Theme::Light => servo::script_traits::Theme::Light,
+                    winit::window::Theme::Dark => servo::script_traits::Theme::Dark,
+                };
+                self.event_queue.borrow_mut().push(EmbedderEvent::ThemeChange(theme));
+            }
             _ => {},
         }
     }
