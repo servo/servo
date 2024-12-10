@@ -34,6 +34,8 @@ mod body;
 #[warn(deprecated)]
 pub mod clipboard_provider;
 #[warn(deprecated)]
+pub mod conversions;
+#[warn(deprecated)]
 mod devtools;
 #[warn(deprecated)]
 pub mod document_loader;
