@@ -247,6 +247,10 @@ mod gen {
                         enabled: bool,
                     }
                 },
+                abort_controller: {
+                    /// Whether to expose the AbortControll/AbortSignal DOM interfaces.
+                    enabled: bool,
+                },
                 allow_scripts_to_close_windows: bool,
                 canvas_capture: {
                     enabled: bool,
