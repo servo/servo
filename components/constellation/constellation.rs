@@ -1461,7 +1461,11 @@ where
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
             FromCompositorMsg::NewWebView(url, top_level_browsing_context_id) => {
-                self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id, None);
+                self.handle_new_top_level_browsing_context(
+                    url,
+                    top_level_browsing_context_id,
+                    None,
+                );
             },
             // A top level browsing context is created and opened in both constellation and
             // compositor.
@@ -4621,7 +4625,7 @@ where
         match msg {
             WebDriverCommandMsg::CloseWindow(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
-            }
+            },
             WebDriverCommandMsg::NewTab(sender, load_sender) => {
                 let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
                 self.handle_new_top_level_browsing_context(
@@ -4630,10 +4634,10 @@ where
                     Some(load_sender),
                 );
                 let _ = sender.send(top_level_browsing_context_id);
-            }
+            },
             WebDriverCommandMsg::FocusWebView(top_level_browsing_context_id) => {
                 self.handle_focus_web_view(top_level_browsing_context_id);
-            }
+            },
             WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
                 let _ = response_sender.send(self.window_size);
             },
@@ -4923,7 +4927,10 @@ where
             load_data,
             replace,
         ) {
-            debug!("Setting up webdriver load notification for {:?}", new_pipeline_id);
+            debug!(
+                "Setting up webdriver load notification for {:?}",
+                new_pipeline_id
+            );
             self.webdriver.load_channel = Some((new_pipeline_id, response_sender));
         } else {
             let _ = response_sender.send(webdriver_msg::LoadStatus::LoadCanceled);
