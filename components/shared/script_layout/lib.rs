@@ -48,6 +48,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
 use style::properties::style_structs::Font;
 use style::properties::PropertyId;
+use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use style::Atom;
@@ -426,6 +427,8 @@ pub struct ScriptReflow {
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
     pub animations: DocumentAnimationSet,
+    /// The theme for the window
+    pub theme: PrefersColorScheme,
 }
 
 /// A pending restyle.

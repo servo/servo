@@ -665,6 +665,15 @@ where
             EmbedderEvent::WindowResize => {
                 return self.compositor.on_resize_window_event();
             },
+            EmbedderEvent::ThemeChange(theme) => {
+                let msg = ConstellationMsg::ThemeChange(theme);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending platform theme change to constellation failed ({:?}).",
+                        e
+                    )
+                }
+            },
             EmbedderEvent::InvalidateNativeSurface => {
                 self.compositor.invalidate_native_surface();
             },

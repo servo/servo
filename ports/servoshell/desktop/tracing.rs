@@ -199,6 +199,7 @@ mod to_servo {
                 Self::Idle => target!("Idle"),
                 Self::Refresh => target!("Refresh"),
                 Self::WindowResize => target!("WindowResize"),
+                Self::ThemeChange(..) => target!("ThemeChange"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::MouseWindowEventClass(..) => target!("MouseWindowEventClass"),
