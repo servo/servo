@@ -67,7 +67,7 @@ impl EmbedderMethods for EmbedderCallbacks {
         registry
     }
 
-    fn get_version_string(&self) -> Option<String> {
+    fn get_version_str(&self) -> Option<&'static str> {
         crate::servo_version().into()
     }
 }

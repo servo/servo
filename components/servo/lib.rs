@@ -526,7 +526,7 @@ where
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
             top_level_browsing_context_id,
-            embedder.get_version_string().unwrap_or_default(),
+            embedder.get_version_str().unwrap_or_default(),
         );
 
         let servo = Servo {
