@@ -53,16 +53,16 @@ use webdriver::actions::{
 use webdriver::capabilities::{Capabilities, CapabilitiesMatching};
 use webdriver::command::{
     ActionsParameters, AddCookieParameters, GetParameters, JavascriptCommandParameters,
-    LocatorParameters, NewSessionParameters, SendKeysParameters, SwitchToFrameParameters,
-    SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand, WebDriverExtensionCommand,
-    WebDriverMessage, WindowRectParameters, NewWindowParameters,
+    LocatorParameters, NewSessionParameters, NewWindowParameters, SendKeysParameters,
+    SwitchToFrameParameters, SwitchToWindowParameters, TimeoutsParameters, WebDriverCommand,
+    WebDriverExtensionCommand, WebDriverMessage, WindowRectParameters,
 };
 use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{
-    CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse, TimeoutsResponse,
-    ValueResponse, WebDriverResponse, WindowRectResponse, NewWindowResponse, CloseWindowResponse
+    CloseWindowResponse, CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse,
+    NewWindowResponse, TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
@@ -162,7 +162,10 @@ impl WebDriverSession {
     ) -> WebDriverSession {
         let mut window_handles = HashMap::new();
         let handle = Uuid::new_v4().to_string();
-        info!("Recording {:?} -> {:?}", top_level_browsing_context_id, handle);
+        info!(
+            "Recording {:?} -> {:?}",
+            top_level_browsing_context_id, handle
+        );
         window_handles.insert(top_level_browsing_context_id, handle);
 
         WebDriverSession {
@@ -849,11 +852,14 @@ impl Handler {
 
     fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
         let session = self.session.as_ref().unwrap();
-        match session.window_handles.get(&session.top_level_browsing_context_id) {
+        match session
+            .window_handles
+            .get(&session.top_level_browsing_context_id)
+        {
             Some(handle) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(handle)?,
             ))),
-            None => Ok(WebDriverResponse::Void)
+            None => Ok(WebDriverResponse::Void),
         }
     }
 
@@ -917,8 +923,14 @@ impl Handler {
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
         {
             let session = self.session_mut().unwrap();
-            if let Some(handle) = session.window_handles.remove(&session.top_level_browsing_context_id) {
-                info!("Removing mapping for {:?} -> {:?}", handle, session.top_level_browsing_context_id);
+            if let Some(handle) = session
+                .window_handles
+                .remove(&session.top_level_browsing_context_id)
+            {
+                info!(
+                    "Removing mapping for {:?} -> {:?}",
+                    handle, session.top_level_browsing_context_id
+                );
             }
             let cmd_msg = WebDriverCommandMsg::CloseWindow(session.top_level_browsing_context_id);
             self.constellation_chan
@@ -926,20 +938,21 @@ impl Handler {
                 .unwrap();
         }
 
-        let top_level_browsing_context_id =
-            self.focus_top_level_browsing_context_id()?;
-        let browsing_context_id =
-            BrowsingContextId::from(top_level_browsing_context_id);
+        let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
+        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let session = self.session_mut().unwrap();
         session.top_level_browsing_context_id = top_level_browsing_context_id;
         session.browsing_context_id = browsing_context_id;
 
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            session.window_handles.values().cloned().collect()
+            session.window_handles.values().cloned().collect(),
         )))
     }
 
-    fn handle_new_window(&mut self, _parameters: &NewWindowParameters) -> WebDriverResult<WebDriverResponse> {
+    fn handle_new_window(
+        &mut self,
+        _parameters: &NewWindowParameters,
+    ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let cmd_msg = WebDriverCommandMsg::NewTab(sender, self.load_status_sender.clone());
@@ -950,10 +963,16 @@ impl Handler {
         if let Ok(new_top_level_browsing_context_id) = receiver.recv() {
             let session = self.session_mut().unwrap();
             session.top_level_browsing_context_id = new_top_level_browsing_context_id;
-            session.browsing_context_id = BrowsingContextId::from(new_top_level_browsing_context_id);
+            session.browsing_context_id =
+                BrowsingContextId::from(new_top_level_browsing_context_id);
             let new_handle = Uuid::new_v4().to_string();
-            info!("Recording {:?} -> {:?}", new_top_level_browsing_context_id, new_handle);
-            session.window_handles.insert(new_top_level_browsing_context_id, new_handle);
+            info!(
+                "Recording {:?} -> {:?}",
+                new_top_level_browsing_context_id, new_handle
+            );
+            session
+                .window_handles
+                .insert(new_top_level_browsing_context_id, new_handle);
         }
 
         let _ = self.wait_for_load();
@@ -997,8 +1016,10 @@ impl Handler {
         if session.id.to_string() == parameters.handle {
             // There's only one main window, so there's nothing to do here.
             Ok(WebDriverResponse::Void)
-        } else if let Some((top_level_browsing_context_id, _)) =
-            session.window_handles.iter().find(|(_k, v)| **v == parameters.handle)
+        } else if let Some((top_level_browsing_context_id, _)) = session
+            .window_handles
+            .iter()
+            .find(|(_k, v)| **v == parameters.handle)
         {
             let top_level_browsing_context_id = *top_level_browsing_context_id;
             session.top_level_browsing_context_id = top_level_browsing_context_id;
@@ -1511,7 +1532,9 @@ impl Handler {
         };
         let script = format!(
             "{} (function() {{ {} }})({})",
-            timeout_script, func_body, args_string.join(", "),
+            timeout_script,
+            func_body,
+            args_string.join(", "),
         );
         println!("{}", script);
 
