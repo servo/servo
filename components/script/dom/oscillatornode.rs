@@ -14,6 +14,7 @@ use servo_media::audio::oscillator_node::{
 };
 use servo_media::audio::param::ParamType;
 
+use crate::conversions::Convert;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -50,7 +51,7 @@ impl OscillatorNode {
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::OscillatorNode(options.into()),
+            AudioNodeInit::OscillatorNode(options.convert()),
             context,
             node_options,
             0, /* inputs */
@@ -150,26 +151,26 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
         self.source_node
             .node()
             .message(AudioNodeMessage::OscillatorNode(
-                OscillatorNodeMessage::SetOscillatorType(type_.into()),
+                OscillatorNodeMessage::SetOscillatorType(type_.convert()),
             ));
         Ok(())
     }
 }
 
-impl<'a> From<&'a OscillatorOptions> for ServoMediaOscillatorOptions {
-    fn from(options: &'a OscillatorOptions) -> Self {
-        Self {
-            oscillator_type: options.type_.into(),
-            freq: *options.frequency,
-            detune: *options.detune,
+impl<'a> Convert<ServoMediaOscillatorOptions> for &'a OscillatorOptions {
+    fn convert(self) -> ServoMediaOscillatorOptions {
+        ServoMediaOscillatorOptions {
+            oscillator_type: self.type_.convert(),
+            freq: *self.frequency,
+            detune: *self.detune,
             periodic_wave_options: None, // XXX
         }
     }
 }
 
-impl From<OscillatorType> for ServoMediaOscillatorType {
-    fn from(oscillator_type: OscillatorType) -> Self {
-        match oscillator_type {
+impl Convert<ServoMediaOscillatorType> for OscillatorType {
+    fn convert(self) -> ServoMediaOscillatorType {
+        match self {
             OscillatorType::Sine => ServoMediaOscillatorType::Sine,
             OscillatorType::Square => ServoMediaOscillatorType::Square,
             OscillatorType::Sawtooth => ServoMediaOscillatorType::Sawtooth,

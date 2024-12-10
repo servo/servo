@@ -9,6 +9,7 @@ use webgpu::wgc::resource;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
 use super::gpuconvert::convert_texture_descriptor;
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
@@ -180,12 +181,12 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             !matches!(descriptor.arrayLayerCount, Some(0))
         {
             Some(resource::TextureViewDescriptor {
-                label: (&descriptor.parent).into(),
+                label: (&descriptor.parent).convert(),
                 format: descriptor
                     .format
                     .map(|f| self.device.validate_texture_format_required_features(&f))
                     .transpose()?,
-                dimension: descriptor.dimension.map(|dimension| dimension.into()),
+                dimension: descriptor.dimension.map(|dimension| dimension.convert()),
                 range: wgt::ImageSubresourceRange {
                     aspect: match descriptor.aspect {
                         GPUTextureAspect::All => wgt::TextureAspect::All,

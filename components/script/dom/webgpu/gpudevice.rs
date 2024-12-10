@@ -23,6 +23,7 @@ use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -215,7 +216,7 @@ impl GPUDevice {
         &self,
         format: &GPUTextureFormat,
     ) -> Fallible<TextureFormat> {
-        let texture_format: TextureFormat = (*format).into();
+        let texture_format: TextureFormat = (*format).convert();
         if self
             .features
             .wgpu_features()
@@ -258,11 +259,11 @@ impl GPUDevice {
         let pipeline_layout = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = wgpu_pipe::RenderPipelineDescriptor {
-            label: (&descriptor.parent.parent).into(),
+            label: (&descriptor.parent.parent).convert(),
             layout: pipeline_layout.explicit(),
             cache: None,
             vertex: wgpu_pipe::VertexState {
-                stage: (&descriptor.vertex.parent).into(),
+                stage: (&descriptor.vertex.parent).convert(),
                 buffers: Cow::Owned(
                     descriptor
                         .vertex
@@ -279,7 +280,7 @@ impl GPUDevice {
                                     .attributes
                                     .iter()
                                     .map(|att| wgt::VertexAttribute {
-                                        format: att.format.into(),
+                                        format: att.format.convert(),
                                         offset: att.offset,
                                         shader_location: att.shaderLocation,
                                     })
@@ -294,7 +295,7 @@ impl GPUDevice {
                 .as_ref()
                 .map(|stage| -> Fallible<wgpu_pipe::FragmentState> {
                     Ok(wgpu_pipe::FragmentState {
-                        stage: (&stage.parent).into(),
+                        stage: (&stage.parent).convert(),
                         targets: Cow::Owned(
                             stage
                                 .targets
@@ -309,8 +310,8 @@ impl GPUDevice {
                                                 ),
                                                 blend: state.blend.as_ref().map(|blend| {
                                                     wgt::BlendState {
-                                                        color: (&blend.color).into(),
-                                                        alpha: (&blend.alpha).into(),
+                                                        color: (&blend.color).convert(),
+                                                        alpha: (&blend.alpha).convert(),
                                                     }
                                                 }),
                                             })
@@ -321,7 +322,7 @@ impl GPUDevice {
                     })
                 })
                 .transpose()?,
-            primitive: (&descriptor.primitive).into(),
+            primitive: (&descriptor.primitive).convert(),
             depth_stencil: descriptor
                 .depthStencil
                 .as_ref()
@@ -330,20 +331,20 @@ impl GPUDevice {
                         .map(|format| wgt::DepthStencilState {
                             format,
                             depth_write_enabled: dss_desc.depthWriteEnabled,
-                            depth_compare: dss_desc.depthCompare.into(),
+                            depth_compare: dss_desc.depthCompare.convert(),
                             stencil: wgt::StencilState {
                                 front: wgt::StencilFaceState {
-                                    compare: dss_desc.stencilFront.compare.into(),
+                                    compare: dss_desc.stencilFront.compare.convert(),
 
-                                    fail_op: dss_desc.stencilFront.failOp.into(),
-                                    depth_fail_op: dss_desc.stencilFront.depthFailOp.into(),
-                                    pass_op: dss_desc.stencilFront.passOp.into(),
+                                    fail_op: dss_desc.stencilFront.failOp.convert(),
+                                    depth_fail_op: dss_desc.stencilFront.depthFailOp.convert(),
+                                    pass_op: dss_desc.stencilFront.passOp.convert(),
                                 },
                                 back: wgt::StencilFaceState {
-                                    compare: dss_desc.stencilBack.compare.into(),
-                                    fail_op: dss_desc.stencilBack.failOp.into(),
-                                    depth_fail_op: dss_desc.stencilBack.depthFailOp.into(),
-                                    pass_op: dss_desc.stencilBack.passOp.into(),
+                                    compare: dss_desc.stencilBack.compare.convert(),
+                                    fail_op: dss_desc.stencilBack.failOp.convert(),
+                                    depth_fail_op: dss_desc.stencilBack.depthFailOp.convert(),
+                                    pass_op: dss_desc.stencilBack.passOp.convert(),
                                 },
                                 read_mask: dss_desc.stencilReadMask,
                                 write_mask: dss_desc.stencilWriteMask,

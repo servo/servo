@@ -9,6 +9,7 @@ use embedder_traits::{MediaMetadata as EmbedderMediaMetadata, MediaSessionEvent}
 use script_traits::{MediaSessionActionType, ScriptMsg};
 
 use super::bindings::trace::HashMapTracedValues;
+use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
@@ -188,8 +189,8 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
             Some(handler) => self
                 .action_handlers
                 .borrow_mut()
-                .insert(action.into(), handler.clone()),
-            None => self.action_handlers.borrow_mut().remove(&action.into()),
+                .insert(action.convert(), handler.clone()),
+            None => self.action_handlers.borrow_mut().remove(&action.convert()),
         };
     }
 
@@ -249,9 +250,9 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
     }
 }
 
-impl From<MediaSessionAction> for MediaSessionActionType {
-    fn from(action: MediaSessionAction) -> MediaSessionActionType {
-        match action {
+impl Convert<MediaSessionActionType> for MediaSessionAction {
+    fn convert(self) -> MediaSessionActionType {
+        match self {
             MediaSessionAction::Play => MediaSessionActionType::Play,
             MediaSessionAction::Pause => MediaSessionActionType::Pause,
             MediaSessionAction::Seekbackward => MediaSessionActionType::SeekBackward,

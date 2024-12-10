@@ -7,6 +7,7 @@ use ipc_channel::ipc::IpcSender;
 use webgpu::wgc::pipeline::ComputePipelineDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest, WebGPUResponse};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUComputePipelineDescriptor, GPUComputePipelineMethods,
@@ -79,9 +80,9 @@ impl GPUComputePipeline {
         let pipeline_layout = device.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = ComputePipelineDescriptor {
-            label: (&descriptor.parent.parent).into(),
+            label: (&descriptor.parent.parent).convert(),
             layout: pipeline_layout.explicit(),
-            stage: (&descriptor.compute).into(),
+            stage: (&descriptor.compute).convert(),
             cache: None,
         };
 

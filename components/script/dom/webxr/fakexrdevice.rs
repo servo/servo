@@ -15,6 +15,7 @@ use webxr_api::{
     MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
 };
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
     FakeXRBoundsPoint, FakeXRDeviceMethods, FakeXRRegionType, FakeXRRigidTransformInit,
@@ -147,7 +148,7 @@ pub fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
         .hitTestRegions
         .iter()
         .map(|region| {
-            let ty = region.type_.into();
+            let ty = region.type_.convert();
             let faces = region
                 .faces
                 .iter()
@@ -172,9 +173,9 @@ pub fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
     Ok(MockWorld { regions })
 }
 
-impl From<FakeXRRegionType> for EntityType {
-    fn from(x: FakeXRRegionType) -> Self {
-        match x {
+impl Convert<EntityType> for FakeXRRegionType {
+    fn convert(self) -> EntityType {
+        match self {
             FakeXRRegionType::Point => EntityType::Point,
             FakeXRRegionType::Plane => EntityType::Plane,
             FakeXRRegionType::Mesh => EntityType::Mesh,
@@ -255,8 +256,8 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
         let id = self.next_input_id.get();
         self.next_input_id.set(InputId(id.0 + 1));
 
-        let handedness = init.handedness.into();
-        let target_ray_mode = init.targetRayMode.into();
+        let handedness = init.handedness.convert();
+        let target_ray_mode = init.targetRayMode.convert();
 
         let pointer_origin = Some(get_origin(&init.pointerOrigin)?);
 
@@ -346,9 +347,9 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     }
 }
 
-impl From<XRHandedness> for Handedness {
-    fn from(h: XRHandedness) -> Self {
-        match h {
+impl Convert<Handedness> for XRHandedness {
+    fn convert(self) -> Handedness {
+        match self {
             XRHandedness::None => Handedness::None,
             XRHandedness::Left => Handedness::Left,
             XRHandedness::Right => Handedness::Right,
@@ -356,9 +357,9 @@ impl From<XRHandedness> for Handedness {
     }
 }
 
-impl From<XRTargetRayMode> for TargetRayMode {
-    fn from(t: XRTargetRayMode) -> Self {
-        match t {
+impl Convert<TargetRayMode> for XRTargetRayMode {
+    fn convert(self) -> TargetRayMode {
+        match self {
             XRTargetRayMode::Gaze => TargetRayMode::Gaze,
             XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
             XRTargetRayMode::Screen => TargetRayMode::Screen,

@@ -9,6 +9,7 @@ use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstra
 use servo_media::streams::MediaStreamType;
 use servo_media::ServoMedia;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{
     MediaDevicesMethods, MediaStreamConstraints,
 };
@@ -94,7 +95,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
                     MediaDeviceInfo::new(
                         &self.global(),
                         &device.device_id,
-                        device.kind.into(),
+                        device.kind.convert(),
                         &device.label,
                         "",
                     )

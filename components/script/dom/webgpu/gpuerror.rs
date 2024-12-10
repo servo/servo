@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use webgpu::{Error, ErrorFilter};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{GPUErrorFilter, GPUErrorMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -79,9 +80,9 @@ impl GPUErrorMethods<crate::DomTypeHolder> for GPUError {
     }
 }
 
-impl From<ErrorFilter> for GPUErrorFilter {
-    fn from(filter: ErrorFilter) -> Self {
-        match filter {
+impl Convert<GPUErrorFilter> for ErrorFilter {
+    fn convert(self) -> GPUErrorFilter {
+        match self {
             ErrorFilter::Validation => GPUErrorFilter::Validation,
             ErrorFilter::OutOfMemory => GPUErrorFilter::Out_of_memory,
             ErrorFilter::Internal => GPUErrorFilter::Internal,

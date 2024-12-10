@@ -8,6 +8,7 @@ use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use crate::realms::{AlreadyInRealm, InRealm};
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothDataFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
@@ -130,7 +131,7 @@ where
                 .handle_response(response, &promise, can_gc),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
-            Err(error) => promise.reject_error(Error::from(error)),
+            Err(error) => promise.reject_error(error.convert()),
         }
     }
 }
@@ -521,9 +522,9 @@ fn canonicalize_bluetooth_data_filter_init(
     Ok((data_prefix, mask))
 }
 
-impl From<BluetoothError> for Error {
-    fn from(error: BluetoothError) -> Self {
-        match error {
+impl Convert<Error> for BluetoothError {
+    fn convert(self) -> Error {
+        match self {
             BluetoothError::Type(message) => Error::Type(message),
             BluetoothError::Network => Error::Network,
             BluetoothError::NotFound => Error::NotFound,
@@ -706,7 +707,7 @@ impl PermissionAlgorithm for Bluetooth {
                 match receiver.recv().unwrap() {
                     Ok(true) => (),
                     Ok(false) => continue,
-                    Err(error) => return promise.reject_error(Error::from(error)),
+                    Err(error) => return promise.reject_error(error.convert()),
                 };
             }
 
