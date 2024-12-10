@@ -27,7 +27,7 @@ use crate::geom::{
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::ComputedValuesExt;
-use crate::{ConstraintSpace, ContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
 
@@ -256,8 +256,10 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         let maybe_block_size =
                             option_f32_to_lpa(content_box_known_dimensions.height);
                         let content_box_size_override = ContainingBlock {
-                            inline_size: Au::from_f32_px(inline_size),
-                            block_size: maybe_block_size,
+                            size: ContainingBlockSize {
+                                inline: Au::from_f32_px(inline_size),
+                                block: maybe_block_size,
+                            },
                             style,
                         };
 
@@ -355,8 +357,10 @@ impl TaffyContainer {
         };
 
         let containing_block = &ContainingBlock {
-            inline_size: Au::zero(),
-            block_size: GenericLengthPercentageOrAuto::Auto,
+            size: ContainingBlockSize {
+                inline: Au::zero(),
+                block: GenericLengthPercentageOrAuto::Auto,
+            },
             style,
         };
 
@@ -434,17 +438,17 @@ impl TaffyContainer {
 
         let known_dimensions = taffy::Size {
             width: Some(
-                (content_box_size_override.inline_size + pbm.padding_border_sums.inline)
+                (content_box_size_override.size.inline + pbm.padding_border_sums.inline)
                     .to_f32_px(),
             ),
-            height: auto_or_to_option(content_box_size_override.block_size)
+            height: auto_or_to_option(content_box_size_override.size.block)
                 .map(Au::to_f32_px)
                 .maybe_add(pbm.padding_border_sums.block.to_f32_px()),
         };
 
         let taffy_containing_block = taffy::Size {
-            width: Some(containing_block.inline_size.to_f32_px()),
-            height: auto_or_to_option(containing_block.block_size).map(Au::to_f32_px),
+            width: Some(containing_block.size.inline.to_f32_px()),
+            height: auto_or_to_option(containing_block.size.block).map(Au::to_f32_px),
         };
 
         let layout_input = taffy::LayoutInput {

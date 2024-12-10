@@ -223,31 +223,6 @@ impl<T: Copy + Neg<Output = T>> LogicalVec2<T> {
     }
 }
 
-impl LogicalVec2<Au> {
-    #[inline]
-    pub fn to_physical_point(
-        &self,
-        containing_block: Option<&ContainingBlock>,
-    ) -> PhysicalPoint<Au> {
-        let mode = containing_block.map_or_else(WritingMode::horizontal_tb, |containing_block| {
-            containing_block.style.writing_mode
-        });
-        if mode.is_vertical() {
-            // TODO: Bottom-to-top writing modes are not supported yet.
-            PhysicalPoint::new(self.block, self.inline)
-        } else {
-            let y = self.block;
-            let x = match containing_block {
-                Some(containing_block) if !mode.is_bidi_ltr() => {
-                    containing_block.inline_size - self.inline
-                },
-                _ => self.inline,
-            };
-            PhysicalPoint::new(x, y)
-        }
-    }
-}
-
 impl<T: Clone> LogicalSides<T> {
     pub fn from_physical(sides: &PhysicalSides<T>, mode: WritingMode) -> Self {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
@@ -508,7 +483,10 @@ impl<T> LogicalRect<T> {
 }
 
 impl LogicalRect<Au> {
-    pub fn to_physical(&self, containing_block: Option<&ContainingBlock<'_>>) -> PhysicalRect<Au> {
+    pub(crate) fn as_physical(
+        &self,
+        containing_block: Option<&ContainingBlock<'_>>,
+    ) -> PhysicalRect<Au> {
         let mode = containing_block.map_or_else(WritingMode::horizontal_tb, |containing_block| {
             containing_block.style.writing_mode
         });
@@ -524,7 +502,7 @@ impl LogicalRect<Au> {
             let y = self.start_corner.block;
             let x = match containing_block {
                 Some(containing_block) if !mode.is_bidi_ltr() => {
-                    containing_block.inline_size - self.max_inline_position()
+                    containing_block.size.inline - self.max_inline_position()
                 },
                 _ => self.start_corner.inline,
             };
@@ -605,7 +583,7 @@ impl ToLogicalWithContainingBlock<LogicalVec2<Au>> for PhysicalPoint<Au> {
                 inline: if writing_mode.is_bidi_ltr() {
                     self.x
                 } else {
-                    containing_block.inline_size - self.x
+                    containing_block.size.inline - self.x
                 },
                 block: self.y,
             }
@@ -634,7 +612,7 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
             if writing_mode.is_bidi_ltr() {
                 inline_start = self.origin.x;
             } else {
-                inline_start = containing_block.inline_size - (self.origin.x + self.size.width);
+                inline_start = containing_block.size.inline - (self.origin.x + self.size.width);
             }
         }
         LogicalRect {
@@ -760,10 +738,10 @@ impl LogicalVec2<Size<LengthPercentage>> {
         containing_block: &ContainingBlock,
     ) -> LogicalVec2<Size<Au>> {
         self.map_inline_and_block_axes(
-            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.inline_size)),
+            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.size.inline)),
             |block_size| {
                 block_size
-                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto()))
+                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.size.block.non_auto()))
                     .unwrap_or_default()
             },
         )

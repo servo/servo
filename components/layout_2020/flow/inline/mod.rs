@@ -905,11 +905,11 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         let physical_line_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
-                inline: self.containing_block.inline_size,
+                inline: self.containing_block.size.inline,
                 block: effective_block_advance.resolve(),
             },
         }
-        .to_physical(Some(self.containing_block));
+        .as_physical(Some(self.containing_block));
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 physical_line_rect,
@@ -975,7 +975,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
                 placement_among_floats.start_corner.inline,
                 placement_among_floats.size.inline,
             ),
-            None => (Au::zero(), self.containing_block.inline_size),
+            None => (Au::zero(), self.containing_block.size.inline),
         };
 
         // Properly handling text-indent requires that we do not align the text
@@ -1061,7 +1061,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
-            None => self.containing_block.inline_size,
+            None => self.containing_block.size.inline,
         } - line_inline_size_without_trailing_whitespace;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
@@ -1146,7 +1146,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
                 .size
         } else {
             LogicalVec2 {
-                inline: self.containing_block.inline_size,
+                inline: self.containing_block.size.inline,
                 block: MAX_AU,
             }
         };
@@ -1179,7 +1179,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
 
         // If the potential line is larger than the containing block we do not even need to consider
         // floats. We definitely have to do a linebreak.
-        if potential_line_size.inline > self.containing_block.inline_size {
+        if potential_line_size.inline > self.containing_block.size.inline {
             return true;
         }
 
@@ -1605,7 +1605,7 @@ impl InlineFormattingContext {
                 .get_inherited_text()
                 .text_indent
                 .length
-                .to_used_value(containing_block.inline_size)
+                .to_used_value(containing_block.size.inline)
         } else {
             Au::zero()
         };

@@ -32,6 +32,7 @@ use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
+use serde::Serialize;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
@@ -95,8 +96,8 @@ impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
     fn from(containing_block: &ContainingBlock<'a>) -> Self {
         Self {
             size: LogicalVec2 {
-                inline: AuOrAuto::LengthPercentage(containing_block.inline_size),
-                block: containing_block.block_size,
+                inline: AuOrAuto::LengthPercentage(containing_block.size.inline),
+                block: containing_block.size.block,
             },
             writing_mode: containing_block.style.writing_mode,
         }
@@ -114,9 +115,14 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
     }
 }
 
-pub struct ContainingBlock<'a> {
-    inline_size: Au,
-    block_size: AuOrAuto,
+#[derive(Debug, Serialize)]
+pub(crate) struct ContainingBlockSize {
+    inline: Au,
+    block: AuOrAuto,
+}
+
+pub(crate) struct ContainingBlock<'a> {
+    size: ContainingBlockSize,
     style: &'a ComputedValues,
 }
 
@@ -128,8 +134,10 @@ struct DefiniteContainingBlock<'a> {
 impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
     fn from(definite: &DefiniteContainingBlock<'a>) -> Self {
         ContainingBlock {
-            inline_size: definite.size.inline,
-            block_size: AuOrAuto::LengthPercentage(definite.size.block),
+            size: ContainingBlockSize {
+                inline: definite.size.inline,
+                block: AuOrAuto::LengthPercentage(definite.size.block),
+            },
             style: definite.style,
         }
     }
