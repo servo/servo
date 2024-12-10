@@ -143,17 +143,17 @@
 <!-- Definite stretch -->
 <div style="width: 200px; height: 100px">
   <canvas width="100" height="100" class="test width stretch"
-          data-expected-width="190" data-expected-height="190">X X</canvas>
+          data-expected-width="190" data-expected-height="190"></canvas>
   <canvas width="100" height="100" class="test min-width stretch"
-          data-expected-width="190" data-expected-height="190">X X</canvas>
+          data-expected-width="190" data-expected-height="190"></canvas>
   <canvas width="100" height="100" class="test max-width stretch"
-          data-expected-width="190" data-expected-height="190">X X</canvas>
+          data-expected-width="190" data-expected-height="190"></canvas>
   <canvas width="100" height="100" class="test height stretch"
-          data-expected-width="90" data-expected-height="90">X X</canvas>
+          data-expected-width="90" data-expected-height="90"></canvas>
   <canvas width="100" height="100" class="test min-height stretch"
-          data-expected-width="90" data-expected-height="90">X X</canvas>
+          data-expected-width="90" data-expected-height="90"></canvas>
   <canvas width="100" height="100" class="test max-height stretch"
-          data-expected-width="90" data-expected-height="90">X X</canvas>
+          data-expected-width="90" data-expected-height="90"></canvas>
 </div>
 
 <!-- Stretch sizes can't result in a negative content size -->
@@ -171,9 +171,23 @@
   <canvas width="100" height="100" class="test height stretch indefinite"
           data-expected-width="110" data-expected-height="110"></canvas>
   <canvas width="100" height="100" class="test min-height stretch indefinite"
-          data-expected-width="110" data-expected-height="110"></canvas>
+          data-expected-width="10" data-expected-height="110"></canvas>
   <canvas width="100" height="100" class="test max-height stretch indefinite"
-          data-expected-width="110" data-expected-height="110"></canvas>
+          data-expected-width="510" data-expected-height="110"></canvas>
+
+  <canvas width="100" height="100" class="test height stretch indefinite" style="max-width: 50px"
+          data-expected-width="60" data-expected-height="60"></canvas>
+  <canvas width="100" height="100" class="test min-height stretch indefinite" style="min-width: 50px"
+          data-expected-width="60" data-expected-height="110"></canvas>
+  <canvas width="100" height="100" class="test max-height stretch indefinite" style="max-width: 50px"
+          data-expected-width="60" data-expected-height="60"></canvas>
+
+  <canvas width="100" height="100" class="test height stretch indefinite" style="min-width: 150px"
+          data-expected-width="160" data-expected-height="160"></canvas>
+  <canvas width="100" height="100" class="test min-height stretch indefinite" style="min-width: 150px"
+          data-expected-width="160" data-expected-height="160"></canvas>
+  <canvas width="100" height="100" class="test max-height stretch indefinite" style="max-width: 150px"
+          data-expected-width="160" data-expected-height="110"></canvas>
 </div>
 
 <script src="/resources/testharness.js"></script>
