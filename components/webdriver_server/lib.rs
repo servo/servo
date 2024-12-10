@@ -925,7 +925,7 @@ impl Handler {
             session
                 .window_handles
                 .remove(&session.top_level_browsing_context_id);
-            let cmd_msg = WebDriverCommandMsg::CloseWindow(session.top_level_browsing_context_id);
+            let cmd_msg = WebDriverCommandMsg::CloseWebView(session.top_level_browsing_context_id);
             self.constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                 .unwrap();
@@ -948,7 +948,7 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cmd_msg = WebDriverCommandMsg::NewTab(sender, self.load_status_sender.clone());
+        let cmd_msg = WebDriverCommandMsg::NewWebView(sender, self.load_status_sender.clone());
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();

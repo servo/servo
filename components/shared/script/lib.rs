@@ -808,13 +808,13 @@ pub enum WebDriverCommandMsg {
         Option<Rect<f32, CSSPixel>>,
         IpcSender<Option<Image>>,
     ),
-    /// Create a new tab that loads about:blank. The constellation will use
-    /// the provided channels to return the top level browsing cntext id
-    /// associated with the new tab, and a notification when the initial
+    /// Create a new webview that loads about:blank. The constellation will use
+    /// the provided channels to return the top level browsing context id
+    /// associated with the new webview, and a notification when the initial
     /// load is complete.
-    NewTab(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
+    NewWebView(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
     /// Close the webview associated with the provided id.
-    CloseWindow(TopLevelBrowsingContextId),
+    CloseWebView(TopLevelBrowsingContextId),
     /// Focus the webview associated with the provided id.
     FocusWebView(TopLevelBrowsingContextId),
 }
