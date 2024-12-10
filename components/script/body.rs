@@ -187,7 +187,8 @@ impl TransmitBodyConnectHandler {
                     // TODO: Step 2, If body is null.
 
                     // Step 3, get a reader for stream.
-                    rooted_stream.start_reading().expect("Couldn't acquire a reader for the body stream.");
+                    rooted_stream.acquire_default_reader(CanGc::note())
+                        .expect("Couldn't acquire a reader for the body stream.");
 
                     // Note: this algorithm continues when the first chunk is requested by `net`.
                 }),
@@ -242,7 +243,7 @@ impl TransmitBodyConnectHandler {
                 let global = rooted_stream.global();
 
                 // Step 4, the result of reading a chunk from body’s stream with reader.
-                let promise = rooted_stream.read_a_chunk();
+                let promise = rooted_stream.read_a_chunk(CanGc::note());
 
                 // Step 5, the parallel steps waiting for and handling the result of the read promise,
                 // are a combination of the promise native handler here,
@@ -692,7 +693,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             let global = stream.global();
 
             // Run the above step again.
-            let read_promise = stream.read_a_chunk();
+            let read_promise = stream.read_a_chunk(can_gc);
 
             let promise_handler = Box::new(ConsumeBodyPromiseHandler {
                 result_promise: self.result_promise.clone(),
@@ -763,7 +764,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     };
 
     // Step 3.
-    if stream.start_reading().is_err() {
+    if stream.acquire_default_reader(can_gc).is_err() {
         return promise.reject_error(Error::Type(
             "The response's stream is disturbed or locked".to_string(),
         ));
@@ -774,7 +775,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     // Step 1 of
     // https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream
-    let read_promise = stream.read_a_chunk();
+    let read_promise = stream.read_a_chunk(can_gc);
 
     let promise_handler = Box::new(ConsumeBodyPromiseHandler {
         result_promise: promise.clone(),
