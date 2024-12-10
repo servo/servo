@@ -187,7 +187,7 @@ use crate::fetch::FetchCanceller;
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
-use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
+use crate::script_thread::{with_script_thread, MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -2108,7 +2108,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
+    pub(crate) fn run_the_animation_frame_callbacks(&self) {
         let _realm = enter_realm(self);
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
@@ -2127,16 +2127,12 @@ impl Document {
         }
 
         self.running_animation_callbacks.set(false);
+        let callbacks_did_not_trigger_reflow = self.needs_reflow().is_none();
+        let is_empty = self.animation_frame_list.borrow().is_empty();
 
-        let spurious = !self.window.reflow(
-            ReflowGoal::Full,
-            ReflowReason::RequestAnimationFrame,
-            can_gc,
-        );
-
-        if spurious && !was_faking_animation_frames {
-            // If the rAF callbacks did not mutate the DOM, then the
-            // reflow call above means that layout will not be invoked,
+        if !is_empty && callbacks_did_not_trigger_reflow && !was_faking_animation_frames {
+            // If the rAF callbacks did not mutate the DOM, then the impending
+            // reflow call as part of *update the rendering* will not do anything
             // and therefore no new frame will be sent to the compositor.
             // If this happens, the compositor will not tick the animation
             // and the next rAF will never be called! When this happens
@@ -2145,8 +2141,7 @@ impl Document {
             // for the interim frames where we are deciding whether this rAF
             // is considered spurious, we need to ensure that the layout
             // and compositor *do* tick the animation.
-            self.window
-                .force_reflow(ReflowGoal::Full, ReflowReason::RequestAnimationFrame, None);
+            self.set_needs_paint(true);
         }
 
         // Only send the animation change state message after running any callbacks.
@@ -2158,7 +2153,6 @@ impl Document {
         // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
         // animation frame is one in which the callback did not mutate the DOM—that is, an
         // animation frame that wasn't actually used for animation.)
-        let is_empty = self.animation_frame_list.borrow().is_empty();
         if is_empty || (!was_faking_animation_frames && self.is_faking_animation_frames()) {
             if is_empty {
                 // If the current animation frame list in the DOM instance is empty,
@@ -2177,7 +2171,7 @@ impl Document {
         }
 
         // Update the counter of spurious animation frames.
-        if spurious {
+        if callbacks_did_not_trigger_reflow {
             if self.spurious_animation_frames.get() < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
                 self.spurious_animation_frames
                     .set(self.spurious_animation_frames.get() + 1)
@@ -5702,8 +5696,12 @@ pub struct FakeRequestAnimationFrameCallback {
 
 impl FakeRequestAnimationFrameCallback {
     pub fn invoke(self, can_gc: CanGc) {
-        let document = self.document.root();
-        document.run_the_animation_frame_callbacks(can_gc);
+        // TODO: Once there is a more generic mechanism to trigger `update_the_rendering` when
+        // not driven by the compositor, it should be used here.
+        self.document
+            .root()
+            .note_pending_animation_tick(AnimationTickType::REQUEST_ANIMATION_FRAME);
+        with_script_thread(|script_thread| script_thread.update_the_rendering(false, can_gc))
     }
 }
 

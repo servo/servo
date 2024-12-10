@@ -180,7 +180,7 @@ fn with_optional_script_thread<R>(f: impl FnOnce(Option<&ScriptThread>) -> R) ->
     })
 }
 
-fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R) -> R {
+pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R) -> R {
     with_optional_script_thread(|script_thread| script_thread.map(f).unwrap_or_default())
 }
 
@@ -1506,14 +1506,15 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     ///
-    /// Returns true if the rendering was actually updated.
-    fn update_the_rendering(&self, requested_by_compositor: bool, can_gc: CanGc) -> bool {
+    /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
+    /// updated.
+    pub(crate) fn update_the_rendering(&self, requested_by_compositor: bool, can_gc: CanGc) {
         self.update_the_rendering_task_queued_for_pipeline
             .borrow_mut()
             .clear();
 
         if !self.can_continue_running_inner() {
-            return false;
+            return;
         }
 
         // Run rafs for all pipeline, if a raf tick was received for any.
@@ -1538,7 +1539,7 @@ impl ScriptThread {
         // and we are running animations, then wait until the compositor tells us it is time to
         // update the rendering via a TickAllAnimations message.
         if !requested_by_compositor && any_animations_running {
-            return false;
+            return;
         }
 
         // > 2. Let docs be all fully active Document objects whose relevant agent's event loop
@@ -1604,7 +1605,7 @@ impl ScriptThread {
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
             if should_run_rafs {
-                document.run_the_animation_frame_callbacks(can_gc);
+                document.run_the_animation_frame_callbacks();
             }
 
             // Run the resize observer steps.
@@ -1643,7 +1644,9 @@ impl ScriptThread {
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
 
-        true
+        // Perform a microtask checkpoint as the specifications says that *update the rendering* should be
+        // run in a task and a microtask checkpoint is always done when running tasks.
+        self.perform_a_microtask_checkpoint(can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:rendering-opportunity>
@@ -1939,11 +1942,7 @@ impl ScriptThread {
         // Update the rendering whenever we receive an IPC message. This may not actually do anything if
         // we are running animations and the compositor hasn't requested a new frame yet via a TickAllAnimatons
         // message.
-        if self.update_the_rendering(compositor_requested_update_the_rendering, can_gc) {
-            // Perform a microtask checkpoint as the specifications says that *update the rendering* should be
-            // run in a task and a microtask checkpoint is always done when running tasks.
-            self.perform_a_microtask_checkpoint(can_gc);
-        }
+        self.update_the_rendering(compositor_requested_update_the_rendering, can_gc);
 
         true
     }
