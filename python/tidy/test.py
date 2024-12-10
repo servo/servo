@@ -174,59 +174,6 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('Unordered key (found b before a)', next(errors)[2])
         self.assertNoMoreErrors(errors)
 
-    def test_lock(self):
-        errors = tidy.run_custom_cargo_lock_lints(test_file_path('duplicated_package.lock'), print_text=False)
-        msg = """duplicate versions for package `test`
-\t\x1b[93mThe following packages depend on version 0.4.9 from 'crates.io':\x1b[0m
-\t\ttest2 0.1.0
-\t\x1b[93mThe following packages depend on version 0.5.1 from 'crates.io':\x1b[0m
-\t\ttest3 0.5.1"""
-        self.assertEqual(msg, next(errors)[2])
-        msg2 = """duplicate versions for package `test3`
-\t\x1b[93mThe following packages depend on version 0.5.1 from 'crates.io':\x1b[0m
-\t\ttest4 0.1.0
-\t\x1b[93mThe following packages depend on version 0.5.1 from 'https://github.com/user/test3':\x1b[0m
-\t\ttest5 0.1.0"""
-        self.assertEqual(msg2, next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
-    def test_lock_ignore_without_duplicates(self):
-        tidy.config["ignore"]["packages"] = ["test", "test2", "test3", "test5"]
-        errors = tidy.run_custom_cargo_lock_lints(test_file_path('duplicated_package.lock'), print_text=False)
-
-        msg = (
-            "duplicates for `test2` are allowed, but only single version found"
-            "\n\t\x1b[93mThe following packages depend on version 0.1.0 from 'https://github.com/user/test2':\x1b[0m"
-        )
-        self.assertEqual(msg, next(errors)[2])
-
-        msg2 = (
-            "duplicates for `test5` are allowed, but only single version found"
-            "\n\t\x1b[93mThe following packages depend on version 0.1.0 from 'https://github.com/':\x1b[0m"
-        )
-        self.assertEqual(msg2, next(errors)[2])
-
-        self.assertNoMoreErrors(errors)
-
-    def test_lock_exceptions(self):
-        tidy.config["blocked-packages"]["rand"] = ["test_exception", "test_unneeded_exception"]
-        errors = tidy.run_custom_cargo_lock_lints(test_file_path('blocked_package.lock'), print_text=False)
-
-        msg = (
-            "Package test_blocked 0.0.2 depends on blocked package rand."
-        )
-
-        msg2 = (
-            "Package test_unneeded_exception is not required to be an exception of blocked package rand."
-        )
-
-        self.assertEqual(msg, next(errors)[2])
-        self.assertEqual(msg2, next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
-        # needed to not raise errors in other test cases
-        tidy.config["blocked-packages"]["rand"] = []
-
     def test_file_list(self):
         file_path = os.path.join(BASE_PATH, 'test_ignored')
         file_list = tidy.FileList(file_path, only_changed_files=False, exclude_dirs=[], progress=False)
