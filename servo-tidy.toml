@@ -80,6 +80,9 @@ packages = [
 
     # some non-servo crates still use 0.14
     "glow",
+
+    # wgpu crates still depend on 1.1.0
+    "rustc-hash",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

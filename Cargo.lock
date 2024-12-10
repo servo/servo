@@ -422,23 +422,20 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.69.5"
+version = "0.71.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "271383c67ccabffb7381723dea0672a673f292304fcb45c01cc648c7a8d58088"
+checksum = "5f58bf3d7db68cfbac37cfc485a8d711e87e064c3d0fe0435b92f7a407f9d6b3"
 dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
  "itertools 0.10.5",
- "lazy_static",
- "lazycell",
  "proc-macro2",
  "quote",
  "regex",
- "rustc-hash",
+ "rustc-hash 2.1.0",
  "shlex",
  "syn",
- "which",
 ]
 
 [[package]]
@@ -3032,15 +3029,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "315f4e893d1caac3a97b9e6cbcf211a7012c6615cd688e4430f0cd5712ac3a3f"
 
 [[package]]
-name = "home"
-version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3d1354bf6b7235cb4a0576c2619fd4ed18183f689b12b006a0ee7329eeff9a5"
-dependencies = [
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "html5ever"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4016,12 +4004,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
-name = "lazycell"
-version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
-
-[[package]]
 name = "leak"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4076,7 +4058,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4461,13 +4443,11 @@ dependencies = [
 [[package]]
 name = "mozangle"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77f793a01513d52fdaeaa687359ce3a9f032fe5cc60ce542744ff04f08b3925e"
+source = "git+https://github.com/servo/mozangle.git#38dba4ddfe1e8330c72f5515d09e5366406695fb"
 dependencies = [
  "bindgen",
  "cc",
  "gl_generator",
- "lazy_static",
  "libz-sys",
  "walkdir",
 ]
@@ -4475,7 +4455,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#18ab014e77eee726545ed544ea83d555bdfa46a3"
+source = "git+https://github.com/jschwe/mozjs?branch=bindings#daad60b08c91fe1ba605c4ad1a690869efb25abb"
 dependencies = [
  "bindgen",
  "cc",
@@ -4487,8 +4467,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.128.3-5"
-source = "git+https://github.com/servo/mozjs#18ab014e77eee726545ed544ea83d555bdfa46a3"
+version = "0.128.3-7"
+source = "git+https://github.com/jschwe/mozjs?branch=bindings#daad60b08c91fe1ba605c4ad1a690869efb25abb"
 dependencies = [
  "bindgen",
  "cc",
@@ -4522,7 +4502,7 @@ dependencies = [
  "hexf-parse",
  "indexmap",
  "log",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "spirv",
  "termcolor",
@@ -5893,6 +5873,12 @@ name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
+
+[[package]]
+name = "rustc-hash"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7fb8039b3032c191086b10f11f319a6e99e1e82889c5cc6046f515c9db1d497"
 
 [[package]]
 name = "rustc_version"
@@ -8353,7 +8339,7 @@ dependencies = [
  "parking_lot",
  "profiling",
  "ron",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "smallvec",
  "thiserror",
@@ -8395,7 +8381,7 @@ dependencies = [
  "profiling",
  "range-alloc",
  "raw-window-handle",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "smallvec",
  "thiserror",
  "wasm-bindgen",
@@ -8415,18 +8401,6 @@ dependencies = [
  "js-sys",
  "serde",
  "web-sys",
-]
-
-[[package]]
-name = "which"
-version = "4.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
-dependencies = [
- "either",
- "home",
- "once_cell",
- "rustix",
 ]
 
 [[package]]
