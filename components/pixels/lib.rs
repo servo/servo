@@ -154,8 +154,26 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
     let image_fmt_result = detect_image_format(buffer);
     match image_fmt_result {
         Err(msg) => {
-            debug!("{}", msg);
-            None
+            if msg == "Jxl" {
+                let decoder = jxl_oxide::integration::JxlDecoder::new(buffer).ok()?;
+                if let Ok(image) = image::DynamicImage::from_decoder(decoder) {
+                    let mut rgba = image.into_rgba8();
+                    rgba8_byte_swap_colors_inplace(&mut rgba);
+                    Some(Image {
+                        width: rgba.width(),
+                        height: rgba.height(),
+                        format: PixelFormat::BGRA8,
+                        bytes: IpcSharedMemory::from_bytes(&rgba),
+                        id: None,
+                        cors_status,
+                    })
+                } else {
+                    None
+                }
+            } else {
+                debug!("{}", msg);
+                None
+            }
         },
         Ok(_) => match image::load_from_memory(buffer) {
             Ok(image) => {
@@ -188,6 +206,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Png)
     } else if is_webp(buffer) {
         Ok(ImageFormat::WebP)
+    } else if is_jxl(buffer) {
+        Err("Jxl")
     } else if is_bmp(buffer) {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
@@ -240,6 +260,13 @@ fn is_webp(buffer: &[u8]) -> bool {
     buffer.starts_with(b"RIFF") && buffer.len() >= 14 && &buffer[8..14] == b"WEBPVP"
 }
 
+fn is_jxl(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0xff, 0x0a]) ||
+        buffer.starts_with(&[
+            0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20, 0x0d, 0x0a, 0x87, 0x0a,
+        ])
+}
+
 #[cfg(test)]
 mod test {
     use super::detect_image_format;
@@ -255,6 +282,7 @@ mod test {
         ];
         let bmp = [0x42, 0x4D];
         let ico = [0x00, 0x00, 0x01, 0x00];
+        let jxl = [0xff, 0x0a];
         let junk_format = [0x01, 0x02, 0x03, 0x04, 0x05];
 
         assert!(detect_image_format(&gif1).is_ok());
@@ -264,6 +292,7 @@ mod test {
         assert!(detect_image_format(&webp).is_ok());
         assert!(detect_image_format(&bmp).is_ok());
         assert!(detect_image_format(&ico).is_ok());
+        assert!(detect_image_format(&jxl).is_ok());
         assert!(detect_image_format(&junk_format).is_err());
     }
 }
