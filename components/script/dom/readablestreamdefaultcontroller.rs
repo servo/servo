@@ -156,7 +156,7 @@ impl EnqueuedValue {
         match self {
             EnqueuedValue::Native(chunk) => {
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<Uint8>(cx, &chunk, array_buffer_ptr.handle_mut())
+                create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut())
                     .expect("failed to create buffer source for native chunk.");
                 unsafe { array_buffer_ptr.to_jsval(*cx, rval) };
             },
