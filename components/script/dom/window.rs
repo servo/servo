@@ -117,7 +117,7 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::customelementregistry::CustomElementRegistry;
 use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondition};
 use crate::dom::element::Element;
-use crate::dom::event::{Event, EventStatus};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -136,6 +136,7 @@ use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
+use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -144,7 +145,7 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::microtask::MicrotaskQueue;
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
@@ -2482,9 +2483,52 @@ impl Window {
         self.parent_info.is_none()
     }
 
+    /// An implementation of:
+    /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
+    ///
+    /// Returns true if there were any pending resize events.
+    pub(crate) fn run_the_resize_steps(&self, can_gc: CanGc) -> bool {
+        let Some((new_size, size_type)) = self.take_unhandled_resize_event() else {
+            return false;
+        };
+
+        if self.window_size() == new_size {
+            return false;
+        }
+
+        let _realm = enter_realm(self);
+        debug!(
+            "Resizing Window for pipeline {:?} from {:?} to {new_size:?}",
+            self.pipeline_id(),
+            self.window_size(),
+        );
+        self.set_window_size(new_size);
+
+        // TODO: This should just trigger a pending reflow instead of forcing one now.
+        self.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize, None);
+
+        // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
+        if size_type == WindowSizeType::Resize {
+            let uievent = UIEvent::new(
+                self,
+                DOMString::from("resize"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                Some(self),
+                0i32,
+                can_gc,
+            );
+            uievent.upcast::<Event>().fire(self.upcast(), can_gc);
+        }
+
+        true
+    }
+
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
     pub fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
+        let _realm = enter_realm(self);
+
         rooted_vec!(let mut mql_list);
         self.media_query_lists.for_each(|mql| {
             if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {

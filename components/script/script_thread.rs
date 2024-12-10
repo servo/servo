@@ -126,7 +126,6 @@ use crate::dom::document::{
     Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
@@ -136,7 +135,6 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
 use crate::dom::servoparser::{ParserContext, ServoParser};
-use crate::dom::uievent::UIEvent;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{ReflowReason, Window};
@@ -1333,19 +1331,6 @@ impl ScriptThread {
         debug!("Stopped script thread.");
     }
 
-    /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
-    fn run_the_resize_steps(
-        &self,
-        id: PipelineId,
-        size: WindowSizeData,
-        size_type: WindowSizeType,
-        can_gc: CanGc,
-    ) {
-        self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
-            self.handle_resize_event(id, size, size_type, can_gc);
-        });
-    }
-
     /// Process a compositor mouse move event.
     fn process_mouse_move_event(
         &self,
@@ -1592,10 +1577,8 @@ impl ScriptThread {
             // TODO(#31665): Implement the "run the scroll steps" from
             // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
 
-            if let Some((size, size_type)) = document.window().take_unhandled_resize_event() {
-                // Resize steps.
-                self.run_the_resize_steps(pipeline_id, size, size_type, can_gc);
-
+            // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
+            if document.window().run_the_resize_steps(can_gc) {
                 // Evaluate media queries and report changes.
                 document
                     .window()
@@ -1690,13 +1673,14 @@ impl ScriptThread {
 
         // Queues a task to update the rendering.
         // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
+        //
+        // Note: The specification says to queue a task using the navigable's active
+        // window, but then updates the rendering for all documents.
         let _ = rendering_task_source.queue_with_canceller(
             task!(update_the_rendering: move || {
-                // Note: spec says to queue a task using the navigable's active window,
-                // but then updates the rendering for all docs in the same event-loop.
-                with_script_thread(|script_thread| {
-                    script_thread.update_the_rendering(false, CanGc::note());
-                })
+               // This task is empty because any new IPC messages in the ScriptThread trigger a
+               // rendering update, unless animations are running, in which case updates are driven
+               // by the compositor.
             }),
             &canceller,
         );
@@ -1749,11 +1733,8 @@ impl ScriptThread {
                 }
             },
         };
-        // Prioritize only a single update of the rendering;
-        // others will run together with the other sequential tasks.
-        let mut rendering_update_already_prioritized = false;
-        let mut compositor_requested_update_the_rendering = false;
 
+        let mut compositor_requested_update_the_rendering = false;
         loop {
             debug!("Handling event: {event:?}");
 
@@ -1829,29 +1810,14 @@ impl ScriptThread {
                     self.handle_event(id, event)
                 },
                 FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
-                    category,
-                    task,
-                    pipeline_id,
+                    _,
+                    _,
+                    _,
                     TaskSourceName::Rendering,
                 ))) => {
-                    if rendering_update_already_prioritized {
-                        // If we've already updated the rendering,
-                        // run this task along with the other non-prioritized ones.
-                        sequential.push(FromScript(MainThreadScriptMsg::Common(
-                            CommonScriptMsg::Task(
-                                category,
-                                task,
-                                pipeline_id,
-                                TaskSourceName::Rendering,
-                            ),
-                        )));
-                    } else {
-                        // Run the "update the rendering" task.
-                        task.run_box();
-                        // Always perform a microtrask checkpoint after running a task.
-                        self.perform_a_microtask_checkpoint(can_gc);
-                        rendering_update_already_prioritized = true;
-                    }
+                    // Instead of interleaving any number of update the rendering tasks with other
+                    // message handling, we run those steps only once at the end of each call of
+                    // this function.
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -2876,18 +2842,20 @@ impl ScriptThread {
         size: WindowSizeData,
         size_type: WindowSizeType,
     ) {
-        let window = self.documents.borrow().find_window(id);
-        if let Some(ref window) = window {
-            self.rendering_opportunity(id);
-            window.add_resize_event(size, size_type);
-            return;
-        }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.window_size = size;
-            return;
-        }
-        warn!("resize sent to nonexistent pipeline");
+        self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
+            let window = self.documents.borrow().find_window(id);
+            if let Some(ref window) = window {
+                self.rendering_opportunity(id);
+                window.add_resize_event(size, size_type);
+                return;
+            }
+            let mut loads = self.incomplete_loads.borrow_mut();
+            if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+                load.window_size = size;
+                return;
+            }
+            warn!("resize sent to nonexistent pipeline");
+        })
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
@@ -4030,46 +3998,6 @@ impl ScriptThread {
         };
 
         load_data.url = ServoUrl::parse("about:blank").unwrap();
-    }
-
-    fn handle_resize_event(
-        &self,
-        pipeline_id: PipelineId,
-        new_size: WindowSizeData,
-        size_type: WindowSizeType,
-        can_gc: CanGc,
-    ) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-        };
-
-        let window = document.window();
-        if window.window_size() == new_size {
-            return;
-        }
-        debug!(
-            "resizing pipeline {:?} from {:?} to {:?}",
-            pipeline_id,
-            window.window_size(),
-            new_size
-        );
-        window.set_window_size(new_size);
-        window.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize, None);
-
-        // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
-        if size_type == WindowSizeType::Resize {
-            let uievent = UIEvent::new(
-                window,
-                DOMString::from("resize"),
-                EventBubbles::DoesNotBubble,
-                EventCancelable::NotCancelable,
-                Some(window),
-                0i32,
-                can_gc,
-            );
-            uievent.upcast::<Event>().fire(window.upcast(), can_gc);
-        }
     }
 
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
