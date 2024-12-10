@@ -52,17 +52,15 @@ window.__wptrunner_process_next_event = function() {
     var subtest_results = tests.map(function(x) {
       return [x.name, x.status, x.message, x.stack];
     });
-    // XXXjdm fix servo's JS serialization->webdriver value
-    payload = JSON.stringify([status.status,
-                              status.message,
-                              status.stack,
-                              subtest_results]);
+    payload = [status.status,
+               status.message,
+               status.stack,
+               subtest_results];
       
     clearTimeout(window.__wptrunner_timer);
     break;
   case "action":
-    // XXXjdm fix servo's JS serialization->webdriver value
-    payload = JSON.stringify(data);
+    payload = data;
     break;
   default:
     return;

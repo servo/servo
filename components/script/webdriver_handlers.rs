@@ -11,10 +11,13 @@ use cookie::Cookie;
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{HandleValueArray, JSAutoRealm, JSContext, JSType, JS_IsExceptionPending};
+use js::jsapi::{
+    self, GetPropertyKeys, HandleValueArray, JSAutoRealm, JSContext, JSType,
+    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IsExceptionPending, PropertyDescriptor,
+};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{NonHTTP, HTTP};
 use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
@@ -38,8 +41,8 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
-    get_property, get_property_jsval, is_array_like, root_from_object, ConversionBehavior,
-    ConversionResult, FromJSValConvertible, StringificationBehavior,
+    get_property, get_property_jsval, is_array_like, jsid_to_string, root_from_object,
+    ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
@@ -263,18 +266,49 @@ pub unsafe fn jsval_to_webdriver(
         } else {
             let mut result = HashMap::new();
 
-            let common_properties = ["x", "y", "width", "height", "key"];
-            for property in common_properties.iter() {
-                rooted!(in(cx) let mut item = UndefinedValue());
-                if get_property_jsval(cx, object.handle(), property, item.handle_mut()).is_ok() {
-                    if !item.is_undefined() {
-                        if let Ok(value) = jsval_to_webdriver(cx, global_scope, item.handle()) {
-                            result.insert(property.to_string(), value);
-                        }
-                    }
-                } else {
-                    throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
+            let mut ids = IdVector::new(cx);
+            if !GetPropertyKeys(
+                cx,
+                object.handle().into(),
+                jsapi::JSITER_OWNONLY,
+                ids.handle_mut(),
+            ) {
+                return Err(WebDriverJSError::JSError);
+            }
+            for id in ids.iter() {
+                rooted!(in(cx) let id = *id);
+                rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+
+                let mut is_none = false;
+                if !JS_GetOwnPropertyDescriptorById(
+                    cx,
+                    object.handle().into(),
+                    id.handle().into(),
+                    desc.handle_mut().into(),
+                    &mut is_none,
+                ) {
                     return Err(WebDriverJSError::JSError);
+                }
+
+                rooted!(in(cx) let mut property = UndefinedValue());
+                if !JS_GetPropertyById(
+                    cx,
+                    object.handle().into(),
+                    id.handle().into(),
+                    property.handle_mut().into(),
+                ) {
+                    return Err(WebDriverJSError::JSError);
+                }
+                if !property.is_undefined() {
+                    let Some(name) = jsid_to_string(cx, id.handle()) else {
+                        return Err(WebDriverJSError::JSError);
+                    };
+
+                    if let Ok(value) = jsval_to_webdriver(cx, global_scope, property.handle()) {
+                        result.insert(name.into(), value);
+                    } else {
+                        return Err(WebDriverJSError::JSError);
+                    }
                 }
             }
 

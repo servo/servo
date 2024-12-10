@@ -755,11 +755,10 @@ class CallbackHandler:
         return callback(url, payload)
 
     def process_complete(self, url, payload):
-        rv = [strip_server(url)] + json.loads(payload) # XXXjdm fix servo's JS serialization->webdriver value
+        rv = [strip_server(url)] + payload
         return True, rv
 
     def process_action(self, url, payload):
-        payload = json.loads(payload) # XXXjdm fix servo's JS serialization->webdriver value
         action = payload["action"]
         cmd_id = payload["id"]
         self.logger.debug(f"Got action: {action}")
