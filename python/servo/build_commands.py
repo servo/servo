@@ -175,7 +175,7 @@ class MachCommands(CommandBase):
         return status
 
     @Command('clean',
-             description='Clean the target/ and Python virtual environment directories',
+             description='Clean the target/ and python/_venv[version]/ directories',
              category='build')
     @CommandArgument('--manifest-path',
                      default=None,
@@ -188,7 +188,8 @@ class MachCommands(CommandBase):
     def clean(self, manifest_path=None, params=[], verbose=False):
         self.ensure_bootstrapped()
 
-        virtualenv_path = path.join(self.get_top_dir(), '.venv')
+        virtualenv_fname = '_venv%d.%d' % (sys.version_info[0], sys.version_info[1])
+        virtualenv_path = path.join(self.get_top_dir(), 'python', virtualenv_fname)
         if path.exists(virtualenv_path):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)

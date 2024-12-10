@@ -4,6 +4,7 @@
 
 import hashlib
 import os
+import platform
 import site
 import subprocess
 import sys
@@ -92,13 +93,11 @@ def _get_virtualenv_script_dir():
 def _get_virtualenv_lib_dir():
     if os.name == "nt" and os.sep != "/":
         return os.path.join("Lib", "site-packages")
-    with open(".python-version", "r") as python_version_file:
-        python_version = python_version_file.read().strip()
-        return os.path.join(
-            "lib",
-            f"python{python_version}",
-            "site-packages"
-        )
+    return os.path.join(
+        "lib",
+        f"python{sys.version_info[0]}.{sys.version_info[1]}",
+        "site-packages"
+    )
 
 
 def _process_exec(args):
@@ -132,8 +131,11 @@ def install_virtual_env_requirements(project_path: str, python: str, virtualenv_
     requirements_hash = requirements_hasher.hexdigest()
 
     if marker_hash != requirements_hash:
+        print(" * Upgrading pip...")
+        _process_exec([python, "-m", "pip", "install", "--upgrade", "pip"])
+
         print(" * Installing Python requirements...")
-        _process_exec(["uv", "pip", "install",
+        _process_exec([python, "-m", "pip", "install", "-I",
                        "-r", requirements_paths[0],
                        "-r", requirements_paths[1],
                        "-r", requirements_paths[2]])
@@ -142,14 +144,14 @@ def install_virtual_env_requirements(project_path: str, python: str, virtualenv_
 
 
 def _activate_virtualenv(topdir):
-    virtualenv_path = os.path.join(topdir, ".venv")
+    virtualenv_path = os.path.join(topdir, "python", "_venv%d.%d" % (sys.version_info[0], sys.version_info[1]))
     python = sys.executable
 
     if os.environ.get("VIRTUAL_ENV") != virtualenv_path:
         venv_script_path = os.path.join(virtualenv_path, _get_virtualenv_script_dir())
         if not os.path.exists(virtualenv_path):
             print(" * Setting up virtual environment...")
-            _process_exec(["uv", "venv"])
+            _process_exec([python, "-m", "venv", "--system-site-packages", virtualenv_path])
 
         # This general approach is taken from virtualenv's `activate_this.py`.
         os.environ["PATH"] = os.pathsep.join([venv_script_path, *os.environ.get("PATH", "").split(os.pathsep)])
@@ -168,11 +170,6 @@ def _activate_virtualenv(topdir):
         python = os.path.join(venv_script_path, "python")
 
     install_virtual_env_requirements(topdir, python, virtualenv_path)
-
-    # Turn off warnings about deprecated syntax in our indirect dependencies.
-    # TODO: Find a better approach for doing this.
-    import warnings
-    warnings.filterwarnings('ignore', category=SyntaxWarning, module=r'.*.venv')
 
 
 def _ensure_case_insensitive_if_windows():
@@ -222,6 +219,13 @@ def bootstrap(topdir):
     if ' ' in topdir and (not _is_windows()):
         print('Cannot run mach in a path with spaces.')
         print('Current path:', topdir)
+        sys.exit(1)
+
+    # Ensure we are running Python 3.10+. We put this check here so we generate a
+    # user-friendly error message rather than a cryptic stack trace on module import.
+    if sys.version_info < (3, 10):
+        print('Python3 (>=3.10) is required to run mach.')
+        print('You are running Python', platform.python_version())
         sys.exit(1)
 
     _activate_virtualenv(topdir)
