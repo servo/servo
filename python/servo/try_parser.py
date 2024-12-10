@@ -146,7 +146,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux", "linux-wpt", "macos", "windows", "android", "ohos", "lint"])
+                words.extend(["linux", "linux-wpt", "linux-perf", "macos", "windows", "android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
@@ -193,7 +193,7 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("").to_json()),
                              {"fail_fast": False, "matrix": [
                               {
-                                  'bencher': False,
+                                  'bencher': True,
                                   "name": "Linux WPT",
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
