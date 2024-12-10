@@ -532,18 +532,15 @@ impl ReplacedContents {
         // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
         let inline_content_size = LazyCell::new(|| {
             let get_block_size = || {
-                let block_stretch_size = block_stretch_size.unwrap_or_else(get_block_fallback_size);
                 SizeConstraint::new(
-                    box_size
-                        .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size)),
+                    box_size.block.maybe_resolve_extrinsic(block_stretch_size),
                     min_box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size))
+                        .maybe_resolve_extrinsic(block_stretch_size)
                         .unwrap_or_default(),
                     max_box_size
                         .block
-                        .maybe_resolve_extrinsic(Some(block_stretch_size)),
+                        .maybe_resolve_extrinsic(block_stretch_size),
                 )
             };
             self.content_size(
