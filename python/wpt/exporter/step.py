@@ -105,7 +105,9 @@ class CreateOrUpdateBranchForPRStep(Step):
         ).splitlines()
 
         filtered_commits = []
-        for sha in commit_shas:
+        # We must iterate the commits in reverse to ensure we apply older changes first,
+        # in case later commits would conflict.
+        for sha in reversed(commit_shas):
             # Specifying the path here does a few things. First, it excludes any
             # changes that do not touch WPT files at all. Secondly, when a file is
             # moved in or out of the WPT directory the filename which is outside the
