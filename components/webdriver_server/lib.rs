@@ -1469,13 +1469,19 @@ impl Handler {
         parameters: &JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
-        let args_string = "";
+        let args_string: Vec<_> = parameters
+            .args
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .map(webdriver_value_to_js_argument)
+            .collect();
 
         // This is pretty ugly; we really want something that acts like
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
-        let script = format!("(function() {{ {} }})({})", func_body, args_string);
-        println!("{}", script);
+        let script = format!("(function() {{ {} }})({})", func_body, args_string.join(", "));
+        debug!("{}", script);
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
@@ -1489,12 +1495,13 @@ impl Handler {
         parameters: &JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
-        let mut args_string: Vec<_> = parameters.args.as_deref().unwrap_or(&[]).iter().map(|v| {
-            match v {
-                serde_json::value::Value::String(ref s) => format!("\"{}\"", s),
-                v => { println!("ignoring {:?}", v); "\"\"".to_string() },
-            }
-        }).collect();
+        let mut args_string: Vec<_> = parameters
+            .args
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .map(webdriver_value_to_js_argument)
+            .collect();
         args_string.push("window.webdriverCallback".to_string());
 
         let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
@@ -1886,5 +1893,26 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
     fn teardown_session(&mut self, _session: SessionTeardownKind) {
         self.session = None;
+    }
+}
+
+fn webdriver_value_to_js_argument(v: &Value) -> String {
+    match v {
+        Value::String(ref s) => format!("\"{}\"", s),
+        Value::Null => "null".to_string(),
+        Value::Bool(b) => b.to_string(),
+        Value::Number(n) => n.to_string(),
+        Value::Array(list) => {
+            let elems = list.iter().map(|v|
+                format!("{}", webdriver_value_to_js_argument(v))
+            ).collect::<Vec<_>>();
+            format!("[{}]", elems.join(", "))
+        },
+        Value::Object(map) => {
+            let elems = map.iter().map(|(k, v)|
+                format!("{}: {}", k, webdriver_value_to_js_argument(v))
+            ).collect::<Vec<_>>();
+            format!("{{{}}}", elems.join(", "))
+        },
     }
 }
