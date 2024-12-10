@@ -42,7 +42,8 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, Positioning
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{
-    Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
+    Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, ContentBoxSizesAndPBMDeprecated,
+    PaddingBorderMargin,
 };
 use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
 
@@ -701,8 +702,7 @@ impl BlockLevelBox {
                             layout_context,
                             positioning_context,
                             containing_block,
-                            base.base_fragment_info,
-                            &base.style,
+                            base,
                             contents,
                             sequential_layout_state,
                             collapsible_with_parent_start_margin,
@@ -771,13 +771,19 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
-    mut base_fragment_info: BaseFragmentInfo,
-    style: &Arc<ComputedValues>,
+    base: &LayoutBoxBase,
     contents: &BlockContainer,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
 ) -> BoxFragment {
+    let style = &base.style;
     let containing_block_writing_mode = containing_block.style.writing_mode;
+    let get_inline_content_sizes = |constraint_space: &ConstraintSpace| {
+        base.inline_content_sizes(constraint_space, || {
+            contents.inline_content_sizes(layout_context, constraint_space)
+        })
+        .sizes
+    };
     let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
@@ -785,7 +791,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         min_box_size,
         max_box_size,
         depends_on_block_constraints,
-    } = solve_containing_block_padding_and_border_for_in_flow_box(containing_block, style);
+    } = solve_containing_block_padding_and_border_for_in_flow_box(
+        containing_block,
+        style,
+        get_inline_content_sizes,
+    );
     let ResolvedMargins {
         margin,
         effective_margin_inline_start,
@@ -919,10 +929,31 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         content_block_size += collapsible_margins_in_children.end.solve();
     }
 
-    let block_size = box_size
+    let stretch_size =
+        containing_block
+            .block_size
+            .non_auto()
+            .map_or(content_block_size, |block_size| {
+                Au::zero().max(
+                    block_size -
+                        pbm.padding_border_sums.block -
+                        pbm.margin.block_start.auto_is(Au::zero) -
+                        pbm.margin.block_end.auto_is(Au::zero),
+                )
+            });
+    let content_size = LazyCell::new(|| content_block_size.into());
+    let preferred_block_size =
+        box_size
+            .block
+            .resolve(Size::FitContent, stretch_size, &content_size);
+    let min_block_size = min_box_size
         .block
-        .auto_is(|| content_block_size)
-        .clamp_between_extremums(min_box_size.block, max_box_size.block);
+        .resolve_non_initial(stretch_size, &content_size)
+        .unwrap_or_default();
+    let max_block_size = max_box_size
+        .block
+        .resolve_non_initial(stretch_size, &content_size);
+    let block_size = preferred_block_size.clamp_between_extremums(min_block_size, max_block_size);
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         // Now that we're done laying out our children, we can restore the
@@ -964,6 +995,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         },
     };
 
+    let mut base_fragment_info = base.base_fragment_info;
     if depends_on_block_constraints {
         base_fragment_info
             .flags
@@ -1008,6 +1040,12 @@ impl IndependentNonReplacedContents {
             );
         }
 
+        let get_inline_content_sizes = |constraint_space: &ConstraintSpace| {
+            base.inline_content_sizes(constraint_space, || {
+                self.inline_content_sizes(layout_context, constraint_space)
+            })
+            .sizes
+        };
         let ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm,
@@ -1018,6 +1056,7 @@ impl IndependentNonReplacedContents {
         } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
             &base.style,
+            get_inline_content_sizes,
         );
 
         let layout = self.layout(
@@ -1029,13 +1068,34 @@ impl IndependentNonReplacedContents {
 
         let (block_size, inline_size) = match layout.content_inline_size_for_table {
             Some(inline_size) => (layout.content_block_size, inline_size),
-            None => (
-                box_size
+            None => {
+                let stretch_size = containing_block.block_size.non_auto().map_or(
+                    layout.content_block_size,
+                    |block_size| {
+                        Au::zero().max(
+                            block_size -
+                                pbm.padding_border_sums.block -
+                                pbm.margin.block_start.auto_is(Au::zero) -
+                                pbm.margin.block_end.auto_is(Au::zero),
+                        )
+                    },
+                );
+                let content_size = LazyCell::new(|| layout.content_block_size.into());
+                let preferred_block_size =
+                    box_size
+                        .block
+                        .resolve(Size::FitContent, stretch_size, &content_size);
+                let min_block_size = min_box_size
                     .block
-                    .auto_is(|| layout.content_block_size)
-                    .clamp_between_extremums(min_box_size.block, max_box_size.block),
-                containing_block_for_children.inline_size,
-            ),
+                    .resolve_non_initial(stretch_size, &content_size)
+                    .unwrap_or_default();
+                let max_block_size = max_box_size
+                    .block
+                    .resolve_non_initial(stretch_size, &content_size);
+                let block_size =
+                    preferred_block_size.clamp_between_extremums(min_block_size, max_block_size);
+                (block_size, containing_block_for_children.inline_size)
+            },
         };
 
         let ResolvedMargins {
@@ -1474,9 +1534,9 @@ impl ReplacedContents {
 struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
-    box_size: LogicalVec2<AuOrAuto>,
-    min_box_size: LogicalVec2<Au>,
-    max_box_size: LogicalVec2<Option<Au>>,
+    box_size: LogicalVec2<Size<Au>>,
+    min_box_size: LogicalVec2<Size<Au>>,
+    max_box_size: LogicalVec2<Size<Au>>,
     depends_on_block_constraints: bool,
 }
 
@@ -1501,6 +1561,7 @@ struct ResolvedMargins {
 fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
     style: &'a Arc<ComputedValues>,
+    get_inline_content_sizes: impl FnOnce(&ConstraintSpace) -> ContentSizes,
 ) -> ContainingBlockPaddingAndBorder<'a> {
     if matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
         // <https://drafts.csswg.org/css2/#anonymous-block-level>
@@ -1516,52 +1577,73 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         return ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm: PaddingBorderMargin::zero(),
-            box_size: LogicalVec2 {
-                inline: AuOrAuto::Auto,
-                block: AuOrAuto::Auto,
-            },
+            box_size: LogicalVec2::default(),
             min_box_size: LogicalVec2::default(),
             max_box_size: LogicalVec2::default(),
             depends_on_block_constraints: false,
         };
     }
 
-    let ContentBoxSizesAndPBMDeprecated {
+    let ContentBoxSizesAndPBM {
         content_box_size,
         content_min_box_size,
         content_max_box_size,
         pbm,
         depends_on_block_constraints,
-    } = style
-        .content_box_sizes_and_padding_border_margin(&containing_block.into())
-        .into();
-    let content_min_box_size = content_min_box_size.auto_is(Au::zero);
+    } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
-    // https://drafts.csswg.org/css2/#the-width-property
-    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-    let inline_size = content_box_size
-        .inline
-        .auto_is(|| {
-            let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
-            let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
-            containing_block.inline_size -
-                pbm.padding_border_sums.inline -
-                margin_inline_start -
-                margin_inline_end
-        })
-        .clamp_between_extremums(content_min_box_size.inline, content_max_box_size.inline);
+    let margin = pbm.margin.auto_is(Au::zero);
+    let pbm_sums = pbm.padding + pbm.border + margin;
+    let writing_mode = style.writing_mode;
+    let available_inline_size =
+        Au::zero().max(containing_block.inline_size - pbm_sums.inline_sum());
+    let available_block_size = containing_block
+        .block_size
+        .non_auto()
+        .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
 
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-    let mut block_size = content_box_size.block;
-    if let AuOrAuto::LengthPercentage(ref mut block_size) = block_size {
-        *block_size = block_size
-            .clamp_between_extremums(content_min_box_size.block, content_max_box_size.block);
-    }
+    let preferred_block_size = content_box_size
+        .block
+        .maybe_resolve_extrinsic(available_block_size);
+    let min_block_size = content_min_box_size
+        .block
+        .maybe_resolve_extrinsic(available_block_size)
+        .unwrap_or_default();
+    let max_block_size = content_max_box_size
+        .block
+        .maybe_resolve_extrinsic(available_block_size);
+    let tentative_block_size =
+        SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+
+    // https://drafts.csswg.org/css2/#the-width-property
+    // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+    let content_size = LazyCell::new(|| {
+        let constraint_space = ConstraintSpace::new(
+            tentative_block_size,
+            writing_mode,
+            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
+        );
+        get_inline_content_sizes(&constraint_space)
+    });
+    let preferred_inline_size =
+        content_box_size
+            .inline
+            .resolve(Size::Stretch, available_inline_size, &content_size);
+    let min_inline_size = content_min_box_size
+        .inline
+        .resolve_non_initial(available_inline_size, &content_size)
+        .unwrap_or_default();
+    let max_inline_size = content_max_box_size
+        .inline
+        .resolve_non_initial(available_inline_size, &content_size);
+    let inline_size =
+        preferred_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
 
     let containing_block_for_children = ContainingBlock {
         inline_size,
-        block_size,
+        block_size: tentative_block_size.to_auto_or(),
         style,
     };
     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
