@@ -185,7 +185,6 @@ impl BoxTree {
                         },
                         _ => return None,
                     },
-                    LayoutBox::InlineBox(_) => return None,
                     LayoutBox::InlineLevel(inline_level_box) => match &*inline_level_box.borrow() {
                         InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index)
                             if box_style.position.is_absolutely_positioned() =>

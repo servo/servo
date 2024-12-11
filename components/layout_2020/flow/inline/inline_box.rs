@@ -82,7 +82,10 @@ impl InlineBoxes {
             .push(InlineBoxTreePathToken::End(identifier));
     }
 
-    pub(super) fn start_inline_box(&mut self, mut inline_box: InlineBox) -> InlineBoxIdentifier {
+    pub(super) fn start_inline_box(
+        &mut self,
+        mut inline_box: InlineBox,
+    ) -> (InlineBoxIdentifier, ArcRefCell<InlineBox>) {
         assert!(self.inline_boxes.len() <= u32::MAX as usize);
         assert!(self.inline_box_tree.len() <= u32::MAX as usize);
 
@@ -94,11 +97,13 @@ impl InlineBoxes {
             index_in_inline_boxes,
         };
         inline_box.identifier = identifier;
+        let inline_box = ArcRefCell::new(inline_box);
 
-        self.inline_boxes.push(ArcRefCell::new(inline_box));
+        self.inline_boxes.push(inline_box.clone());
         self.inline_box_tree
             .push(InlineBoxTreePathToken::Start(identifier));
-        identifier
+
+        (identifier, inline_box)
     }
 
     pub(super) fn get_path(

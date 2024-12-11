@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
+use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::computed::TextDecorationLine;
 use style::values::specified::text::TextTransformCase;
@@ -124,7 +125,7 @@ impl InlineFormattingContextBuilder {
         independent_formatting_context: IndependentFormattingContext,
     ) -> ArcRefCell<InlineItem> {
         let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
-            independent_formatting_context,
+            Arc::new(independent_formatting_context),
             self.current_text_offset,
             Level::ltr(), /* This will be assigned later if necessary. */
         ));
@@ -155,19 +156,20 @@ impl InlineFormattingContextBuilder {
     }
 
     pub(crate) fn push_float_box(&mut self, float_box: FloatBox) -> ArcRefCell<InlineItem> {
-        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowFloatBox(float_box));
+        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowFloatBox(Arc::new(float_box)));
         self.inline_items.push(inline_level_box.clone());
         self.contains_floats = true;
         inline_level_box
     }
 
-    pub(crate) fn start_inline_box(&mut self, inline_box: InlineBox) {
+    pub(crate) fn start_inline_box(&mut self, inline_box: InlineBox) -> ArcRefCell<InlineItem> {
         self.push_control_character_string(inline_box.style.bidi_control_chars().0);
 
-        let identifier = self.inline_boxes.start_inline_box(inline_box);
-        self.inline_items
-            .push(ArcRefCell::new(InlineItem::StartInlineBox(identifier)));
+        let (identifier, inline_box) = self.inline_boxes.start_inline_box(inline_box);
+        let inline_level_box = ArcRefCell::new(InlineItem::StartInlineBox(inline_box));
+        self.inline_items.push(inline_level_box.clone());
         self.inline_box_stack.push(identifier);
+        inline_level_box
     }
 
     pub(crate) fn end_inline_box(&mut self) -> ArcRefCell<InlineBox> {
@@ -256,16 +258,14 @@ impl InlineFormattingContextBuilder {
 
         if let Some(inline_item) = self.inline_items.last() {
             if let InlineItem::TextRun(text_run) = &mut *inline_item.borrow_mut() {
-                text_run.text_range.end = new_range.end;
+                text_run.borrow_mut().text_range.end = new_range.end;
                 return;
             }
         }
 
         self.inline_items
-            .push(ArcRefCell::new(InlineItem::TextRun(TextRun::new(
-                info.into(),
-                info.style.clone(),
-                new_range,
+            .push(ArcRefCell::new(InlineItem::TextRun(ArcRefCell::new(
+                TextRun::new(info.into(), info.style.clone(), new_range),
             ))));
     }
 
