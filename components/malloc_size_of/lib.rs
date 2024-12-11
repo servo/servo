@@ -728,6 +728,7 @@ malloc_size_of_is_style_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_style_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
 malloc_size_of_is_style_malloc_size_of!(style::media_queries::MediaList);
 malloc_size_of_is_style_malloc_size_of!(style::properties::style_structs::Font);
+malloc_size_of_is_style_malloc_size_of!(style::queries::values::PrefersColorScheme);
 malloc_size_of_is_style_malloc_size_of!(style::selector_parser::PseudoElement);
 malloc_size_of_is_style_malloc_size_of!(style::selector_parser::RestyleDamage);
 malloc_size_of_is_style_malloc_size_of!(style::selector_parser::Snapshot);
