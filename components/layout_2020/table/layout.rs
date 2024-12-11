@@ -36,7 +36,7 @@ use crate::geom::{
     Size, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
-use crate::sizing::{ContentSizes, InlineContentSizesResult};
+use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
 use crate::{
@@ -2621,52 +2621,6 @@ impl Table {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "Table::inline_content_sizes",
-            skip_all,
-            fields(servo_profiling = true),
-            level = "trace",
-        )
-    )]
-    pub(crate) fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        constraint_space: &ConstraintSpace,
-    ) -> InlineContentSizesResult {
-        let writing_mode = constraint_space.writing_mode;
-        let mut layout = TableLayout::new(self);
-        let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
-
-        let mut caption_minimum_inline_size =
-            layout.compute_caption_minimum_inline_size(layout_context);
-        if caption_minimum_inline_size > table_content_sizes.min_content ||
-            caption_minimum_inline_size > table_content_sizes.max_content
-        {
-            // Padding and border should apply to the table grid, but they will be taken into
-            // account when computing the inline content sizes of the table wrapper (our parent), so
-            // this code removes their contribution from the inline content size of the caption.
-            let padding = self
-                .style
-                .padding(writing_mode)
-                .percentages_relative_to(Au::zero());
-            let border = self.style.border_width(writing_mode);
-            caption_minimum_inline_size -= padding.inline_sum() + border.inline_sum();
-            table_content_sizes
-                .min_content
-                .max_assign(caption_minimum_inline_size);
-            table_content_sizes
-                .max_content
-                .max_assign(caption_minimum_inline_size);
-        }
-
-        InlineContentSizesResult {
-            sizes: table_content_sizes,
-            depends_on_block_constraints: false,
-        }
-    }
-
     fn get_column_measure_for_column_at_index(
         &self,
         writing_mode: WritingMode,
@@ -2740,6 +2694,54 @@ impl Table {
     }
 }
 
+impl ComputeInlineContentSizes for Table {
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "Table::compute_inline_content_sizes",
+            skip_all,
+            fields(servo_profiling = true),
+            level = "trace",
+        )
+    )]
+    fn compute_inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        constraint_space: &ConstraintSpace,
+    ) -> InlineContentSizesResult {
+        let writing_mode = constraint_space.writing_mode;
+        let mut layout = TableLayout::new(self);
+        let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
+
+        let mut caption_minimum_inline_size =
+            layout.compute_caption_minimum_inline_size(layout_context);
+        if caption_minimum_inline_size > table_content_sizes.min_content ||
+            caption_minimum_inline_size > table_content_sizes.max_content
+        {
+            // Padding and border should apply to the table grid, but they will be taken into
+            // account when computing the inline content sizes of the table wrapper (our parent), so
+            // this code removes their contribution from the inline content size of the caption.
+            let padding = self
+                .style
+                .padding(writing_mode)
+                .percentages_relative_to(Au::zero());
+            let border = self.style.border_width(writing_mode);
+            caption_minimum_inline_size -= padding.inline_sum() + border.inline_sum();
+            table_content_sizes
+                .min_content
+                .max_assign(caption_minimum_inline_size);
+            table_content_sizes
+                .max_content
+                .max_assign(caption_minimum_inline_size);
+        }
+
+        InlineContentSizesResult {
+            sizes: table_content_sizes,
+            depends_on_block_constraints: false,
+        }
+    }
+}
+
 impl TableSlotCell {
     fn effective_vertical_align(&self) -> VerticalAlignKeyword {
         match self.base.style.clone_vertical_align() {
@@ -2764,11 +2766,7 @@ impl TableSlotCell {
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         );
         self.base
-            .inline_content_sizes(&constraint_space, || {
-                self.contents
-                    .contents
-                    .inline_content_sizes(layout_context, &constraint_space)
-            })
+            .inline_content_sizes(layout_context, &constraint_space, &self.contents.contents)
             .sizes
     }
 

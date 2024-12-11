@@ -38,7 +38,9 @@ use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::sizing::{ContentSizes, InlineContentSizesResult, IntrinsicSizingMode};
+use crate::sizing::{
+    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
+};
 use crate::style_ext::{
     AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
 };
@@ -411,17 +413,17 @@ struct FlexItemBoxInlineContentSizesInfo {
     depends_on_block_constraints: bool,
 }
 
-impl FlexContainer {
+impl ComputeInlineContentSizes for FlexContainer {
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(
-            name = "FlexContainer::inline_content_sizes",
+            name = "FlexContainer::compute_inline_content_sizes",
             skip_all,
             fields(servo_profiling = true),
             level = "trace",
         )
     )]
-    pub fn inline_content_sizes(
+    fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
@@ -437,7 +439,9 @@ impl FlexContainer {
             FlexAxis::Column => self.cross_content_sizes(layout_context, &constraint_space.into()),
         }
     }
+}
 
+impl FlexContainer {
     fn cross_content_sizes(
         &self,
         layout_context: &LayoutContext,

@@ -19,7 +19,7 @@ use crate::geom::LogicalSides;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
-use crate::sizing::{self, InlineContentSizesResult};
+use crate::sizing::{self, ComputeInlineContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, DisplayInside};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
@@ -187,15 +187,14 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        self.base
-            .inline_content_sizes(constraint_space, || match &self.contents {
-                IndependentFormattingContextContents::NonReplaced(contents) => {
-                    contents.inline_content_sizes(layout_context, constraint_space)
-                },
-                IndependentFormattingContextContents::Replaced(contents) => {
-                    contents.inline_content_sizes(layout_context, constraint_space)
-                },
-            })
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(contents) => self
+                .base
+                .inline_content_sizes(layout_context, constraint_space, contents),
+            IndependentFormattingContextContents::Replaced(contents) => self
+                .base
+                .inline_content_sizes(layout_context, constraint_space, contents),
+        }
     }
 
     pub(crate) fn outer_inline_content_sizes(
@@ -270,8 +269,10 @@ impl IndependentNonReplacedContents {
         // TODO: support preferred aspect ratios on non-replaced boxes.
         None
     }
+}
 
-    pub(crate) fn inline_content_sizes(
+impl ComputeInlineContentSizes for IndependentNonReplacedContents {
+    fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
@@ -279,10 +280,16 @@ impl IndependentNonReplacedContents {
         match self {
             Self::Flow(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, constraint_space),
-            Self::Flex(inner) => inner.inline_content_sizes(layout_context, constraint_space),
-            Self::Grid(inner) => inner.inline_content_sizes(layout_context, constraint_space),
-            Self::Table(table) => table.inline_content_sizes(layout_context, constraint_space),
+                .compute_inline_content_sizes(layout_context, constraint_space),
+            Self::Flex(inner) => {
+                inner.compute_inline_content_sizes(layout_context, constraint_space)
+            },
+            Self::Grid(inner) => {
+                inner.compute_inline_content_sizes(layout_context, constraint_space)
+            },
+            Self::Table(inner) => {
+                inner.compute_inline_content_sizes(layout_context, constraint_space)
+            },
         }
     }
 }

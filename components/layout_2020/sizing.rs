@@ -12,6 +12,7 @@ use serde::Serialize;
 use style::properties::ComputedValues;
 use style::Zero;
 
+use crate::context::LayoutContext;
 use crate::geom::Size;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2, SizeConstraint};
@@ -215,4 +216,12 @@ pub(crate) fn outer_inline(
 pub(crate) struct InlineContentSizesResult {
     pub sizes: ContentSizes,
     pub depends_on_block_constraints: bool,
+}
+
+pub(crate) trait ComputeInlineContentSizes {
+    fn compute_inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        constraint_space: &ConstraintSpace,
+    ) -> InlineContentSizesResult;
 }

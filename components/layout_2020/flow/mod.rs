@@ -40,7 +40,7 @@ use crate::geom::{
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContents;
-use crate::sizing::{self, ContentSizes, InlineContentSizesResult};
+use crate::sizing::{self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{
     Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
 };
@@ -246,10 +246,11 @@ impl OutsideMarker {
             &self.marker_style,
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         );
-        let content_sizes = self.base.inline_content_sizes(&constraint_space, || {
-            self.block_container
-                .inline_content_sizes(layout_context, &constraint_space)
-        });
+        let content_sizes = self.base.inline_content_sizes(
+            layout_context,
+            &constraint_space,
+            &self.block_container,
+        );
         let containing_block_for_children = ContainingBlock {
             size: ContainingBlockSize {
                 inline: content_sizes.sizes.max_content,
@@ -379,7 +380,7 @@ impl BlockFormattingContext {
 /// But floats can flow horizontally depending on 'clear', so we may need to sum their sizes.
 /// CSS 2 does not define the exact algorithm, this logic is based on the behavior observed
 /// on Gecko and Blink.
-fn calculate_inline_content_size_for_block_level_boxes(
+fn compute_inline_content_sizes_for_block_level_boxes(
     boxes: &[ArcRefCell<BlockLevelBox>],
     layout_context: &LayoutContext,
     containing_block: &IndefiniteContainingBlock,
@@ -416,9 +417,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     false,    /* auto_block_size_stretches_to_containing_block */
                     |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
                     |constraint_space| {
-                        base.inline_content_sizes(constraint_space, || {
-                            contents.inline_content_sizes(layout_context, constraint_space)
-                        })
+                        base.inline_content_sizes(layout_context, constraint_space, contents)
                     },
                 );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
@@ -552,20 +551,22 @@ impl BlockContainer {
             ),
         }
     }
+}
 
-    pub(super) fn inline_content_sizes(
+impl ComputeInlineContentSizes for BlockContainer {
+    fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         match &self {
-            Self::BlockLevelBoxes(boxes) => calculate_inline_content_size_for_block_level_boxes(
+            Self::BlockLevelBoxes(boxes) => compute_inline_content_sizes_for_block_level_boxes(
                 boxes,
                 layout_context,
                 &constraint_space.into(),
             ),
             Self::InlineFormattingContext(context) => {
-                context.inline_content_sizes(layout_context, constraint_space)
+                context.compute_inline_content_sizes(layout_context, constraint_space)
             },
         }
     }
