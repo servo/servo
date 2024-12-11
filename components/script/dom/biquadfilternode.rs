@@ -13,6 +13,7 @@ use servo_media::audio::biquad_filter_node::{
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
+use crate::conversions::Convert;
 use crate::dom::audionode::AudioNode;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -51,7 +52,7 @@ impl BiquadFilterNode {
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
         let filter = Cell::new(options.type_);
-        let options = options.into();
+        let options = options.convert();
         let node = AudioNode::new_inherited(
             AudioNodeInit::BiquadFilterNode(options),
             context,
@@ -181,26 +182,26 @@ impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
     fn SetType(&self, filter: BiquadFilterType) {
         self.filter.set(filter);
         self.node.message(AudioNodeMessage::BiquadFilterNode(
-            BiquadFilterNodeMessage::SetFilterType(filter.into()),
+            BiquadFilterNodeMessage::SetFilterType(filter.convert()),
         ));
     }
 }
 
-impl<'a> From<&'a BiquadFilterOptions> for BiquadFilterNodeOptions {
-    fn from(options: &'a BiquadFilterOptions) -> Self {
-        Self {
-            gain: *options.gain,
-            q: *options.Q,
-            frequency: *options.frequency,
-            detune: *options.detune,
-            filter: options.type_.into(),
+impl<'a> Convert<BiquadFilterNodeOptions> for &'a BiquadFilterOptions {
+    fn convert(self) -> BiquadFilterNodeOptions {
+        BiquadFilterNodeOptions {
+            gain: *self.gain,
+            q: *self.Q,
+            frequency: *self.frequency,
+            detune: *self.detune,
+            filter: self.type_.convert(),
         }
     }
 }
 
-impl From<BiquadFilterType> for FilterType {
-    fn from(filter: BiquadFilterType) -> FilterType {
-        match filter {
+impl Convert<FilterType> for BiquadFilterType {
+    fn convert(self) -> FilterType {
+        match self {
             BiquadFilterType::Lowpass => FilterType::LowPass,
             BiquadFilterType::Highpass => FilterType::HighPass,
             BiquadFilterType::Bandpass => FilterType::BandPass,

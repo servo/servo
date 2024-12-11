@@ -9,6 +9,7 @@ use webgpu::{
     WebGPURenderPass, WebGPURequest,
 };
 
+use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
@@ -93,7 +94,7 @@ impl GPUCommandEncoder {
                 device_id: device.id().0,
                 command_encoder_id,
                 desc: wgt::CommandEncoderDescriptor {
-                    label: (&descriptor.parent).into(),
+                    label: (&descriptor.parent).convert(),
                 },
             })
             .expect("Failed to create WebGPU command encoder");
@@ -131,7 +132,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {
             command_encoder_id: self.id().0,
             compute_pass_id,
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
             device_id: self.device.id().0,
         }) {
             warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
@@ -179,7 +180,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                     clear_value: color
                         .clearValue
                         .as_ref()
-                        .map(|color| (color).try_into())
+                        .map(|color| (color).try_convert())
                         .transpose()?
                         .unwrap_or_default(),
                     read_only: false,
@@ -196,7 +197,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginRenderPass {
             command_encoder_id: self.id().0,
             render_pass_id,
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
             depth_stencil_attachment,
             color_attachments,
             device_id: self.device.id().0,
@@ -246,9 +247,9 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyBufferToTexture {
                 command_encoder_id: self.encoder.0,
-                source: source.into(),
-                destination: destination.try_into()?,
-                copy_size: (&copy_size).try_into()?,
+                source: source.convert(),
+                destination: destination.try_convert()?,
+                copy_size: (&copy_size).try_convert()?,
             })
             .expect("Failed to send CopyBufferToTexture");
 
@@ -266,9 +267,9 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToBuffer {
                 command_encoder_id: self.encoder.0,
-                source: source.try_into()?,
-                destination: destination.into(),
-                copy_size: (&copy_size).try_into()?,
+                source: source.try_convert()?,
+                destination: destination.convert(),
+                copy_size: (&copy_size).try_convert()?,
             })
             .expect("Failed to send CopyTextureToBuffer");
 
@@ -286,9 +287,9 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToTexture {
                 command_encoder_id: self.encoder.0,
-                source: source.try_into()?,
-                destination: destination.try_into()?,
-                copy_size: (&copy_size).try_into()?,
+                source: source.try_convert()?,
+                destination: destination.try_convert()?,
+                copy_size: (&copy_size).try_convert()?,
             })
             .expect("Failed to send CopyTextureToTexture");
 
@@ -303,7 +304,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                 command_encoder_id: self.encoder.0,
                 device_id: self.device.id().0,
                 desc: wgt::CommandBufferDescriptor {
-                    label: (&descriptor.parent).into(),
+                    label: (&descriptor.parent).convert(),
                 },
             })
             .expect("Failed to send Finish");

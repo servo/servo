@@ -10,6 +10,7 @@ use webgpu::wgc::command::{
 };
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUIndexFormat, GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor,
@@ -81,7 +82,7 @@ impl GPURenderBundleEncoder {
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         let desc = RenderBundleEncoderDescriptor {
-            label: (&descriptor.parent.parent).into(),
+            label: (&descriptor.parent.parent).convert(),
             color_formats: Cow::Owned(
                 descriptor
                     .parent
@@ -252,7 +253,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish>
     fn Finish(&self, descriptor: &GPURenderBundleDescriptor) -> DomRoot<GPURenderBundle> {
         let desc = wgt::RenderBundleDescriptor {
-            label: (&descriptor.parent).into(),
+            label: (&descriptor.parent).convert(),
         };
         let encoder = self.render_bundle_encoder.borrow_mut().take().unwrap();
         let render_bundle_id = self.global().wgpu_id_hub().create_render_bundle_id();

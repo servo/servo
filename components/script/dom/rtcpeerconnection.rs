@@ -17,6 +17,7 @@ use servo_media::webrtc::{
 };
 use servo_media::ServoMedia;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
@@ -372,7 +373,7 @@ impl RTCPeerConnection {
         }
 
         // step 2 (state derivation already done by gstreamer)
-        let state: RTCIceGatheringState = state.into();
+        let state: RTCIceGatheringState = state.convert();
 
         // step 3
         if state == self.gathering_state.get() {
@@ -414,7 +415,7 @@ impl RTCPeerConnection {
         }
 
         // step 2 (state derivation already done by gstreamer)
-        let state: RTCIceConnectionState = state.into();
+        let state: RTCIceConnectionState = state.convert();
 
         // step 3
         if state == self.ice_connection_state.get() {
@@ -440,7 +441,7 @@ impl RTCPeerConnection {
             return;
         }
 
-        let state: RTCSignalingState = state.into();
+        let state: RTCSignalingState = state.convert();
 
         if state == self.signaling_state.get() {
             return;
@@ -479,7 +480,7 @@ impl RTCPeerConnection {
                             // create a fresh one
                             this.create_offer();
                         } else {
-                            let init: RTCSessionDescriptionInit = desc.into();
+                            let init: RTCSessionDescriptionInit = desc.convert();
                             for promise in this.offer_promises.borrow_mut().drain(..) {
                                 promise.resolve_native(&init);
                             }
@@ -511,7 +512,7 @@ impl RTCPeerConnection {
                             // create a fresh one
                             this.create_answer();
                         } else {
-                            let init: RTCSessionDescriptionInit = desc.into();
+                            let init: RTCSessionDescriptionInit = desc.convert();
                             for promise in this.answer_promises.borrow_mut().drain(..) {
                                 promise.resolve_native(&init);
                             }
@@ -665,7 +666,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         // XXXManishearth validate the current state
         let p = Promise::new_in_current_realm(comp, can_gc);
         let this = Trusted::new(self);
-        let desc: SessionDescription = desc.into();
+        let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::new(p.clone());
         let (task_source, canceller) = self
             .global()
@@ -684,7 +685,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             // XXXManishearth spec actually asks for an intricate
                             // dance between pending/current local/remote descriptions
                             let this = this.root();
-                            let desc = desc.into();
+                            let desc = desc.convert();
                             let desc = RTCSessionDescription::Constructor(
                                 this.global().as_window(),
                                 None,
@@ -711,7 +712,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         // XXXManishearth validate the current state
         let p = Promise::new_in_current_realm(comp, can_gc);
         let this = Trusted::new(self);
-        let desc: SessionDescription = desc.into();
+        let desc: SessionDescription = desc.convert();
         let trusted_promise = TrustedPromise::new(p.clone());
         let (task_source, canceller) = self
             .global()
@@ -730,7 +731,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                             // XXXManishearth spec actually asks for an intricate
                             // dance between pending/current local/remote descriptions
                             let this = this.root();
-                            let desc = desc.into();
+                            let desc = desc.convert();
                             let desc = RTCSessionDescription::Constructor(
                                 this.global().as_window(),
                                 None,
@@ -822,9 +823,9 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     }
 }
 
-impl From<SessionDescription> for RTCSessionDescriptionInit {
-    fn from(desc: SessionDescription) -> Self {
-        let type_ = match desc.type_ {
+impl Convert<RTCSessionDescriptionInit> for SessionDescription {
+    fn convert(self) -> RTCSessionDescriptionInit {
+        let type_ = match self.type_ {
             SdpType::Answer => RTCSdpType::Answer,
             SdpType::Offer => RTCSdpType::Offer,
             SdpType::Pranswer => RTCSdpType::Pranswer,
@@ -832,14 +833,14 @@ impl From<SessionDescription> for RTCSessionDescriptionInit {
         };
         RTCSessionDescriptionInit {
             type_,
-            sdp: desc.sdp.into(),
+            sdp: self.sdp.into(),
         }
     }
 }
 
-impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
-    fn from(desc: &'a RTCSessionDescriptionInit) -> Self {
-        let type_ = match desc.type_ {
+impl<'a> Convert<SessionDescription> for &'a RTCSessionDescriptionInit {
+    fn convert(self) -> SessionDescription {
+        let type_ = match self.type_ {
             RTCSdpType::Answer => SdpType::Answer,
             RTCSdpType::Offer => SdpType::Offer,
             RTCSdpType::Pranswer => SdpType::Pranswer,
@@ -847,14 +848,14 @@ impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
         };
         SessionDescription {
             type_,
-            sdp: desc.sdp.to_string(),
+            sdp: self.sdp.to_string(),
         }
     }
 }
 
-impl From<GatheringState> for RTCIceGatheringState {
-    fn from(state: GatheringState) -> Self {
-        match state {
+impl Convert<RTCIceGatheringState> for GatheringState {
+    fn convert(self) -> RTCIceGatheringState {
+        match self {
             GatheringState::New => RTCIceGatheringState::New,
             GatheringState::Gathering => RTCIceGatheringState::Gathering,
             GatheringState::Complete => RTCIceGatheringState::Complete,
@@ -862,9 +863,9 @@ impl From<GatheringState> for RTCIceGatheringState {
     }
 }
 
-impl From<IceConnectionState> for RTCIceConnectionState {
-    fn from(state: IceConnectionState) -> Self {
-        match state {
+impl Convert<RTCIceConnectionState> for IceConnectionState {
+    fn convert(self) -> RTCIceConnectionState {
+        match self {
             IceConnectionState::New => RTCIceConnectionState::New,
             IceConnectionState::Checking => RTCIceConnectionState::Checking,
             IceConnectionState::Connected => RTCIceConnectionState::Connected,
@@ -876,9 +877,9 @@ impl From<IceConnectionState> for RTCIceConnectionState {
     }
 }
 
-impl From<SignalingState> for RTCSignalingState {
-    fn from(state: SignalingState) -> Self {
-        match state {
+impl Convert<RTCSignalingState> for SignalingState {
+    fn convert(self) -> RTCSignalingState {
+        match self {
             SignalingState::Stable => RTCSignalingState::Stable,
             SignalingState::HaveLocalOffer => RTCSignalingState::Have_local_offer,
             SignalingState::HaveRemoteOffer => RTCSignalingState::Have_remote_offer,

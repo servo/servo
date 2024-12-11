@@ -8,6 +8,7 @@ use serde::Serialize;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding::{
     SecurityPolicyViolationEventDisposition, SecurityPolicyViolationEventInit,
@@ -111,7 +112,7 @@ impl CSPViolationReporter {
             Atom::from("securitypolicyviolation"),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
-            &report.into(),
+            &report.convert(),
             can_gc,
         );
 
@@ -149,21 +150,21 @@ impl TaskOnce for CSPViolationReporter {
     }
 }
 
-impl From<SecurityPolicyViolationReport> for SecurityPolicyViolationEventInit {
-    fn from(value: SecurityPolicyViolationReport) -> Self {
+impl Convert<SecurityPolicyViolationEventInit> for SecurityPolicyViolationReport {
+    fn convert(self) -> SecurityPolicyViolationEventInit {
         SecurityPolicyViolationEventInit {
-            sample: value.sample.unwrap_or_default().into(),
-            blockedURI: value.blocked_url.into(),
-            referrer: value.referrer.into(),
-            statusCode: value.status_code,
-            documentURI: value.document_url.into(),
-            sourceFile: value.source_file.into(),
-            violatedDirective: value.violated_directive.into(),
-            effectiveDirective: value.effective_directive.into(),
-            lineNumber: value.line_number,
-            columnNumber: value.column_number,
-            originalPolicy: value.original_policy.into(),
-            disposition: value.disposition,
+            sample: self.sample.unwrap_or_default().into(),
+            blockedURI: self.blocked_url.into(),
+            referrer: self.referrer.into(),
+            statusCode: self.status_code,
+            documentURI: self.document_url.into(),
+            sourceFile: self.source_file.into(),
+            violatedDirective: self.violated_directive.into(),
+            effectiveDirective: self.effective_directive.into(),
+            lineNumber: self.line_number,
+            columnNumber: self.column_number,
+            originalPolicy: self.original_policy.into(),
+            disposition: self.disposition,
             parent: EventInit::empty(),
         }
     }

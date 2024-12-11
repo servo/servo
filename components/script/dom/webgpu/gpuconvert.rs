@@ -11,6 +11,7 @@ use webgpu::wgc::pipeline::ProgrammableStageDescriptor;
 use webgpu::wgc::resource::TextureDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
+use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
     GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
@@ -24,9 +25,9 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::types::GPUDevice;
 
-impl From<GPUTextureFormat> for wgt::TextureFormat {
-    fn from(format: GPUTextureFormat) -> Self {
-        match format {
+impl Convert<wgt::TextureFormat> for GPUTextureFormat {
+    fn convert(self) -> wgt::TextureFormat {
+        match self {
             GPUTextureFormat::R8unorm => wgt::TextureFormat::R8Unorm,
             GPUTextureFormat::R8snorm => wgt::TextureFormat::R8Snorm,
             GPUTextureFormat::R8uint => wgt::TextureFormat::R8Uint,
@@ -210,11 +211,11 @@ impl From<GPUTextureFormat> for wgt::TextureFormat {
     }
 }
 
-impl TryFrom<&GPUExtent3D> for wgt::Extent3d {
+impl TryConvert<wgt::Extent3d> for &GPUExtent3D {
     type Error = Error;
 
-    fn try_from(size: &GPUExtent3D) -> Result<Self, Self::Error> {
-        match *size {
+    fn try_convert(self) -> Result<wgt::Extent3d, Self::Error> {
+        match *self {
             GPUExtent3D::GPUExtent3DDict(ref dict) => Ok(wgt::Extent3d {
                 width: dict.width,
                 height: dict.height,
@@ -238,19 +239,19 @@ impl TryFrom<&GPUExtent3D> for wgt::Extent3d {
     }
 }
 
-impl From<&GPUImageDataLayout> for wgt::ImageDataLayout {
-    fn from(data_layout: &GPUImageDataLayout) -> Self {
+impl Convert<wgt::ImageDataLayout> for &GPUImageDataLayout {
+    fn convert(self) -> wgt::ImageDataLayout {
         wgt::ImageDataLayout {
-            offset: data_layout.offset as wgt::BufferAddress,
-            bytes_per_row: data_layout.bytesPerRow,
-            rows_per_image: data_layout.rowsPerImage,
+            offset: self.offset as wgt::BufferAddress,
+            bytes_per_row: self.bytesPerRow,
+            rows_per_image: self.rowsPerImage,
         }
     }
 }
 
-impl From<GPUVertexFormat> for wgt::VertexFormat {
-    fn from(format: GPUVertexFormat) -> Self {
-        match format {
+impl Convert<wgt::VertexFormat> for GPUVertexFormat {
+    fn convert(self) -> wgt::VertexFormat {
+        match self {
             GPUVertexFormat::Uint8x2 => wgt::VertexFormat::Uint8x2,
             GPUVertexFormat::Uint8x4 => wgt::VertexFormat::Uint8x4,
             GPUVertexFormat::Sint8x2 => wgt::VertexFormat::Sint8x2,
@@ -285,34 +286,34 @@ impl From<GPUVertexFormat> for wgt::VertexFormat {
     }
 }
 
-impl From<&GPUPrimitiveState> for wgt::PrimitiveState {
-    fn from(primitive_state: &GPUPrimitiveState) -> Self {
+impl Convert<wgt::PrimitiveState> for &GPUPrimitiveState {
+    fn convert(self) -> wgt::PrimitiveState {
         wgt::PrimitiveState {
-            topology: wgt::PrimitiveTopology::from(&primitive_state.topology),
-            strip_index_format: primitive_state.stripIndexFormat.map(|index_format| {
-                match index_format {
+            topology: self.topology.convert(),
+            strip_index_format: self
+                .stripIndexFormat
+                .map(|index_format| match index_format {
                     GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
                     GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
-                }
-            }),
-            front_face: match primitive_state.frontFace {
+                }),
+            front_face: match self.frontFace {
                 GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
                 GPUFrontFace::Cw => wgt::FrontFace::Cw,
             },
-            cull_mode: match primitive_state.cullMode {
+            cull_mode: match self.cullMode {
                 GPUCullMode::None => None,
                 GPUCullMode::Front => Some(wgt::Face::Front),
                 GPUCullMode::Back => Some(wgt::Face::Back),
             },
-            unclipped_depth: primitive_state.clampDepth,
+            unclipped_depth: self.clampDepth,
             ..Default::default()
         }
     }
 }
 
-impl From<&GPUPrimitiveTopology> for wgt::PrimitiveTopology {
-    fn from(primitive_topology: &GPUPrimitiveTopology) -> Self {
-        match primitive_topology {
+impl Convert<wgt::PrimitiveTopology> for &GPUPrimitiveTopology {
+    fn convert(self) -> wgt::PrimitiveTopology {
+        match self {
             GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
             GPUPrimitiveTopology::Line_list => wgt::PrimitiveTopology::LineList,
             GPUPrimitiveTopology::Line_strip => wgt::PrimitiveTopology::LineStrip,
@@ -322,9 +323,9 @@ impl From<&GPUPrimitiveTopology> for wgt::PrimitiveTopology {
     }
 }
 
-impl From<GPUAddressMode> for wgt::AddressMode {
-    fn from(address_mode: GPUAddressMode) -> Self {
-        match address_mode {
+impl Convert<wgt::AddressMode> for GPUAddressMode {
+    fn convert(self) -> wgt::AddressMode {
+        match self {
             GPUAddressMode::Clamp_to_edge => wgt::AddressMode::ClampToEdge,
             GPUAddressMode::Repeat => wgt::AddressMode::Repeat,
             GPUAddressMode::Mirror_repeat => wgt::AddressMode::MirrorRepeat,
@@ -332,18 +333,18 @@ impl From<GPUAddressMode> for wgt::AddressMode {
     }
 }
 
-impl From<GPUFilterMode> for wgt::FilterMode {
-    fn from(filter_mode: GPUFilterMode) -> Self {
-        match filter_mode {
+impl Convert<wgt::FilterMode> for GPUFilterMode {
+    fn convert(self) -> wgt::FilterMode {
+        match self {
             GPUFilterMode::Nearest => wgt::FilterMode::Nearest,
             GPUFilterMode::Linear => wgt::FilterMode::Linear,
         }
     }
 }
 
-impl From<GPUTextureViewDimension> for wgt::TextureViewDimension {
-    fn from(view_dimension: GPUTextureViewDimension) -> Self {
-        match view_dimension {
+impl Convert<wgt::TextureViewDimension> for GPUTextureViewDimension {
+    fn convert(self) -> wgt::TextureViewDimension {
+        match self {
             GPUTextureViewDimension::_1d => wgt::TextureViewDimension::D1,
             GPUTextureViewDimension::_2d => wgt::TextureViewDimension::D2,
             GPUTextureViewDimension::_2d_array => wgt::TextureViewDimension::D2Array,
@@ -354,9 +355,9 @@ impl From<GPUTextureViewDimension> for wgt::TextureViewDimension {
     }
 }
 
-impl From<GPUCompareFunction> for wgt::CompareFunction {
-    fn from(compare: GPUCompareFunction) -> Self {
-        match compare {
+impl Convert<wgt::CompareFunction> for GPUCompareFunction {
+    fn convert(self) -> wgt::CompareFunction {
+        match self {
             GPUCompareFunction::Never => wgt::CompareFunction::Never,
             GPUCompareFunction::Less => wgt::CompareFunction::Less,
             GPUCompareFunction::Equal => wgt::CompareFunction::Equal,
@@ -369,9 +370,9 @@ impl From<GPUCompareFunction> for wgt::CompareFunction {
     }
 }
 
-impl From<&GPUBlendFactor> for wgt::BlendFactor {
-    fn from(factor: &GPUBlendFactor) -> Self {
-        match factor {
+impl Convert<wgt::BlendFactor> for &GPUBlendFactor {
+    fn convert(self) -> wgt::BlendFactor {
+        match self {
             GPUBlendFactor::Zero => wgt::BlendFactor::Zero,
             GPUBlendFactor::One => wgt::BlendFactor::One,
             GPUBlendFactor::Src => wgt::BlendFactor::Src,
@@ -389,12 +390,12 @@ impl From<&GPUBlendFactor> for wgt::BlendFactor {
     }
 }
 
-impl From<&GPUBlendComponent> for wgt::BlendComponent {
-    fn from(blend_component: &GPUBlendComponent) -> Self {
+impl Convert<wgt::BlendComponent> for &GPUBlendComponent {
+    fn convert(self) -> wgt::BlendComponent {
         wgt::BlendComponent {
-            src_factor: wgt::BlendFactor::from(&blend_component.srcFactor),
-            dst_factor: wgt::BlendFactor::from(&blend_component.dstFactor),
-            operation: match blend_component.operation {
+            src_factor: self.srcFactor.convert(),
+            dst_factor: self.dstFactor.convert(),
+            operation: match self.operation {
                 GPUBlendOperation::Add => wgt::BlendOperation::Add,
                 GPUBlendOperation::Subtract => wgt::BlendOperation::Subtract,
                 GPUBlendOperation::Reverse_subtract => wgt::BlendOperation::ReverseSubtract,
@@ -421,9 +422,9 @@ pub fn convert_store_op(op: Option<GPUStoreOp>) -> wgpu_com::StoreOp {
     }
 }
 
-impl From<GPUStencilOperation> for wgt::StencilOperation {
-    fn from(operation: GPUStencilOperation) -> Self {
-        match operation {
+impl Convert<wgt::StencilOperation> for GPUStencilOperation {
+    fn convert(self) -> wgt::StencilOperation {
+        match self {
             GPUStencilOperation::Keep => wgt::StencilOperation::Keep,
             GPUStencilOperation::Zero => wgt::StencilOperation::Zero,
             GPUStencilOperation::Replace => wgt::StencilOperation::Replace,
@@ -436,20 +437,20 @@ impl From<GPUStencilOperation> for wgt::StencilOperation {
     }
 }
 
-impl From<&GPUImageCopyBuffer> for wgpu_com::ImageCopyBuffer {
-    fn from(ic_buffer: &GPUImageCopyBuffer) -> Self {
+impl Convert<wgpu_com::ImageCopyBuffer> for &GPUImageCopyBuffer {
+    fn convert(self) -> wgpu_com::ImageCopyBuffer {
         wgpu_com::ImageCopyBuffer {
-            buffer: ic_buffer.buffer.id().0,
-            layout: wgt::ImageDataLayout::from(&ic_buffer.parent),
+            buffer: self.buffer.id().0,
+            layout: self.parent.convert(),
         }
     }
 }
 
-impl TryFrom<&GPUOrigin3D> for wgt::Origin3d {
+impl TryConvert<wgt::Origin3d> for &GPUOrigin3D {
     type Error = Error;
 
-    fn try_from(origin: &GPUOrigin3D) -> Result<Self, Self::Error> {
-        match origin {
+    fn try_convert(self) -> Result<wgt::Origin3d, Self::Error> {
+        match self {
             GPUOrigin3D::RangeEnforcedUnsignedLongSequence(v) => {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin3d-shape
                 if v.len() > 3 {
@@ -473,20 +474,20 @@ impl TryFrom<&GPUOrigin3D> for wgt::Origin3d {
     }
 }
 
-impl TryFrom<&GPUImageCopyTexture> for wgpu_com::ImageCopyTexture {
+impl TryConvert<wgpu_com::ImageCopyTexture> for &GPUImageCopyTexture {
     type Error = Error;
 
-    fn try_from(ic_texture: &GPUImageCopyTexture) -> Result<Self, Self::Error> {
+    fn try_convert(self) -> Result<wgpu_com::ImageCopyTexture, Self::Error> {
         Ok(wgpu_com::ImageCopyTexture {
-            texture: ic_texture.texture.id().0,
-            mip_level: ic_texture.mipLevel,
-            origin: ic_texture
+            texture: self.texture.id().0,
+            mip_level: self.mipLevel,
+            origin: self
                 .origin
                 .as_ref()
-                .map(wgt::Origin3d::try_from)
+                .map(TryConvert::<wgt::Origin3d>::try_convert)
                 .transpose()?
                 .unwrap_or_default(),
-            aspect: match ic_texture.aspect {
+            aspect: match self.aspect {
                 GPUTextureAspect::All => wgt::TextureAspect::All,
                 GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
                 GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
@@ -495,12 +496,12 @@ impl TryFrom<&GPUImageCopyTexture> for wgpu_com::ImageCopyTexture {
     }
 }
 
-impl<'a> From<&GPUObjectDescriptorBase> for Option<Cow<'a, str>> {
-    fn from(val: &GPUObjectDescriptorBase) -> Self {
-        if val.label.is_empty() {
+impl<'a> Convert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
+    fn convert(self) -> Option<Cow<'a, str>> {
+        if self.label.is_empty() {
             None
         } else {
-            Some(Cow::Owned(val.label.to_string()))
+            Some(Cow::Owned(self.label.to_string()))
         }
     }
 }
@@ -541,7 +542,7 @@ pub fn convert_bind_group_layout_entry(
                 GPUStorageTextureAccess::Read_write => wgt::StorageTextureAccess::ReadWrite,
             },
             format: device.validate_texture_format_required_features(&storage.format)?,
-            view_dimension: storage.viewDimension.into(),
+            view_dimension: storage.viewDimension.convert(),
         })
     } else if let Some(texture) = &bgle.texture {
         Some(wgt::BindingType::Texture {
@@ -554,7 +555,7 @@ pub fn convert_bind_group_layout_entry(
                 GPUTextureSampleType::Sint => wgt::TextureSampleType::Sint,
                 GPUTextureSampleType::Uint => wgt::TextureSampleType::Uint,
             },
-            view_dimension: texture.viewDimension.into(),
+            view_dimension: texture.viewDimension.convert(),
             multisampled: texture.multisampled,
         })
     } else {
@@ -584,13 +585,13 @@ pub fn convert_texture_descriptor(
     descriptor: &GPUTextureDescriptor,
     device: &GPUDevice,
 ) -> Fallible<(TextureDescriptor<'static>, wgt::Extent3d)> {
-    let size = (&descriptor.size).try_into()?;
+    let size = (&descriptor.size).try_convert()?;
     let desc = TextureDescriptor {
-        label: (&descriptor.parent).into(),
+        label: (&descriptor.parent).convert(),
         size,
         mip_level_count: descriptor.mipLevelCount,
         sample_count: descriptor.sampleCount,
-        dimension: descriptor.dimension.into(),
+        dimension: descriptor.dimension.convert(),
         format: device.validate_texture_format_required_features(&descriptor.format)?,
         usage: wgt::TextureUsages::from_bits_retain(descriptor.usage),
         view_formats: descriptor
@@ -602,11 +603,11 @@ pub fn convert_texture_descriptor(
     Ok((desc, size))
 }
 
-impl TryFrom<&GPUColor> for wgt::Color {
+impl TryConvert<wgt::Color> for &GPUColor {
     type Error = Error;
 
-    fn try_from(color: &GPUColor) -> Result<Self, Self::Error> {
-        match color {
+    fn try_convert(self) -> Result<wgt::Color, Self::Error> {
+        match self {
             GPUColor::DoubleSequence(s) => {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpucolor-shape
                 if s.len() != 4 {
@@ -630,17 +631,16 @@ impl TryFrom<&GPUColor> for wgt::Color {
     }
 }
 
-impl<'a> From<&GPUProgrammableStage> for ProgrammableStageDescriptor<'a> {
-    fn from(stage: &GPUProgrammableStage) -> Self {
-        Self {
-            module: stage.module.id().0,
-            entry_point: stage
+impl<'a> Convert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage {
+    fn convert(self) -> ProgrammableStageDescriptor<'a> {
+        ProgrammableStageDescriptor {
+            module: self.module.id().0,
+            entry_point: self
                 .entryPoint
                 .as_ref()
                 .map(|ep| Cow::Owned(ep.to_string())),
             constants: Cow::Owned(
-                stage
-                    .constants
+                self.constants
                     .as_ref()
                     .map(|records| records.iter().map(|(k, v)| (k.0.clone(), **v)).collect())
                     .unwrap_or_default(),
@@ -650,11 +650,11 @@ impl<'a> From<&GPUProgrammableStage> for ProgrammableStageDescriptor<'a> {
     }
 }
 
-impl From<&GPUBindGroupEntry> for BindGroupEntry<'_> {
-    fn from(entry: &GPUBindGroupEntry) -> Self {
-        Self {
-            binding: entry.binding,
-            resource: match entry.resource {
+impl<'a> Convert<BindGroupEntry<'a>> for &GPUBindGroupEntry {
+    fn convert(self) -> BindGroupEntry<'a> {
+        BindGroupEntry {
+            binding: self.binding,
+            resource: match self.resource {
                 GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
                 GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
                 GPUBindingResource::GPUBufferBinding(ref b) => {
@@ -669,9 +669,9 @@ impl From<&GPUBindGroupEntry> for BindGroupEntry<'_> {
     }
 }
 
-impl From<GPUTextureDimension> for wgt::TextureDimension {
-    fn from(dimension: GPUTextureDimension) -> Self {
-        match dimension {
+impl Convert<wgt::TextureDimension> for GPUTextureDimension {
+    fn convert(self) -> wgt::TextureDimension {
+        match self {
             GPUTextureDimension::_1d => wgt::TextureDimension::D1,
             GPUTextureDimension::_2d => wgt::TextureDimension::D2,
             GPUTextureDimension::_3d => wgt::TextureDimension::D3,

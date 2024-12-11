@@ -24,6 +24,7 @@ use webxr_api::{
     SelectEvent, SelectKind, Session, SessionId, View, Viewer, Visibility,
 };
 
+use crate::conversions::Convert;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -124,7 +125,7 @@ impl XRSession {
     ) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
-            blend_mode: session.environment_blend_mode().into(),
+            blend_mode: session.environment_blend_mode().convert(),
             mode,
             visibility_state: Cell::new(XRVisibilityState::Visible),
             viewer_space: Default::default(),
@@ -1100,9 +1101,9 @@ pub fn cast_transform<T, U, V, W>(
     unsafe { mem::transmute(transform) }
 }
 
-impl From<EnvironmentBlendMode> for XREnvironmentBlendMode {
-    fn from(x: EnvironmentBlendMode) -> Self {
-        match x {
+impl Convert<XREnvironmentBlendMode> for EnvironmentBlendMode {
+    fn convert(self) -> XREnvironmentBlendMode {
+        match self {
             EnvironmentBlendMode::Opaque => XREnvironmentBlendMode::Opaque,
             EnvironmentBlendMode::AlphaBlend => XREnvironmentBlendMode::Alpha_blend,
             EnvironmentBlendMode::Additive => XREnvironmentBlendMode::Additive,
