@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -81,6 +81,10 @@ impl DataTransfer {
         data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransfer> {
         Self::new_with_proto(window, None, CanGc::note(), data_store)
+    }
+
+    pub fn data_store(&self) -> Option<Ref<DragDataStore>> {
+        Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
     }
 }
 

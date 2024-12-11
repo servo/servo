@@ -121,7 +121,6 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::customelementregistry::CustomElementDefinition;
 use crate::dom::customevent::CustomEvent;
 use crate::dom::datatransfer::DataTransfer;
-use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::documenttype::DocumentType;
@@ -1451,9 +1450,8 @@ impl Document {
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
     pub fn fire_clipboard_event(&self, event: ClipboardEventType) {
-        // Step 1
-        let _clear_was_called = false;
-        // Step 2 let types_to_clear an empty list
+        // Step 1 Let clear_was_called be false
+        // Step 2 Let types_to_clear an empty list
         let mut drag_data_store = DragDataStore::new();
 
         // Step 4 let clipboard-entry be the sequence number of clipboard content, null if the OS doesn't support it.
@@ -1544,13 +1542,7 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>
-    pub fn write_content_to_the_clipboard(
-        &self,
-        items: DomRoot<DataTransferItemList>,
-        clear_was_called: bool,
-    ) {
-        let drag_data_store = items.data().expect("This shouldn't fail");
-        // TODO figure out how to handle clear_was_called, types_to_clear require FrozenArray
+    pub fn write_content_to_the_clipboard(&self, drag_data_store: &DragDataStore) {
         // Step 1
         if drag_data_store.list_len() > 0 {
             // Step 1.1 Clear the clipboard.
@@ -1573,9 +1565,11 @@ impl Document {
             }
         } else {
             // Step 2.1
-            if clear_was_called {
+            if drag_data_store.clear_was_called {
                 // Step 2.1.1 If types-to-clear list is empty, clear the clipboard
+                self.send_to_embedder(EmbedderMsg::ClearClipboardContents);
                 // Step 2.1.2 Else remove the types in the list from the clipboard
+                // As of now this can't be done with Arboard, and it's possible that will be removed from the spec
             }
         }
     }
