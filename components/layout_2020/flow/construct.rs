@@ -713,7 +713,7 @@ where
                 );
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
                     marker_style,
-                    list_item_style: info.style.clone(),
+                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
                     block_container,
                 }))
             },

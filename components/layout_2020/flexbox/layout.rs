@@ -2794,7 +2794,7 @@ impl FlexItemBox {
                                 style.writing_mode,
                                 non_replaced.preferred_aspect_ratio(),
                             );
-                            non_replaced
+                            self.independent_formatting_context
                                 .inline_content_sizes(
                                     flex_context.layout_context,
                                     &constraint_space,
