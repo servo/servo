@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::cmp::Ordering;
-use std::ops::{Deref, Range};
+use std::ops::Range;
 use std::ptr::NonNull;
 use std::{f64, ptr};
 
@@ -37,7 +37,6 @@ use super::bindings::str::{FromInputValueString, ToInputValueString};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransfer_Binding::DataTransferMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
@@ -1007,9 +1006,8 @@ impl HTMLInputElement {
                 "paste" => {
                     // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
                     if let Some(data) = event.get_clipboard_data() {
-                        self.textinput
-                            .borrow_mut()
-                            .paste_contents(data.Items().deref());
+                        let drag_data_store = data.data_store().expect("This shouldn't fail");
+                        self.textinput.borrow_mut().paste_contents(&drag_data_store);
                     }
                     // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
                     // Step 3.2 Else return false.
@@ -1022,15 +1020,17 @@ impl HTMLInputElement {
                 "copy" => {
                     // Step 4.1
                     if let Some(clipboard_data) = event.get_clipboard_data() {
-                        document_from_node(self)
-                            .write_content_to_the_clipboard(clipboard_data.Items(), false);
+                        let drag_data_store =
+                            clipboard_data.data_store().expect("This shouldn't fail");
+                        document_from_node(self).write_content_to_the_clipboard(&drag_data_store);
                     }
                 },
                 "cut" => {
                     // Step 4.1
                     if let Some(clipboard_data) = event.get_clipboard_data() {
-                        document_from_node(self)
-                            .write_content_to_the_clipboard(clipboard_data.Items(), false);
+                        let drag_data_store =
+                            clipboard_data.data_store().expect("This shouldn't fail");
+                        document_from_node(self).write_content_to_the_clipboard(&drag_data_store);
                     }
                     // Step 4.2
                     document_from_node(self).fire_clipboard_event(ClipboardEventType::Change);
