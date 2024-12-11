@@ -176,7 +176,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 17: Run main fetch given fetchParams.
-    main_fetch(request, cache, false, false, target, &mut None, context).await;
+    main_fetch(request, cache, false, target, &mut None, context).await;
 
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
@@ -215,7 +215,6 @@ pub fn should_request_be_blocked_by_csp(
 pub async fn main_fetch(
     request: &mut Request,
     cache: &mut CorsCache,
-    cors_flag: bool,
     recursive_flag: bool,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
@@ -323,18 +322,21 @@ pub async fn main_fetch(
                 false
             };
 
-            if (same_origin && !cors_flag) ||
-                current_scheme == "chrome" ||
-                context.protocols.is_fetchable(current_scheme) ||
+            // request's current URL's origin is same origin with request's origin, and request's
+            // response tainting is "basic"
+            if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
+                // request's current URL's scheme is "data"
+                current_scheme == "data" ||
+                // request's mode is "navigate" or "websocket"
                 matches!(
                     request.mode,
                     RequestMode::Navigate | RequestMode::WebSocket { .. }
                 )
             {
-                // Substep 1.
+                // Substep 1. Set request’s response tainting to "basic".
                 request.response_tainting = ResponseTainting::Basic;
 
-                // Substep 2.
+                // Substep 2. Return the result of running scheme fetch given fetchParams.
                 scheme_fetch(request, cache, target, done_chan, context).await
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
