@@ -29,6 +29,7 @@ impl GPUCanvasContext {
 }
 
 impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     fn Canvas(&self) -> UnionTypes::HTMLCanvasElementOrOffscreenCanvas {
         unimplemented!()
     }
