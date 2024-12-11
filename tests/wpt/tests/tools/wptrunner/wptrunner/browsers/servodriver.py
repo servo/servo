@@ -1,19 +1,13 @@
 # mypy: allow-untyped-defs
 
 import os
-import subprocess
 import tempfile
-
-from mozprocess import ProcessHandler
 
 from tools.serve.serve import make_hosts_file
 
-from .base import (Browser,
-                   ExecutorBrowser,
-                   OutputHandler,
+from .base import (WebDriverBrowser,
                    require_arg,
-                   get_free_port,
-                   browser_command)
+                   get_free_port)
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorservodriver import (ServoWebDriverTestharnessExecutor,  # noqa: F401
@@ -64,8 +58,7 @@ def env_extras(**kwargs):
 
 def env_options():
     return {"server_host": "127.0.0.1",
-            "testharnessreport": "testharnessreport-servodriver.js",
-            "supports_debugger": True}
+            "supports_debugger": False}
 
 
 def update_properties():
@@ -79,107 +72,40 @@ def write_hosts_file(config):
     return hosts_path
 
 
-class ServoWebDriverBrowser(Browser):
+class ServoWebDriverBrowser(WebDriverBrowser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
                  server_config=None, binary_args=None,
                  user_stylesheets=None, headless=None, **kwargs):
-        Browser.__init__(self, logger)
-        self.binary = binary
-        self.binary_args = binary_args or []
-        self.webdriver_host = webdriver_host
-        self.webdriver_port = None
-        self.proc = None
-        self.debug_info = debug_info
-        self.hosts_path = write_hosts_file(server_config)
-        self.server_ports = server_config.ports if server_config else {}
-        self.command = None
-        self.user_stylesheets = user_stylesheets if user_stylesheets else []
-        self.headless = headless if headless else False
-        self.ca_certificate_path = server_config.ssl_config["ca_cert_path"]
-        self.output_handler = None
-
-    def start(self, **kwargs):
-        self.webdriver_port = get_free_port()
-
+        hosts_path = write_hosts_file(server_config)
+        port = get_free_port()
         env = os.environ.copy()
-        env["HOST_FILE"] = self.hosts_path
+        env["HOST_FILE"] = hosts_path
         env["RUST_BACKTRACE"] = "1"
-        env["EMULATOR_REVERSE_FORWARD_PORTS"] = ",".join(
-            str(port)
-            for _protocol, ports in self.server_ports.items()
-            for port in ports
-            if port
-        )
 
-        debug_args, command = browser_command(
-            self.binary,
-            self.binary_args + [
-                "--hard-fail",
-                "--webdriver=%s" % self.webdriver_port,
-                "about:blank",
-            ],
-            self.debug_info
-        )
+        args = [
+            "--hard-fail",
+            "--webdriver=%s" % port,
+            "about:blank",
+        ]
 
-        if self.headless:
-            command += ["--headless"]
+        ca_cert_path = server_config.ssl_config["ca_cert_path"]
+        if ca_cert_path:
+            args += ["--certificate-path", ca_cert_path]
+        if binary_args:
+            args += binary_args
+        if user_stylesheets:
+            for stylesheet in user_stylesheets:
+                args += ["--user-stylesheet", stylesheet]
+        if headless:
+            args += ["--headless"]
 
-        if self.ca_certificate_path:
-            command += ["--certificate-path", self.ca_certificate_path]
-
-        for stylesheet in self.user_stylesheets:
-            command += ["--user-stylesheet", stylesheet]
-
-        self.command = command
-
-        self.command = debug_args + self.command
-
-        if not self.debug_info or not self.debug_info.interactive:
-            self.output_handler = OutputHandler(self.logger, self.command)
-            self.proc = ProcessHandler(self.command,
-                                       processOutputLine=[self.on_output],
-                                       env=env,
-                                       storeOutput=False)
-            self.proc.run()
-            self.output_handler.after_process_start(self.proc.pid)
-            self.output_handler.start()
-        else:
-            self.proc = subprocess.Popen(self.command, env=env)
-
-        self.logger.debug("Servo Started")
-
-    def stop(self, force=False):
-        self.logger.debug("Stopping browser")
-        if self.proc is not None:
-            try:
-                self.proc.kill()
-            except OSError:
-                # This can happen on Windows if the process is already dead
-                pass
-        if self.output_handler is not None:
-            self.output_handler.after_process_stop()
-
-    @property
-    def pid(self):
-        if self.proc is None:
-            return None
-
-        try:
-            return self.proc.pid
-        except AttributeError:
-            return None
-
-    def is_alive(self):
-        return self.proc.poll() is None
+        WebDriverBrowser.__init__(self, env=env, logger=logger, host=webdriver_host, port=port,
+                                  supports_pac=False, webdriver_binary=binary, webdriver_args=args,
+                                  binary=binary)
+        self.hosts_path = hosts_path
 
     def cleanup(self):
-        self.stop()
+        WebDriverBrowser.cleanup(self)
         os.remove(self.hosts_path)
-
-    def executor_browser(self):
-        assert self.webdriver_port is not None
-        return ExecutorBrowser, {"webdriver_host": self.webdriver_host,
-                                 "webdriver_port": self.webdriver_port,
-                                 "init_timeout": self.init_timeout}

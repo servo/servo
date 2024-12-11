@@ -808,6 +808,15 @@ pub enum WebDriverCommandMsg {
         Option<Rect<f32, CSSPixel>>,
         IpcSender<Option<Image>>,
     ),
+    /// Create a new webview that loads about:blank. The constellation will use
+    /// the provided channels to return the top level browsing context id
+    /// associated with the new webview, and a notification when the initial
+    /// load is complete.
+    NewWebView(IpcSender<TopLevelBrowsingContextId>, IpcSender<LoadStatus>),
+    /// Close the webview associated with the provided id.
+    CloseWebView(TopLevelBrowsingContextId),
+    /// Focus the webview associated with the provided id.
+    FocusWebView(TopLevelBrowsingContextId),
 }
 
 /// Resources required by workerglobalscopes
