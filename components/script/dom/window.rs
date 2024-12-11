@@ -173,14 +173,12 @@ pub enum ReflowReason {
     CachedPageNeededReflow,
     ElementStateChanged,
     FirstLoad,
-    MissingExplicitReflow,
-    PendingReflow,
     Query,
     RefreshTick,
     RequestAnimationFrame,
     ScrollFromScript,
+    UpdateTheRendering,
     Viewport,
-    WindowResize,
     WorkletLoaded,
 }
 
@@ -256,9 +254,6 @@ pub struct Window {
     /// RefreshTick or with FirstLoad. Until those first reflows, we want to
     /// suppress others like MissingExplicitReflow.
     suppress_reflow: Cell<bool>,
-
-    /// A counter of the number of pending reflows for this window.
-    pending_reflow_count: Cell<u32>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_malloc_size_of = "channels are hard"]
@@ -529,7 +524,6 @@ impl Window {
                 nodes.remove();
             },
         }
-        self.add_pending_reflow();
     }
 
     pub fn compositor_api(&self) -> &CrossProcessCompositorApi {
@@ -1831,9 +1825,12 @@ impl Window {
             _ => (),
         }
 
-        let for_display = reflow_goal == ReflowGoal::Full;
+        let for_display = reflow_goal.needs_display();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        if for_display && self.suppress_reflow.get() {
+
+        // If this was just a normal reflow (not triggered by script which forces reflow),
+        // and the document is still suppressing reflows, exit early.
+        if reflow_goal == ReflowGoal::Full && self.suppress_reflow.get() {
             debug!(
                 "Suppressing reflow pipeline {} for reason {:?} before FirstLoad or RefreshTick",
                 pipeline_id, reason
@@ -1891,7 +1888,6 @@ impl Window {
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
         // Send new document and relevant styles to layout.
-        let needs_display = reflow_goal.needs_display();
         let reflow = ScriptReflow {
             reflow_info: Reflow {
                 page_clip_rect: self.page_clip_rect.get(),
@@ -1924,15 +1920,15 @@ impl Window {
 
         debug!("script: layout complete");
 
-        // Pending reflows require display, so only reset the pending reflow count if this reflow
-        // was to be displayed.
-        if needs_display {
-            self.pending_reflow_count.set(0);
-        }
-
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
+
+        // Either this reflow caused new contents to be displayed or on the next
+        // full layout attempt a reflow should be forced in order to update the
+        // visual contents of the page. A case where full display might be delayed
+        // is when reflowing just for the purpose of doing a layout query.
+        document.set_needs_paint(!for_display);
 
         for image in complete.pending_images {
             let id = image.id;
@@ -2365,15 +2361,6 @@ impl Window {
         self.dom_static.windowproxy_handler
     }
 
-    pub fn get_pending_reflow_count(&self) -> u32 {
-        self.pending_reflow_count.get()
-    }
-
-    pub fn add_pending_reflow(&self) {
-        self.pending_reflow_count
-            .set(self.pending_reflow_count.get() + 1);
-    }
-
     pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
         // Whenever we receive a new resize event we forget about all the ones that came before
         // it, to avoid unnecessary relayouts
@@ -2406,6 +2393,10 @@ impl Window {
         }
 
         self.page_clip_rect.set(proposed_clip_rect);
+
+        // The document needs to be repainted, because the initial containing block
+        // is now a different size.
+        self.Document().set_needs_paint(true);
 
         // If we didn't have a clip rect, the previous display doesn't need rebuilding
         // because it was built for infinite clip (MaxRect::amax_rect()).
@@ -2504,9 +2495,6 @@ impl Window {
         );
         self.set_window_size(new_size);
 
-        // TODO: This should just trigger a pending reflow instead of forcing one now.
-        self.force_reflow(ReflowGoal::Full, ReflowReason::WindowResize, None);
-
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
@@ -2520,6 +2508,10 @@ impl Window {
             );
             uievent.upcast::<Event>().fire(self.upcast(), can_gc);
         }
+
+        // The document needs to be repainted, because the initial containing block
+        // is now a different size.
+        self.Document().set_needs_paint(true);
 
         true
     }
@@ -2707,7 +2699,6 @@ impl Window {
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             suppress_reflow: Cell::new(true),
-            pending_reflow_count: Default::default(),
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),

@@ -49,14 +49,6 @@ impl<'ld> ServoLayoutDocument<'ld> {
             .next()
     }
 
-    pub fn needs_paint_from_layout(&self) {
-        self.document.needs_paint_from_layout()
-    }
-
-    pub fn will_paint(&self) {
-        self.document.will_paint()
-    }
-
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
         self.document.style_shared_lock()
     }
