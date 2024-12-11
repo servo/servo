@@ -53,7 +53,6 @@ pub struct TeeReadRequest {
     clone_for_branch_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "Rc"]
     tee_underlying_source: Dom<TeeUnderlyingSource>,
 }
 impl TeeReadRequest {
