@@ -24,9 +24,10 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
-  CCACHE: "sccache"
+  # FIXME: Temporarily commented to see if it helps with #34571.
+  # SCCACHE_GHA_ENABLED: "true"
+  # RUSTC_WRAPPER: "sccache"
+  # CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -55,8 +56,9 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
+      # FIXME: Temporarily commented to see if it helps with #34571.
+      # - name: Run sccache-cache
+      #   uses: mozilla-actions/sccache-action@v0.0.6
       - name: Install crown
         run: cargo install --path support/crown
       - name: Bootstrap Python
