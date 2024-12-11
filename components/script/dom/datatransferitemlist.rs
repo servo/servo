@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -65,10 +65,6 @@ impl DataTransferItemList {
 
     pub fn invalidate_frozen_types(&self) {
         self.frozen_types.clear();
-    }
-
-    pub fn data(&self) -> Option<Ref<DragDataStore>> {
-        Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
     }
 }
 

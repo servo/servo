@@ -15,9 +15,8 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
-use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::drag_data_store::Kind;
+use crate::drag_data_store::{DragDataStore, Kind};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Selection {
@@ -1147,8 +1146,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub fn paste_contents(&mut self, item_list: &DataTransferItemList) {
-        let drag_data_store = item_list.data().expect("This shouldn't fail");
+    pub fn paste_contents(&mut self, drag_data_store: &DragDataStore) {
         for item in drag_data_store.iter_item_list() {
             match item {
                 Kind::Text(string) => self.insert_string(string.data()),
