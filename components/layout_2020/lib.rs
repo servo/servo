@@ -112,7 +112,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct ContainingBlockSize {
     inline: Au,
     block: SizeConstraint,
