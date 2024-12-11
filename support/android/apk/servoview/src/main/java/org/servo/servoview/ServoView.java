@@ -162,7 +162,17 @@ public class ServoView extends SurfaceView
         boolean zoomNecessary = mZooming && mZoomFactor != 1;
 
         if (scrollNecessary) {
-            mServo.scroll(dx, dy, mCurX, mCurY);
+            // We need to ensure x and y are inside the window, otherwise servo will not scroll!
+            // Our fling implementation will set `mCurX` and `mCurY` to a very high initial value
+            // when flinging with a negative velocity, since we don't know the size of our
+            // content page, because the android `OverScroller` needs to know the size of the page.
+            // Setting the page size to a ridiculously high value ensures that flinging will
+            // not be cut of short, even if we fling farther then the edge of the screen,
+            // starting from the touch up point.
+            int x = Math.min(mCurX, this.getHeight());
+            int y = Math.min(mCurY, this.getWidth());
+
+            mServo.scroll(dx, dy, x, y);
         }
 
         if (zoomNecessary) {
