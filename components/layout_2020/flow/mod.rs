@@ -41,10 +41,7 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{
-    Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, ContentBoxSizesAndPBMDeprecated,
-    PaddingBorderMargin,
-};
+use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, PaddingBorderMargin};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
     SizeConstraint,
@@ -1143,23 +1140,15 @@ impl IndependentNonReplacedContents {
         containing_block: &ContainingBlock<'_>,
         sequential_layout_state: &mut SequentialLayoutState,
     ) -> BoxFragment {
+        let style = &base.style;
         let containing_block_writing_mode = containing_block.style.writing_mode;
-        let ContentBoxSizesAndPBMDeprecated {
+        let ContentBoxSizesAndPBM {
             content_box_size,
             content_min_box_size,
             content_max_box_size,
             pbm,
             depends_on_block_constraints,
-        } = base
-            .style
-            .content_box_sizes_and_padding_border_margin(&containing_block.into())
-            .into();
-        let content_min_box_size = content_min_box_size.auto_is(Au::zero);
-
-        let block_size = content_box_size.block.map(|block_size| {
-            block_size
-                .clamp_between_extremums(content_min_box_size.block, content_max_box_size.block)
-        });
+        } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(&pbm);
@@ -1178,7 +1167,6 @@ impl IndependentNonReplacedContents {
         let mut content_size;
         let mut layout;
         let mut placement_rect;
-        let style = &base.style;
 
         // First compute the clear position required by the 'clear' property.
         // The code below may then add extra clearance when the element can't fit
@@ -1191,16 +1179,96 @@ impl IndependentNonReplacedContents {
             sequential_layout_state.position_without_clearance(&collapsed_margin_block_start)
         });
 
-        if let AuOrAuto::LengthPercentage(ref inline_size) = content_box_size.inline {
-            let inline_size = inline_size
-                .clamp_between_extremums(content_min_box_size.inline, content_max_box_size.inline);
+        // Then compute a tentative block size, only taking extrinsic values into account.
+        let margin = pbm.margin.auto_is(Au::zero);
+        let pbm_sums = pbm.padding + pbm.border + margin;
+        let available_block_size = containing_block
+            .size
+            .block
+            .non_auto()
+            .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
+        let preferred_block_size = content_box_size
+            .block
+            .maybe_resolve_extrinsic(available_block_size);
+        let min_block_size = content_min_box_size
+            .block
+            .maybe_resolve_extrinsic(available_block_size)
+            .unwrap_or_default();
+        let max_block_size = content_max_box_size
+            .block
+            .maybe_resolve_extrinsic(available_block_size);
+        let tentative_block_size =
+            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+
+        // With the tentative block size we can compute the inline min/max-content sizes.
+        let inline_content_sizes = LazyCell::new(|| {
+            let constraint_space = ConstraintSpace::new(
+                tentative_block_size,
+                style.writing_mode,
+                self.preferred_aspect_ratio(),
+            );
+            base.inline_content_sizes(layout_context, &constraint_space, self)
+                .sizes
+        });
+
+        // The final inline size can depend on the available space, which depends on where
+        // we are placing the box, since floats reduce the available space.
+        // TODO: this logic could be refined further, since even if some of the 3 sizes
+        // depends on the available space, the resulting size might not. For example,
+        // `min-width: 200px; width: 100px; max-width: stretch`.
+        let inline_size_depends_on_available_space = matches!(
+            content_box_size.inline,
+            Size::Initial | Size::Stretch | Size::FitContent
+        ) || matches!(
+            content_min_box_size.inline,
+            Size::Stretch | Size::FitContent
+        ) || matches!(
+            content_max_box_size.inline,
+            Size::Stretch | Size::FitContent
+        );
+        let compute_inline_size = |stretch_size| {
+            let preferred_inline_size =
+                content_box_size
+                    .inline
+                    .resolve(Size::Stretch, stretch_size, &inline_content_sizes);
+            let min_inline_size = content_min_box_size
+                .inline
+                .resolve_non_initial(stretch_size, &inline_content_sizes)
+                .unwrap_or_default();
+            let max_inline_size = content_max_box_size
+                .inline
+                .resolve_non_initial(stretch_size, &inline_content_sizes);
+            preferred_inline_size.clamp_between_extremums(min_inline_size, max_inline_size)
+        };
+
+        let compute_block_size = |layout: &IndependentLayout| {
+            let stretch_size = available_block_size.unwrap_or(layout.content_block_size);
+            let block_contents_size = LazyCell::new(|| layout.content_block_size.into());
+            let min_block_size = content_min_box_size
+                .block
+                .resolve_non_initial(stretch_size, &block_contents_size)
+                .unwrap_or_default();
+            let max_block_size = content_max_box_size
+                .block
+                .resolve_non_initial(stretch_size, &block_contents_size);
+            tentative_block_size
+                .to_definite()
+                .unwrap_or(layout.content_block_size)
+                .clamp_between_extremums(min_block_size, max_block_size)
+        };
+
+        if !inline_size_depends_on_available_space {
+            // If the inline size doesn't depend on the available inline space, we can just
+            // compute it with an available inline space of zero. Then, after layout we can
+            // compute the block size, and finally place among floats.
+            let inline_size = compute_inline_size(Au::zero());
             layout = self.layout(
                 layout_context,
                 positioning_context,
                 &ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
-                        block: block_size,
+                        block: tentative_block_size.to_auto_or(),
                     },
                     style,
                 },
@@ -1214,12 +1282,7 @@ impl IndependentNonReplacedContents {
                 };
             } else {
                 content_size = LogicalVec2 {
-                    block: block_size.auto_is(|| {
-                        layout.content_block_size.clamp_between_extremums(
-                            content_min_box_size.block,
-                            content_max_box_size.block,
-                        )
-                    }),
+                    block: compute_block_size(&layout),
                     inline: inline_size,
                 };
             }
@@ -1232,10 +1295,24 @@ impl IndependentNonReplacedContents {
             );
             placement_rect = placement.place();
         } else {
-            // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
+            // If the inline size depends on the available space, then we need to iterate
+            // the various placement candidates, resolve both the inline and block sizes
+            // on each one placement area, and then check if the box actually fits it.
+            // As an optimization, we first compute a lower bound of the final box size,
+            // and skip placement candidates where not even the lower bound would fit.
             let minimum_size_of_block = LogicalVec2 {
-                inline: content_min_box_size.inline,
-                block: block_size.auto_is(|| content_min_box_size.block),
+                // For the lower bound of the inline size, simply assume no available space.
+                // TODO: this won't work for things like `calc-size(stretch, 100px - size)`,
+                // which should result in a bigger size when the available space gets smaller.
+                inline: compute_inline_size(Au::zero()),
+                block: match tentative_block_size {
+                    // If we were able to resolve the preferred and maximum block sizes,
+                    // use the tentative block size (it takes the 3 sizes into account).
+                    SizeConstraint::Definite(size) if max_block_size.is_some() => size,
+                    // Oherwise the preferred or maximum block size might end up being zero,
+                    // so can only rely on the minimum block size.
+                    _ => min_block_size,
+                },
             } + pbm.padding_border_sums;
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
@@ -1247,12 +1324,9 @@ impl IndependentNonReplacedContents {
             loop {
                 // First try to place the block using the minimum size as the object size.
                 placement_rect = placement.place();
-                let proposed_inline_size = (placement_rect.size.inline -
-                    pbm.padding_border_sums.inline)
-                    .clamp_between_extremums(
-                        content_min_box_size.inline,
-                        content_max_box_size.inline,
-                    );
+                let available_inline_size =
+                    placement_rect.size.inline - pbm.padding_border_sums.inline;
+                let proposed_inline_size = compute_inline_size(available_inline_size);
 
                 // Now lay out the block using the inline size we calculated from the placement.
                 // Later we'll check to see if the resulting block size is compatible with the
@@ -1264,7 +1338,7 @@ impl IndependentNonReplacedContents {
                     &ContainingBlock {
                         size: ContainingBlockSize {
                             inline: proposed_inline_size,
-                            block: block_size,
+                            block: tentative_block_size.to_auto_or(),
                         },
                         style,
                     },
@@ -1291,12 +1365,7 @@ impl IndependentNonReplacedContents {
                     };
                 } else {
                     content_size = LogicalVec2 {
-                        block: block_size.auto_is(|| {
-                            layout.content_block_size.clamp_between_extremums(
-                                content_min_box_size.block,
-                                content_max_box_size.block,
-                            )
-                        }),
+                        block: compute_block_size(&layout),
                         inline: proposed_inline_size,
                     };
                 }
