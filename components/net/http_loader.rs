@@ -1086,16 +1086,8 @@ pub async fn http_redirect_fetch(
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
 
     // Step 22: Return the result of running main fetch given fetchParams and recursive.
-    let fetch_response = main_fetch(
-        request,
-        cache,
-        cors_flag,
-        recursive_flag,
-        target,
-        done_chan,
-        context,
-    )
-    .await;
+    let fetch_response =
+        main_fetch(request, cache, recursive_flag, target, done_chan, context).await;
 
     // TODO: timing allow check
     context
