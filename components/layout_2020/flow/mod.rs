@@ -44,7 +44,10 @@ use crate::sizing::{self, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{
     Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
 };
-use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
+use crate::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
+    SizeConstraint,
+};
 
 mod construct;
 pub mod float;
@@ -149,7 +152,7 @@ impl BlockLevelBox {
             .auto_is(|| {
                 let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
                 let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
-                containing_block.inline_size -
+                containing_block.size.inline -
                     pbm.padding_border_sums.inline -
                     margin_inline_start -
                     margin_inline_end
@@ -160,8 +163,10 @@ impl BlockLevelBox {
             .map(|size| size.clamp_between_extremums(min_size.block, max_size.block));
 
         let containing_block_for_children = ContainingBlock {
-            inline_size,
-            block_size,
+            size: ContainingBlockSize {
+                inline: inline_size,
+                block: block_size,
+            },
             style,
         };
 
@@ -242,8 +247,10 @@ impl OutsideMarker {
             .block_container
             .inline_content_sizes(layout_context, &constraint_space);
         let containing_block_for_children = ContainingBlock {
-            inline_size: content_sizes.sizes.max_content,
-            block_size: AuOrAuto::auto(),
+            size: ContainingBlockSize {
+                inline: content_sizes.sizes.max_content,
+                block: AuOrAuto::auto(),
+            },
             style: &self.marker_style,
         };
 
@@ -306,7 +313,7 @@ impl OutsideMarker {
             base_fragment_info,
             self.marker_style.clone(),
             flow_layout.fragments,
-            content_rect.to_physical(Some(containing_block)),
+            content_rect.as_physical(Some(containing_block)),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
@@ -324,7 +331,7 @@ impl BlockFormattingContext {
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
         let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
-            Some(SequentialLayoutState::new(containing_block.inline_size))
+            Some(SequentialLayoutState::new(containing_block.size.inline))
         } else {
             None
         };
@@ -792,7 +799,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     } = solve_margins(
         containing_block,
         &pbm,
-        containing_block_for_children.inline_size,
+        containing_block_for_children.size.inline,
     );
 
     let computed_block_size = style.content_block_size();
@@ -867,7 +874,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 block_start: sequential_layout_state.bfc_relative_block_position,
                 block_start_margins_not_collapsed: sequential_layout_state.current_margin,
                 inline_start,
-                inline_end: inline_start + containing_block_for_children.inline_size,
+                inline_end: inline_start + containing_block_for_children.size.inline,
             };
             parent_containing_block_position_info = Some(
                 sequential_layout_state.replace_containing_block_position_info(new_cb_offsets),
@@ -960,7 +967,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         },
         size: LogicalVec2 {
             block: block_size,
-            inline: containing_block_for_children.inline_size,
+            inline: containing_block_for_children.size.inline,
         },
     };
 
@@ -974,7 +981,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         base_fragment_info,
         style.clone(),
         flow_layout.fragments,
-        content_rect.to_physical(Some(containing_block)),
+        content_rect.as_physical(Some(containing_block)),
         pbm.padding.to_physical(containing_block_writing_mode),
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
@@ -1034,7 +1041,7 @@ impl IndependentNonReplacedContents {
                     .block
                     .auto_is(|| layout.content_block_size)
                     .clamp_between_extremums(min_box_size.block, max_box_size.block),
-                containing_block_for_children.inline_size,
+                containing_block_for_children.size.inline,
             ),
         };
 
@@ -1069,7 +1076,7 @@ impl IndependentNonReplacedContents {
             base_fragment_info,
             base.style.clone(),
             layout.fragments,
-            content_rect.to_physical(Some(containing_block)),
+            content_rect.as_physical(Some(containing_block)),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -1136,8 +1143,10 @@ impl IndependentNonReplacedContents {
                 layout_context,
                 positioning_context,
                 &ContainingBlock {
-                    inline_size,
-                    block_size,
+                    size: ContainingBlockSize {
+                        inline: inline_size,
+                        block: block_size,
+                    },
                     style,
                 },
                 containing_block,
@@ -1215,8 +1224,10 @@ impl IndependentNonReplacedContents {
                     layout_context,
                     positioning_context,
                     &ContainingBlock {
-                        inline_size: proposed_inline_size,
-                        block_size,
+                        size: ContainingBlockSize {
+                            inline: proposed_inline_size,
+                            block: block_size,
+                        },
                         style,
                     },
                     containing_block,
@@ -1337,7 +1348,7 @@ impl IndependentNonReplacedContents {
             base_fragment_info,
             style.clone(),
             layout.fragments,
-            content_rect.to_physical(Some(containing_block)),
+            content_rect.as_physical(Some(containing_block)),
             pbm.padding.to_physical(containing_block_writing_mode),
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
@@ -1448,7 +1459,7 @@ impl ReplacedContents {
             start_corner,
             size: content_size,
         }
-        .to_physical(Some(containing_block));
+        .as_physical(Some(containing_block));
 
         let mut base_fragment_info = base.base_fragment_info;
         if content_box_sizes_and_pbm.depends_on_block_constraints {
@@ -1507,8 +1518,10 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         // > Anonymous block boxes are ignored when resolving percentage values that would
         // > refer to it: the closest non-anonymous ancestor box is used instead.
         let containing_block_for_children = ContainingBlock {
-            inline_size: containing_block.inline_size,
-            block_size: containing_block.block_size,
+            size: ContainingBlockSize {
+                inline: containing_block.size.inline,
+                block: containing_block.size.block,
+            },
             style,
         };
         // <https://drafts.csswg.org/css2/#anonymous-block-level>
@@ -1544,7 +1557,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         .auto_is(|| {
             let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
             let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
-            containing_block.inline_size -
+            containing_block.size.inline -
                 pbm.padding_border_sums.inline -
                 margin_inline_start -
                 margin_inline_end
@@ -1560,8 +1573,10 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     }
 
     let containing_block_for_children = ContainingBlock {
-        inline_size,
-        block_size,
+        size: ContainingBlockSize {
+            inline: inline_size,
+            block: block_size,
+        },
         style,
     };
     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -1649,7 +1664,7 @@ fn solve_inline_margins_for_in_flow_block_level(
     pbm: &PaddingBorderMargin,
     inline_size: Au,
 ) -> ((Au, Au), Au) {
-    let free_space = containing_block.inline_size - pbm.padding_border_sums.inline - inline_size;
+    let free_space = containing_block.size.inline - pbm.padding_border_sums.inline - inline_size;
     let mut justification = Au::zero();
     let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
         (AuOrAuto::Auto, AuOrAuto::Auto) => {
@@ -1936,7 +1951,7 @@ impl<'container> PlacementState<'container> {
                     },
                     size: LogicalVec2::zero(),
                 }
-                .to_physical(Some(self.containing_block));
+                .as_physical(Some(self.containing_block));
             },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
@@ -1995,7 +2010,7 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
         StyleSize::LengthPercentage(ref lp) => {
             // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
             lp.is_definitely_zero() ||
-                (lp.0.has_percentage() && containing_block.block_size.is_auto())
+                (lp.0.has_percentage() && containing_block.size.block.is_auto())
         },
         StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
     }
@@ -2055,9 +2070,10 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 let writing_mode = self.style().writing_mode;
                 let available_inline_size =
-                    (containing_block.inline_size - pbm_sums.inline_sum()).max(Au::zero());
+                    (containing_block.size.inline - pbm_sums.inline_sum()).max(Au::zero());
                 let available_block_size = containing_block
-                    .block_size
+                    .size
+                    .block
                     .non_auto()
                     .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
                 let preferred_block_size = content_box_sizes_and_pbm
@@ -2110,8 +2126,10 @@ impl IndependentFormattingContext {
                     tentative_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
 
                 let containing_block_for_children = ContainingBlock {
-                    inline_size,
-                    block_size: tentative_block_size.to_auto_or(),
+                    size: ContainingBlockSize {
+                        inline: inline_size,
+                        block: tentative_block_size.to_auto_or(),
+                    },
                     style: self.style(),
                 };
                 assert_eq!(

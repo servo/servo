@@ -440,8 +440,8 @@ impl ComputedValuesExt for ComputedValues {
         let min_size = self
             .min_box_size(containing_block.style.writing_mode)
             .map_inline_and_block_sizes(
-                |lp| lp.to_used_value(containing_block.inline_size),
-                |lp| lp.to_used_value(containing_block.block_size.auto_is(Au::zero)),
+                |lp| lp.to_used_value(containing_block.size.inline),
+                |lp| lp.to_used_value(containing_block.size.block.auto_is(Au::zero)),
             );
         self.content_min_box_size_for_min_size(min_size, pbm)
     }
@@ -571,7 +571,7 @@ impl ComputedValuesExt for ComputedValues {
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
         self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             containing_block.style.writing_mode,
-            containing_block.inline_size,
+            containing_block.size.inline,
         )
     }
 
