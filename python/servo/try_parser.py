@@ -72,10 +72,15 @@ class JobConfig(object):
 
         self.wpt_layout |= other.wpt_layout
         self.unit_tests |= other.unit_tests
-        # to join "Linux" and "Linux WPT" into "Linux WPT"
-        if len(other.name) > len(self.name):
-            self.name = other.name
         self.bencher |= other.bencher
+        common = min([self.name, other.name], key=len)
+        p1 = self.name.strip(common).strip()
+        p2 = other.name.strip(common).strip()
+        self.name = common.strip()
+        if p1:
+            self.name += f" {p1}"
+        if p2:
+            self.name += f" {p2}"
         return True
 
 
@@ -193,57 +198,57 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("").to_json()),
                              {"fail_fast": False, "matrix": [
                               {
-                                  'bencher': True,
-                                  "name": "Linux WPT",
+                                  "name": "Linux WPT perf",
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
                                   "profile": "release",
                                   "unit_tests": True,
+                                  'bencher': True,
                                   "wpt_args": ""
                               },
                               {
-                                  'bencher': False,
                                   "name": "MacOS",
                                   "workflow": "macos",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
+                                  'bencher': False,
                                   "wpt_args": ""
                               },
                               {
-                                  'bencher': False,
                                   "name": "Windows",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
+                                  'bencher': False,
                                   "wpt_args": ""
                               },
                               {
-                                  'bencher': False,
                                   "name": "Android",
                                   "workflow": "android",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
+                                  'bencher': False,
                                   "wpt_args": ""
                               },
                               {
-                                  'bencher': False,
                                   "name": "OpenHarmony",
                                   "workflow": "ohos",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
+                                  'bencher': False,
                                   "wpt_args": ""
                               },
                               {
-                                  'bencher': False,
                                   "name": "Lint",
                                   "workflow": "lint",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
+                                  'bencher': False,
                                   "wpt_args": ""}
                               ]})
 
