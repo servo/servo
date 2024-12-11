@@ -299,7 +299,7 @@ public class ServoView extends SurfaceView
     }
 
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        mServo.scroll((int) -distanceX, (int) -distanceY, (int) e1.getX(), (int) e1.getY());
+        mServo.scroll((int) -distanceX, (int) -distanceY, (int) e2.getX(), (int) e2.getY());
         return true;
     }
 
