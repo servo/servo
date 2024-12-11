@@ -92,6 +92,7 @@ use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
+use style::computed_values::direction::T as ComputedCSSDirection;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
 use style::properties::style_structs::InheritedText;
@@ -727,15 +728,27 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             );
         }
 
+        // Boxes Padding - Border - Margin (PBM) and positioning context should follow
+        // visual, not logical order.
+        // https://drafts.csswg.org/css-writing-modes-4/#bidi-fragment-boxes
+        // 2.4.5.2. Box Model of Reordering-induced Box Fragments
+        let css_direction: ComputedCSSDirection = inline_box_state.base.style.clone_direction();
+
         if inline_box.is_first_fragment {
             self.current_line_segment.inline_size += inline_box_state.pbm.padding.inline_start +
                 inline_box_state.pbm.border.inline_start +
                 inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
             self.current_line_segment
                 .line_items
-                .push(LineItem::LeftInlineBoxPaddingBorderMargin(
-                    inline_box.identifier,
-                ));
+                .push(match css_direction {
+                        ComputedCSSDirection::Ltr => {
+                            LineItem::LeftInlineBoxPaddingBorderMargin(inline_box.identifier)
+                        },
+                        ComputedCSSDirection::Rtl => {
+                            LineItem::RightInlineBoxPaddingBorderMargin(inline_box.identifier)
+                        }
+                    }
+                );
         }
 
         let inline_box_state = Rc::new(inline_box_state);
@@ -771,6 +784,12 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             self.propagate_current_nesting_level_white_space_style();
         }
 
+        // Boxes Padding - Border - Margin (PBM) and positioning context should follow
+        // visual, not logical order.
+        // https://drafts.csswg.org/css-writing-modes-4/#bidi-fragment-boxes
+        // 2.4.5.2. Box Model of Reordering-induced Box Fragments
+        let css_direction: ComputedCSSDirection = inline_box_state.base.style.clone_direction();
+
         if inline_box_state.is_last_fragment {
             let pbm_end = inline_box_state.pbm.padding.inline_end +
                 inline_box_state.pbm.border.inline_end +
@@ -778,9 +797,15 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             self.current_line_segment.inline_size += pbm_end;
             self.current_line_segment
                 .line_items
-                .push(LineItem::RightInlineBoxPaddingBorderMargin(
-                    inline_box_state.identifier,
-                ))
+                .push(match css_direction {
+                    ComputedCSSDirection::Ltr => {
+                        LineItem::RightInlineBoxPaddingBorderMargin(inline_box_state.identifier)
+                    },
+                    ComputedCSSDirection::Rtl => {
+                        LineItem::LeftInlineBoxPaddingBorderMargin(inline_box_state.identifier)
+                    }
+                }
+            )
         }
     }
 
