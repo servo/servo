@@ -15,7 +15,7 @@ use js::rust::Runtime;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
-use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan, TimerSchedulerMsg};
+use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan};
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
@@ -93,7 +93,6 @@ impl WorkletGlobalScope {
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
                 script_to_constellation_chan,
-                init.scheduler_chan.clone(),
                 init.resource_threads.clone(),
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 None,
@@ -186,8 +185,6 @@ pub struct WorkletGlobalScopeInit {
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
     pub to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
-    /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The image cache
     pub image_cache: Arc<dyn ImageCache>,
     /// True if in headless mode

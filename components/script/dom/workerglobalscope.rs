@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -24,6 +25,7 @@ use net_traits::request::{
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
+use timers::TimerScheduler;
 use uuid::Uuid;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
@@ -80,7 +82,6 @@ pub fn prepare_workerscope_init(
         time_profiler_chan: global.time_profiler_chan().clone(),
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().clone(),
-        scheduler_chan: global.scheduler_chan().clone(),
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
@@ -129,6 +130,11 @@ pub struct WorkerGlobalScope {
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
+
+    /// A [`TimerScheduler`] used to schedule timers for this [`ServiceWorkerGlobalScope`].
+    /// Timers are handled in the service worker event loop.
+    #[no_trace]
+    timer_scheduler: RefCell<TimerScheduler>,
 }
 
 impl WorkerGlobalScope {
@@ -158,7 +164,6 @@ impl WorkerGlobalScope {
                 init.mem_profiler_chan,
                 init.time_profiler_chan,
                 init.script_to_constellation_chan,
-                init.scheduler_chan,
                 init.resource_threads,
                 MutableOrigin::new(init.origin),
                 init.creation_url,
@@ -183,6 +188,7 @@ impl WorkerGlobalScope {
             _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
+            timer_scheduler: RefCell::default(),
         }
     }
 
@@ -241,6 +247,11 @@ impl WorkerGlobalScope {
 
     pub fn policy_container(&self) -> Ref<PolicyContainer> {
         self.policy_container.borrow()
+    }
+
+    /// Get a mutable reference to the [`TimerScheduler`] for this [`ServiceWorkerGlobalScope`].
+    pub(crate) fn timer_scheduler(&self) -> RefMut<TimerScheduler> {
+        self.timer_scheduler.borrow_mut()
     }
 }
 

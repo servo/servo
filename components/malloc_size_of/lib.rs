@@ -46,6 +46,8 @@
 //!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
+use std::cell::OnceCell;
+use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 
@@ -351,6 +353,12 @@ impl<T: MallocSizeOf> MallocSizeOf for thin_vec::ThinVec<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for BinaryHeap<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.iter().map(|element| element.size_of(ops)).sum()
+    }
+}
+
 macro_rules! malloc_size_of_hash_set {
     ($ty:ty) => {
         impl<T, S> MallocShallowSizeOf for $ty
@@ -465,6 +473,14 @@ where
 impl<T> MallocSizeOf for std::marker::PhantomData<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for OnceCell<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.size_of(ops))
+            .unwrap_or_default()
     }
 }
 

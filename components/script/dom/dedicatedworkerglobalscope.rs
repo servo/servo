@@ -110,6 +110,7 @@ pub enum MixedMessage {
     Worker(DedicatedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(DedicatedWorkerControlMsg),
+    Timer,
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
@@ -232,6 +233,10 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
 
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::Devtools(msg)
+    }
+
+    fn from_timer_msg() -> MixedMessage {
+        MixedMessage::Timer
     }
 
     fn control_receiver(&self) -> &Receiver<DedicatedWorkerControlMsg> {
@@ -564,6 +569,7 @@ impl DedicatedWorkerGlobalScope {
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
                 return false;
             },
+            MixedMessage::Timer => {},
         }
         true
     }
