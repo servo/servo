@@ -161,9 +161,11 @@ impl PositioningContext {
         index: PositioningContextLength,
     ) {
         let start_offset = match &parent_fragment {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => &fragment.content_rect.origin,
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                fragment.borrow().content_rect.origin
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Positioning(fragment) => &fragment.rect.origin,
+            Fragment::Positioning(fragment) => fragment.borrow().rect.origin,
             _ => unreachable!(),
         };
         self.adjust_static_position_of_hoisted_fragments_with_offset(
@@ -335,7 +337,7 @@ impl PositioningContext {
         &mut self,
         layout_context: &LayoutContext,
         initial_containing_block: &DefiniteContainingBlock,
-        fragments: &mut Vec<ArcRefCell<Fragment>>,
+        fragments: &mut Vec<Fragment>,
     ) {
         debug_assert!(self.for_nearest_positioned_ancestor.is_none());
 
@@ -409,7 +411,7 @@ impl HoistedAbsolutelyPositionedBox {
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         boxes: &mut [Self],
-        fragments: &mut Vec<ArcRefCell<Fragment>>,
+        fragments: &mut Vec<Fragment>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) {
@@ -421,14 +423,15 @@ impl HoistedAbsolutelyPositionedBox {
                 .par_iter_mut()
                 .map(|hoisted_box| {
                     let mut new_hoisted_boxes: Vec<HoistedAbsolutelyPositionedBox> = Vec::new();
-                    let new_fragment = ArcRefCell::new(Fragment::Box(hoisted_box.layout(
+                    let new_fragment = hoisted_box.layout(
                         layout_context,
                         &mut new_hoisted_boxes,
                         containing_block,
-                    )));
+                    );
 
-                    hoisted_box.fragment.borrow_mut().fragment = Some(new_fragment.clone());
-                    (new_fragment, new_hoisted_boxes)
+                    hoisted_box.fragment.borrow_mut().fragment =
+                        Some(Fragment::Box(new_fragment.clone()));
+                    (Fragment::Box(new_fragment), new_hoisted_boxes)
                 })
                 .unzip_into_vecs(&mut new_fragments, &mut new_hoisted_boxes);
 
@@ -437,13 +440,14 @@ impl HoistedAbsolutelyPositionedBox {
                 .extend(new_hoisted_boxes.into_iter().flatten());
         } else {
             fragments.extend(boxes.iter_mut().map(|box_| {
-                let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
+                let new_fragment = box_.layout(
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
                     containing_block,
-                )));
-                box_.fragment.borrow_mut().fragment = Some(new_fragment.clone());
-                new_fragment
+                );
+
+                box_.fragment.borrow_mut().fragment = Some(Fragment::Box(new_fragment.clone()));
+                Fragment::Box(new_fragment)
             }))
         }
     }
@@ -453,7 +457,7 @@ impl HoistedAbsolutelyPositionedBox {
         layout_context: &LayoutContext,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
-    ) -> BoxFragment {
+    ) -> ArcRefCell<BoxFragment> {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let containing_block_writing_mode = containing_block.style.writing_mode;
@@ -696,7 +700,7 @@ impl HoistedAbsolutelyPositionedBox {
         for_nearest_containing_block_for_all_descendants
             .extend(positioning_context.for_nearest_containing_block_for_all_descendants);
 
-        new_fragment
+        ArcRefCell::new(new_fragment)
     }
 }
 

@@ -24,7 +24,9 @@ use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, Verti
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
 
-use super::{Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
+use super::{
+    ArcRefCell, Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup,
+};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{
@@ -1740,7 +1742,7 @@ impl<'a> TableLayout<'a> {
                     .to_logical(table_writing_mode)
                     .block;
 
-                let caption_fragment = Fragment::Box(caption_fragment);
+                let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
                     original_positioning_context_length,
@@ -1790,7 +1792,7 @@ impl<'a> TableLayout<'a> {
             .block;
         table_layout.content_inline_size_for_table = Some(logical_grid_content_rect.size.inline);
 
-        let grid_fragment = Fragment::Box(grid_fragment);
+        let grid_fragment = Fragment::Box(ArcRefCell::new(grid_fragment));
         positioning_context.adjust_static_position_of_hoisted_fragments(
             &grid_fragment,
             original_positioning_context_length,
@@ -1831,7 +1833,7 @@ impl<'a> TableLayout<'a> {
                     .to_logical(table_writing_mode)
                     .block;
 
-                let caption_fragment = Fragment::Box(caption_fragment);
+                let caption_fragment = Fragment::Box(ArcRefCell::new(caption_fragment));
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
                     original_positioning_context_length,
@@ -2182,7 +2184,9 @@ impl<'a> TableLayout<'a> {
                 rect,
             })
         }
-        row_fragment_layout.fragments.push(Fragment::Box(fragment));
+        row_fragment_layout
+            .fragments
+            .push(Fragment::Box(ArcRefCell::new(fragment)));
     }
 
     fn make_fragments_for_columns_and_column_groups(
@@ -2345,7 +2349,7 @@ impl<'a> RowFragmentLayout<'a> {
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
-    ) -> BoxFragment {
+    ) -> ArcRefCell<BoxFragment> {
         if self.positioning_context.is_some() {
             self.rect.start_corner +=
                 relative_adjustement(&self.row.style, containing_block_for_children);
@@ -2396,7 +2400,7 @@ impl<'a> RowFragmentLayout<'a> {
             positioning_context.append(row_positioning_context);
         }
 
-        row_fragment
+        ArcRefCell::new(row_fragment)
     }
 }
 
@@ -2432,7 +2436,7 @@ impl RowGroupFragmentLayout {
         table_positioning_context: &mut PositioningContext,
         containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
-    ) -> BoxFragment {
+    ) -> ArcRefCell<BoxFragment> {
         if self.positioning_context.is_some() {
             self.rect.start_corner +=
                 relative_adjustement(&self.style, containing_block_for_children);
@@ -2458,7 +2462,7 @@ impl RowGroupFragmentLayout {
             table_positioning_context.append(row_positioning_context);
         }
 
-        row_group_fragment
+        ArcRefCell::new(row_group_fragment)
     }
 }
 

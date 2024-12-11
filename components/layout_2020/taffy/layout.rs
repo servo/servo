@@ -551,7 +551,7 @@ impl TaffyContainer {
 
                 match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
-                        let fragment = Fragment::Box(
+                        let fragment = Fragment::Box(ArcRefCell::new(
                             BoxFragment::new(
                                 independent_box.base_fragment_info(),
                                 independent_box.style().clone(),
@@ -568,7 +568,7 @@ impl TaffyContainer {
                                 last: None,
                             })
                             .with_detailed_layout_info(child_detailed_layout_info),
-                        );
+                        ));
 
                         child
                             .positioning_context
