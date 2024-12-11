@@ -43,10 +43,10 @@ pub struct TeeUnderlyingSource {
     canceled_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
     clone_for_branch_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Rc"]
     #[allow(clippy::redundant_allocation)]
     reason_1: Rc<Box<Heap<Value>>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[ignore_malloc_size_of = "Rc"]
     #[allow(clippy::redundant_allocation)]
     reason_2: Rc<Box<Heap<Value>>>,
     #[ignore_malloc_size_of = "Rc"]
