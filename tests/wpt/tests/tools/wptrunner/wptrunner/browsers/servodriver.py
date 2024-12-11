@@ -1,10 +1,7 @@
 # mypy: allow-untyped-defs
 
 import os
-import subprocess
 import tempfile
-
-from mozprocess import ProcessHandler
 
 from tools.serve.serve import make_hosts_file
 

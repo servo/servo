@@ -1,9 +1,6 @@
 # mypy: allow-untyped-defs
 
-import json
 import os
-import socket
-import traceback
 
 from .executorwebdriver import WebDriverProtocol, WebDriverTestharnessExecutor, WebDriverRefTestExecutor
 
@@ -69,9 +66,12 @@ class ServoWebDriverProtocol(WebDriverProtocol):
         host, port = self.url.split(":")[1].strip("/"), self.url.split(':')[-1].strip("/")
 
         capabilities = {"alwaysMatch": self.capabilities}
-        self.webdriver = webdriver.Session(host, port, capabilities=capabilities, enable_bidi=self.enable_bidi, extension=ServoCommandExtensions)
+        self.webdriver = webdriver.Session(host, port,
+                                           capabilities=capabilities,
+                                           enable_bidi=self.enable_bidi,
+                                           extension=ServoCommandExtensions)
         self.webdriver.start()
-    
+
 
 class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
     supports_testdriver = True
