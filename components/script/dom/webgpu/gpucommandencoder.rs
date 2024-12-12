@@ -174,7 +174,8 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .colorAttachments
             .iter()
             .map(|color| -> Fallible<_> {
-                let channel = wgpu_com::PassChannel {
+                Ok(Some(wgpu_com::RenderPassColorAttachment {
+                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
                     load_op: convert_load_op(Some(color.loadOp)),
                     store_op: convert_store_op(Some(color.storeOp)),
                     clear_value: color
@@ -183,11 +184,6 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
                         .map(|color| (color).try_convert())
                         .transpose()?
                         .unwrap_or_default(),
-                    read_only: false,
-                };
-                Ok(Some(wgpu_com::RenderPassColorAttachment {
-                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                    channel,
                     view: color.view.id().0,
                 }))
             })
