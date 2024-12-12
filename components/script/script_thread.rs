@@ -81,7 +81,12 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
-    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType
+    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
+    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
+    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
+    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
+    StructuredSerializedData, Theme, TimerSchedulerMsg, TouchEventType, TouchId,
+    UntrustedNodeAddress, UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -2367,7 +2372,6 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::ExitFullScreen(..) |
             msg @ ConstellationControlMsg::SendEvent(..) |
             msg @ ConstellationControlMsg::TickAllAnimations(..) |
-            msg @ ConstellationControlMsg::ThemeChange(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
