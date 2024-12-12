@@ -73,7 +73,6 @@ impl TaffyContainer {
 
 #[derive(Serialize)]
 pub(crate) struct TaffyItemBox {
-    pub(crate) taffy_layout_cache: taffy::Cache,
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) child_fragments: Vec<Fragment>,
     #[serde(skip_serializing)]
@@ -92,7 +91,6 @@ pub(crate) enum TaffyItemBoxInner {
 impl fmt::Debug for TaffyItemBox {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TaffyItemBox")
-            .field("taffy_layout_cache", &self.taffy_layout_cache)
             .field("taffy_layout", &self.taffy_layout)
             .field("child_fragments", &self.child_fragments.len())
             .field("style", &self.style)
@@ -111,7 +109,6 @@ impl TaffyItemBox {
         };
 
         Self {
-            taffy_layout_cache: Default::default(),
             taffy_layout: Default::default(),
             child_fragments: Vec::new(),
             positioning_context: PositioningContext::new_for_containing_block_for_all_descendants(),
