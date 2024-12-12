@@ -734,7 +734,13 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.handle_viewport_change(data.window_size, &guards);
+        let viewport_size_changed = self.viewport_did_change(data.window_size);
+        let theme_changed = self.theme_did_change(data.theme);
+
+        if viewport_size_changed || theme_changed {
+            self.update_device(data.window_size, data.theme, &guards);
+        }
+
         if viewport_size_changed && had_used_viewport_units {
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
@@ -1093,25 +1099,34 @@ impl LayoutThread {
         }
     }
 
-    /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
-    fn handle_viewport_change(
-        &mut self,
-        window_size_data: WindowSizeData,
-        guards: &StylesheetGuards,
-    ) -> bool {
-        // If the viewport size and device pixel ratio has not changed, do not make any changes.
-        let au_viewport_size = Size2D::new(
+    fn viewport_did_change(&mut self, window_size_data: WindowSizeData) -> bool {
+        let new_pixel_ratio = window_size_data.device_pixel_ratio.get();
+        let new_viewport_size = Size2D::new(
             Au::from_f32_px(window_size_data.initial_viewport.width),
             Au::from_f32_px(window_size_data.initial_viewport.height),
         );
 
-        if self.stylist.device().au_viewport_size() == au_viewport_size &&
-            self.stylist.device().device_pixel_ratio().get() ==
-                window_size_data.device_pixel_ratio.get()
-        {
-            return false;
-        }
+        // TODO: eliminate self.viewport_size in favour of using self.device.au_viewport_size()
+        self.viewport_size = new_viewport_size;
 
+        let device = self.stylist.device();
+        let size_did_change = device.au_viewport_size() != new_viewport_size;
+        let pixel_ratio_did_change = device.device_pixel_ratio().get() != new_pixel_ratio;
+
+        size_did_change || pixel_ratio_did_change
+    }
+
+    fn theme_did_change(&self, theme: PrefersColorScheme) -> bool {
+        theme != self.device().color_scheme()
+    }
+
+    /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
+    fn update_device(
+        &mut self,
+        window_size_data: WindowSizeData,
+        theme: PrefersColorScheme,
+        guards: &StylesheetGuards,
+    ) {
         let device = Device::new(
             MediaType::screen(),
             self.stylist.quirks_mode(),
@@ -1119,8 +1134,7 @@ impl LayoutThread {
             Scale::new(window_size_data.device_pixel_ratio.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
-            // TODO: obtain preferred color scheme from embedder
-            PrefersColorScheme::Light,
+            theme,
         );
 
         // Preserve any previously computed root font size.
@@ -1129,9 +1143,6 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-
-        self.viewport_size = au_viewport_size;
-        true
     }
 }
 

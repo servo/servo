@@ -12,7 +12,7 @@ use embedder_traits::Cursor;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use script_traits::{
-    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
+    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType, Theme,
     TraversalDirection, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
@@ -46,6 +46,8 @@ pub enum ConstellationMsg {
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
     WindowSize(TopLevelBrowsingContextId, WindowSizeData, WindowSizeType),
+    /// Inform the constellation of a theme change.
+    ThemeChange(Theme),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
@@ -110,6 +112,7 @@ impl ConstellationMsg {
             LoadUrl(..) => "LoadUrl",
             TraverseHistory(..) => "TraverseHistory",
             WindowSize(..) => "WindowSize",
+            ThemeChange(..) => "ThemeChange",
             TickAnimation(..) => "TickAnimation",
             WebDriverCommand(..) => "WebDriverCommand",
             Reload(..) => "Reload",

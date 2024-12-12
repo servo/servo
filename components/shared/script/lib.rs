@@ -284,6 +284,8 @@ pub enum ConstellationControlMsg {
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
     Resize(PipelineId, WindowSizeData, WindowSizeType),
+    /// Theme changed.
+    ThemeChange(PipelineId, Theme),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
     /// Window switched from fullscreen mode.
@@ -398,6 +400,7 @@ impl fmt::Debug for ConstellationControlMsg {
             NavigationResponse(..) => "NavigationResponse",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
+            ThemeChange(..) => "ThemeChange",
             ResizeInactive(..) => "ResizeInactive",
             UnloadDocument(..) => "UnloadDocument",
             ExitPipeline(..) => "ExitPipeline",
@@ -774,6 +777,15 @@ pub enum WindowSizeType {
     Initial,
     /// Window resize.
     Resize,
+}
+
+/// The type of platform theme.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum Theme {
+    /// Light theme.
+    Light,
+    /// Dark theme.
+    Dark,
 }
 
 /// Messages to the constellation originating from the WebDriver server.
