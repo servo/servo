@@ -722,7 +722,7 @@ impl CustomElementDefinition {
         {
             // Go into the constructor's realm
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
-            let args = HandleValueArray::new();
+            let args = HandleValueArray::empty();
             if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
                 return Err(Error::JSFailed);
             }
@@ -907,7 +907,7 @@ fn run_upgrade_constructor(
 
         // Go into the constructor's realm
         let _ac = JSAutoRealm::new(*cx, constructor.callback());
-        let args = HandleValueArray::new();
+        let args = HandleValueArray::empty();
         // Step 8.2
         if unsafe {
             !Construct1(

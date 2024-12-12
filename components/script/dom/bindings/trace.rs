@@ -40,6 +40,7 @@ use std::ops::{Deref, DerefMut};
 use indexmap::IndexMap;
 /// A trait to allow tracing (only) DOM objects.
 pub use js::gc::Traceable as JSTraceable;
+pub use js::gc::{RootableVec, RootedVec};
 use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, TraceKind};
 use js::jsval::JSVal;
@@ -60,7 +61,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
@@ -479,9 +479,6 @@ where
     }
 }
 
-/// Holds a set of JSTraceables that need to be rooted
-pub use js::gc::RootedTraceableSet;
-
 /// Roots any JSTraceable thing
 ///
 /// If you have a valid DomObject, use DomRoot.
@@ -546,77 +543,5 @@ impl<T: JSTraceable> Deref for RootedTraceableBox<T> {
 impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
     fn deref_mut(&mut self) -> &mut T {
         self.0.deref_mut()
-    }
-}
-
-/// A vector of items to be rooted with `RootedVec`.
-/// Guaranteed to be empty when not rooted.
-/// Usage: `rooted_vec!(let mut v);` or if you have an
-/// iterator of `DomRoot`s, `rooted_vec!(let v <- iterator);`.
-#[allow(crown::unrooted_must_root)]
-#[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::allow_unrooted_interior]
-pub struct RootableVec<T: JSTraceable> {
-    v: Vec<T>,
-}
-
-impl<T: JSTraceable> RootableVec<T> {
-    /// Create a vector of items of type T that can be rooted later.
-    pub fn new_unrooted() -> RootableVec<T> {
-        RootableVec { v: vec![] }
-    }
-}
-
-/// A vector of items that are rooted for the lifetime 'a.
-#[crown::unrooted_must_root_lint::allow_unrooted_interior]
-pub struct RootedVec<'a, T: 'static + JSTraceable> {
-    root: &'a mut RootableVec<T>,
-}
-
-impl<'a, T: 'static + JSTraceable> RootedVec<'a, T> {
-    /// Create a vector of items of type T that is rooted for
-    /// the lifetime of this struct
-    pub fn new(root: &'a mut RootableVec<T>) -> Self {
-        unsafe {
-            RootedTraceableSet::add(root);
-        }
-        RootedVec { root }
-    }
-}
-
-impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, Dom<T>> {
-    /// Create a vector of items of type `Dom<T>` that is rooted for
-    /// the lifetime of this struct
-    pub fn from_iter<I>(root: &'a mut RootableVec<Dom<T>>, iter: I) -> Self
-    where
-        I: Iterator<Item = DomRoot<T>>,
-    {
-        unsafe {
-            RootedTraceableSet::add(root);
-        }
-        root.v.extend(iter.map(|item| Dom::from_ref(&*item)));
-        RootedVec { root }
-    }
-}
-
-impl<'a, T: JSTraceable + 'static> Drop for RootedVec<'a, T> {
-    fn drop(&mut self) {
-        self.clear();
-        unsafe {
-            RootedTraceableSet::remove(self.root);
-        }
-    }
-}
-
-impl<'a, T: JSTraceable> Deref for RootedVec<'a, T> {
-    type Target = Vec<T>;
-    fn deref(&self) -> &Vec<T> {
-        &self.root.v
-    }
-}
-
-impl<'a, T: JSTraceable> DerefMut for RootedVec<'a, T> {
-    fn deref_mut(&mut self) -> &mut Vec<T> {
-        &mut self.root.v
     }
 }

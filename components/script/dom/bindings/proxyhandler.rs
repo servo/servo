@@ -486,7 +486,7 @@ pub unsafe fn cross_origin_get(
         *cx,
         receiver,
         getter_jsval.handle().into(),
-        &jsapi::HandleValueArray::new(),
+        &jsapi::HandleValueArray::empty(),
         vp,
     )
 }

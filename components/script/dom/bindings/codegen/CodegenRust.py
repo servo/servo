@@ -8170,7 +8170,10 @@ class CGIterableMethodGenerator(CGGeneric):
                 rooted!(in(*cx) let arg0 = ObjectValue(arg0));
                 rooted!(in(*cx) let mut call_arg1 = UndefinedValue());
                 rooted!(in(*cx) let mut call_arg2 = UndefinedValue());
-                let mut call_args = [UndefinedValue(), UndefinedValue(), ObjectValue(*_obj)];
+                rooted_vec!(let mut call_args);
+                call_args.push(UndefinedValue());
+                call_args.push(UndefinedValue());
+                call_args.push(ObjectValue(*_obj));
                 rooted!(in(*cx) let mut ignoredReturnVal = UndefinedValue());
 
                 // This has to be a while loop since get_iterable_length() may change during
@@ -8186,8 +8189,8 @@ class CGIterableMethodGenerator(CGGeneric):
                   (*this).get_key_at_index(i).to_jsval(*cx, call_arg2.handle_mut());
                   call_args[0] = call_arg1.handle().get();
                   call_args[1] = call_arg2.handle().get();
-                  let call_args = HandleValueArray { length_: 3, elements_: call_args.as_ptr() };
-                  if !Call(*cx, arg1, arg0.handle(), &call_args,
+                  let call_args_handle = HandleValueArray::from(&call_args);
+                  if !Call(*cx, arg1, arg0.handle(), &call_args_handle,
                            ignoredReturnVal.handle_mut()) {
                     return false;
                   }
