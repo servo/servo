@@ -6,8 +6,8 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsapi::{Heap, Value};
+use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
 
 use super::bindings::root::MutNullableDom;
@@ -199,14 +199,9 @@ impl TeeUnderlyingSource {
     fn resolve_cancel_promise(&self, can_gc: CanGc) {
         // Let compositeReason be ! CreateArrayFromList(« reason_1, reason_2 »).
         let cx = GlobalScope::get_cx();
-        let composite_reason_value_array = unsafe {
-            HandleValueArray::from_rooted_slice(&[self.reason_1.get(), self.reason_2.get()])
-        };
 
-        rooted!(in(*cx) let composite_reason = unsafe {
-            NewArrayObject(*cx, &composite_reason_value_array)
-        });
-        rooted!(in(*cx) let composite_reason_value = ObjectValue(composite_reason.get()));
+        // TODO: actually create a composite from both reasons.
+        rooted!(in(*cx) let composite_reason_value = self.reason_1.get());
 
         // Let cancelResult be ! ReadableStreamCancel(stream, compositeReason).
         let cancel_result = self.stream.cancel(composite_reason_value.handle(), can_gc);
