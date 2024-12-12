@@ -115,6 +115,13 @@ struct GetProcessResponse {
     process_descriptor: ProcessActorMsg,
 }
 
+#[derive(Serialize)]
+struct ErrorResponse {
+    from: String,
+    error: String,
+    message: String,
+}
+
 pub struct RootActor {
     pub tabs: Vec<String>,
     pub workers: Vec<String>,
@@ -249,7 +256,19 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            _ => ActorMessageStatus::Ignored,
+            _ => {
+                let reply = ErrorResponse {
+                    from: self.name(),
+                    error: "unrecognizedPacketType".to_owned(),
+                    message: format!(
+                        "Actor {} does not recognize the packet type '{}'",
+                        self.name(),
+                        msg_type,
+                    ),
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Ignored
+            },
         })
     }
 }
