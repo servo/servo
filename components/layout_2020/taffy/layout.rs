@@ -25,7 +25,7 @@ use crate::geom::{
     SizeConstraint,
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
-use crate::sizing::{ContentSizes, InlineContentSizesResult};
+use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::ComputedValuesExt;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
@@ -307,8 +307,8 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     }
 }
 
-impl TaffyContainer {
-    pub fn inline_content_sizes(
+impl ComputeInlineContentSizes for TaffyContainer {
+    fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
         _constraint_space: &ConstraintSpace,
@@ -382,7 +382,9 @@ impl TaffyContainer {
             depends_on_block_constraints: true,
         }
     }
+}
 
+impl TaffyContainer {
     /// <https://drafts.csswg.org/css-grid/#layout-algorithm>
     pub(crate) fn layout(
         &self,

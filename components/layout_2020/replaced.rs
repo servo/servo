@@ -29,7 +29,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size};
-use crate::sizing::{ContentSizes, InlineContentSizesResult};
+use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
@@ -275,29 +275,6 @@ impl ReplacedContents {
             SizeConstraint::Definite(size) => transfer(size),
             SizeConstraint::MinMax(min_size, max_size) => get_fallback_size()
                 .clamp_between_extremums(transfer(min_size), max_size.map(transfer)),
-        }
-    }
-
-    pub fn inline_content_sizes(
-        &self,
-        _: &LayoutContext,
-        constraint_space: &ConstraintSpace,
-    ) -> InlineContentSizesResult {
-        let get_inline_fallback_size = || {
-            let writing_mode = constraint_space.writing_mode;
-            self.flow_relative_natural_size(writing_mode)
-                .inline
-                .unwrap_or_else(|| Self::flow_relative_default_object_size(writing_mode).inline)
-        };
-        let inline_content_size = self.content_size(
-            Direction::Inline,
-            constraint_space.preferred_aspect_ratio,
-            &|| constraint_space.block_size,
-            &get_inline_fallback_size,
-        );
-        InlineContentSizesResult {
-            sizes: inline_content_size.into(),
-            depends_on_block_constraints: constraint_space.preferred_aspect_ratio.is_some(),
         }
     }
 
@@ -602,6 +579,31 @@ impl ReplacedContents {
         LogicalVec2 {
             inline: inline_size,
             block: block_size,
+        }
+    }
+}
+
+impl ComputeInlineContentSizes for ReplacedContents {
+    fn compute_inline_content_sizes(
+        &self,
+        _: &LayoutContext,
+        constraint_space: &ConstraintSpace,
+    ) -> InlineContentSizesResult {
+        let get_inline_fallback_size = || {
+            let writing_mode = constraint_space.writing_mode;
+            self.flow_relative_natural_size(writing_mode)
+                .inline
+                .unwrap_or_else(|| Self::flow_relative_default_object_size(writing_mode).inline)
+        };
+        let inline_content_size = self.content_size(
+            Direction::Inline,
+            constraint_space.preferred_aspect_ratio,
+            &|| constraint_space.block_size,
+            &get_inline_fallback_size,
+        );
+        InlineContentSizesResult {
+            sizes: inline_content_size.into(),
+            depends_on_block_constraints: constraint_space.preferred_aspect_ratio.is_some(),
         }
     }
 }

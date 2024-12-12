@@ -7,9 +7,10 @@ use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
+use crate::context::LayoutContext;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::geom::SizeConstraint;
-use crate::sizing::InlineContentSizesResult;
+use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult};
 use crate::ConstraintSpace;
 
 /// A box tree node that handles containing information about style and the original DOM
@@ -41,8 +42,9 @@ impl LayoutBoxBase {
     /// the result from a cache when possible.
     pub(crate) fn inline_content_sizes(
         &self,
+        layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
-        inline_content_sizes_fn: impl FnOnce() -> InlineContentSizesResult,
+        layout_box: &impl ComputeInlineContentSizes,
     ) -> InlineContentSizesResult {
         let mut cache = self.cached_inline_content_size.borrow_mut();
         if let Some((previous_cb_block_size, result)) = *cache {
@@ -54,7 +56,7 @@ impl LayoutBoxBase {
             // TODO: Should we keep multiple caches for various block sizes?
         }
 
-        let result = inline_content_sizes_fn();
+        let result = layout_box.compute_inline_content_sizes(layout_context, constraint_space);
         *cache = Some((constraint_space.block_size, result));
         result
     }

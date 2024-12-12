@@ -126,7 +126,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::sizing::{ContentSizes, InlineContentSizesResult};
+use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::{ConstraintSpace, ContainingBlock};
 
@@ -1579,17 +1579,6 @@ impl InlineFormattingContext {
         }
     }
 
-    // This works on an already-constructed `InlineFormattingContext`,
-    // Which would have to change if/when
-    // `BlockContainer::construct` parallelize their construction.
-    pub(super) fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        constraint_space: &ConstraintSpace,
-    ) -> InlineContentSizesResult {
-        ContentSizesComputation::compute(self, layout_context, constraint_space)
-    }
-
     pub(super) fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -2192,6 +2181,19 @@ fn inline_container_needs_strut(
 
     pbm.map(|pbm| !pbm.padding_border_sums.inline.is_zero())
         .unwrap_or(false)
+}
+
+impl ComputeInlineContentSizes for InlineFormattingContext {
+    // This works on an already-constructed `InlineFormattingContext`,
+    // Which would have to change if/when
+    // `BlockContainer::construct` parallelize their construction.
+    fn compute_inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        constraint_space: &ConstraintSpace,
+    ) -> InlineContentSizesResult {
+        ContentSizesComputation::compute(self, layout_context, constraint_space)
+    }
 }
 
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
