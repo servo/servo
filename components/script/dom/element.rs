@@ -3812,10 +3812,9 @@ impl SelectorsElement for DomRoot<Element> {
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
             // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => extended_filtering(
-                &self.upcast::<Node>().get_lang().unwrap_or(String::new()),
-                lang,
-            ),
+            NonTSPseudoClass::Lang(ref lang) => {
+                extended_filtering(&self.upcast::<Node>().get_lang().unwrap_or_default(), lang)
+            },
 
             NonTSPseudoClass::ReadOnly => {
                 !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
