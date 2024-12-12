@@ -225,12 +225,15 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 pub(crate) struct OutsideMarker {
     #[serde(skip_serializing)]
     pub marker_style: Arc<ComputedValues>,
-    #[serde(skip_serializing)]
-    pub list_item_style: Arc<ComputedValues>,
+    pub base: LayoutBoxBase,
     pub block_container: BlockContainer,
 }
 
 impl OutsideMarker {
+    fn list_item_style(&self) -> &ComputedValues {
+        &self.base.style
+    }
+
     fn layout(
         &self,
         layout_context: &LayoutContext<'_>,
@@ -243,9 +246,10 @@ impl OutsideMarker {
             &self.marker_style,
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         );
-        let content_sizes = self
-            .block_container
-            .inline_content_sizes(layout_context, &constraint_space);
+        let content_sizes = self.base.inline_content_sizes(&constraint_space, || {
+            self.block_container
+                .inline_content_sizes(layout_context, &constraint_space)
+        });
         let containing_block_for_children = ContainingBlock {
             size: ContainingBlockSize {
                 inline: content_sizes.sizes.max_content,
@@ -292,7 +296,9 @@ impl OutsideMarker {
         // TODO: This is the wrong containing block, as it should be the containing block of the
         // parent of this list item. What this means in practice is that the writing mode could be
         // wrong and padding defined as a percentage will be resolved incorrectly.
-        let pbm_of_list_item = self.list_item_style.padding_border_margin(containing_block);
+        let pbm_of_list_item = self
+            .list_item_style()
+            .padding_border_margin(containing_block);
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 inline: -max_inline_size -
@@ -2098,8 +2104,7 @@ impl IndependentFormattingContext {
                         writing_mode,
                         non_replaced.preferred_aspect_ratio(),
                     );
-                    non_replaced
-                        .inline_content_sizes(layout_context, &constraint_space)
+                    self.inline_content_sizes(layout_context, &constraint_space)
                         .sizes
                 });
 

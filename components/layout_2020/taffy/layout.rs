@@ -232,7 +232,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                 preferred_aspect_ratio: non_replaced.preferred_aspect_ratio(),
                             };
 
-                            let result = non_replaced
+                            let result = independent_context
                                 .inline_content_sizes(self.layout_context, &constraint_space);
                             let adjusted_available_space = inputs
                                 .available_space
