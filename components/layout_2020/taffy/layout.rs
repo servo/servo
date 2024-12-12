@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::properties::ComputedValues;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
 use style::values::specified::align::AlignFlags;
@@ -92,7 +92,6 @@ impl taffy::TraversePartialTree for TaffyContainerContext<'_> {
 
 impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
     type CoreContainerStyle<'a> = TaffyStyloStyle<&'a ComputedValues> where Self: 'a;
-    type CacheMut<'b> = AtomicRefMut<'b, taffy::Cache> where Self: 'b;
 
     fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
         TaffyStyloStyle(self.style)
@@ -101,12 +100,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
         let id = usize::from(node_id);
         (*self.source_child_nodes[id]).borrow_mut().taffy_layout = *layout;
-    }
-
-    fn get_cache_mut(&mut self, node_id: taffy::NodeId) -> AtomicRefMut<'_, taffy::Cache> {
-        let id = usize::from(node_id);
-        let mut_ref: AtomicRefMut<'_, _> = (*self.source_child_nodes[id]).borrow_mut();
-        AtomicRefMut::map(mut_ref, |node| &mut node.taffy_layout_cache)
     }
 
     fn compute_child_layout(
