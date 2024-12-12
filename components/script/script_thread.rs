@@ -457,9 +457,6 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
     last_render_opportunity_time: DomRefCell<Option<Instant>>,
-    /// Used to batch rendering opportunities
-    #[no_trace]
-    update_the_rendering_task_queued_for_pipeline: DomRefCell<HashSet<PipelineId>>,
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<DocumentCollection>,
     /// The window proxies known by this thread
@@ -806,12 +803,6 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn note_rendering_opportunity(pipeline_id: PipelineId) {
-        with_script_thread(|script_thread| {
-            script_thread.rendering_opportunity(pipeline_id);
-        })
-    }
-
     pub fn runtime_handle() -> ParentRuntime {
         with_optional_script_thread(|script_thread| {
             script_thread.unwrap().js_runtime.prepare_for_new_child()
@@ -1200,7 +1191,6 @@ impl ScriptThread {
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
             last_render_opportunity_time: Default::default(),
-            update_the_rendering_task_queued_for_pipeline: Default::default(),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
@@ -1509,9 +1499,7 @@ impl ScriptThread {
     /// Attempt to update the rendering and then do a microtask checkpoint if rendering was actually
     /// updated.
     pub(crate) fn update_the_rendering(&self, requested_by_compositor: bool, can_gc: CanGc) {
-        self.update_the_rendering_task_queued_for_pipeline
-            .borrow_mut()
-            .clear();
+        *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
 
         if !self.can_continue_running_inner() {
             return;
@@ -1560,11 +1548,11 @@ impl ScriptThread {
 
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
-        for pipeline_id in documents_in_order {
+        for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
                 .borrow()
-                .find_document(pipeline_id)
+                .find_document(*pipeline_id)
                 .expect("Got pipeline for Document not managed by this ScriptThread.");
 
             // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
@@ -1573,7 +1561,7 @@ impl ScriptThread {
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.process_pending_compositor_events(pipeline_id, can_gc);
+            self.process_pending_compositor_events(*pipeline_id, can_gc);
 
             // TODO(#31665): Implement the "run the scroll steps" from
             // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
@@ -1644,48 +1632,50 @@ impl ScriptThread {
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
 
-        // Perform a microtask checkpoint as the specifications says that *update the rendering* should be
-        // run in a task and a microtask checkpoint is always done when running tasks.
+        // Perform a microtask checkpoint as the specifications says that *update the rendering*
+        // should be run in a task and a microtask checkpoint is always done when running tasks.
         self.perform_a_microtask_checkpoint(can_gc);
+
+        // If there are pending reflows, they were probably caused by the execution of
+        // the microtask checkpoint above and we should spin the event loop one more
+        // time to resolve them.
+        self.schedule_rendering_opportunity_if_necessary();
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:rendering-opportunity>
-    fn rendering_opportunity(&self, pipeline_id: PipelineId) {
-        *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
-
-        // Note: the pipeline should be a navigable with a rendering opportunity,
-        // and we should use this opportunity to queue one task for each navigable with
-        // an opportunity in this script-thread.
-        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
-            warn!("Trying to update the rendering for closed pipeline {pipeline_id}.");
-            return;
-        };
-        let window = document.window();
-        let task_manager = window.task_manager();
-        let rendering_task_source = task_manager.rendering_task_source();
-        let canceller = task_manager.task_canceller(TaskSourceName::Rendering);
-
-        if !self
-            .update_the_rendering_task_queued_for_pipeline
-            .borrow_mut()
-            .insert(pipeline_id)
-        {
+    // If there are any pending reflows and we are not having rendering opportunities
+    // driven by the compositor, then schedule the next rendering opportunity.
+    //
+    // TODO: This is a workaround until rendering opportunities can be triggered from a
+    // timer in the script thread.
+    fn schedule_rendering_opportunity_if_necessary(&self) {
+        // If any Document has active animations of rAFs, then we should be receiving
+        // regular rendering opportunities from the compositor (or fake animation frame
+        // ticks). In this case, don't schedule an opportunity, just wait for the next
+        // one.
+        if self.documents.borrow().iter().any(|(_, document)| {
+            document.animations().running_animation_count() != 0 ||
+                document.has_active_request_animation_frame_callbacks()
+        }) {
             return;
         }
+
+        let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
+            !document.window().reflows_suppressed() && document.needs_reflow().is_some()
+        }) else {
+            return;
+        };
 
         // Queues a task to update the rendering.
         // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
         //
         // Note: The specification says to queue a task using the navigable's active
         // window, but then updates the rendering for all documents.
-        let _ = rendering_task_source.queue_with_canceller(
-            task!(update_the_rendering: move || {
-               // This task is empty because any new IPC messages in the ScriptThread trigger a
-               // rendering update, unless animations are running, in which case updates are driven
-               // by the compositor.
-            }),
-            &canceller,
-        );
+        //
+        // This task is empty because any new IPC messages in the ScriptThread trigger a
+        // rendering update when animations are not running.
+        let rendering_task_source = document.window().task_manager().rendering_task_source();
+        let _ =
+            rendering_task_source.queue_unconditionally(task!(update_the_rendering: move || { }));
     }
 
     /// Handle incoming messages from other tasks and the task queue.
@@ -1932,9 +1922,6 @@ impl ScriptThread {
             for document in docs.iter() {
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
-
-                // Document load is a rendering opportunity.
-                ScriptThread::note_rendering_opportunity(document.window().pipeline_id());
             }
             docs.clear();
         }
@@ -2847,7 +2834,6 @@ impl ScriptThread {
         self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
             let window = self.documents.borrow().find_window(id);
             if let Some(ref window) = window {
-                self.rendering_opportunity(id);
                 window.add_resize_event(size, size_type);
                 return;
             }
@@ -3390,12 +3376,6 @@ impl ScriptThread {
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
         document.dirty_all_nodes();
-
-        // This is required because the handlers added to the promise exposed at
-        // `document.fonts.ready` are run by the event loop only when it performs a microtask
-        // checkpoint. Without the call below, this never happens and the promise is 'stuck' waiting
-        // to be resolved until another event forces a microtask checkpoint.
-        self.rendering_opportunity(pipeline_id);
     }
 
     /// Handles a worklet being loaded by triggering a relayout of the page. Does nothing if the
@@ -3872,7 +3852,6 @@ impl ScriptThread {
             warn!("Compositor event sent to closed pipeline {pipeline_id}.");
             return;
         };
-        self.rendering_opportunity(pipeline_id);
         document.note_pending_compositor_event(event);
     }
 

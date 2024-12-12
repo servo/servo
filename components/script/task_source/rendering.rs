@@ -43,3 +43,19 @@ impl TaskSource for RenderingTaskSource {
         self.0.send(msg_task).map_err(|_| ())
     }
 }
+
+impl RenderingTaskSource {
+    /// This queues a task that will not be cancelled when its associated
+    /// global scope gets destroyed.
+    pub fn queue_unconditionally<T>(&self, task: T) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static,
+    {
+        self.0.send(CommonScriptMsg::Task(
+            ScriptThreadEventCategory::NetworkEvent,
+            Box::new(task),
+            Some(self.1),
+            RenderingTaskSource::NAME,
+        ))
+    }
+}
