@@ -239,9 +239,9 @@ impl TryConvert<wgt::Extent3d> for &GPUExtent3D {
     }
 }
 
-impl Convert<wgt::ImageDataLayout> for &GPUImageDataLayout {
-    fn convert(self) -> wgt::ImageDataLayout {
-        wgt::ImageDataLayout {
+impl Convert<wgt::TexelCopyBufferLayout> for &GPUImageDataLayout {
+    fn convert(self) -> wgt::TexelCopyBufferLayout {
+        wgt::TexelCopyBufferLayout {
             offset: self.offset as wgt::BufferAddress,
             bytes_per_row: self.bytesPerRow,
             rows_per_image: self.rowsPerImage,
@@ -437,9 +437,9 @@ impl Convert<wgt::StencilOperation> for GPUStencilOperation {
     }
 }
 
-impl Convert<wgpu_com::ImageCopyBuffer> for &GPUImageCopyBuffer {
-    fn convert(self) -> wgpu_com::ImageCopyBuffer {
-        wgpu_com::ImageCopyBuffer {
+impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUImageCopyBuffer {
+    fn convert(self) -> wgpu_com::TexelCopyBufferInfo {
+        wgpu_com::TexelCopyBufferInfo {
             buffer: self.buffer.id().0,
             layout: self.parent.convert(),
         }
@@ -474,11 +474,11 @@ impl TryConvert<wgt::Origin3d> for &GPUOrigin3D {
     }
 }
 
-impl TryConvert<wgpu_com::ImageCopyTexture> for &GPUImageCopyTexture {
+impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUImageCopyTexture {
     type Error = Error;
 
-    fn try_convert(self) -> Result<wgpu_com::ImageCopyTexture, Self::Error> {
-        Ok(wgpu_com::ImageCopyTexture {
+    fn try_convert(self) -> Result<wgpu_com::TexelCopyTextureInfo, Self::Error> {
+        Ok(wgpu_com::TexelCopyTextureInfo {
             texture: self.texture.id().0,
             mip_level: self.mipLevel,
             origin: self

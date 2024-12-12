@@ -15,7 +15,7 @@ use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
 use wgc::command::{
-    ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder,
+    RenderBundleDescriptor, RenderBundleEncoder, TexelCopyBufferInfo, TexelCopyTextureInfo,
 };
 use wgc::device::HostMap;
 use wgc::id;
@@ -69,20 +69,20 @@ pub enum WebGPURequest {
     },
     CopyBufferToTexture {
         command_encoder_id: id::CommandEncoderId,
-        source: ImageCopyBuffer,
-        destination: ImageCopyTexture,
+        source: TexelCopyBufferInfo,
+        destination: TexelCopyTextureInfo,
         copy_size: wgt::Extent3d,
     },
     CopyTextureToBuffer {
         command_encoder_id: id::CommandEncoderId,
-        source: ImageCopyTexture,
-        destination: ImageCopyBuffer,
+        source: TexelCopyTextureInfo,
+        destination: TexelCopyBufferInfo,
         copy_size: wgt::Extent3d,
     },
     CopyTextureToTexture {
         command_encoder_id: id::CommandEncoderId,
-        source: ImageCopyTexture,
-        destination: ImageCopyTexture,
+        source: TexelCopyTextureInfo,
+        destination: TexelCopyTextureInfo,
         copy_size: wgt::Extent3d,
     },
     CreateBindGroup {
@@ -291,8 +291,8 @@ pub enum WebGPURequest {
     WriteTexture {
         device_id: id::DeviceId,
         queue_id: id::QueueId,
-        texture_cv: ImageCopyTexture,
-        data_layout: wgt::ImageDataLayout,
+        texture_cv: TexelCopyTextureInfo,
+        data_layout: wgt::TexelCopyBufferLayout,
         size: wgt::Extent3d,
         data: IpcSharedMemory,
     },

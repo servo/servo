@@ -471,15 +471,15 @@ impl crate::WGPU {
         let (encoder_id, error) =
             global.device_create_command_encoder(device_id, &comm_desc, Some(encoder_id));
         err(error)?;
-        let buffer_cv = wgt::ImageCopyBuffer {
+        let buffer_cv = wgt::TexelCopyBufferInfo {
             buffer: buffer_id,
-            layout: wgt::ImageDataLayout {
+            layout: wgt::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(image_desc.buffer_stride() as u32),
                 rows_per_image: None,
             },
         };
-        let texture_cv = wgt::ImageCopyTexture {
+        let texture_cv = wgt::TexelCopyTextureInfo {
             texture: texture_id,
             mip_level: 0,
             origin: wgt::Origin3d::ZERO,

@@ -17,7 +17,6 @@ use webrender::{RenderApi, RenderApiSender};
 use webrender_api::{DocumentId, ExternalImageId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
-use wgc::device::queue::SubmittedWorkDoneClosure;
 use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
 use wgc::id;
 use wgc::id::DeviceId;
