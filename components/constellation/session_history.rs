@@ -132,6 +132,8 @@ pub struct SessionHistoryChange {
 }
 
 /// Represents a pipeline or discarded pipeline in a history entry.
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum NeedsToReload {
     /// Represents a pipeline that has not been discarded
@@ -176,6 +178,8 @@ impl PartialEq for NeedsToReload {
 }
 
 /// Represents a the difference between two adjacent session history entries.
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum SessionHistoryDiff {
     /// Represents a diff where the active pipeline of an entry changed.

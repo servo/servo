@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io::Write;
-use std::panic::PanicInfo;
+use std::panic::PanicHookInfo;
 use std::{env, thread};
 
 use log::{error, warn};
@@ -11,7 +11,7 @@ use servo::config::opts;
 
 use crate::crash_handler::raise_signal_or_exit_with_error;
 
-pub(crate) fn panic_hook(info: &PanicInfo) {
+pub(crate) fn panic_hook(info: &PanicHookInfo) {
     warn!("Panic hook called.");
     let msg = match info.payload().downcast_ref::<&'static str>() {
         Some(s) => *s,

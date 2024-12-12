@@ -1177,6 +1177,8 @@ where
     )]
     fn handle_request(&mut self) {
         #[derive(Debug)]
+        // FIXME: https://github.com/servo/servo/issues/34591
+        #[expect(clippy::large_enum_variant)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
             Script((PipelineId, FromScriptMsg)),

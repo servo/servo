@@ -183,6 +183,8 @@ impl From<ReferrerPolicy> for ReferrerPolicyHeader {
     }
 }
 
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug, Deserialize, Serialize)]
 pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
@@ -239,6 +241,8 @@ pub enum FilteredMetadata {
     OpaqueRedirect(ServoUrl),
 }
 
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
@@ -502,6 +506,8 @@ pub enum CoreResourceMsg {
     Exit(IpcSender<()>),
 }
 
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
     StartFetch(
         /* request_builder */ RequestBuilder,

@@ -52,6 +52,8 @@ pub enum DevtoolsControlMsg {
 }
 
 /// Events that the devtools server must act upon.
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum ChromeToDevtoolsControlMsg {
     /// A new client has connected to the server.

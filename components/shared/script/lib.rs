@@ -271,6 +271,8 @@ pub enum UpdatePipelineIdReason {
 }
 
 /// Messages sent from the constellation or layout to the script thread.
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
     /// Takes the associated window proxy out of "delaying-load-events-mode",

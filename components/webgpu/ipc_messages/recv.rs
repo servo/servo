@@ -42,6 +42,8 @@ pub struct ContextConfiguration {
     pub is_opaque: bool,
 }
 
+// FIXME: https://github.com/servo/servo/issues/34591
+#[expect(clippy::large_enum_variant)]
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
     BufferMapAsync {
