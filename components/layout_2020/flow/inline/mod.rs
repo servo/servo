@@ -48,8 +48,8 @@
 //! a linear series of items that describe the line's hierarchy of inline boxes and content. The
 //! item types are:
 //!
-//!  - [`LineItem::LeftInlineBoxPaddingBorderMargin`]
-//!  - [`LineItem::RightInlineBoxPaddingBorderMargin`]
+//!  - [`LineItem::InlineStartBoxPaddingBorderMargin`]
+//!  - [`LineItem::InlineEndBoxPaddingBorderMargin`]
 //!  - [`LineItem::TextRun`]
 //!  - [`LineItem::Atomic`]
 //!  - [`LineItem::AbsolutelyPositioned`]
@@ -733,7 +733,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
                 inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
             self.current_line_segment
                 .line_items
-                .push(LineItem::LeftInlineBoxPaddingBorderMargin(
+                .push(LineItem::InlineStartBoxPaddingBorderMargin(
                     inline_box.identifier,
                 ));
         }
@@ -778,7 +778,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             self.current_line_segment.inline_size += pbm_end;
             self.current_line_segment
                 .line_items
-                .push(LineItem::RightInlineBoxPaddingBorderMargin(
+                .push(LineItem::InlineEndBoxPaddingBorderMargin(
                     inline_box_state.identifier,
                 ))
         }
