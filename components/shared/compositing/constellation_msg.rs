@@ -12,7 +12,8 @@ use embedder_traits::Cursor;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use script_traits::{
-    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg, WindowSizeData, WindowSizeType
+    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType, Theme,
+    TraversalDirection, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
 
