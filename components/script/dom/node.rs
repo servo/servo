@@ -1306,8 +1306,8 @@ impl Node {
             .map(|data| data.element_data.borrow().styles.primary().clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#language
-    pub fn get_lang(&self) -> Option<String> {
+    /// <https://html.spec.whatwg.org/multipage/#language>
+    pub(crate) fn get_lang(&self) -> Option<String> {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
