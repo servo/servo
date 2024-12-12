@@ -1103,11 +1103,8 @@ impl SequentialLayoutState {
         let placement_rect = placement.place();
         let position = &placement_rect.start_corner;
         let has_clearance = clear_position.is_some() || position.block > ceiling;
-        let clearance = if has_clearance {
-            Some(position.block - self.position_with_zero_clearance(block_start_margin))
-        } else {
-            None
-        };
+        let clearance = has_clearance
+            .then(|| position.block - self.position_with_zero_clearance(block_start_margin));
         (clearance, placement_rect)
     }
 

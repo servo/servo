@@ -1121,9 +1121,6 @@ impl IndependentNonReplacedContents {
                 .clamp_between_extremums(content_min_box_size.block, content_max_box_size.block)
         });
 
-        let margin_inline_start;
-        let margin_inline_end;
-        let effective_margin_inline_start;
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(&pbm);
         let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
@@ -1138,10 +1135,22 @@ impl IndependentNonReplacedContents {
         //  sufficient space. They may even make the border box of said element narrower
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
-        let clearance;
         let mut content_size;
         let mut layout;
+        let mut placement_rect;
         let style = &base.style;
+
+        // First compute the clear position required by the 'clear' property.
+        // The code below may then add extra clearance when the element can't fit
+        // next to floats not covered by 'clear'.
+        let clear_position = sequential_layout_state.calculate_clear_position(
+            Clear::from_style_and_container_writing_mode(style, containing_block_writing_mode),
+            &collapsed_margin_block_start,
+        );
+        let ceiling = clear_position.unwrap_or_else(|| {
+            sequential_layout_state.position_without_clearance(&collapsed_margin_block_start)
+        });
+
         if let AuOrAuto::LengthPercentage(ref inline_size) = content_box_size.inline {
             let inline_size = inline_size
                 .clamp_between_extremums(content_min_box_size.inline, content_max_box_size.inline);
@@ -1175,30 +1184,14 @@ impl IndependentNonReplacedContents {
                 };
             }
 
-            (
-                clearance,
-                (margin_inline_start, margin_inline_end),
-                effective_margin_inline_start,
-            ) = solve_clearance_and_inline_margins_avoiding_floats(
-                sequential_layout_state,
-                &collapsed_margin_block_start,
-                containing_block,
-                &pbm,
+            let mut placement = PlacementAmongFloats::new(
+                &sequential_layout_state.floats,
+                ceiling,
                 content_size + pbm.padding_border_sums,
-                style,
+                &pbm,
             );
+            placement_rect = placement.place();
         } else {
-            // First compute the clear position required by the 'clear' property.
-            // The code below may then add extra clearance when the element can't fit
-            // next to floats not covered by 'clear'.
-            let clear_position = sequential_layout_state.calculate_clear_position(
-                Clear::from_style_and_container_writing_mode(style, containing_block_writing_mode),
-                &collapsed_margin_block_start,
-            );
-            let ceiling = clear_position.unwrap_or_else(|| {
-                sequential_layout_state.position_without_clearance(&collapsed_margin_block_start)
-            });
-
             // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
             let minimum_size_of_block = LogicalVec2 {
                 inline: content_min_box_size.inline,
@@ -1210,7 +1203,6 @@ impl IndependentNonReplacedContents {
                 minimum_size_of_block,
                 &pbm,
             );
-            let mut placement_rect;
 
             loop {
                 // First try to place the block using the minimum size as the object size.
@@ -1284,31 +1276,26 @@ impl IndependentNonReplacedContents {
                 // attempt.
                 positioning_context.truncate(&positioning_context_length);
             }
+        }
 
-            // Only set clearance if we would have cleared or the placement among floats moves
-            // the block further in the block direction. These two situations are the ones that
-            // prevent margin collapse.
-            clearance = if clear_position.is_some() || placement_rect.start_corner.block > ceiling {
-                Some(
-                    placement_rect.start_corner.block -
-                        sequential_layout_state
-                            .position_with_zero_clearance(&collapsed_margin_block_start),
-                )
-            } else {
-                None
-            };
+        // Only set clearance if we would have cleared or the placement among floats moves
+        // the block further in the block direction. These two situations are the ones that
+        // prevent margin collapse.
+        let has_clearance = clear_position.is_some() || placement_rect.start_corner.block > ceiling;
+        let clearance = has_clearance.then(|| {
+            placement_rect.start_corner.block -
+                sequential_layout_state
+                    .position_with_zero_clearance(&collapsed_margin_block_start)
+        });
 
-            (
-                (margin_inline_start, margin_inline_end),
-                effective_margin_inline_start,
-            ) = solve_inline_margins_avoiding_floats(
+        let ((margin_inline_start, margin_inline_end), effective_margin_inline_start) =
+            solve_inline_margins_avoiding_floats(
                 sequential_layout_state,
                 containing_block,
                 &pbm,
                 content_size.inline + pbm.padding_border_sums.inline,
                 placement_rect,
             );
-        }
 
         let margin = LogicalSides {
             inline_start: margin_inline_start,
@@ -1409,17 +1396,26 @@ impl ReplacedContents {
             //  element next to the float or by how much said element may become narrower."
             let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
             let size = content_size + pbm.padding_border_sums;
+            let placement_rect;
+            (clearance, placement_rect) = sequential_layout_state
+                .calculate_clearance_and_inline_adjustment(
+                    Clear::from_style_and_container_writing_mode(
+                        &base.style,
+                        containing_block.style.writing_mode,
+                    ),
+                    &collapsed_margin_block_start,
+                    pbm,
+                    size,
+                );
             (
-                clearance,
                 (margin_inline_start, margin_inline_end),
                 effective_margin_inline_start,
-            ) = solve_clearance_and_inline_margins_avoiding_floats(
+            ) = solve_inline_margins_avoiding_floats(
                 sequential_layout_state,
-                &collapsed_margin_block_start,
                 containing_block,
                 pbm,
-                size,
-                &base.style,
+                size.inline,
+                placement_rect,
             );
 
             // Clearance prevents margin collapse between this block and previous ones,
@@ -1736,39 +1732,6 @@ fn solve_inline_margins_avoiding_floats(
     };
     let effective_margin_inline_start = inline_margins.0.max(start_adjustment) + justification;
     (inline_margins, effective_margin_inline_start)
-}
-
-/// A block-level element that establishes an independent formatting context (or is replaced)
-/// must not overlap floats.
-/// This can be achieved by adding clearance (to adjust the position in the block axis)
-/// and/or modifying the margins in the inline axis.
-/// This function takes care of calculating them.
-fn solve_clearance_and_inline_margins_avoiding_floats(
-    sequential_layout_state: &SequentialLayoutState,
-    block_start_margin: &CollapsedMargin,
-    containing_block: &ContainingBlock,
-    pbm: &PaddingBorderMargin,
-    size: LogicalVec2<Au>,
-    style: &Arc<ComputedValues>,
-) -> (Option<Au>, (Au, Au), Au) {
-    let (clearance, placement_rect) = sequential_layout_state
-        .calculate_clearance_and_inline_adjustment(
-            Clear::from_style_and_container_writing_mode(
-                style,
-                containing_block.style.writing_mode,
-            ),
-            block_start_margin,
-            pbm,
-            size,
-        );
-    let (inline_margins, effective_margin_inline_start) = solve_inline_margins_avoiding_floats(
-        sequential_layout_state,
-        containing_block,
-        pbm,
-        size.inline,
-        placement_rect,
-    );
-    (clearance, inline_margins, effective_margin_inline_start)
 }
 
 /// State that we maintain when placing blocks.
