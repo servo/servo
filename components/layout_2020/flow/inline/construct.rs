@@ -232,13 +232,12 @@ impl InlineFormattingContextBuilder {
 
         let white_space_collapse = info.style.clone_white_space_collapse();
         let new_text: String = char_iterator
-            .map(|character| {
+            .inspect(|&character| {
                 self.has_uncollapsible_text_content |= matches!(
                     white_space_collapse,
                     WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
                 ) || !character.is_ascii_whitespace() ||
                     (character == '\n' && white_space_collapse != WhiteSpaceCollapse::Collapse);
-                character
             })
             .collect();
 

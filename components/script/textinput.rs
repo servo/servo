@@ -1037,7 +1037,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             // https://html.spec.whatwg.org/multipage/#textarea-line-break-normalisation-transformation
             content
                 .replace("\r\n", "\n")
-                .split(|c| c == '\n' || c == '\r')
+                .split(['\n', '\r'])
                 .map(DOMString::from)
                 .collect()
         } else {

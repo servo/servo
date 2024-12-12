@@ -83,8 +83,7 @@ class Base:
             return False
 
         print(" * Installing cargo-deny...")
-        # cargo-deny 0.16.2 requires Rust 1.81.
-        if subprocess.call(["cargo", "install", "cargo-deny", "--locked", "--version", "0.16.1"]) != 0:
+        if subprocess.call(["cargo", "install", "cargo-deny", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
 
         return True

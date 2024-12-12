@@ -448,9 +448,8 @@ where
 {
     let mut next = parent.first_child();
     std::iter::from_fn(move || {
-        next.map(|child| {
+        next.inspect(|child| {
             next = child.next_sibling();
-            child
         })
     })
 }
