@@ -45,6 +45,7 @@ impl VideoTrackList {
         reflect_dom_object(
             Box::new(VideoTrackList::new_inherited(tracks, media_element)),
             window,
+            CanGc::note(),
         )
     }
 

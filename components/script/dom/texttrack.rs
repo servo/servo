@@ -19,6 +19,7 @@ use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
 use crate::dom::texttracklist::TextTrackList;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TextTrack {
@@ -67,6 +68,7 @@ impl TextTrack {
                 id, kind, label, language, mode, track_list,
             )),
             window,
+            CanGc::note(),
         )
     }
 

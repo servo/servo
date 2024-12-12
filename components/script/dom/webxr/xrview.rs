@@ -75,6 +75,7 @@ impl XRView {
                 view.cast_unit(),
             )),
             global,
+            CanGc::note(),
         )
     }
 

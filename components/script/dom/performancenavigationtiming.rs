@@ -15,6 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
@@ -55,6 +56,7 @@ impl PerformanceNavigationTiming {
                 document,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

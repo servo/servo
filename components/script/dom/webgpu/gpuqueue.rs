@@ -50,7 +50,11 @@ impl GPUQueue {
     }
 
     pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(GPUQueue::new_inherited(channel, queue)), global)
+        reflect_dom_object(
+            Box::new(GPUQueue::new_inherited(channel, queue)),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

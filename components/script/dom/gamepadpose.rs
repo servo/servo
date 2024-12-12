@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMeth
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct GamepadPose {
@@ -45,7 +45,11 @@ impl GamepadPose {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<GamepadPose> {
-        reflect_dom_object(Box::new(GamepadPose::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(GamepadPose::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

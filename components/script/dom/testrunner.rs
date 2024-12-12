@@ -14,6 +14,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
 #[dom_struct]
@@ -29,7 +30,7 @@ impl TestRunner {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<TestRunner> {
-        reflect_dom_object(Box::new(TestRunner::new_inherited()), global)
+        reflect_dom_object(Box::new(TestRunner::new_inherited()), global, CanGc::note())
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

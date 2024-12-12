@@ -244,6 +244,7 @@ impl CSSStyleDeclaration {
                 modification_access,
             )),
             global,
+            CanGc::note(),
         )
     }
 

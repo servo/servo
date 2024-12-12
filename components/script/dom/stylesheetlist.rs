@@ -15,6 +15,7 @@ use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -83,7 +84,11 @@ impl StyleSheetList {
 
     #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, doc_or_sr: StyleSheetListOwner) -> DomRoot<StyleSheetList> {
-        reflect_dom_object(Box::new(StyleSheetList::new_inherited(doc_or_sr)), window)
+        reflect_dom_object(
+            Box::new(StyleSheetList::new_inherited(doc_or_sr)),
+            window,
+            CanGc::note(),
+        )
     }
 }
 

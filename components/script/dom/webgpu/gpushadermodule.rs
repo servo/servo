@@ -68,6 +68,7 @@ impl GPUShaderModule {
                 promise,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

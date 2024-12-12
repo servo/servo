@@ -66,6 +66,7 @@ impl XRSystem {
         reflect_dom_object(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
+            CanGc::note(),
         )
     }
 

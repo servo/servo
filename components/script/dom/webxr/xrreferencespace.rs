@@ -59,6 +59,7 @@ impl XRReferenceSpace {
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
+            CanGc::note(),
         )
     }
 

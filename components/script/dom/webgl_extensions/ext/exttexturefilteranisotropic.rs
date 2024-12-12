@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding:
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct EXTTextureFilterAnisotropic {
@@ -28,7 +29,11 @@ impl WebGLExtension for EXTTextureFilterAnisotropic {
     type Extension = EXTTextureFilterAnisotropic;
 
     fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), &*ctx.global())
+        reflect_dom_object(
+            Box::new(Self::new_inherited()),
+            &*ctx.global(),
+            CanGc::note(),
+        )
     }
 
     fn spec() -> WebGLExtensionSpec {

@@ -40,6 +40,7 @@ impl XRHitTestResult {
         reflect_dom_object(
             Box::new(XRHitTestResult::new_inherited(result, frame)),
             global,
+            CanGc::note(),
         )
     }
 }

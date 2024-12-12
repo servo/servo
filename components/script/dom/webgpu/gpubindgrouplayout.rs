@@ -20,6 +20,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpuconvert::convert_bind_group_layout_entry;
 use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUBindGroupLayout {
@@ -59,6 +60,7 @@ impl GPUBindGroupLayout {
                 label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

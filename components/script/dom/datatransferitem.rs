@@ -16,6 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::drag_data_store::Kind;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DataTransferItem {
@@ -34,7 +35,11 @@ impl DataTransferItem {
     }
 
     pub fn new(global: &GlobalScope, item: Kind) -> DomRoot<DataTransferItem> {
-        reflect_dom_object(Box::new(DataTransferItem::new_inherited(item)), global)
+        reflect_dom_object(
+            Box::new(DataTransferItem::new_inherited(item)),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

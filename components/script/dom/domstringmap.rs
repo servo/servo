@@ -29,7 +29,11 @@ impl DOMStringMap {
 
     pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
         let window = window_from_node(element);
-        reflect_dom_object(Box::new(DOMStringMap::new_inherited(element)), &*window)
+        reflect_dom_object(
+            Box::new(DOMStringMap::new_inherited(element)),
+            &*window,
+            CanGc::note(),
+        )
     }
 }
 

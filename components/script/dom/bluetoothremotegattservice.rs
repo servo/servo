@@ -60,6 +60,7 @@ impl BluetoothRemoteGATTService {
                 device, uuid, isPrimary, instanceID,
             )),
             global,
+            CanGc::note(),
         )
     }
 

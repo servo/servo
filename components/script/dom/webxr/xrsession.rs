@@ -172,6 +172,7 @@ impl XRSession {
                 mode,
             )),
             global,
+            CanGc::note(),
         );
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);

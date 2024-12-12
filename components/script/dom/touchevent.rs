@@ -16,6 +16,7 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::touchlist::TouchList;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TouchEvent {
@@ -60,6 +61,7 @@ impl TouchEvent {
                 target_touches,
             )),
             window,
+            CanGc::note(),
         )
     }
 

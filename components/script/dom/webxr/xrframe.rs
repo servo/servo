@@ -50,7 +50,11 @@ impl XRFrame {
     }
 
     pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
-        reflect_dom_object(Box::new(XRFrame::new_inherited(session, data)), global)
+        reflect_dom_object(
+            Box::new(XRFrame::new_inherited(session, data)),
+            global,
+            CanGc::note(),
+        )
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-active>

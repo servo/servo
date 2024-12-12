@@ -12,6 +12,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct PerformancePaintTiming {
@@ -47,6 +48,6 @@ impl PerformancePaintTiming {
         start_time: CrossProcessInstant,
     ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
-        reflect_dom_object(Box::new(entry), global)
+        reflect_dom_object(Box::new(entry), global, CanGc::note())
     }
 }

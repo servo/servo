@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::XRViewportBinding::XRViewportMethod
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRViewport {
@@ -27,7 +28,11 @@ impl XRViewport {
     }
 
     pub fn new(global: &GlobalScope, viewport: Rect<i32, Viewport>) -> DomRoot<XRViewport> {
-        reflect_dom_object(Box::new(XRViewport::new_inherited(viewport)), global)
+        reflect_dom_object(
+            Box::new(XRViewport::new_inherited(viewport)),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

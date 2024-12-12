@@ -85,6 +85,7 @@ impl BluetoothDevice {
         reflect_dom_object(
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
+            CanGc::note(),
         )
     }
 

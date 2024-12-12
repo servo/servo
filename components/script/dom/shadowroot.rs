@@ -98,6 +98,7 @@ impl ShadowRoot {
         reflect_dom_object(
             Box::new(ShadowRoot::new_inherited(host, document, mode, clonable)),
             document.window(),
+            CanGc::note(),
         )
     }
 

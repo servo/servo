@@ -17,6 +17,7 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::node::Node;
 use crate::dom::nodelist::{NodeList, NodeListType, RadioList, RadioListMode};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RadioNodeList {
@@ -33,7 +34,11 @@ impl RadioNodeList {
 
     #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
-        reflect_dom_object(Box::new(RadioNodeList::new_inherited(list_type)), window)
+        reflect_dom_object(
+            Box::new(RadioNodeList::new_inherited(list_type)),
+            window,
+            CanGc::note(),
+        )
     }
 
     pub fn new_controls_except_image_inputs(

@@ -8,6 +8,7 @@ use super::{constants as webgl, WebGLExtension, WebGLExtensionSpec, WebGLExtensi
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct OESTextureFloatLinear {
@@ -28,6 +29,7 @@ impl WebGLExtension for OESTextureFloatLinear {
         reflect_dom_object(
             Box::new(OESTextureFloatLinear::new_inherited()),
             &*ctx.global(),
+            CanGc::note(),
         )
     }
 

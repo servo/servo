@@ -15,6 +15,7 @@ use crate::dom::cssconditionrule::CSSConditionRule;
 use crate::dom::cssrule::SpecificCSSRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct CSSSupportsRule {
@@ -48,6 +49,7 @@ impl CSSSupportsRule {
                 supportsrule,
             )),
             window,
+            CanGc::note(),
         )
     }
 

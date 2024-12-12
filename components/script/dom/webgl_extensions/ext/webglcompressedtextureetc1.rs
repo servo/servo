@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::{TexCompression, TexCompressionValidation};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WEBGLCompressedTextureETC1 {
@@ -30,6 +31,7 @@ impl WebGLExtension for WEBGLCompressedTextureETC1 {
         reflect_dom_object(
             Box::new(WEBGLCompressedTextureETC1::new_inherited()),
             &*ctx.global(),
+            CanGc::note(),
         )
     }
 

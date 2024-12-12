@@ -8,6 +8,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBi
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
 #[dom_struct]
@@ -78,6 +79,7 @@ impl BluetoothCharacteristicProperties {
                 writableAuxiliaries,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

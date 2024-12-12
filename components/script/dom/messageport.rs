@@ -54,7 +54,11 @@ impl MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
-        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner)
+        reflect_dom_object(
+            Box::new(MessagePort::new_inherited(port_id)),
+            owner,
+            CanGc::note(),
+        )
     }
 
     /// Create a new port for an incoming transfer-received one.
@@ -71,6 +75,7 @@ impl MessagePort {
                 entangled_port: RefCell::new(entangled_port),
             }),
             owner,
+            CanGc::note(),
         )
     }
 

@@ -11,6 +11,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TextTrackCueList {
@@ -27,7 +28,11 @@ impl TextTrackCueList {
     }
 
     pub fn new(window: &Window, cues: &[&TextTrackCue]) -> DomRoot<TextTrackCueList> {
-        reflect_dom_object(Box::new(TextTrackCueList::new_inherited(cues)), window)
+        reflect_dom_object(
+            Box::new(TextTrackCueList::new_inherited(cues)),
+            window,
+            CanGc::note(),
+        )
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrackCue>> {

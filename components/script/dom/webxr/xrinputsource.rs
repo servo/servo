@@ -82,6 +82,7 @@ impl XRInputSource {
         let source = reflect_dom_object(
             Box::new(XRInputSource::new_inherited(global, session, info, can_gc)),
             global,
+            CanGc::note(),
         );
 
         let _ac = enter_realm(global);

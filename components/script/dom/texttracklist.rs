@@ -35,7 +35,11 @@ impl TextTrackList {
     }
 
     pub fn new(window: &Window, tracks: &[&TextTrack]) -> DomRoot<TextTrackList> {
-        reflect_dom_object(Box::new(TextTrackList::new_inherited(tracks)), window)
+        reflect_dom_object(
+            Box::new(TextTrackList::new_inherited(tracks)),
+            window,
+            CanGc::note(),
+        )
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {

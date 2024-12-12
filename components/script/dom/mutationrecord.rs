@@ -11,6 +11,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MutationRecord {
@@ -45,7 +46,7 @@ impl MutationRecord {
             None,
             None,
         ));
-        reflect_dom_object(record, &*window_from_node(target))
+        reflect_dom_object(record, &*window_from_node(target), CanGc::note())
     }
 
     pub fn character_data_mutated(
@@ -65,6 +66,7 @@ impl MutationRecord {
                 None,
             )),
             &*window_from_node(target),
+            CanGc::note(),
         )
     }
 
@@ -93,6 +95,7 @@ impl MutationRecord {
                 prev_sibling,
             )),
             &*window,
+            CanGc::note(),
         )
     }
 

@@ -21,6 +21,7 @@ use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct CSSKeyframesRule {
@@ -55,6 +56,7 @@ impl CSSKeyframesRule {
                 keyframesrule,
             )),
             window,
+            CanGc::note(),
         )
     }
 
