@@ -2309,7 +2309,7 @@ impl<'a> RowFragmentLayout<'a> {
         let containing_block = ContainingBlock {
             size: ContainingBlockSize {
                 inline: rect.size.inline,
-                block: AuOrAuto::LengthPercentage(rect.size.inline),
+                block: AuOrAuto::LengthPercentage(rect.size.block),
             },
             style: table_style,
         };
