@@ -134,26 +134,28 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         with_independant_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
+                // TODO: re-evaluate sizing constraint conversions in light of recent layout_2020 changes
+                let containing_block = &self.content_box_size_override;
                 let style = independent_context.style();
+
+                // Adjust known_dimensions from border box to content box
+                let pbm = style.padding_border_margin(containing_block);
+                let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
+                let margin_sum = pbm.margin.auto_is(Au::zero).sum().map(|v| v.to_f32_px());
+                let content_box_inset = pb_sum + margin_sum;
+                let content_box_known_dimensions = taffy::Size {
+                    width: inputs
+                        .known_dimensions
+                        .width
+                        .map(|width| width - pb_sum.inline),
+                    height: inputs
+                        .known_dimensions
+                        .height
+                        .map(|height| height - pb_sum.block),
+                };
+
                 match &independent_context.contents {
                     IndependentFormattingContextContents::Replaced(replaced) => {
-                        // TODO: re-evaluate sizing constraint conversions in light of recent layout_2020 changes
-                        let containing_block = &self.content_box_size_override;
-
-                        // Adjust known_dimensions from border box to content box
-                        let pbm = style.padding_border_margin(containing_block);
-                        let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
-                        let content_box_known_dimensions = taffy::Size {
-                            width: inputs
-                                .known_dimensions
-                                .width
-                                .map(|width| width - pb_sum.inline),
-                            height: inputs
-                                .known_dimensions
-                                .height
-                                .map(|height| height - pb_sum.block),
-                        };
-
                         let content_box_size = replaced
                             .used_size_as_if_inline_element_from_content_box_sizes(
                                 containing_block,
@@ -185,12 +187,10 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
 
                         let computed_size = taffy::Size {
                             width: inputs.known_dimensions.width.unwrap_or_else(|| {
-                                content_box_size.width.to_f32_px() +
-                                    pbm.padding_border_sums.inline.to_f32_px()
+                                content_box_size.width.to_f32_px() + pb_sum.inline
                             }),
                             height: inputs.known_dimensions.height.unwrap_or_else(|| {
-                                content_box_size.height.to_f32_px() +
-                                    pbm.padding_border_sums.block.to_f32_px()
+                                content_box_size.height.to_f32_px() + pb_sum.block
                             }),
                         };
                         let size = inputs.known_dimensions.unwrap_or(computed_size);
@@ -201,24 +201,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     },
 
                     IndependentFormattingContextContents::NonReplaced(non_replaced) => {
-                        // TODO: re-evaluate sizing constraint conversions in light of recent layout_2020 changes
-                        let containing_block = &self.content_box_size_override;
-
-                        // Adjust known_dimensions from border box to content box
-                        let pbm = style.padding_border_margin(containing_block);
-                        let margin_sum = pbm.margin.auto_is(Au::zero).sum();
-                        let content_box_inset =
-                            (pbm.padding_border_sums + margin_sum).map(|v| v.to_f32_px());
-                        let content_box_known_dimensions =
-                            taffy::Size {
-                                width: inputs.known_dimensions.width.map(|width| {
-                                    width - pbm.padding_border_sums.inline.to_f32_px()
-                                }),
-                                height: inputs.known_dimensions.height.map(|height| {
-                                    height - pbm.padding_border_sums.block.to_f32_px()
-                                }),
-                            };
-
                         // Compute inline size
                         let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
                             let constraint_space = ConstraintSpace {
@@ -247,7 +229,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             inputs.axis == RequestedAxis::Horizontal
                         {
                             return taffy::LayoutOutput::from_outer_size(taffy::Size {
-                                width: inline_size + pbm.padding_border_sums.inline.to_f32_px(),
+                                width: inline_size + pb_sum.inline,
                                 // If RequestedAxis is Horizontal then height will be ignored.
                                 height: 0.0,
                             });
@@ -286,8 +268,8 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         let block_size = layout.content_block_size.to_f32_px();
 
                         let computed_size = taffy::Size {
-                            width: inline_size + pbm.padding_border_sums.inline.to_f32_px(),
-                            height: block_size + pbm.padding_border_sums.block.to_f32_px(),
+                            width: inline_size + pb_sum.inline,
+                            height: block_size + pb_sum.block,
                         };
                         let size = inputs.known_dimensions.unwrap_or(computed_size);
 
