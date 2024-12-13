@@ -37,6 +37,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
+use crate::script_runtime::CanGc;
 
 impl HTMLCanvasElementOrOffscreenCanvas {
     fn size(&self) -> Size2D<u64> {
@@ -140,6 +141,7 @@ impl GPUCanvasContext {
                 channel,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

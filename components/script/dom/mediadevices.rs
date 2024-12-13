@@ -41,7 +41,11 @@ impl MediaDevices {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object(Box::new(MediaDevices::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(MediaDevices::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

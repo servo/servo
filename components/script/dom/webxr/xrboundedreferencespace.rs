@@ -57,6 +57,7 @@ impl XRBoundedReferenceSpace {
         reflect_dom_object(
             Box::new(XRBoundedReferenceSpace::new_inherited(session, offset)),
             global,
+            CanGc::note(),
         )
     }
 

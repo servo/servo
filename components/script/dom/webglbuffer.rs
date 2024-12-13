@@ -16,6 +16,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_runtime::CanGc;
 
 fn target_is_copy_buffer(target: u32) -> bool {
     target == WebGL2RenderingContextConstants::COPY_READ_BUFFER ||
@@ -62,6 +63,7 @@ impl WebGLBuffer {
         reflect_dom_object(
             Box::new(WebGLBuffer::new_inherited(context, id)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

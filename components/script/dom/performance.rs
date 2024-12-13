@@ -171,6 +171,7 @@ impl Performance {
         reflect_dom_object(
             Box::new(Performance::new_inherited(navigation_start)),
             global,
+            CanGc::note(),
         )
     }
 

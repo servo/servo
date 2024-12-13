@@ -78,6 +78,7 @@ impl ReadableStream {
         reflect_dom_object(
             Box::new(ReadableStream::new_inherited(external_underlying_source)),
             global,
+            CanGc::note(),
         )
     }
 

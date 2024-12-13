@@ -10,6 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mimetype::MimeType;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MimeTypeArray {
@@ -24,7 +25,11 @@ impl MimeTypeArray {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MimeTypeArray> {
-        reflect_dom_object(Box::new(MimeTypeArray::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(MimeTypeArray::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

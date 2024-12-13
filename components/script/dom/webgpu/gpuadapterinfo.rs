@@ -9,6 +9,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethod
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 use crate::test::DOMString;
 
 #[dom_struct]
@@ -28,7 +29,7 @@ impl GPUAdapterInfo {
     }
 
     pub fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(info)), global)
+        reflect_dom_object(Box::new(Self::new_inherited(info)), global, CanGc::note())
     }
 }
 

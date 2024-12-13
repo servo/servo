@@ -79,6 +79,7 @@ impl BluetoothRemoteGATTCharacteristic {
                 instance_id,
             )),
             global,
+            CanGc::note(),
         )
     }
 

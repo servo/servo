@@ -18,7 +18,7 @@ use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
 use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct DataTransferItemList {
@@ -46,6 +46,7 @@ impl DataTransferItemList {
         reflect_dom_object(
             Box::new(DataTransferItemList::new_inherited(data_store)),
             window,
+            CanGc::note(),
         )
     }
 

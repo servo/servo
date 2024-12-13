@@ -20,6 +20,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct AudioParam {
@@ -87,7 +88,7 @@ impl AudioParam {
             min_value,
             max_value,
         );
-        reflect_dom_object(Box::new(audio_param), window)
+        reflect_dom_object(Box::new(audio_param), window, CanGc::note())
     }
 
     fn message_node(&self, message: AudioNodeMessage) {

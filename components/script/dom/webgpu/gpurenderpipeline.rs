@@ -16,6 +16,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpudevice::{GPUDevice, PipelineLayout};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPURenderPipeline {
@@ -57,6 +58,7 @@ impl GPURenderPipeline {
                 device,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

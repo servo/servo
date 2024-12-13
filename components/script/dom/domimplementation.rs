@@ -47,7 +47,11 @@ impl DOMImplementation {
 
     pub fn new(document: &Document) -> DomRoot<DOMImplementation> {
         let window = document.window();
-        reflect_dom_object(Box::new(DOMImplementation::new_inherited(document)), window)
+        reflect_dom_object(
+            Box::new(DOMImplementation::new_inherited(document)),
+            window,
+            CanGc::note(),
+        )
     }
 }
 

@@ -17,6 +17,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
@@ -46,7 +47,11 @@ impl NodeList {
 
     #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
-        reflect_dom_object(Box::new(NodeList::new_inherited(list_type)), window)
+        reflect_dom_object(
+            Box::new(NodeList::new_inherited(list_type)),
+            window,
+            CanGc::note(),
+        )
     }
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> DomRoot<NodeList>

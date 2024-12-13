@@ -64,7 +64,7 @@ impl CanvasRenderingContext2D {
             Some(canvas),
             size,
         ));
-        reflect_dom_object(boxed, global)
+        reflect_dom_object(boxed, global, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions

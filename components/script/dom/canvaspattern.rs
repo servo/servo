@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::canvasgradient::ToFillOrStrokeStyle;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]
@@ -61,6 +62,7 @@ impl CanvasPattern {
                 origin_clean,
             )),
             global,
+            CanGc::note(),
         )
     }
     pub fn origin_is_clean(&self) -> bool {

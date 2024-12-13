@@ -62,7 +62,11 @@ impl MediaSession {
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {
-        reflect_dom_object(Box::new(MediaSession::new_inherited()), window)
+        reflect_dom_object(
+            Box::new(MediaSession::new_inherited()),
+            window,
+            CanGc::note(),
+        )
     }
 
     pub fn register_media_instance(&self, media_instance: &HTMLMediaElement) {

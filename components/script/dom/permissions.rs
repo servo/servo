@@ -71,7 +71,11 @@ impl Permissions {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object(Box::new(Permissions::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(Permissions::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-query

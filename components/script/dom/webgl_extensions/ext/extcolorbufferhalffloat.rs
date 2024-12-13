@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl_extensions::ext::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct EXTColorBufferHalfFloat {
@@ -30,6 +31,7 @@ impl WebGLExtension for EXTColorBufferHalfFloat {
         reflect_dom_object(
             Box::new(EXTColorBufferHalfFloat::new_inherited()),
             &*ctx.global(),
+            CanGc::note(),
         )
     }
 

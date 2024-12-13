@@ -122,6 +122,7 @@ impl GPUBuffer {
                 channel, buffer, device, size, usage, mapping, label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

@@ -54,6 +54,7 @@ impl DOMTokenList {
                 supported_tokens,
             )),
             &*window,
+            CanGc::note(),
         )
     }
 

@@ -19,6 +19,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct AudioListener {
@@ -153,9 +154,13 @@ impl AudioListener {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, context: &BaseAudioContext) -> DomRoot<AudioListener> {
+    pub fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        can_gc: CanGc,
+    ) -> DomRoot<AudioListener> {
         let node = AudioListener::new_inherited(window, context);
-        reflect_dom_object(Box::new(node), window)
+        reflect_dom_object(Box::new(node), window, can_gc)
     }
 }
 

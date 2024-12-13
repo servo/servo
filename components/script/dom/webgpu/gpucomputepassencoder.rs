@@ -15,6 +15,7 @@ use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUComputePassEncoder {
@@ -59,6 +60,7 @@ impl GPUComputePassEncoder {
                 label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

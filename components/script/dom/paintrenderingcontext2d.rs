@@ -51,6 +51,7 @@ impl PaintRenderingContext2D {
         reflect_dom_object(
             Box::new(PaintRenderingContext2D::new_inherited(global)),
             global,
+            CanGc::note(),
         )
     }
 

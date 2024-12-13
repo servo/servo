@@ -41,7 +41,7 @@ impl GPU {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<GPU> {
-        reflect_dom_object(Box::new(GPU::new_inherited()), global)
+        reflect_dom_object(Box::new(GPU::new_inherited()), global, CanGc::note())
     }
 }
 

@@ -86,6 +86,7 @@ impl GPUAdapter {
                 channel, name, extensions, &features, &limits, &info, adapter,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

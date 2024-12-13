@@ -58,7 +58,11 @@ impl Location {
     }
 
     pub fn new(window: &Window) -> DomRoot<Location> {
-        reflect_dom_object(Box::new(Location::new_inherited(window)), window)
+        reflect_dom_object(
+            Box::new(Location::new_inherited(window)),
+            window,
+            CanGc::note(),
+        )
     }
 
     /// Navigate the relevant `Document`'s browsing context.

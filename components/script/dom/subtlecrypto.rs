@@ -135,7 +135,11 @@ impl SubtleCrypto {
     }
 
     pub(crate) fn new(global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(SubtleCrypto::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 
     fn task_source_with_canceller(&self) -> (DOMManipulationTaskSource, TaskCanceller) {

@@ -20,6 +20,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WebGLRenderbuffer {
@@ -61,6 +62,7 @@ impl WebGLRenderbuffer {
         reflect_dom_object(
             Box::new(WebGLRenderbuffer::new_inherited(context, id)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

@@ -71,6 +71,7 @@ impl ServiceWorker {
                 worker_id,
             )),
             global,
+            CanGc::note(),
         )
     }
 

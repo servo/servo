@@ -152,7 +152,7 @@ impl Bluetooth {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
-        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global)
+        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global, CanGc::note())
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

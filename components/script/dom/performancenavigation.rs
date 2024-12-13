@@ -11,6 +11,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct PerformanceNavigation {
@@ -25,7 +26,11 @@ impl PerformanceNavigation {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<PerformanceNavigation> {
-        reflect_dom_object(Box::new(PerformanceNavigation::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(PerformanceNavigation::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 }
 

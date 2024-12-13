@@ -17,6 +17,7 @@ use crate::dom::cssrule::SpecificCSSRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::medialist::MediaList;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct CSSMediaRule {
@@ -46,6 +47,7 @@ impl CSSMediaRule {
         reflect_dom_object(
             Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
             window,
+            CanGc::note(),
         )
     }
 

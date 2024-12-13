@@ -104,6 +104,7 @@ impl Worklet {
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
             window,
+            CanGc::note(),
         )
     }
 

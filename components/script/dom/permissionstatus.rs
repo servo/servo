@@ -14,6 +14,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/permissions/#permissionstatus
 #[dom_struct]
@@ -36,6 +37,7 @@ impl PermissionStatus {
         reflect_dom_object(
             Box::new(PermissionStatus::new_inherited(query.name)),
             global,
+            CanGc::note(),
         )
     }
 

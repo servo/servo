@@ -466,6 +466,7 @@ impl ServoParser {
         reflect_dom_object(
             Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
             document.window(),
+            CanGc::note(),
         )
     }
 

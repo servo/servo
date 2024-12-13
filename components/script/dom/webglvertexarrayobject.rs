@@ -12,6 +12,7 @@ use crate::dom::vertexarrayobject::{VertexArrayObject, VertexAttribData};
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WebGLVertexArrayObject {
@@ -31,6 +32,7 @@ impl WebGLVertexArrayObject {
         reflect_dom_object(
             Box::new(WebGLVertexArrayObject::new_inherited(context, id)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 

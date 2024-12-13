@@ -40,7 +40,7 @@ impl NavigationPreloadManager {
         registration: &ServiceWorkerRegistration,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(registration);
-        reflect_dom_object(Box::new(manager), global)
+        reflect_dom_object(Box::new(manager), global, CanGc::note())
     }
 }
 

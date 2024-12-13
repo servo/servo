@@ -78,7 +78,7 @@ impl DOMRectMethods<crate::DomTypeHolder> for DOMRect {
     fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRect> {
         let rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object(Box::new(Self { rect }), global)
+        reflect_dom_object(Box::new(Self { rect }), global, CanGc::note())
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrect-x

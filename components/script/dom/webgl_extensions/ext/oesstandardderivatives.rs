@@ -10,6 +10,7 @@ use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESS
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct OESStandardDerivatives {
@@ -30,6 +31,7 @@ impl WebGLExtension for OESStandardDerivatives {
         reflect_dom_object(
             Box::new(OESStandardDerivatives::new_inherited()),
             &*ctx.global(),
+            CanGc::note(),
         )
     }
 

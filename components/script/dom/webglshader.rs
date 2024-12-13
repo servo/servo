@@ -25,6 +25,7 @@ use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDeriva
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ShaderCompilationStatus {
@@ -80,6 +81,7 @@ impl WebGLShader {
         reflect_dom_object(
             Box::new(WebGLShader::new_inherited(context, id, shader_type)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

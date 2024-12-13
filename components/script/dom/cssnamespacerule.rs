@@ -14,6 +14,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct CSSNamespaceRule {
@@ -46,6 +47,7 @@ impl CSSNamespaceRule {
                 namespacerule,
             )),
             window,
+            CanGc::note(),
         )
     }
 }

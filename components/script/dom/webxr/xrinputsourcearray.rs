@@ -32,7 +32,11 @@ impl XRInputSourceArray {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<XRInputSourceArray> {
-        reflect_dom_object(Box::new(XRInputSourceArray::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(XRInputSourceArray::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 
     pub fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource], can_gc: CanGc) {

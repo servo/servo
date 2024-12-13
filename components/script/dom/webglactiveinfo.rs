@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WebGLActiveInfo {
@@ -34,6 +35,7 @@ impl WebGLActiveInfo {
         reflect_dom_object(
             Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
             window,
+            CanGc::note(),
         )
     }
 }

@@ -66,6 +66,7 @@ impl BluetoothRemoteGATTDescriptor {
                 instance_id,
             )),
             global,
+            CanGc::note(),
         )
     }
 

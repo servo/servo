@@ -19,21 +19,13 @@ use crate::script_runtime::{CanGc, JSContext};
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T, U>(obj: Box<T>, global: &U) -> DomRoot<T>
+pub fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
 where
     T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe {
-        T::WRAP(
-            GlobalScope::get_cx(),
-            global_scope,
-            None,
-            obj,
-            CanGc::note(),
-        )
-    }
+    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, None, obj, can_gc) }
 }
 
 pub fn reflect_dom_object_with_proto<T, U>(

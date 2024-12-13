@@ -8,6 +8,7 @@ use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XMLHttpRequestUpload {
@@ -21,6 +22,10 @@ impl XMLHttpRequestUpload {
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
-        reflect_dom_object(Box::new(XMLHttpRequestUpload::new_inherited()), global)
+        reflect_dom_object(
+            Box::new(XMLHttpRequestUpload::new_inherited()),
+            global,
+            CanGc::note(),
+        )
     }
 }

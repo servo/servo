@@ -46,6 +46,7 @@ impl BluetoothRemoteGATTServer {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
             global,
+            CanGc::note(),
         )
     }
 

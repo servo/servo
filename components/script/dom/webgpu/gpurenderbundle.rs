@@ -11,6 +11,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPURenderBundle {
@@ -56,6 +57,7 @@ impl GPURenderBundle {
                 label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

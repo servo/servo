@@ -14,6 +14,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct Screen {
@@ -30,7 +31,11 @@ impl Screen {
     }
 
     pub fn new(window: &Window) -> DomRoot<Screen> {
-        reflect_dom_object(Box::new(Screen::new_inherited(window)), window)
+        reflect_dom_object(
+            Box::new(Screen::new_inherited(window)),
+            window,
+            CanGc::note(),
+        )
     }
 
     fn screen_size(&self) -> Size2D<u32, CSSPixel> {

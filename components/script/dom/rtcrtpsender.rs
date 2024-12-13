@@ -29,7 +29,7 @@ impl RTCRtpSender {
     }
 
     pub(crate) fn new(global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global)
+        reflect_dom_object(Box::new(Self::new_inherited()), global, CanGc::note())
     }
 }
 

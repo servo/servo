@@ -13,6 +13,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct ImageBitmap {
@@ -43,7 +44,7 @@ impl ImageBitmap {
         //assigning to a variable the return object of new_inherited
         let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
 
-        Ok(reflect_dom_object(imagebitmap, global))
+        Ok(reflect_dom_object(imagebitmap, global, CanGc::note()))
     }
 
     pub fn set_bitmap_data(&self, data: Vec<u8>) {

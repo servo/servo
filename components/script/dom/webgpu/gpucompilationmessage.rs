@@ -13,6 +13,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::types::GlobalScope;
+use crate::script_runtime::CanGc;
 use crate::test::DOMString;
 
 #[dom_struct]
@@ -61,6 +62,7 @@ impl GPUCompilationMessage {
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
+            CanGc::note(),
         )
     }
 

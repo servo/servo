@@ -51,6 +51,7 @@ impl HTMLOptionsCollection {
         reflect_dom_object(
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
             window,
+            CanGc::note(),
         )
     }
 

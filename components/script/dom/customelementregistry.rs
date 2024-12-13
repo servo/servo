@@ -92,6 +92,7 @@ impl CustomElementRegistry {
         reflect_dom_object(
             Box::new(CustomElementRegistry::new_inherited(window)),
             window,
+            CanGc::note(),
         )
     }
 

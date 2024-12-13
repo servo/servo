@@ -58,7 +58,11 @@ impl FakeXRDevice {
     }
 
     pub fn new(global: &GlobalScope, sender: IpcSender<MockDeviceMsg>) -> DomRoot<FakeXRDevice> {
-        reflect_dom_object(Box::new(FakeXRDevice::new_inherited(sender)), global)
+        reflect_dom_object(
+            Box::new(FakeXRDevice::new_inherited(sender)),
+            global,
+            CanGc::note(),
+        )
     }
 
     pub fn disconnect(&self, sender: IpcSender<()>) {

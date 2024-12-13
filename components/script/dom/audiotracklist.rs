@@ -45,6 +45,7 @@ impl AudioTrackList {
         reflect_dom_object(
             Box::new(AudioTrackList::new_inherited(tracks, media_element)),
             window,
+            CanGc::note(),
         )
     }
 

@@ -12,6 +12,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WebGLTransformFeedback {
@@ -43,6 +44,7 @@ impl WebGLTransformFeedback {
         reflect_dom_object(
             Box::new(WebGLTransformFeedback::new_inherited(context, id)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

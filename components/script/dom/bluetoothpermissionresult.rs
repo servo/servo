@@ -52,6 +52,7 @@ impl BluetoothPermissionResult {
         reflect_dom_object(
             Box::new(BluetoothPermissionResult::new_inherited(status)),
             global,
+            CanGc::note(),
         )
     }
 

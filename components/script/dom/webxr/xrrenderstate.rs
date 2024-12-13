@@ -17,7 +17,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRRenderState {
@@ -65,6 +65,7 @@ impl XRRenderState {
                 layers,
             )),
             global,
+            CanGc::note(),
         )
     }
 

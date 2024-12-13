@@ -20,6 +20,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
@@ -87,6 +88,7 @@ impl XMLDocument {
                 doc_loader,
             )),
             window,
+            CanGc::note(),
         );
         {
             let node = doc.upcast::<Node>();

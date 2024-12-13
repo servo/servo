@@ -80,7 +80,7 @@ impl Navigator {
     }
 
     pub fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(Box::new(Navigator::new_inherited()), window)
+        reflect_dom_object(Box::new(Navigator::new_inherited()), window, CanGc::note())
     }
 
     #[cfg(feature = "webxr")]

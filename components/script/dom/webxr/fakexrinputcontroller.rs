@@ -23,6 +23,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::fakexrdevice::get_origin;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FakeXRInputController {
@@ -52,6 +53,7 @@ impl FakeXRInputController {
         reflect_dom_object(
             Box::new(FakeXRInputController::new_inherited(sender, id)),
             global,
+            CanGc::note(),
         )
     }
 
