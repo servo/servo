@@ -454,7 +454,8 @@ pub fn default_opts() -> Opts {
     }
 }
 
-pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingResult {
+pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
+    let mut opts = Options::new();
     let (app_name, args) = args.split_first().unwrap();
 
     opts.optflag("", "legacy-layout", "Use the legacy layout engine");
