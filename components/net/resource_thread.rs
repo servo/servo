@@ -61,8 +61,8 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore
     let mut root_cert_store = RootCertStore::empty();
 
     let mut pem = BufReader::new(File::open(file_path)?);
-    let certs = rustls_pemfile::certs(&mut pem)?;
-    root_cert_store.add_parsable_certificates(&certs);
+    let certs: Result<Vec<_>, _> = rustls_pemfile::certs(&mut pem).collect();
+    root_cert_store.add_parsable_certificates(certs?);
     Ok(root_cert_store)
 }
 
