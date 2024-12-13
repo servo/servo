@@ -56,13 +56,13 @@ struct FloatBandWrapper(FloatBand);
 impl Arbitrary for FloatBandWrapper {
     fn arbitrary(generator: &mut Gen) -> FloatBandWrapper {
         let top: u32 = u32::arbitrary(generator);
-        let left: Option<u32> = Some(u32::arbitrary(generator));
-        let right: Option<u32> = Some(u32::arbitrary(generator));
+        let inline_start: Option<u32> = Some(u32::arbitrary(generator));
+        let inline_end: Option<u32> = Some(u32::arbitrary(generator));
 
         FloatBandWrapper(FloatBand {
             top: Au::from_f32_px(top as f32),
-            left: left.map(|value| Au::from_f32_px(value as f32)),
-            right: right.map(|value| Au::from_f32_px(value as f32)),
+            inline_start: inline_start.map(|value| Au::from_f32_px(value as f32)),
+            inline_end: inline_end.map(|value| Au::from_f32_px(value as f32)),
         })
     }
 }
@@ -158,8 +158,8 @@ fn check_tree_find(tree: &FloatBandTree, block_position: Au, sorted_bands: &[Flo
         1;
     let reference_band = &sorted_bands[reference_band_index];
     assert_eq!(found_band.top, reference_band.top);
-    assert_eq!(found_band.left, reference_band.left);
-    assert_eq!(found_band.right, reference_band.right);
+    assert_eq!(found_band.inline_start, reference_band.inline_start);
+    assert_eq!(found_band.inline_end, reference_band.inline_end);
 }
 
 fn check_tree_find_next(tree: &FloatBandTree, block_position: Au, sorted_bands: &[FloatBand]) {
@@ -172,8 +172,8 @@ fn check_tree_find_next(tree: &FloatBandTree, block_position: Au, sorted_bands: 
         .expect("Couldn't find the reference band!");
     let reference_band = &sorted_bands[reference_band_index];
     assert_eq!(found_band.top, reference_band.top);
-    assert_eq!(found_band.left, reference_band.left);
-    assert_eq!(found_band.right, reference_band.right);
+    assert_eq!(found_band.inline_start, reference_band.inline_start);
+    assert_eq!(found_band.inline_end, reference_band.inline_end);
 }
 
 fn check_node_range_setting(
@@ -184,8 +184,8 @@ fn check_node_range_setting(
 ) {
     if node.band.top >= block_range.start && node.band.top < block_range.end {
         match side {
-            FloatSide::InlineStart => assert!(node.band.left.unwrap() >= value),
-            FloatSide::InlineEnd => assert!(node.band.right.unwrap() <= value),
+            FloatSide::InlineStart => assert!(node.band.inline_start.unwrap() >= value),
+            FloatSide::InlineEnd => assert!(node.band.inline_end.unwrap() <= value),
         }
     }
 
@@ -247,13 +247,13 @@ fn test_tree_find() {
         let mut bands: Vec<FloatBand> = bands.into_iter().map(|band| band.0).collect();
         bands.push(FloatBand {
             top: Au::zero(),
-            left: None,
-            right: None,
+            inline_start: None,
+            inline_end: None,
         });
         bands.push(FloatBand {
             top: Au::from_f32_px(INFINITY),
-            left: None,
-            right: None,
+            inline_start: None,
+            inline_end: None,
         });
         let mut tree = FloatBandTree::new();
         for band in &bands {
@@ -275,13 +275,13 @@ fn test_tree_find_next() {
         let mut bands: Vec<FloatBand> = bands.into_iter().map(|band| band.0).collect();
         bands.push(FloatBand {
             top: Au::zero(),
-            left: None,
-            right: None,
+            inline_start: None,
+            inline_end: None,
         });
         bands.push(FloatBand {
             top: Au::from_f32_px(INFINITY),
-            left: None,
-            right: None,
+            inline_start: None,
+            inline_end: None,
         });
         bands.sort_by(|a, b| a.top.partial_cmp(&b.top).unwrap());
         bands.dedup_by(|a, b| a.top == b.top);
