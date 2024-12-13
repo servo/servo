@@ -255,7 +255,7 @@ pub unsafe fn jsval_to_webdriver(
                 cx,
                 object.handle(),
                 name.as_ptr(),
-                &HandleValueArray::new(),
+                &HandleValueArray::empty(),
                 value.handle_mut(),
             ) {
                 jsval_to_webdriver(cx, global_scope, value.handle())

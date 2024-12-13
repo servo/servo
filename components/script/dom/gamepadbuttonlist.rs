@@ -78,7 +78,7 @@ impl GamepadButtonList {
             GamepadButton::new(global, false, false), // Right button in left cluster
             GamepadButton::new(global, false, false), // Center button in center cluster
         ];
-        rooted_vec!(let buttons <- standard_buttons.iter().map(|button| DomRoot::from_ref(&**button)));
+        rooted_vec!(let buttons <- standard_buttons.iter().map(DomRoot::as_traced));
         Self::new(global, buttons.r())
     }
 }

@@ -2139,7 +2139,7 @@ impl Node {
             Node::adopt(node, &parent.owner_doc());
         }
         // Step 2.
-        rooted_vec!(let removed_nodes <- parent.children());
+        rooted_vec!(let removed_nodes <- parent.children().map(|c| DomRoot::as_traced(&c)));
         // Step 3.
         rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
