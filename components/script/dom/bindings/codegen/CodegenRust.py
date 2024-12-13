@@ -925,7 +925,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if failureCode is None:
             unwrapFailureCode = '''throw_type_error(*cx, "This object is not \
-                    an instance of ReadableStream.");\nreturn false;\n'''
+                    an instance of ReadableStream.");\n'''
         else:
             unwrapFailureCode = failureCode
 
