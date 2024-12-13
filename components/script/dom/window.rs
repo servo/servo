@@ -22,7 +22,7 @@ use base::id::{BrowsingContextId, PipelineId};
 use base64::Engine;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use crossbeam_channel::{unbounded, Sender, TryRecvError};
+use crossbeam_channel::{unbounded, Sender};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
@@ -52,7 +52,7 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{
     combine_id_with_fragment_type, FragmentType, Layout, PendingImageState, QueryMsg, Reflow,
-    ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    ReflowGoal, ReflowRequest, TrustedNodeAddress,
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
@@ -1873,9 +1873,6 @@ impl Window {
             None
         };
 
-        // Layout will let us know when it's done.
-        let (join_chan, join_port) = unbounded();
-
         // On debug mode, print the reflow event information.
         if self.relayout_event {
             debug_reflow_events(pipeline_id, &reflow_goal);
@@ -1903,7 +1900,7 @@ impl Window {
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
         // Send new document and relevant styles to layout.
-        let reflow = ScriptReflow {
+        let reflow = ReflowRequest {
             reflow_info: Reflow {
                 page_clip_rect: self.page_clip_rect.get(),
             },
@@ -1913,7 +1910,6 @@ impl Window {
             window_size: self.window_size.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
-            script_join_chan: join_chan,
             dom_count: document.dom_count(),
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
@@ -1921,21 +1917,11 @@ impl Window {
             theme: self.theme.get(),
         };
 
-        self.layout.borrow_mut().reflow(reflow);
-
-        let complete = match join_port.try_recv() {
-            Err(TryRecvError::Empty) => {
-                debug!("script: waiting on layout");
-                join_port.recv().unwrap()
-            },
-            Ok(reflow_complete) => reflow_complete,
-            Err(TryRecvError::Disconnected) => {
-                panic!("Layout failed while script was waiting for a result.");
-            },
+        let Some(results) = self.layout.borrow_mut().reflow(reflow) else {
+            return false;
         };
 
         debug!("script: layout complete");
-
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
@@ -1946,7 +1932,7 @@ impl Window {
         // is when reflowing just for the purpose of doing a layout query.
         document.set_needs_paint(!for_display);
 
-        for image in complete.pending_images {
+        for image in results.pending_images {
             let id = image.id;
             let node = unsafe { from_untrusted_node_address(image.node) };
 
