@@ -132,7 +132,7 @@ pub fn new_core_resource_thread(
                 user_agent,
                 devtools_sender,
                 time_profiler_chan,
-                embedder_proxy,
+                embedder_proxy.clone(),
                 ca_certificates.clone(),
                 ignore_certificate_errors,
             );
@@ -151,6 +151,7 @@ pub fn new_core_resource_thread(
                         private_setup_port,
                         report_port,
                         protocols,
+                        embedder_proxy,
                     )
                 },
                 String::from("network-cache-reporter"),
@@ -173,6 +174,7 @@ fn create_http_states(
     config_dir: Option<&Path>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::default();
@@ -198,6 +200,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
+        embedder_proxy: Mutex::new(Some(embedder_proxy.clone())),
     };
 
     let override_manager = CertificateErrorOverrideManager::new();
@@ -214,6 +217,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
+        embedder_proxy: Mutex::new(Some(embedder_proxy)),
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -227,11 +231,13 @@ impl ResourceChannelManager {
         private_receiver: IpcReceiver<CoreResourceMsg>,
         memory_reporter: IpcReceiver<ReportsChan>,
         protocols: Arc<ProtocolRegistry>,
+        embedder_proxy: EmbedderProxy,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_deref(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
+            embedder_proxy,
         );
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
