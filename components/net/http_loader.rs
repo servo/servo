@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use core::convert::Infallible;
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
@@ -19,7 +18,7 @@ use devtools_traits::{
 use embedder_traits::{
     EmbedderMsg, EmbedderProxy, PromptCredentialsInput, PromptDefinition, PromptOrigin,
 };
-use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{future, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -32,10 +31,14 @@ use http::header::{
     CONTENT_TYPE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Full};
+use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
-use hyper::{Body, Client, Response as HyperResponse};
+use hyper::Response as HyperResponse;
 use hyper_serde::Serde;
+use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
@@ -101,7 +104,7 @@ pub struct HttpState {
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Client<Connector, Body>,
+    pub client: Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }
@@ -440,7 +443,7 @@ enum BodyChunk {
 enum BodyStream {
     /// A receiver that can be used in Body::wrap_stream,
     /// for streaming the request over the network.
-    Chunked(TokioReceiver<Vec<u8>>),
+    Chunked(TokioReceiver<Result<Frame<Bytes>, hyper::Error>>),
     /// A body whose bytes are buffered
     /// and sent in one chunk over the network.
     Buffered(UnboundedReceiver<BodyChunk>),
@@ -450,7 +453,7 @@ enum BodyStream {
 /// used to enqueue chunks.
 enum BodySink {
     /// A Tokio sender used to feed chunks to the network stream.
-    Chunked(TokioSender<Vec<u8>>),
+    Chunked(TokioSender<Result<Frame<Bytes>, hyper::Error>>),
     /// A Crossbeam sender used to send chunks to the fetch worker,
     /// where they will be buffered
     /// in order to ensure they are not streamed them over the network.
@@ -463,7 +466,7 @@ impl BodySink {
             BodySink::Chunked(ref sender) => {
                 let sender = sender.clone();
                 HANDLE.lock().unwrap().as_mut().unwrap().spawn(async move {
-                    let _ = sender.send(bytes).await;
+                    let _ = sender.send(Ok(Frame::data(bytes.into()))).await;
                 });
             },
             BodySink::Buffered(ref sender) => {
@@ -484,7 +487,7 @@ impl BodySink {
 
 #[allow(clippy::too_many_arguments)]
 async fn obtain_response(
-    client: &Client<Connector, Body>,
+    client: &Client<Connector, crate::connector::BoxedBody>,
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
@@ -584,7 +587,7 @@ async fn obtain_response(
             let body = match stream {
                 BodyStream::Chunked(receiver) => {
                     let stream = ReceiverStream::new(receiver);
-                    Body::wrap_stream(stream.map(Ok::<_, Infallible>))
+                    BoxBody::new(http_body_util::StreamBody::new(stream))
                 },
                 BodyStream::Buffered(mut receiver) => {
                     // Accumulate bytes received over IPC into a vector.
@@ -598,7 +601,8 @@ async fn obtain_response(
                             None => warn!("Failed to read all chunks from request body."),
                         }
                     }
-                    body.into()
+                    //body.into()
+                    Full::new(body.into()).map_err(|_| unreachable!()).boxed()
                 },
             };
             HyperRequest::builder()
@@ -609,7 +613,11 @@ async fn obtain_response(
             HyperRequest::builder()
                 .method(method)
                 .uri(encoded_url)
-                .body(Body::empty())
+                .body(
+                    http_body_util::Empty::new()
+                        .map_err(|_| unreachable!())
+                        .boxed(),
+                )
         };
 
         context
@@ -695,7 +703,10 @@ async fn obtain_response(
                     None
                 };
 
-                future::ready(Ok((Decoder::detect(res, is_secure_scheme), msg)))
+                future::ready(Ok((
+                    Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
+                    msg,
+                )))
             })
             .map_err(move |error| {
                 NetworkError::from_hyper_error(

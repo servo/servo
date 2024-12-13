@@ -15,8 +15,8 @@ use cookie::Cookie;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap, StatusCode};
-use hyper::Error as HyperError;
 use hyper_serde::Serde;
+use hyper_util::client::legacy::Error as HyperError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
@@ -24,7 +24,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use request::RequestId;
-use rustls::Certificate;
+use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -882,10 +882,10 @@ pub enum NetworkError {
 }
 
 impl NetworkError {
-    pub fn from_hyper_error(error: &HyperError, certificate: Option<Certificate>) -> Self {
+    pub fn from_hyper_error(error: &HyperError, certificate: Option<CertificateDer>) -> Self {
         let error_string = error.to_string();
         match certificate {
-            Some(certificate) => NetworkError::SslValidation(error_string, certificate.0),
+            Some(certificate) => NetworkError::SslValidation(error_string, certificate.to_vec()),
             _ => NetworkError::Internal(error_string),
         }
     }
