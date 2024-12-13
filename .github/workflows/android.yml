@@ -28,6 +28,8 @@ env:
   # SCCACHE_GHA_ENABLED: "true"
   # RUSTC_WRAPPER: "sccache"
   # CCACHE: "sccache"
+  # Increment this to purge the cache (https://github.com/mozilla/sccache/blob/main/docs/GHA.md)
+  SCCACHE_GHA_VERSION: 2
   CARGO_INCREMENTAL: 0
 
 jobs:
