@@ -135,6 +135,21 @@ pub struct Opts {
 
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
+
+    /// Enable platform native titlebar.
+    pub native_titlebar: bool,
+
+    /// Do not shutdown until all threads have finished (macos only).
+    pub clean_shutdown: bool,
+
+    /// Device pixels per px.
+    pub device_pixel_ratio: Option<f32>,
+
+    /// Set custom user agent string (or ios / android / desktop for platform default).
+    pub user_agent: Option<String>,
+
+    /// Start with a custom URL to load.
+    pub url: Option<String>,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -431,6 +446,11 @@ pub fn default_opts() -> Opts {
         local_script_source: None,
         unminify_css: false,
         print_pwm: false,
+        native_titlebar: true,
+        clean_shutdown: true,
+        device_pixel_ratio: None,
+        user_agent: None,
+        url: None,
     }
 }
 
@@ -581,6 +601,37 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "",
     );
     opts.optflag("", "unminify-css", "Unminify Css");
+    opts.optflag(
+        "",
+        "clean-shutdown",
+        "Do not shutdown until all threads have finished (macos only)",
+    );
+    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
+    opts.optopt(
+        "u",
+        "user-agent",
+        "Set custom user agent string (or ios / android / desktop for platform default)",
+        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
+    );
+    opts.optopt(
+        "",
+        "url",
+        "Start with a custom URL to load",
+        "https://servo.org",
+    );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to enable",
+        "dom.bluetooth.enabled",
+    );
+    opts.optmulti(
+        "",
+        "prefs-file",
+        "Load in additional prefs from a file.",
+        "--prefs-file /path/to/prefs.json",
+    );
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -764,6 +815,19 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         set_pref!(layout.legacy_layout, true);
     }
 
+    let native_titlebar =
+        !opt_match.opt_present("no-native-titlebar") || (pref!(shell.native_titlebar.enabled));
+
+    let device_pixel_ratio = opt_match.opt_str("device-pixel-ratio").map(|dppx_str| {
+        dppx_str.parse().unwrap_or_else(|err| {
+            error!("Error parsing option: --device-pixel-ratio ({})", err);
+            process::exit(1);
+        })
+    });
+
+    let user_agent = opt_match.opt_str("u");
+    let url = opt_match.opt_str("url");
+
     let opts = Opts {
         debug: debug_options.clone(),
         legacy_layout,
@@ -797,6 +861,11 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         local_script_source: opt_match.opt_str("local-script-source"),
         unminify_css: opt_match.opt_present("unminify-css"),
         print_pwm: opt_match.opt_present("print-pwm"),
+        native_titlebar,
+        clean_shutdown: opt_match.opt_present("clean-shutdown"),
+        device_pixel_ratio,
+        user_agent,
+        url,
     };
 
     set_options(opts);

@@ -60,12 +60,7 @@ enum PumpResult {
 }
 
 impl App {
-    pub fn run(
-        no_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
-        user_agent: Option<String>,
-        url: Option<String>,
-    ) {
+    pub fn run() {
         let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
             .expect("Failed to create events loop");
 
@@ -73,24 +68,21 @@ impl App {
         let window = if opts::get().headless {
             // GL video rendering is not supported on headless windows.
             set_pref!(media.glvideo.enabled, false);
-            headless_window::Window::new(
-                opts::get().initial_window_size,
-                device_pixel_ratio_override,
-            )
+            headless_window::Window::new(opts::get().initial_window_size)
         } else {
             Rc::new(headed_window::Window::new(
                 opts::get().initial_window_size,
                 events_loop.as_winit(),
-                no_native_titlebar,
-                device_pixel_ratio_override,
             ))
         };
 
         // Handle browser state.
         let webviews = WebViewManager::new(window.clone());
-        let initial_url = get_default_url(url.as_deref(), env::current_dir().unwrap(), |path| {
-            fs::metadata(path).is_ok()
-        });
+        let initial_url = get_default_url(
+            opts::get().url.as_deref(),
+            env::current_dir().unwrap(),
+            |path| fs::metadata(path).is_ok(),
+        );
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),
@@ -188,12 +180,7 @@ impl App {
                 } else {
                     CompositeTarget::Window
                 };
-                let servo_data = Servo::new(
-                    embedder,
-                    window.clone(),
-                    user_agent.clone(),
-                    composite_target,
-                );
+                let servo_data = Servo::new(embedder, window.clone(), composite_target);
                 let mut servo = servo_data.servo;
 
                 servo.handle_events(vec![EmbedderEvent::NewWebView(

@@ -81,30 +81,7 @@ pub fn main() {
         process::exit(0);
     }
 
-    let clean_shutdown = opts_matches.opt_present("clean-shutdown");
-    let do_not_use_native_titlebar =
-        opts_matches.opt_present("no-native-titlebar") || !(pref!(shell.native_titlebar.enabled));
-    let device_pixel_ratio_override = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
-        dppx_str.parse().unwrap_or_else(|err| {
-            error!("Error parsing option: --device-pixel-ratio ({})", err);
-            process::exit(1);
-        })
-    });
+    App::run();
 
-    let user_agent = opts_matches.opt_str("u");
-
-    let url_opt = if !opts_matches.free.is_empty() {
-        Some(&opts_matches.free[0][..])
-    } else {
-        None
-    };
-
-    App::run(
-        do_not_use_native_titlebar,
-        device_pixel_ratio_override,
-        user_agent,
-        url_opt.map(|s| s.to_string()),
-    );
-
-    crate::platform::deinit(clean_shutdown)
+    crate::platform::deinit(opts::get().clean_shutdown)
 }

@@ -35,10 +35,7 @@ pub struct Window {
 
 impl Window {
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(
-        size: Size2D<u32, DeviceIndependentPixel>,
-        device_pixel_ratio_override: Option<f32>,
-    ) -> Rc<dyn WindowPortsMethods> {
+    pub fn new(size: Size2D<u32, DeviceIndependentPixel>) -> Rc<dyn WindowPortsMethods> {
         // Initialize surfman
         let connection = Connection::new().expect("Failed to create connection");
         let adapter = connection
@@ -51,7 +48,7 @@ impl Window {
             .expect("Failed to create WR surfman");
 
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
-            device_pixel_ratio_override.map(Scale::new);
+            opts::get().device_pixel_ratio.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
 
         let size = size.to_i32();

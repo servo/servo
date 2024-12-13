@@ -60,8 +60,6 @@ impl Window {
     pub fn new(
         window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &winit::event_loop::EventLoop<WakerEvent>,
-        no_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
     ) -> Window {
         let opts = opts::get();
 
@@ -69,12 +67,12 @@ impl Window {
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
-        let visible = opts.output_file.is_none() && !no_native_titlebar;
+        let visible = opts.output_file.is_none() && opts.native_titlebar;
 
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
-            .with_decorations(!no_native_titlebar)
-            .with_transparent(no_native_titlebar)
+            .with_decorations(opts.native_titlebar)
+            .with_transparent(!opts.native_titlebar)
             .with_inner_size(LogicalSize::new(window_size.width, window_size.height))
             .with_visible(visible);
 
@@ -142,7 +140,7 @@ impl Window {
             inner_size: Cell::new(inner_size),
             monitor,
             screen_size,
-            device_pixel_ratio_override,
+            device_pixel_ratio_override: opts.device_pixel_ratio,
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),

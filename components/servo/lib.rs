@@ -240,7 +240,6 @@ where
     pub fn new(
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
-        user_agent: Option<String>,
         composite_target: CompositeTarget,
     ) -> InitializedServo<Window> {
         // Global configuration options, parsed from the command line.
@@ -259,7 +258,7 @@ where
             media_platform::init();
         }
 
-        let user_agent = match user_agent {
+        let user_agent = match &opts.user_agent {
             Some(ref ua) if ua == "ios" => default_user_agent_string_for(UserAgent::iOS).into(),
             Some(ref ua) if ua == "android" => {
                 default_user_agent_string_for(UserAgent::Android).into()
@@ -270,7 +269,7 @@ where
             Some(ref ua) if ua == "ohos" => {
                 default_user_agent_string_for(UserAgent::OpenHarmony).into()
             },
-            Some(ua) => ua.into(),
+            Some(ua) => ua.clone().into(),
             None => embedder
                 .get_user_agent_string()
                 .map(Into::into)
