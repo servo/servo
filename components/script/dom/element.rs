@@ -26,7 +26,6 @@ use js::jsval::JSVal;
 use js::rust::HandleObject;
 use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
-use script_layout_interface::ReflowGoal;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
@@ -149,7 +148,6 @@ use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
-use crate::dom::window::ReflowReason;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
@@ -4429,11 +4427,6 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // Step 7.5
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
-        document.window().reflow(
-            ReflowGoal::Full,
-            ReflowReason::ElementStateChanged,
-            CanGc::note(),
-        );
 
         // Step 7.6
         document
@@ -4467,13 +4460,6 @@ impl TaskOnce for ElementPerformFullscreenExit {
         // TODO Step 9.1-5
         // Step 9.6
         element.set_fullscreen_state(false);
-
-        document.window().reflow(
-            ReflowGoal::Full,
-            ReflowReason::ElementStateChanged,
-            CanGc::note(),
-        );
-
         document.set_fullscreen_element(None);
 
         // Step 9.8

@@ -47,7 +47,7 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::{PendingRestyle, ReflowGoal, TrustedNodeAddress};
+use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
     AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, MouseButton,
     MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
@@ -180,7 +180,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
 use crate::dom::wheelevent::WheelEvent;
-use crate::dom::window::{ReflowReason, Window};
+use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::fetch::FetchCanceller;
@@ -335,8 +335,6 @@ pub struct Document {
     loader: DomRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
     current_parser: MutNullableDom<ServoParser>,
-    /// When we should kick off a reflow. This happens during parsing.
-    reflow_timeout: Cell<Option<Instant>>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
@@ -705,7 +703,7 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
+    pub fn set_activity(&self, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -727,11 +725,6 @@ impl Document {
 
         self.title_changed();
         self.dirty_all_nodes();
-        self.window().reflow(
-            ReflowGoal::Full,
-            ReflowReason::CachedPageNeededReflow,
-            can_gc,
-        );
         self.window().resume();
         media.resume(&client_context_id);
 
@@ -919,36 +912,6 @@ impl Document {
         node.dirty(NodeDamage::OtherNodeDamage);
     }
 
-    /// Reflows and disarms the timer if the reflow timer has expired.
-    pub fn reflow_if_reflow_timer_expired(&self, can_gc: CanGc) {
-        let Some(reflow_timeout) = self.reflow_timeout.get() else {
-            return;
-        };
-
-        if Instant::now() < reflow_timeout {
-            return;
-        }
-
-        self.reflow_timeout.set(None);
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::RefreshTick, can_gc);
-    }
-
-    /// Schedules a reflow to be kicked off at the given [`Duration`] in the future. This reflow
-    /// happens even if the event loop is busy. This is used to display initial page content during
-    /// parsing.
-    pub fn set_reflow_timeout(&self, duration: Duration) {
-        let new_reflow_time = Instant::now() + duration;
-
-        // Do not schedule a timeout that is longer than the one that is currently queued.
-        if matches!(self.reflow_timeout.get(), Some(existing_timeout) if existing_timeout < new_reflow_time)
-        {
-            return;
-        }
-
-        self.reflow_timeout.set(Some(new_reflow_time))
-    }
-
     /// Remove any existing association between the provided id and any elements in this document.
     pub fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
         self.document_or_shadow_root
@@ -1037,7 +1000,7 @@ impl Document {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
-        self.set_target_element(target.as_deref(), can_gc);
+        self.set_target_element(target.as_deref());
 
         let point = target
             .as_ref()
@@ -2257,16 +2220,10 @@ impl Document {
                 self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
+                // We finished loading the page, so if the `Window` is still waiting for
+                // the first layout, allow it.
                 if self.has_browsing_context && self.is_fully_active() {
-                    // Note: if the document is not fully active, layout will have exited already.
-                    // The underlying problem might actually be that layout exits while it should be kept alive.
-                    // See https://github.com/servo/servo/issues/22507
-
-                    // Disarm the reflow timer and trigger the initial reflow.
-                    self.reflow_timeout.set(None);
-                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                    self.window
-                        .reflow(ReflowGoal::Full, ReflowReason::FirstLoad, can_gc);
+                    self.window().allow_layout_if_necessary(can_gc);
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -3385,7 +3342,6 @@ impl Document {
             running_animation_callbacks: Cell::new(false),
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
-            reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(HashMap::new()),
@@ -3831,7 +3787,7 @@ impl Document {
         self.policy_container.borrow().get_referrer_policy()
     }
 
-    pub fn set_target_element(&self, node: Option<&Element>, can_gc: CanGc) {
+    pub fn set_target_element(&self, node: Option<&Element>) {
         if let Some(ref element) = self.target_element.get() {
             element.set_target_state(false);
         }
@@ -3841,9 +3797,6 @@ impl Document {
         if let Some(ref element) = self.target_element.get() {
             element.set_target_state(true);
         }
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged, can_gc);
     }
 
     pub fn incr_ignore_destructive_writes_counter(&self) {

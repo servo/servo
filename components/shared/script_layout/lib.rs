@@ -328,11 +328,19 @@ pub enum QueryMsg {
     InnerWindowDimensionsQuery,
 }
 
-/// Any query to perform with this reflow.
+/// The goal of a reflow request.
+///
+/// Please do not add any other types of reflows. In general, all reflow should
+/// go through the *update the rendering* step of the HTML specification. Exceptions
+/// should have careful review.
 #[derive(Debug, PartialEq)]
 pub enum ReflowGoal {
-    Full,
-    TickAnimations,
+    /// A reflow has been requesting by the *update the rendering* step of the HTML
+    /// event loop. This nominally driven by the display's VSync.
+    UpdateTheRendering,
+
+    /// Script has done a layout query and this reflow ensurs that layout is up-to-date
+    /// with the latest changes to the DOM.
     LayoutQuery(QueryMsg),
 
     /// Tells layout about a single new scrolling offset from the script. The rest will
@@ -345,7 +353,7 @@ impl ReflowGoal {
     /// be present or false if it only needs stacking-relative positions.
     pub fn needs_display_list(&self) -> bool {
         match *self {
-            ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
@@ -367,7 +375,7 @@ impl ReflowGoal {
     /// false if a layout_thread display list is sufficient.
     pub fn needs_display(&self) -> bool {
         match *self {
-            ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::TextIndexQuery |

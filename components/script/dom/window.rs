@@ -13,7 +13,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use app_units::Au;
 use backtrace::Backtrace;
@@ -72,6 +72,7 @@ use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::style_structs::Font;
 use style::properties::PropertyId;
+use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -167,20 +168,36 @@ enum WindowState {
     Zombie, // Pipeline is closed, but the window hasn't been GCed yet.
 }
 
-/// Extra information concerning the reason for reflowing.
-#[derive(Debug, MallocSizeOf)]
-pub enum ReflowReason {
-    CachedPageNeededReflow,
-    ElementStateChanged,
-    FirstLoad,
-    Query,
-    RefreshTick,
-    RequestAnimationFrame,
-    ScrollFromScript,
-    UpdateTheRendering,
-    Viewport,
-    WorkletLoaded,
-    ThemeChange,
+/// How long we should wait before performing the initial reflow after `<body>` is parsed,
+/// assuming that `<body>` take this long to parse.
+const INITIAL_REFLOW_DELAY: Duration = Duration::from_millis(200);
+
+/// During loading and parsing, layouts are suppressed to avoid flashing incomplete page
+/// contents.
+///
+/// Exceptions:
+///  - Parsing the body takes so long, that layouts are no longer suppressed in order
+///    to show the user that the page is loading.
+///  - Script triggers a layout query or scroll event in which case, we want to layout
+///    but not display the contents.
+///
+/// For more information see: <https://github.com/servo/servo/pull/6028>.
+#[derive(Clone, Copy, MallocSizeOf)]
+enum LayoutBlocker {
+    /// The first load event hasn't been fired and we have not started to parse the `<body>` yet.
+    WaitingForParse,
+    /// The body is being parsed the `<body>` starting at the `Instant` specified.
+    Parsing(Instant),
+    /// The body finished parsing and the `load` event has been fired or parsing took so
+    /// long, that we are going to do layout anyway. Note that subsequent changes to the body
+    /// can trigger parsing again, but the `Window` stays in this state.
+    FiredLoadEventOrParsingTimerExpired,
+}
+
+impl LayoutBlocker {
+    fn layout_blocked(&self) -> bool {
+        !matches!(self, Self::FiredLoadEventOrParsingTimerExpired)
+    }
 }
 
 #[dom_struct]
@@ -226,7 +243,7 @@ pub struct Window {
 
     /// Platform theme.
     #[no_trace]
-    theme: Cell<Theme>,
+    theme: Cell<PrefersColorScheme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -255,10 +272,11 @@ pub struct Window {
     #[no_trace]
     page_clip_rect: Cell<UntypedRect<Au>>,
 
-    /// Flag to suppress reflows. The first reflow will come either with
-    /// RefreshTick or with FirstLoad. Until those first reflows, we want to
-    /// suppress others like MissingExplicitReflow.
-    suppress_reflow: Cell<bool>,
+    /// See the documentation for [`LayoutBlocker`]. Essentially, this flag prevents
+    /// layouts from happening before the first load event, apart from a few exceptional
+    /// cases.
+    #[no_trace]
+    layout_blocker: Cell<LayoutBlocker>,
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_malloc_size_of = "channels are hard"]
@@ -1769,7 +1787,6 @@ impl Window {
                 scroll_id,
                 scroll_offset: Vector2D::new(-x, -y),
             }),
-            ReflowReason::ScrollFromScript,
             can_gc,
         );
     }
@@ -1809,41 +1826,30 @@ impl Window {
         ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
     }
 
-    pub(crate) fn reflows_suppressed(&self) -> bool {
-        self.suppress_reflow.get()
-    }
-
     /// Reflows the page unconditionally if possible and not suppressed. This method will wait for
     /// the layout to complete. If there is no window size yet, the page is presumed invisible and
     /// no reflow is performed. If reflow is suppressed, no reflow will be performed for ForDisplay
     /// goals.
     ///
     /// Returns true if layout actually happened, false otherwise.
+    ///
+    /// NOTE: This method should almost never be called directly! Layout and rendering updates should
+    /// happen as part of the HTML event loop via *update the rendering*.
     #[allow(unsafe_code)]
-    pub(crate) fn force_reflow(
+    fn force_reflow(
         &self,
         reflow_goal: ReflowGoal,
-        reason: ReflowReason,
         condition: Option<ReflowTriggerCondition>,
     ) -> bool {
         self.Document().ensure_safe_to_run_script_or_layout();
-        // Check if we need to unsuppress reflow. Note that this needs to be
-        // *before* any early bailouts, or reflow might never be unsuppresed!
-        match reason {
-            ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
-            _ => (),
-        }
 
-        let for_display = reflow_goal.needs_display();
+        // If layouts are blocked, we block all layouts that are for display only. Other
+        // layouts (for queries and scrolling) are not blocked, as they do not display
+        // anything and script excpects the layout to be up-to-date after they run.
+        let layout_blocked = self.layout_blocker.get().layout_blocked();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-
-        // If this was just a normal reflow (not triggered by script which forces reflow),
-        // and the document is still suppressing reflows, exit early.
-        if reflow_goal == ReflowGoal::Full && self.suppress_reflow.get() {
-            debug!(
-                "Suppressing reflow pipeline {} for reason {:?} before FirstLoad or RefreshTick",
-                pipeline_id, reason
-            );
+        if reflow_goal == ReflowGoal::UpdateTheRendering && layout_blocked {
+            debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
             return false;
         }
 
@@ -1860,8 +1866,7 @@ impl Window {
             debug!("Not invalidating cached layout values for paint-only reflow.");
         }
 
-        debug!("script: performing reflow for reason {:?}", reason);
-
+        debug!("script: performing reflow for goal {reflow_goal:?}");
         let marker = if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
             Some(TimelineMarker::start("Reflow".to_owned()))
         } else {
@@ -1873,7 +1878,7 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if self.relayout_event {
-            debug_reflow_events(pipeline_id, &reflow_goal, &reason);
+            debug_reflow_events(pipeline_id, &reflow_goal);
         }
 
         let document = self.Document();
@@ -1882,6 +1887,7 @@ impl Window {
 
         // If this reflow is for display, ensure webgl canvases are composited with
         // up-to-date contents.
+        let for_display = reflow_goal.needs_display();
         if for_display {
             #[cfg(feature = "webgpu")]
             document.flush_dirty_webgpu_canvases();
@@ -1895,11 +1901,6 @@ impl Window {
             .filter(|_| !stylesheets_changed)
             .or_else(|| document.GetDocumentElement())
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
-
-        let theme = match self.theme.get() {
-            Theme::Light => style::queries::values::PrefersColorScheme::Light,
-            Theme::Dark => style::queries::values::PrefersColorScheme::Dark,
-        };
 
         // Send new document and relevant styles to layout.
         let reflow = ScriptReflow {
@@ -1917,7 +1918,7 @@ impl Window {
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
-            theme,
+            theme: self.theme.get(),
         };
 
         self.layout.borrow_mut().reflow(reflow);
@@ -1977,26 +1978,25 @@ impl Window {
         true
     }
 
-    /// Reflows the page if it's possible to do so and the page is dirty.
+    /// Reflows the page if it's possible to do so and the page is dirty. Returns true if layout
+    /// actually happened, false otherwise.
     ///
-    /// Returns true if layout actually happened, false otherwise.
-    /// This return value is useful for script queries, that wait for a lock
-    /// that layout might hold if the first layout hasn't happened yet (which
-    /// may happen in the only case a query reflow may bail out, that is, if the
-    /// viewport size is not present). See #11223 for an example of that.
-    pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason, can_gc: CanGc) -> bool {
+    /// NOTE: This method should almost never be called directly! Layout and rendering updates
+    /// should happen as part of the HTML event loop via *update the rendering*. Currerntly, the
+    /// only exceptions are script queries and scroll requests.
+    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal, can_gc: CanGc) -> bool {
         // Fetch the pending web fonts before layout, in case a font loads during
         // the layout.
         let pending_web_fonts = self.layout.borrow().waiting_for_web_fonts_to_load();
 
         self.Document().ensure_safe_to_run_script_or_layout();
-        let for_display = reflow_goal == ReflowGoal::Full;
 
         let mut issued_reflow = false;
         let condition = self.Document().needs_reflow();
-        if !for_display || condition.is_some() {
+        let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
+        if !updating_the_rendering || condition.is_some() {
             debug!("Reflowing document ({:?})", self.pipeline_id());
-            issued_reflow = self.force_reflow(reflow_goal, reason, condition);
+            issued_reflow = self.force_reflow(reflow_goal, condition);
 
             // We shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
@@ -2004,16 +2004,16 @@ impl Window {
             assert!(
                 {
                     condition.is_none() ||
-                        (!for_display &&
+                        (!updating_the_rendering &&
                             condition == Some(ReflowTriggerCondition::PaintPostponed)) ||
-                        self.suppress_reflow.get()
+                        self.layout_blocker.get().layout_blocked()
                 },
                 "condition was {:?}",
                 condition
             );
         } else {
             debug!(
-                "Document ({:?}) doesn't need reflow - skipping it (reason {reason:?})",
+                "Document ({:?}) doesn't need reflow - skipping it (goal {reflow_goal:?})",
                 self.pipeline_id()
             );
         }
@@ -2044,7 +2044,7 @@ impl Window {
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if self.prepare_for_screenshot && for_display {
+        if self.prepare_for_screenshot && updating_the_rendering {
             // Checks if the html element has reftest-wait attribute present.
             // See http://testthewebforward.org/docs/reftests.html
             // and https://web-platform-tests.org/writing-tests/crashtest.html
@@ -2076,6 +2076,66 @@ impl Window {
         issued_reflow
     }
 
+    /// If parsing has taken a long time and reflows are still waiting for the `load` event,
+    /// start allowing them. See <https://github.com/servo/servo/pull/6028>.
+    pub(crate) fn reflow_if_reflow_timer_expired(&self, can_gc: CanGc) {
+        // Only trigger a long parsing time reflow if we are in the first parse of `<body>`
+        // and it started more than `INITIAL_REFLOW_DELAY` ago.
+        if !matches!(
+            self.layout_blocker.get(),
+            LayoutBlocker::Parsing(instant) if instant + INITIAL_REFLOW_DELAY < Instant::now()
+        ) {
+            return;
+        }
+        self.allow_layout_if_necessary(can_gc);
+    }
+
+    /// Block layout for this `Window` until parsing is done. If parsing takes a long time,
+    /// we want to layout anyway, so schedule a moment in the future for when layouts are
+    /// allowed even though parsing isn't finished and we havne't sent a load event.
+    pub(crate) fn prevent_layout_until_load_event(&self) {
+        // If we have already started parsing or have already fired a load event, then
+        // don't delay the first layout any longer.
+        if !matches!(self.layout_blocker.get(), LayoutBlocker::WaitingForParse) {
+            return;
+        }
+
+        self.layout_blocker
+            .set(LayoutBlocker::Parsing(Instant::now()));
+    }
+
+    /// Inform the [`Window`] that layout is allowed either because `load` has happened
+    /// or because parsing the `<body>` took so long that we cannot wait any longer.
+    pub(crate) fn allow_layout_if_necessary(&self, can_gc: CanGc) {
+        if matches!(
+            self.layout_blocker.get(),
+            LayoutBlocker::FiredLoadEventOrParsingTimerExpired
+        ) {
+            return;
+        }
+
+        self.layout_blocker
+            .set(LayoutBlocker::FiredLoadEventOrParsingTimerExpired);
+        self.Document().set_needs_paint(true);
+
+        // We do this immediately instead of scheduling a future task, because this can
+        // happen if parsing is taking a very long time, which means that the
+        // `ScriptThread` is busy doing the parsing and not doing layouts.
+        //
+        // TOOD(mrobinson): It's expected that this is necessary when in the process of
+        // parsing, as we need to interrupt it to update contents, but why is this
+        // necessary when parsing finishes? Not doing the synchronous update in that case
+        // causes iframe tests to become flaky. It seems there's an issue with the timing of
+        // iframe size updates.
+        //
+        // See <https://github.com/servo/servo/issues/14719>
+        self.reflow(ReflowGoal::UpdateTheRendering, can_gc);
+    }
+
+    pub(crate) fn layout_blocked(&self) -> bool {
+        self.layout_blocker.get().layout_blocked()
+    }
+
     /// If writing a screenshot, synchronously update the layout epoch that it set
     /// in the constellation.
     pub(crate) fn update_constellation_epoch(&self) {
@@ -2095,11 +2155,7 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
-        self.reflow(
-            ReflowGoal::LayoutQuery(query_msg),
-            ReflowReason::Query,
-            can_gc,
-        )
+        self.reflow(ReflowGoal::LayoutQuery(query_msg), can_gc)
     }
 
     pub fn resolved_font_style_query(
@@ -2368,8 +2424,18 @@ impl Window {
         self.window_size.get()
     }
 
-    pub fn set_theme(&self, theme: Theme) {
-        self.theme.set(theme);
+    /// Handle a theme change request, triggering a reflow is any actual change occured.
+    pub(crate) fn handle_theme_change(&self, new_theme: Theme) {
+        let new_theme = match new_theme {
+            Theme::Light => PrefersColorScheme::Light,
+            Theme::Dark => PrefersColorScheme::Dark,
+        };
+
+        if self.theme.get() == new_theme {
+            return;
+        }
+        self.theme.set(new_theme);
+        self.Document().set_needs_paint(true);
     }
 
     pub fn get_url(&self) -> ServoUrl {
@@ -2717,7 +2783,7 @@ impl Window {
             unhandled_resize_event: Default::default(),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
-            suppress_reflow: Cell::new(true),
+            layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
             devtools_marker_sender: Default::default(),
             devtools_markers: Default::default(),
@@ -2747,7 +2813,7 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            theme: Cell::new(Theme::Light),
+            theme: Cell::new(PrefersColorScheme::Light),
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
@@ -2825,10 +2891,9 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
         (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
-fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &ReflowReason) {
+fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal) {
     let goal_string = match *reflow_goal {
-        ReflowGoal::Full => "\tFull",
-        ReflowGoal::TickAnimations => "\tTickAnimations",
+        ReflowGoal::UpdateTheRendering => "\tFull",
         ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
         ReflowGoal::LayoutQuery(ref query_msg) => match *query_msg {
             QueryMsg::ContentBox => "\tContentBoxQuery",
@@ -2846,7 +2911,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         },
     };
 
-    println!("**** pipeline={}\t{}\t{:?}", id, goal_string, reason);
+    println!("**** pipeline={id}\t{goal_string}");
 }
 
 impl Window {

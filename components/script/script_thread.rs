@@ -137,7 +137,7 @@ use crate::dom::serviceworker::TrustedServiceWorkerAddress;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::dom::window::{ReflowReason, Window};
+use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::worklet::WorkletThreadPool;
@@ -1625,7 +1625,7 @@ impl ScriptThread {
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
             if document.is_fully_active() {
-                window.reflow(ReflowGoal::Full, ReflowReason::UpdateTheRendering, can_gc);
+                window.reflow(ReflowGoal::UpdateTheRendering, can_gc);
             }
 
             // TODO: Process top layer removals according to
@@ -1660,7 +1660,7 @@ impl ScriptThread {
         }
 
         let Some((_, document)) = self.documents.borrow().iter().find(|(_, document)| {
-            !document.window().reflows_suppressed() && document.needs_reflow().is_some()
+            !document.window().layout_blocked() && document.needs_reflow().is_some()
         }) else {
             return;
         };
@@ -2254,7 +2254,7 @@ impl ScriptThread {
                 self.handle_resize_inactive_msg(id, new_size)
             },
             ConstellationControlMsg::ThemeChange(_, theme) => {
-                self.handle_theme_change(theme);
+                self.handle_theme_change_msg(theme);
             },
             ConstellationControlMsg::GetTitle(pipeline_id) => {
                 self.handle_get_title_msg(pipeline_id)
@@ -2846,12 +2846,10 @@ impl ScriptThread {
         })
     }
 
-    fn handle_theme_change(&self, theme: Theme) {
-        let docs = self.documents.borrow();
-        for (_, document) in docs.iter() {
-            let window = document.window();
-            window.set_theme(theme);
-            window.force_reflow(ReflowGoal::Full, ReflowReason::ThemeChange, None);
+    /// Handle changes to the theme, triggering reflow if the theme actually changed.
+    fn handle_theme_change_msg(&self, theme: Theme) {
+        for (_, document) in self.documents.borrow().iter() {
+            document.window().handle_theme_change(theme);
         }
     }
 
@@ -2972,7 +2970,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity, CanGc::note());
+            document.set_activity(activity);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
