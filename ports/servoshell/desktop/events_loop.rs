@@ -16,6 +16,8 @@ use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
+use super::app::App;
+
 /// Another process or thread has kicked the OS event loop with EventLoopWaker.
 #[derive(Debug)]
 pub struct WakerEvent;
@@ -84,6 +86,17 @@ impl EventsLoop {
             EventLoop::Winit(None) | EventLoop::Headless(..) => {
                 panic!("Can't access winit event loop while using the fake headless event loop")
             },
+        }
+    }
+    pub fn run_app(self, app: &mut App) {
+        match self.0 {
+            EventLoop::Winit(events_loop) => {
+                let events_loop = events_loop.expect("Can't run an unavailable event loop.");
+                events_loop
+                    .run_app(app)
+                    .expect("Failed while running events loop");
+            },
+            EventLoop::Headless(_) => todo!(),
         }
     }
 

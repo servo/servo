@@ -12,6 +12,8 @@ use servo::servo_config::pref;
 use crate::desktop::app::App;
 use crate::panic_hook;
 
+use super::events_loop::EventsLoop;
+
 pub fn main() {
     crate::crash_handler::install();
     crate::init_tracing();
@@ -99,12 +101,18 @@ pub fn main() {
         None
     };
 
-    App::run(
+    let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
+        .expect("Failed to create events loop");
+
+    let mut app = App::new(
+        &events_loop,
         do_not_use_native_titlebar,
         device_pixel_ratio_override,
         user_agent,
         url_opt.map(|s| s.to_string()),
     );
+
+    events_loop.run_app(&mut app);
 
     crate::platform::deinit(clean_shutdown)
 }
