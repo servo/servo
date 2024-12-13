@@ -847,8 +847,7 @@ impl<'dom> ::selectors::Element for ServoThreadSafeLayoutElement<'dom> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        debug!("ServoThreadSafeLayoutElement::is_html_element_in_html_document called");
-        true
+        self.element.is_html_element_in_html_document()
     }
 
     #[inline]

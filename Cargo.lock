@@ -3915,6 +3915,7 @@ dependencies = [
  "range",
  "rayon",
  "script_layout_interface",
+ "selectors",
  "serde",
  "serde_json",
  "servo_arc",

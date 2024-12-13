@@ -40,6 +40,7 @@ pixels = { path = "../pixels" }
 range = { path = "../range" }
 rayon = { workspace = true }
 script_layout_interface = { workspace = true }
+selectors = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { workspace = true }
