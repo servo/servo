@@ -39,7 +39,7 @@ impl XRJointPose {
         reflect_dom_object(
             Box::new(XRJointPose::new_inherited(&transform, radius)),
             global,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

@@ -192,7 +192,7 @@ impl WebGL2RenderingContext {
         can_gc: CanGc,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs, can_gc)
-            .map(|ctx| reflect_dom_object(Box::new(ctx), window, CanGc::note()))
+            .map(|ctx| reflect_dom_object(Box::new(ctx), window, can_gc))
     }
 
     #[allow(unsafe_code)]

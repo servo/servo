@@ -341,7 +341,8 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     fn Listener(&self) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
-        self.listener.or_init(|| AudioListener::new(window, self))
+        self.listener
+            .or_init(|| AudioListener::new(window, self, CanGc::note()))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange

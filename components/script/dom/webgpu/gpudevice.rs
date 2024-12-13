@@ -166,7 +166,7 @@ impl GPUDevice {
                 lost_promise,
             )),
             global,
-            CanGc::note(),
+            can_gc,
         );
         queue.set_device(&device);
         device

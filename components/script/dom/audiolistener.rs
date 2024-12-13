@@ -154,9 +154,13 @@ impl AudioListener {
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, context: &BaseAudioContext) -> DomRoot<AudioListener> {
+    pub fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        can_gc: CanGc,
+    ) -> DomRoot<AudioListener> {
         let node = AudioListener::new_inherited(window, context);
-        reflect_dom_object(Box::new(node), window, CanGc::note())
+        reflect_dom_object(Box::new(node), window, can_gc)
     }
 }
 

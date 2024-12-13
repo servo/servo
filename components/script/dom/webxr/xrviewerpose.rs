@@ -178,7 +178,7 @@ impl XRViewerPose {
         let pose = reflect_dom_object(
             Box::new(XRViewerPose::new_inherited(&transform)),
             global,
-            CanGc::note(),
+            can_gc,
         );
 
         let cx = GlobalScope::get_cx();
