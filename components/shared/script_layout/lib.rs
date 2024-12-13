@@ -21,7 +21,6 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId};
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
-use crossbeam_channel::Sender;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
 use fonts::SystemFontServiceProxy;
@@ -238,7 +237,7 @@ pub trait Layout {
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>);
 
     /// Requests a reflow.
-    fn reflow(&mut self, script_reflow: ScriptReflow);
+    fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult>;
 
     /// Tells layout that script has added some paint worklet modules.
     fn register_paint_worklet_modules(
@@ -403,14 +402,14 @@ pub struct Reflow {
 
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
-pub struct ReflowComplete {
+pub struct ReflowResult {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
 }
 
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
-pub struct ScriptReflow {
+pub struct ReflowRequest {
     /// General reflow data.
     pub reflow_info: Reflow,
     /// The document node.
@@ -421,8 +420,6 @@ pub struct ScriptReflow {
     pub stylesheets_changed: bool,
     /// The current window size.
     pub window_size: WindowSizeData,
-    /// The channel that we send a notification to.
-    pub script_join_chan: Sender<ReflowComplete>,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
     /// The number of objects in the dom #10110

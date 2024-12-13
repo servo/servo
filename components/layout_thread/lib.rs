@@ -10,7 +10,6 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, LazyLock, Mutex};
 
@@ -63,7 +62,7 @@ use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
-    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
@@ -73,7 +72,7 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSet};
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
@@ -215,42 +214,6 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.paint_time_metrics,
             config.window_size,
         ))
-    }
-}
-
-struct ScriptReflowResult {
-    script_reflow: ScriptReflow,
-    result: RefCell<Option<ReflowComplete>>,
-}
-
-impl Deref for ScriptReflowResult {
-    type Target = ScriptReflow;
-    fn deref(&self) -> &ScriptReflow {
-        &self.script_reflow
-    }
-}
-
-impl DerefMut for ScriptReflowResult {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.script_reflow
-    }
-}
-
-impl ScriptReflowResult {
-    fn new(script_reflow: ScriptReflow) -> ScriptReflowResult {
-        ScriptReflowResult {
-            script_reflow,
-            result: RefCell::new(Some(Default::default())),
-        }
-    }
-}
-
-impl Drop for ScriptReflowResult {
-    fn drop(&mut self) {
-        self.script_reflow
-            .script_join_chan
-            .send(self.result.borrow_mut().take().unwrap())
-            .unwrap();
     }
 }
 
@@ -536,14 +499,13 @@ impl Layout for LayoutThread {
         });
     }
 
-    fn reflow(&mut self, script_reflow: script_layout_interface::ScriptReflow) {
-        let mut result = ScriptReflowResult::new(script_reflow);
+    fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult> {
         time_profile!(
             profile_time::ProfilerCategory::LayoutPerform,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
-            || self.handle_reflow(&mut result),
-        );
+            || self.handle_reflow(reflow_request),
+        )
     }
 
     fn set_scroll_states(&mut self, scroll_states: &[ScrollState]) {
@@ -663,24 +625,21 @@ impl LayoutThread {
         &'a self,
         guards: StylesheetGuards<'a>,
         snapshot_map: &'a SnapshotMap,
-        origin: ImmutableOrigin,
-        animation_timeline_value: f64,
-        animations: &DocumentAnimationSet,
-        stylesheets_changed: bool,
+        reflow_request: &ReflowRequest,
     ) -> LayoutContext<'a> {
-        let traversal_flags = match stylesheets_changed {
+        let traversal_flags = match reflow_request.stylesheets_changed {
             true => TraversalFlags::ForCSSRuleChanges,
             false => TraversalFlags::empty(),
         };
 
         LayoutContext {
             id: self.id,
-            origin,
+            origin: reflow_request.origin.clone(),
             style_context: self.build_shared_style_context(
                 guards,
                 snapshot_map,
-                animation_timeline_value,
-                animations,
+                reflow_request.animation_timeline_value,
+                &reflow_request.animations,
                 traversal_flags,
             ),
             image_cache: self.image_cache.clone(),
@@ -951,25 +910,25 @@ impl LayoutThread {
     }
 
     /// The high-level routine that performs layout.
-    fn handle_reflow(&mut self, data: &mut ScriptReflowResult) {
-        let document = unsafe { ServoLayoutNode::new(&data.document) };
+    fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
+        let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
         let document = document.as_document().unwrap();
 
         // Parallelize if there's more than 750 objects based on rzambre's suggestion
         // https://github.com/servo/servo/issues/10110
-        self.parallel_flag = data.dom_count > 750;
+        self.parallel_flag = reflow_request.dom_count > 750;
         debug!("layout: received layout request for: {}", self.url);
-        debug!("Number of objects in DOM: {}", data.dom_count);
+        debug!("Number of objects in DOM: {}", reflow_request.dom_count);
         debug!("layout: parallel? {}", self.parallel_flag);
 
         let Some(root_element) = document.root_element() else {
             debug!("layout: No root node: bailing");
-            return;
+            return None;
         };
 
         debug!(
             "layout: processing reflow request for: {:?} ({}) (query={:?})",
-            root_element, self.url, data.reflow_goal
+            root_element, self.url, reflow_request.reflow_goal
         );
         trace!("{:?}", ShowSubtree(root_element.as_node()));
 
@@ -986,7 +945,8 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.handle_viewport_change(data.window_size, &guards);
+        let viewport_size_changed =
+            self.handle_viewport_change(reflow_request.window_size, &guards);
         if viewport_size_changed && had_used_viewport_units {
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
@@ -1013,7 +973,7 @@ impl LayoutThread {
             }
         }
 
-        if data.stylesheets_changed {
+        if reflow_request.stylesheets_changed {
             debug!("Doc sheets changed, flushing author sheets too");
             self.stylist
                 .force_stylesheet_origins_dirty(Origin::Author.into());
@@ -1033,7 +993,7 @@ impl LayoutThread {
         // Flush shadow roots stylesheets if dirty.
         document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author);
 
-        let restyles = std::mem::take(&mut data.pending_restyles);
+        let restyles = std::mem::take(&mut reflow_request.pending_restyles);
         debug!("Draining restyles: {}", restyles.len());
 
         let mut map = SnapshotMap::new();
@@ -1070,14 +1030,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(root_element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(
-            guards.clone(),
-            &map,
-            data.origin.clone(),
-            data.animation_timeline_value,
-            &data.animations,
-            data.stylesheets_changed,
-        );
+        let mut layout_context = self.build_layout_context(guards.clone(), &map, &reflow_request);
 
         let pool = STYLE_THREAD_POOL.lock().unwrap();
         let thread_pool = pool.pool();
@@ -1088,7 +1041,7 @@ impl LayoutThread {
         };
 
         let dirty_root = unsafe {
-            ServoLayoutNode::new(&data.dirty_root.unwrap())
+            ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
                 .as_element()
                 .unwrap()
         };
@@ -1163,8 +1116,8 @@ impl LayoutThread {
         if let Some(mut root_flow) = self.root_flow.borrow().clone() {
             self.perform_post_style_recalc_layout_passes(
                 &mut root_flow,
-                &data.reflow_info,
-                &data.reflow_goal,
+                &reflow_request.reflow_info,
+                &reflow_request.reflow_goal,
                 &mut layout_context,
                 thread_pool,
             );
@@ -1172,12 +1125,12 @@ impl LayoutThread {
 
         self.first_reflow.set(false);
 
-        data.result.borrow_mut().as_mut().unwrap().pending_images =
-            std::mem::take(&mut *layout_context.pending_images.lock().unwrap());
-
-        if let ReflowGoal::UpdateScrollNode(scroll_state) = data.reflow_goal {
+        if let ReflowGoal::UpdateScrollNode(scroll_state) = reflow_request.reflow_goal {
             self.update_scroll_node_state(&scroll_state);
         }
+
+        let pending_images = std::mem::take(&mut *layout_context.pending_images.lock().unwrap());
+        Some(ReflowResult { pending_images })
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {
