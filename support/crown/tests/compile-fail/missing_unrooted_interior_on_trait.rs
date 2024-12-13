@@ -15,7 +15,6 @@ impl TypeHolderTrait for TypeHolder {
     type F = Foo;
 }
 
-
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(Default)]
 struct Foo;
