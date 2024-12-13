@@ -16,6 +16,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
@@ -103,6 +104,8 @@ pub struct HttpState {
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
     pub override_manager: CertificateErrorOverrideManager,
+    // optional for convenience, since the default trait is used in tests and makes its hard to provide a proxy
+    pub embedder_proxy: Mutex<Option<EmbedderProxy>>,
 }
 
 impl Default for HttpState {
@@ -121,6 +124,7 @@ impl Default for HttpState {
                 override_manager.clone(),
             )),
             override_manager,
+            embedder_proxy: Mutex::new(None),
         }
     }
 }
@@ -1591,6 +1595,44 @@ async fn http_network_or_cache_fetch(
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
             // TODO(#33616, #27439): Prompt the user for username and password from the window
+            let proxy = context.state.embedder_proxy.lock().unwrap();
+            let embedder = proxy.as_ref().unwrap();
+            let username_receiver = {
+                let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+                embedder.send((
+                    None,
+                    EmbedderMsg::Prompt(
+                        embedder_traits::PromptDefinition::Input(
+                            "Enter your username".to_string(),
+                            "username".to_string(),
+                            ipc_sender,
+                        ),
+                        embedder_traits::PromptOrigin::Trusted,
+                    ),
+                ));
+                ipc_receiver
+            };
+
+            let password_receiver = {
+                let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+                embedder.send((
+                    None,
+                    EmbedderMsg::Prompt(
+                        embedder_traits::PromptDefinition::Input(
+                            "Enter your password".to_string(),
+                            "password".to_string(),
+                            ipc_sender,
+                        ),
+                        embedder_traits::PromptOrigin::Untrusted,
+                    ),
+                ));
+                ipc_receiver
+            };
+
+            let username = username_receiver.recv().unwrap();
+            let password = password_receiver.recv().unwrap();
+
+            dbg!(&username, &password);
 
             // Wrong, but will have to do until we are able to prompt the user
             // otherwise this creates an infinite loop
