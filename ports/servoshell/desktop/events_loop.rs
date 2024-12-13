@@ -254,10 +254,10 @@ thread_local! {
     static CURRENT_EVENT_LOOP: Cell<Option<*const ActiveEventLoop>> = const { Cell::new(None) };
 }
 
-struct EventLoopGuard;
+pub struct EventLoopGuard;
 
 impl EventLoopGuard {
-    fn new(event_loop: &ActiveEventLoop) -> Self {
+    pub fn new(event_loop: &ActiveEventLoop) -> Self {
         CURRENT_EVENT_LOOP.with(|cell| {
             assert!(
                 cell.get().is_none(),
