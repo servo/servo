@@ -11,7 +11,7 @@ use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
+use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use log::warn;
@@ -29,7 +29,8 @@ use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use url::Url;
 use uuid::Uuid;
 
-use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
+use crate::fetch::methods::{CancellationListener, Data};
+use crate::protocols::get_range_request_bounds;
 use crate::resource_thread::CoreResourceThreadPool;
 
 pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
@@ -132,7 +133,7 @@ impl FileManager {
         file_token: &FileTokenCheck,
         origin: FileOrigin,
         response: &mut Response,
-        range: RangeRequestBounds,
+        range: Option<Range>,
     ) -> Result<(), BlobURLStoreError> {
         self.fetch_blob_buf(
             done_sender,
@@ -285,13 +286,13 @@ impl FileManager {
         id: &Uuid,
         file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
-        range: RangeRequestBounds,
+        range: Option<Range>,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.store.get_impl(id, file_token, origin_in)?;
         match file_impl {
             FileImpl::Memory(buf) => {
-                let range = range
+                let range = get_range_request_bounds(range, buf.size)
                     .get_final(Some(buf.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
@@ -323,7 +324,7 @@ impl FileManager {
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
-                let range = range
+                let range = get_range_request_bounds(range, metadata.size)
                     .get_final(Some(metadata.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
@@ -359,7 +360,7 @@ impl FileManager {
 
                 Ok(())
             },
-            FileImpl::Sliced(parent_id, inner_rel_pos) => {
+            FileImpl::Sliced(parent_id, _inner_rel_pos) => {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary.
                 self.fetch_blob_buf(
@@ -368,9 +369,10 @@ impl FileManager {
                     &parent_id,
                     file_token,
                     origin_in,
-                    RangeRequestBounds::Final(
+                    None,
+                    /*RangeRequestBounds::Final(
                         RelativePos::full_range().slice_inner(&inner_rel_pos),
-                    ),
+                    ),*/
                     response,
                 )
             },

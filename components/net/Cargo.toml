@@ -33,9 +33,11 @@ futures-util = { version = "0.3.30", default-features = false }
 generic-array = "0.14"
 headers = { workspace = true }
 http = { workspace = true }
-hyper = { workspace = true, features = ["client", "http1", "http2", "tcp", "stream"] }
+http-body-util = { workspace = true }
+hyper = { workspace = true, features = ["client", "http1", "http2"] }
 hyper-rustls = { workspace = true }
 hyper_serde = { workspace = true }
+hyper-util = { workspace = true, features = ["client", "client-legacy", "tokio"] }
 imsz = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
@@ -49,6 +51,7 @@ profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
+rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
@@ -62,6 +65,7 @@ tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
 tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
 tokio-rustls = { workspace = true }
 tokio-stream = "0.1"
+tower-service = { workspace = true }
 tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
