@@ -31,7 +31,7 @@ use net_traits::{
     FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
     ResourceTimeValue, ResourceTimingType,
 };
-use rustls::Certificate;
+use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
@@ -675,7 +675,7 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
     context
         .state
         .override_manager
-        .add_override(&Certificate(cert_bytes));
+        .add_override(&CertificateDer::from_slice(&cert_bytes).into_owned());
     Ok(())
 }
 

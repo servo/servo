@@ -16,9 +16,7 @@ use net_traits::{NetworkError, ResourceFetchTiming};
 use tokio::sync::mpsc::unbounded_channel;
 
 use crate::fetch::methods::{Data, DoneChannel, FetchContext};
-use crate::protocols::{
-    get_range_request_bounds, partial_content, range_not_satisfiable_error, ProtocolHandler,
-};
+use crate::protocols::{partial_content, range_not_satisfiable_error, ProtocolHandler};
 
 #[derive(Default)]
 pub struct BlobProtocolHander {}
@@ -44,7 +42,7 @@ impl ProtocolHandler for BlobProtocolHander {
         let is_range_request = range_header.is_some();
         // We will get a final version of this range once we have
         // the length of the data backing the blob.
-        let range = get_range_request_bounds(range_header);
+        //let range = get_range_request_bounds(range_header);
 
         let (id, origin) = match parse_blob_url(&url) {
             Ok((id, origin)) => (id, origin),
@@ -73,7 +71,7 @@ impl ProtocolHandler for BlobProtocolHander {
             &context.file_token,
             origin,
             &mut response,
-            range,
+            range_header,
         ) {
             let _ = done_sender.send(Data::Done);
             let err = match err {
