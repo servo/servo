@@ -23,7 +23,7 @@ use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::device::HostMap;
 use wgpu_core::global::Global;
 use wgpu_core::id;
-use wgpu_core::resource::{BufferAccessError, BufferMapCallback, BufferMapOperation};
+use wgpu_core::resource::{BufferAccessError, BufferMapOperation};
 
 use crate::{wgt, ContextConfiguration, Error, WebGPUMsg};
 
@@ -471,15 +471,15 @@ impl crate::WGPU {
         let (encoder_id, error) =
             global.device_create_command_encoder(device_id, &comm_desc, Some(encoder_id));
         err(error)?;
-        let buffer_cv = wgt::ImageCopyBuffer {
+        let buffer_cv = wgt::TexelCopyBufferInfo {
             buffer: buffer_id,
-            layout: wgt::ImageDataLayout {
+            layout: wgt::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(image_desc.buffer_stride() as u32),
                 rows_per_image: None,
             },
         };
-        let texture_cv = wgt::ImageCopyTexture {
+        let texture_cv = wgt::TexelCopyTextureInfo {
             texture: texture_id,
             mip_level: 0,
             origin: wgt::Origin3d::ZERO,
@@ -511,7 +511,7 @@ impl crate::WGPU {
             let webrender_api = Arc::clone(&self.webrender_api);
             let webrender_document = self.webrender_document;
             let token = self.poller.token();
-            BufferMapCallback::from_rust(Box::from(move |result| {
+            Box::new(move |result| {
                 drop(token);
                 update_wr_image(
                     result,
@@ -524,7 +524,7 @@ impl crate::WGPU {
                     image_desc,
                     presentation_id,
                 );
-            }))
+            })
         };
         let map_op = BufferMapOperation {
             host: HostMap::Read,

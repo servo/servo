@@ -17,13 +17,12 @@ use webrender::{RenderApi, RenderApiSender};
 use webrender_api::{DocumentId, ExternalImageId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
-use wgc::device::queue::SubmittedWorkDoneClosure;
-use wgc::device::{DeviceDescriptor, DeviceLostClosure, ImplicitPipelineIds};
+use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
 use wgc::id;
 use wgc::id::DeviceId;
 use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
-use wgc::resource::{BufferMapCallback, BufferMapOperation};
+use wgc::resource::BufferMapOperation;
 use wgpu_core::command::RenderPassDescriptor;
 use wgpu_core::device::DeviceError;
 use wgpu_core::pipeline::{CreateComputePipelineError, CreateRenderPipelineError};
@@ -178,34 +177,32 @@ impl WGPU {
                         let glob = Arc::clone(&self.global);
                         let resp_sender = sender.clone();
                         let token = self.poller.token();
-                        let callback = BufferMapCallback::from_rust(Box::from(
-                            move |result: BufferAccessResult| {
-                                drop(token);
-                                let response = result.and_then(|_| {
-                                    let global = &glob;
-                                    let (slice_pointer, range_size) =
-                                        global.buffer_get_mapped_range(buffer_id, offset, size)?;
-                                    // SAFETY: guarantee to be safe from wgpu
-                                    let data = unsafe {
-                                        slice::from_raw_parts(
-                                            slice_pointer.as_ptr(),
-                                            range_size as usize,
-                                        )
-                                    };
+                        let callback = Box::from(move |result: BufferAccessResult| {
+                            drop(token);
+                            let response = result.and_then(|_| {
+                                let global = &glob;
+                                let (slice_pointer, range_size) =
+                                    global.buffer_get_mapped_range(buffer_id, offset, size)?;
+                                // SAFETY: guarantee to be safe from wgpu
+                                let data = unsafe {
+                                    slice::from_raw_parts(
+                                        slice_pointer.as_ptr(),
+                                        range_size as usize,
+                                    )
+                                };
 
-                                    Ok(Mapping {
-                                        data: IpcSharedMemory::from_bytes(data),
-                                        range: offset..offset + range_size,
-                                        mode: host_map,
-                                    })
-                                });
-                                if let Err(e) =
-                                    resp_sender.send(WebGPUResponse::BufferMapAsync(response))
-                                {
-                                    warn!("Could not send BufferMapAsync Response ({})", e);
-                                }
-                            },
-                        ));
+                                Ok(Mapping {
+                                    data: IpcSharedMemory::from_bytes(data),
+                                    range: offset..offset + range_size,
+                                    mode: host_map,
+                                })
+                            });
+                            if let Err(e) =
+                                resp_sender.send(WebGPUResponse::BufferMapAsync(response))
+                            {
+                                warn!("Could not send BufferMapAsync Response ({})", e);
+                            }
+                        });
 
                         let operation = BufferMapOperation {
                             host: host_map,
@@ -711,40 +708,32 @@ impl WGPU {
                                 }
                                 let script_sender = self.script_sender.clone();
                                 let devices = Arc::clone(&self.devices);
-                                let callback =
-                                    DeviceLostClosure::from_rust(Box::from(move |reason, msg| {
-                                        let reason = match reason {
-                                            wgt::DeviceLostReason::Unknown => {
-                                                crate::DeviceLostReason::Unknown
-                                            },
-                                            wgt::DeviceLostReason::Destroyed => {
-                                                crate::DeviceLostReason::Destroyed
-                                            },
-                                            // we handle this in WebGPUMsg::FreeDevice
-                                            wgt::DeviceLostReason::Dropped => return,
-                                            wgt::DeviceLostReason::ReplacedCallback => {
-                                                panic!(
-                                                    "DeviceLost callback should only be set once"
-                                                )
-                                            },
-                                        };
-                                        // make device lost by removing error scopes stack
-                                        let _ = devices
-                                            .lock()
-                                            .unwrap()
-                                            .get_mut(&device_id)
-                                            .expect("Device should not be dropped by this point")
-                                            .error_scope_stack
-                                            .take();
-                                        if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
-                                            device,
-                                            pipeline_id,
-                                            reason,
-                                            msg,
-                                        }) {
-                                            warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
-                                        }
-                                    }));
+                                let callback = Box::from(move |reason, msg| {
+                                    let reason = match reason {
+                                        wgt::DeviceLostReason::Unknown => {
+                                            crate::DeviceLostReason::Unknown
+                                        },
+                                        wgt::DeviceLostReason::Destroyed => {
+                                            crate::DeviceLostReason::Destroyed
+                                        },
+                                    };
+                                    // make device lost by removing error scopes stack
+                                    let _ = devices
+                                        .lock()
+                                        .unwrap()
+                                        .get_mut(&device_id)
+                                        .expect("Device should not be dropped by this point")
+                                        .error_scope_stack
+                                        .take();
+                                    if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
+                                        device,
+                                        pipeline_id,
+                                        reason,
+                                        msg,
+                                    }) {
+                                        warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
+                                    }
+                                });
                                 global.device_set_device_lost_closure(device_id, callback);
                                 descriptor
                             });
@@ -1055,12 +1044,12 @@ impl WGPU {
                     WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
                         let global = &self.global;
                         let token = self.poller.token();
-                        let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
+                        let callback = Box::from(move || {
                             drop(token);
                             if let Err(e) = sender.send(WebGPUResponse::SubmittedWorkDone) {
                                 warn!("Could not send SubmittedWorkDone Response ({})", e);
                             }
-                        }));
+                        });
                         global.queue_on_submitted_work_done(queue_id, callback);
                         self.poller.wake();
                     },
