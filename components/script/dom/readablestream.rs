@@ -37,8 +37,8 @@ use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
-use crate::dom::teeunderlyingsource::TeeCancelAlgorithm;
-use crate::dom::types::TeeUnderlyingSource;
+use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
+use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
@@ -259,7 +259,7 @@ impl ReadableStream {
             can_gc,
         );
         stream.enqueue_native(bytes);
-        stream.close_native();
+        stream.controller_close_native();
         stream
     }
 
@@ -406,7 +406,8 @@ impl ReadableStream {
     }
 
     /// Call into the controller's `Close` method.
-    pub fn close_native(&self) {
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
+    pub fn controller_close_native(&self) {
         match self.controller {
             ControllerType::Default(ref controller) => {
                 let _ = controller
@@ -607,15 +608,15 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
-        // step 1
+        // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
-        // step 2
+        // Set stream.[[state]] to "closed".
         self.state.set(ReadableStreamState::Closed);
-        // step 3
+        // Let reader be stream.[[reader]].
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    // step 4
+                    // If reader is undefined, return.
                     return;
                 };
                 // step 5 & 6
@@ -731,7 +732,7 @@ impl ReadableStream {
         let cancel_promise = Promise::new(&self.reflector_.global(), can_gc);
 
         let tee_source_1 = reflect_dom_object(
-            Box::new(TeeUnderlyingSource::new(
+            Box::new(DefaultTeeUnderlyingSource::new(
                 Dom::from_ref(&reader),
                 Dom::from_ref(self),
                 reading.clone(),
@@ -751,7 +752,7 @@ impl ReadableStream {
             UnderlyingSourceType::Tee(Dom::from_ref(&*tee_source_1));
 
         let tee_source_2 = reflect_dom_object(
-            Box::new(TeeUnderlyingSource::new(
+            Box::new(DefaultTeeUnderlyingSource::new(
                 Dom::from_ref(&reader),
                 Dom::from_ref(self),
                 reading,

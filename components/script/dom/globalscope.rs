@@ -659,7 +659,7 @@ fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>) {
 
 /// Callback used to close streams as part of FileListener.
 fn stream_handle_eof(stream: &ReadableStream) {
-    stream.close();
+    stream.controller_close_native();
 }
 
 impl FileListener {

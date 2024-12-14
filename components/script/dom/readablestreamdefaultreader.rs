@@ -24,23 +24,22 @@ use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::teereadrequest::TeeReadRequest;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-request>
-/// For now only one variant: the one matching a `read` call.
 #[derive(JSTraceable)]
 pub enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     Read(Rc<Promise>),
     /// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
-    Tee {
-        tee_read_request: Dom<TeeReadRequest>,
+    DefaultTee {
+        tee_read_request: Dom<DefaultTeeReadRequest>,
     },
 }
 
@@ -54,7 +53,7 @@ impl ReadRequest {
                     value: chunk,
                 });
             },
-            ReadRequest::Tee { tee_read_request } => {
+            ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.enqueue_chunk_steps(chunk);
             },
         }
@@ -73,7 +72,7 @@ impl ReadRequest {
                     value: result,
                 });
             },
-            ReadRequest::Tee { tee_read_request } => {
+            ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.close_steps();
             },
         }
@@ -83,7 +82,7 @@ impl ReadRequest {
     pub fn error_steps(&self, e: SafeHandleValue) {
         match self {
             ReadRequest::Read(promise) => promise.reject_native(&e),
-            ReadRequest::Tee { tee_read_request } => {
+            ReadRequest::DefaultTee { tee_read_request } => {
                 tee_read_request.error_steps();
             },
         }
@@ -234,11 +233,15 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
-        // step 5
+        // Resolve reader.[[closedPromise]] with undefined.
         self.closed_promise.borrow().resolve_native(&());
-        // step 6
+        // If reader implements ReadableStreamDefaultReader,
+        // Let readRequests be reader.[[readRequests]].
         let mut read_requests = self.take_read_requests();
+        // Set reader.[[readRequests]] to an empty list.
+        // For each readRequest of readRequests,
         for request in read_requests.drain(0..) {
+            // Perform readRequest’s close steps.
             request.close_steps();
         }
     }
@@ -386,7 +389,6 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestreamgenericreader-closedpromise%E2%91%A1>
-    #[allow(crown::unrooted_must_root)]
     pub fn append_native_handler_to_closed_promise(
         &self,
         branch_1: &ReadableStream,
@@ -458,7 +460,6 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
-    #[allow(unsafe_code)]
     fn ReleaseLock(&self) {
         if self.stream.get().is_some() {
             // step 2 - Perform ! ReadableStreamDefaultReaderRelease(this).
