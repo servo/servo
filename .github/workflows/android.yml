@@ -79,6 +79,14 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: r26c
+      - name: Setup Gradle caches
+        uses: gradle/actions/setup-gradle@v4
+      - name: Trigger initial download of Gradle with retries
+        run: |
+          for i in {1..4}; do
+            ./gradlew --version && break || { echo "Downloading Gradle failed (attempt $i)." && sleep $((3 ** $i)); };
+          done
+        working-directory: ./support/android/apk/
       - name: Setup Key Store for APK Signing
         env:
           KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
