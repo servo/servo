@@ -1596,13 +1596,13 @@ async fn http_network_or_cache_fetch(
         if !http_request.use_url_credentials || authentication_fetch_flag {
             // TODO(#33616, #27439): Prompt the user for username and password from the window
             let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-            if let Some((_username, _password)) = credentials {
-            } else {
-                // Wrong, but will have to do until we are able to prompt the user
-                // otherwise this creates an infinite loop
-                // We basically pretend that the user declined to enter credentials (#33616)
-                return response;
+            if let Some((username, password)) = credentials {
+                dbg!(username, password);
             }
+            // Wrong, but will have to do until we are able to prompt the user
+            // otherwise this creates an infinite loop
+            // We basically pretend that the user declined to enter credentials (#33616)
+            return response;
         }
 
         // Make sure this is set to None,
@@ -1634,11 +1634,13 @@ async fn http_network_or_cache_fetch(
 
         // TODO(#33616): Step 15.3 If fetchParams is canceled, then return
         // the appropriate network error for fetchParams.
-        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window and store the
-        // result as a proxy-authentication entry.
 
-        // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
-
+        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window
+        let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
+        if let Some((_username, _password)) = credentials {
+            // TODO(#33616): store the result as a proxy-authentication entry.
+            // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
+        }
         // Wrong, but will have to do until we are able to prompt the user
         // otherwise this creates an infinite loop
         // We basically pretend that the user declined to enter credentials (#33616)
