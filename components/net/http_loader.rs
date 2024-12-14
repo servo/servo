@@ -1595,49 +1595,14 @@ async fn http_network_or_cache_fetch(
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
             // TODO(#33616, #27439): Prompt the user for username and password from the window
-            let proxy = context.state.embedder_proxy.lock().unwrap();
-            let embedder = proxy.as_ref().unwrap();
-            let username_receiver = {
-                let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
-                embedder.send((
-                    None,
-                    EmbedderMsg::Prompt(
-                        embedder_traits::PromptDefinition::Input(
-                            "Enter your username".to_string(),
-                            "username".to_string(),
-                            ipc_sender,
-                        ),
-                        embedder_traits::PromptOrigin::Trusted,
-                    ),
-                ));
-                ipc_receiver
-            };
-
-            let password_receiver = {
-                let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
-                embedder.send((
-                    None,
-                    EmbedderMsg::Prompt(
-                        embedder_traits::PromptDefinition::Input(
-                            "Enter your password".to_string(),
-                            "password".to_string(),
-                            ipc_sender,
-                        ),
-                        embedder_traits::PromptOrigin::Untrusted,
-                    ),
-                ));
-                ipc_receiver
-            };
-
-            let username = username_receiver.recv().unwrap();
-            let password = password_receiver.recv().unwrap();
-
-            dbg!(&username, &password);
-
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials (#33616)
-            return response;
+            let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
+            if let Some((_username, _password)) = credentials {
+            } else {
+                // Wrong, but will have to do until we are able to prompt the user
+                // otherwise this creates an infinite loop
+                // We basically pretend that the user declined to enter credentials (#33616)
+                return response;
+            }
         }
 
         // Make sure this is set to None,
@@ -1777,6 +1742,62 @@ impl Drop for ResponseEndTimer {
                 .set_attribute(ResourceAttribute::ResponseEnd);
         })
     }
+}
+
+fn prompt_user_for_credentials(
+    embedder_proxy: &Mutex<Option<EmbedderProxy>>,
+) -> Option<(Option<String>, Option<String>)> {
+    let Ok(guard) = embedder_proxy.lock() else {
+        warn!("error while acquiring mutex for embedder proxy");
+        return None;
+    };
+
+    let Some(embedder_proxy) = guard.as_ref() else {
+        warn!("embedder proxy doesn't exist.");
+        return None;
+    };
+
+    let username_receiver = {
+        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+        embedder_proxy.send((
+            None,
+            EmbedderMsg::Prompt(
+                embedder_traits::PromptDefinition::Input(
+                    "Enter username".to_string(),
+                    "username".to_string(),
+                    ipc_sender,
+                ),
+                embedder_traits::PromptOrigin::Trusted,
+            ),
+        ));
+        ipc_receiver
+    };
+    let Ok(username) = username_receiver.recv() else {
+        warn!("error getting username");
+        return None;
+    };
+
+    let password_receiver = {
+        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+        embedder_proxy.send((
+            None,
+            EmbedderMsg::Prompt(
+                embedder_traits::PromptDefinition::Input(
+                    "Enter password".to_string(),
+                    "password".to_string(),
+                    ipc_sender,
+                ),
+                embedder_traits::PromptOrigin::Trusted,
+            ),
+        ));
+        ipc_receiver
+    };
+    let Ok(password) = password_receiver.recv() else {
+        warn!("error getting password");
+        return None;
+    };
+
+    Some((username, password))
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
