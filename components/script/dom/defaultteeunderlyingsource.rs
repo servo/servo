@@ -10,7 +10,7 @@ use js::jsapi::{Heap, Value};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue as SafeHandleValue;
 
-use super::bindings::root::MutNullableDom;
+use super::bindings::root::{DomRoot, MutNullableDom};
 use super::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -21,6 +21,7 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
 pub enum TeeCancelAlgorithm {
     Cancel1Algorithm,
     Cancel2Algorithm,
@@ -52,8 +53,6 @@ pub struct DefaultTeeUnderlyingSource {
     reason_2: Rc<Box<Heap<Value>>>,
     #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "TeeCancelAlgorithm"]
-    #[no_trace]
     tee_cancel_algorithm: TeeCancelAlgorithm,
 }
 
@@ -62,8 +61,8 @@ impl DefaultTeeUnderlyingSource {
     #[allow(clippy::redundant_allocation)]
     #[allow(crown::unrooted_must_root)]
     pub fn new(
-        reader: Dom<ReadableStreamDefaultReader>,
-        stream: Dom<ReadableStream>,
+        reader: &ReadableStreamDefaultReader,
+        stream: &ReadableStream,
         reading: Rc<Cell<bool>>,
         read_again: Rc<Cell<bool>>,
         canceled_1: Rc<Cell<bool>>,
@@ -73,23 +72,26 @@ impl DefaultTeeUnderlyingSource {
         reason_2: Rc<Box<Heap<Value>>>,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: TeeCancelAlgorithm,
-    ) -> DefaultTeeUnderlyingSource {
-        DefaultTeeUnderlyingSource {
-            reflector_: Reflector::new(),
-            reader,
-            stream,
-            branch_1: MutNullableDom::new(None),
-            branch_2: MutNullableDom::new(None),
-            reading,
-            read_again,
-            canceled_1,
-            canceled_2,
-            clone_for_branch_2,
-            reason_1,
-            reason_2,
-            cancel_promise,
-            tee_cancel_algorithm,
-        }
+    ) -> DomRoot<DefaultTeeUnderlyingSource> {
+        reflect_dom_object(
+            Box::new(DefaultTeeUnderlyingSource {
+                reflector_: Reflector::new(),
+                reader: Dom::from_ref(reader),
+                stream: Dom::from_ref(stream),
+                branch_1: MutNullableDom::new(None),
+                branch_2: MutNullableDom::new(None),
+                reading,
+                read_again,
+                canceled_1,
+                canceled_2,
+                clone_for_branch_2,
+                reason_1,
+                reason_2,
+                cancel_promise,
+                tee_cancel_algorithm,
+            }),
+            &*stream.global(),
+        )
     }
 
     pub fn set_branch_1(&self, stream: &ReadableStream) {
@@ -121,20 +123,17 @@ impl DefaultTeeUnderlyingSource {
         self.reading.set(true);
 
         // Let readRequest be a read request with the following items:
-        let tee_read_request = reflect_dom_object(
-            Box::new(DefaultTeeReadRequest::new(
-                self.stream.clone(),
-                &self.branch_1.get().expect("Branch 1 should be set."),
-                &self.branch_2.get().expect("Branch 2 should be set."),
-                self.reading.clone(),
-                self.read_again.clone(),
-                self.canceled_1.clone(),
-                self.canceled_2.clone(),
-                self.clone_for_branch_2.clone(),
-                self.cancel_promise.clone(),
-                Dom::from_ref(self),
-            )),
-            &*self.stream.global(),
+        let tee_read_request = DefaultTeeReadRequest::new(
+            &self.stream,
+            &self.branch_1.get().expect("Branch 1 should be set."),
+            &self.branch_2.get().expect("Branch 2 should be set."),
+            self.reading.clone(),
+            self.read_again.clone(),
+            self.canceled_1.clone(),
+            self.canceled_2.clone(),
+            self.clone_for_branch_2.clone(),
+            self.cancel_promise.clone(),
+            self,
         );
 
         let read_request = ReadRequest::DefaultTee {

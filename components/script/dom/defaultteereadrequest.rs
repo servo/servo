@@ -10,6 +10,8 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
+use super::bindings::reflector::reflect_dom_object;
+use super::bindings::root::DomRoot;
 use super::bindings::structuredclone;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::Dom;
@@ -60,7 +62,7 @@ impl DefaultTeeReadRequest {
     #[allow(clippy::too_many_arguments)]
     #[allow(crown::unrooted_must_root)]
     pub fn new(
-        stream: Dom<ReadableStream>,
+        stream: &ReadableStream,
         branch_1: &ReadableStream,
         branch_2: &ReadableStream,
         reading: Rc<Cell<bool>>,
@@ -69,31 +71,24 @@ impl DefaultTeeReadRequest {
         canceled_2: Rc<Cell<bool>>,
         clone_for_branch_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
-        tee_underlying_source: Dom<DefaultTeeUnderlyingSource>,
-    ) -> Self {
-        DefaultTeeReadRequest {
-            reflector_: Reflector::new(),
-            stream,
-            branch_1: Dom::from_ref(branch_1),
-            branch_2: Dom::from_ref(branch_2),
-            reading,
-            read_again,
-            canceled_1,
-            canceled_2,
-            clone_for_branch_2,
-            cancel_promise,
-            tee_underlying_source,
-        }
-    }
-    /// Call into error of the default controller of branch_1,
-    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
-    pub fn branch_1_default_controller_error(&self, error: SafeHandleValue) {
-        self.branch_1.get_default_controller().error(error);
-    }
-    /// Call into error of the default controller of branch_2,
-    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
-    pub fn branch_2_default_controller_error(&self, error: SafeHandleValue) {
-        self.branch_2.get_default_controller().error(error);
+        tee_underlying_source: &DefaultTeeUnderlyingSource,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(DefaultTeeReadRequest {
+                reflector_: Reflector::new(),
+                stream: Dom::from_ref(stream),
+                branch_1: Dom::from_ref(branch_1),
+                branch_2: Dom::from_ref(branch_2),
+                reading,
+                read_again,
+                canceled_1,
+                canceled_2,
+                clone_for_branch_2,
+                cancel_promise,
+                tee_underlying_source: Dom::from_ref(tee_underlying_source),
+            }),
+            &*stream.global(),
+        )
     }
     /// Call into cancel of the stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
@@ -141,9 +136,16 @@ impl DefaultTeeReadRequest {
                 .is_err()
             {
                 // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
-                self.branch_1_default_controller_error(clone_result.handle());
+                self.readable_stream_default_controller_error(
+                    &self.branch_1,
+                    clone_result.handle(),
+                );
+
                 // Perform ! ReadableStreamDefaultControllerError(branch_2.[[controller]], cloneResult.[[Value]]).
-                self.branch_2_default_controller_error(clone_result.handle());
+                self.readable_stream_default_controller_error(
+                    &self.branch_2,
+                    clone_result.handle(),
+                );
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
                 self.stream_cancel(clone_result.handle(), can_gc);
                 // Return.
@@ -155,14 +157,16 @@ impl DefaultTeeReadRequest {
         }
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_1.[[controller]], chunk1).
         if !self.canceled_1.get() {
-            self.branch_1_default_controller_enqueue(
+            self.readable_stream_default_controller_enqueue(
+                &self.branch_1,
                 unsafe { SafeHandleValue::from_raw(chunk1.handle()) },
                 can_gc,
             );
         }
         // If canceled_2 is false, perform ! ReadableStreamDefaultControllerEnqueue(branch_2.[[controller]], chunk2).
         if !self.canceled_2.get() {
-            self.branch_2_default_controller_enqueue(
+            self.readable_stream_default_controller_enqueue(
+                &self.branch_2,
                 unsafe { SafeHandleValue::from_raw(chunk2.handle()) },
                 can_gc,
             );
@@ -180,11 +184,11 @@ impl DefaultTeeReadRequest {
         self.reading.set(false);
         // If canceled_1 is false, perform ! ReadableStreamDefaultControllerClose(branch_1.[[controller]]).
         if !self.canceled_1.get() {
-            self.branch_1_default_controller_close();
+            self.readable_stream_default_controller_close(&self.branch_1);
         }
         // If canceled_2 is false, perform ! ReadableStreamDefaultControllerClose(branch_2.[[controller]]).
         if !self.canceled_2.get() {
-            self.branch_2_default_controller_close();
+            self.readable_stream_default_controller_close(&self.branch_2);
         }
         // If canceled_1 is false or canceled_2 is false, resolve cancelPromise with undefined.
         if !self.canceled_1.get() || !self.canceled_2.get() {
@@ -196,32 +200,36 @@ impl DefaultTeeReadRequest {
         // Set reading to false.
         self.reading.set(false);
     }
-    /// Call into enqueue of the default controller of branch_1,
+    /// Call into enqueue of the default controller of a stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub fn branch_1_default_controller_enqueue(&self, chunk: SafeHandleValue, can_gc: CanGc) {
-        let _ =
-            self.branch_1
-                .get_default_controller()
-                .enqueue(GlobalScope::get_cx(), chunk, can_gc);
+    fn readable_stream_default_controller_enqueue(
+        &self,
+        stream: &ReadableStream,
+        chunk: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        stream
+            .get_default_controller()
+            .enqueue(GlobalScope::get_cx(), chunk, can_gc)
+            .expect("enqueue failed for stream controller in DefaultTeeReadRequest");
     }
-    /// Call into enqueue of the default controller of branch_2,
-    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub fn branch_2_default_controller_enqueue(&self, chunk: SafeHandleValue, can_gc: CanGc) {
-        let _ =
-            self.branch_2
-                .get_default_controller()
-                .enqueue(GlobalScope::get_cx(), chunk, can_gc);
-    }
-    /// Call into close of the default controller of branch_1,
+
+    /// Call into close of the default controller of a stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub fn branch_1_default_controller_close(&self) {
-        self.branch_1.get_default_controller().close();
+    fn readable_stream_default_controller_close(&self, stream: &ReadableStream) {
+        stream.get_default_controller().close();
     }
-    /// Call into close of the default controller of branch_2,
-    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
-    pub fn branch_2_default_controller_close(&self) {
-        self.branch_2.get_default_controller().close();
+
+    /// Call into error of the default controller of stream,
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
+    fn readable_stream_default_controller_error(
+        &self,
+        stream: &ReadableStream,
+        error: SafeHandleValue,
+    ) {
+        stream.get_default_controller().error(error);
     }
+
     pub fn pull_algorithm(&self) {
         self.tee_underlying_source.pull_algorithm();
     }
