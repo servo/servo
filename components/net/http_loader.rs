@@ -1634,15 +1634,18 @@ async fn http_network_or_cache_fetch(
 
         // TODO(#33616): Step 15.3 If fetchParams is canceled, then return
         // the appropriate network error for fetchParams.
-        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window and store the
-        // result as a proxy-authentication entry.
 
-        // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
-
-        // Wrong, but will have to do until we are able to prompt the user
-        // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials (#33616)
-        return response;
+        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window 
+        let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
+        if let Some((_username, _password)) = credentials {
+            // TODO(#33616): store the result as a proxy-authentication entry.
+            // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
+        } else {
+            // Wrong, but will have to do until we are able to prompt the user
+            // otherwise this creates an infinite loop
+            // We basically pretend that the user declined to enter credentials (#33616)
+            return response;
+        }
     }
 
     // TODO(#33616): Step 16. If all of the following are true:
