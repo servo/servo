@@ -48,7 +48,6 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 /// The fulfillment handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
 struct SourceCancelPromiseFulfillmentHandler {
     #[ignore_malloc_size_of = "Rc are hard"]
     result: Rc<Promise>,
@@ -66,7 +65,6 @@ impl Callback for SourceCancelPromiseFulfillmentHandler {
 /// The rejection handler for the reacting to sourceCancelPromise part of
 /// <https://streams.spec.whatwg.org/#readable-stream-cancel>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[allow(crown::unrooted_must_root)]
 struct SourceCancelPromiseRejectionHandler {
     #[ignore_malloc_size_of = "Rc are hard"]
     result: Rc<Promise>,
@@ -265,7 +263,6 @@ impl ReadableStream {
 
     /// Build a stream backed by a Rust underlying source.
     /// Note: external sources are always paired with a default controller.
-    #[allow(unsafe_code)]
     #[allow(crown::unrooted_must_root)]
     pub fn new_with_external_underlying_source(
         global: &GlobalScope,
@@ -383,12 +380,8 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
-    #[allow(unsafe_code)]
-    pub fn get_stored_error(&self, handle_mut: SafeMutableHandleValue) {
-        unsafe {
-            let cx = GlobalScope::get_cx();
-            self.stored_error.to_jsval(*cx, handle_mut);
-        }
+    pub fn get_stored_error(&self, mut handle_mut: SafeMutableHandleValue) {
+        handle_mut.set(self.stored_error.get());
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
@@ -396,13 +389,9 @@ impl ReadableStream {
     #[allow(unsafe_code)]
     pub fn error_native(&self, error: Error) {
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        unsafe {
-            error
-                .clone()
-                .to_jsval(*cx, &self.global(), rval.handle_mut())
-        };
-        self.error(rval.handle());
+        rooted!(in(*cx) let mut error_val = UndefinedValue());
+        unsafe { error.to_jsval(*cx, &self.global(), error_val.handle_mut()) };
+        self.error(error_val.handle());
     }
 
     /// Call into the controller's `Close` method.
@@ -629,16 +618,16 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
     #[allow(unsafe_code)]
     pub fn cancel(&self, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        // step 1
+        // Set stream.[[disturbed]] to true.
         self.disturbed.set(true);
 
-        // step 2
+        // If stream.[[state]] is "closed", return a promise resolved with undefined.
         if self.is_closed() {
             let promise = Promise::new(&self.reflector_.global(), can_gc);
             promise.resolve_native(&());
             return promise;
         }
-        // step 3
+        // If stream.[[state]] is "errored", return a promise rejected with stream.[[storedError]].
         if self.is_errored() {
             let promise = Promise::new(&self.reflector_.global(), can_gc);
             unsafe {
@@ -649,7 +638,7 @@ impl ReadableStream {
                 return promise;
             }
         }
-        // step 4
+        // Perform ! ReadableStreamClose(stream).
         self.close();
         // step 5, 6, 7, 8
         // TODO: run the bytes reader steps.
@@ -721,55 +710,46 @@ impl ReadableStream {
         // Let canceled2 be false.
         let canceled_2 = Rc::new(Cell::new(false));
 
-        let cx = GlobalScope::get_cx();
         // Let reason1 be undefined.
-        rooted!(in(*cx) let mut reason_1_value = UndefinedValue());
-        let reason_1 = Rc::new(Heap::boxed(reason_1_value.get()));
+        let reason_1 = Rc::new(Heap::boxed(UndefinedValue()));
         // Let reason2 be undefined.
-        rooted!(in(*cx) let mut reason_2_value = UndefinedValue());
-        let reason_2 = Rc::new(Heap::boxed(reason_2_value.get()));
+        let reason_2 = Rc::new(Heap::boxed(UndefinedValue()));
         // Let cancelPromise be a new promise.
         let cancel_promise = Promise::new(&self.reflector_.global(), can_gc);
 
-        let tee_source_1 = reflect_dom_object(
-            Box::new(DefaultTeeUnderlyingSource::new(
-                Dom::from_ref(&reader),
-                Dom::from_ref(self),
-                reading.clone(),
-                read_again.clone(),
-                canceled_1.clone(),
-                canceled_2.clone(),
-                clone_for_branch_2.clone(),
-                reason_1.clone(),
-                reason_2.clone(),
-                cancel_promise.clone(),
-                TeeCancelAlgorithm::Cancel1Algorithm,
-            )),
-            &*self.global(),
+        let tee_source_1 = DefaultTeeUnderlyingSource::new(
+            &reader,
+            self,
+            reading.clone(),
+            read_again.clone(),
+            canceled_1.clone(),
+            canceled_2.clone(),
+            clone_for_branch_2.clone(),
+            reason_1.clone(),
+            reason_2.clone(),
+            cancel_promise.clone(),
+            TeeCancelAlgorithm::Cancel1Algorithm,
         );
 
         let underlying_source_type_branch_1 =
-            UnderlyingSourceType::Tee(Dom::from_ref(&*tee_source_1));
+            UnderlyingSourceType::Tee(Dom::from_ref(&tee_source_1));
 
-        let tee_source_2 = reflect_dom_object(
-            Box::new(DefaultTeeUnderlyingSource::new(
-                Dom::from_ref(&reader),
-                Dom::from_ref(self),
-                reading,
-                read_again,
-                canceled_1.clone(),
-                canceled_2.clone(),
-                clone_for_branch_2,
-                reason_1,
-                reason_2,
-                cancel_promise.clone(),
-                TeeCancelAlgorithm::Cancel2Algorithm,
-            )),
-            &*self.global(),
+        let tee_source_2 = DefaultTeeUnderlyingSource::new(
+            &reader,
+            self,
+            reading,
+            read_again,
+            canceled_1.clone(),
+            canceled_2.clone(),
+            clone_for_branch_2,
+            reason_1,
+            reason_2,
+            cancel_promise.clone(),
+            TeeCancelAlgorithm::Cancel2Algorithm,
         );
 
         let underlying_source_type_branch_2 =
-            UnderlyingSourceType::Tee(Dom::from_ref(&*tee_source_2));
+            UnderlyingSourceType::Tee(Dom::from_ref(&tee_source_2));
 
         // Set branch_1 to ! CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm).
         let branch_1 = create_readable_stream(
@@ -892,8 +872,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
             // Note: this must be done before `setup`,
             // otherwise `thisOb` is null in the start callback.
-            rooted!(in(*cx) let obj = underlying_source_obj.get());
-            controller.set_underlying_source_this_object(obj.handle());
+            controller.set_underlying_source_this_object(underlying_source_obj.handle());
 
             // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
             controller.setup(stream.clone(), can_gc)?;
