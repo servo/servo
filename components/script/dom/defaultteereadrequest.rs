@@ -11,10 +11,10 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
 use super::bindings::structuredclone;
-use super::types::TeeUnderlyingSource;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -23,20 +23,21 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
-pub struct TeeReadRequestMicrotask {
+pub struct DefaultTeeReadRequestMicrotask {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: Box<Heap<JSVal>>,
-    tee_read_request: Dom<TeeReadRequest>,
+    tee_read_request: Dom<DefaultTeeReadRequest>,
 }
 
-impl TeeReadRequestMicrotask {
+impl DefaultTeeReadRequestMicrotask {
     pub fn microtask_chunk_steps(&self, can_gc: CanGc) {
         self.tee_read_request.chunk_steps(&self.chunk, can_gc)
     }
 }
 
 #[dom_struct]
-pub struct TeeReadRequest {
+/// <https://streams.spec.whatwg.org/#ref-for-read-request%E2%91%A2>
+pub struct DefaultTeeReadRequest {
     reflector_: Reflector,
     stream: Dom<ReadableStream>,
     branch_1: Dom<ReadableStream>,
@@ -53,9 +54,9 @@ pub struct TeeReadRequest {
     clone_for_branch_2: Rc<Cell<bool>>,
     #[ignore_malloc_size_of = "Rc"]
     cancel_promise: Rc<Promise>,
-    tee_underlying_source: Dom<TeeUnderlyingSource>,
+    tee_underlying_source: Dom<DefaultTeeUnderlyingSource>,
 }
-impl TeeReadRequest {
+impl DefaultTeeReadRequest {
     #[allow(clippy::too_many_arguments)]
     #[allow(crown::unrooted_must_root)]
     pub fn new(
@@ -68,9 +69,9 @@ impl TeeReadRequest {
         canceled_2: Rc<Cell<bool>>,
         clone_for_branch_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
-        tee_underlying_source: Dom<TeeUnderlyingSource>,
+        tee_underlying_source: Dom<DefaultTeeUnderlyingSource>,
     ) -> Self {
-        TeeReadRequest {
+        DefaultTeeReadRequest {
             reflector_: Reflector::new(),
             stream,
             branch_1: Dom::from_ref(branch_1),
@@ -103,7 +104,7 @@ impl TeeReadRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     pub fn enqueue_chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         // Queue a microtask to perform the following steps:
-        let tee_read_request_chunk = TeeReadRequestMicrotask {
+        let tee_read_request_chunk = DefaultTeeReadRequestMicrotask {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };

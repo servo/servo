@@ -458,7 +458,7 @@ impl Response {
     #[allow(crown::unrooted_must_root)]
     pub fn finish(&self) {
         if let Some(body) = self.body_stream.get() {
-            body.close_native();
+            body.controller_close_native();
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {
