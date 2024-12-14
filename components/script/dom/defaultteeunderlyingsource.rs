@@ -15,10 +15,10 @@ use super::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::import::module::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::Dom;
+use crate::dom::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
-use crate::dom::teereadrequest::TeeReadRequest;
 use crate::script_runtime::CanGc;
 
 pub enum TeeCancelAlgorithm {
@@ -27,7 +27,8 @@ pub enum TeeCancelAlgorithm {
 }
 
 #[dom_struct]
-pub struct TeeUnderlyingSource {
+/// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
+pub struct DefaultTeeUnderlyingSource {
     reflector_: Reflector,
     reader: Dom<ReadableStreamDefaultReader>,
     stream: Dom<ReadableStream>,
@@ -56,7 +57,7 @@ pub struct TeeUnderlyingSource {
     tee_cancel_algorithm: TeeCancelAlgorithm,
 }
 
-impl TeeUnderlyingSource {
+impl DefaultTeeUnderlyingSource {
     #[allow(clippy::too_many_arguments)]
     #[allow(clippy::redundant_allocation)]
     #[allow(crown::unrooted_must_root)]
@@ -72,8 +73,8 @@ impl TeeUnderlyingSource {
         reason_2: Rc<Box<Heap<Value>>>,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: TeeCancelAlgorithm,
-    ) -> TeeUnderlyingSource {
-        TeeUnderlyingSource {
+    ) -> DefaultTeeUnderlyingSource {
+        DefaultTeeUnderlyingSource {
             reflector_: Reflector::new(),
             reader,
             stream,
@@ -121,7 +122,7 @@ impl TeeUnderlyingSource {
 
         // Let readRequest be a read request with the following items:
         let tee_read_request = reflect_dom_object(
-            Box::new(TeeReadRequest::new(
+            Box::new(DefaultTeeReadRequest::new(
                 self.stream.clone(),
                 &self.branch_1.get().expect("Branch 1 should be set."),
                 &self.branch_2.get().expect("Branch 2 should be set."),
@@ -136,7 +137,7 @@ impl TeeUnderlyingSource {
             &*self.stream.global(),
         );
 
-        let read_request = ReadRequest::Tee {
+        let read_request = ReadRequest::DefaultTee {
             tee_read_request: Dom::from_ref(&tee_read_request),
         };
 
