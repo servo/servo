@@ -191,14 +191,22 @@ unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipal
 
 //TODO is same_origin_domain equivalent to subsumes for our purposes
 pub unsafe extern "C" fn subsumes(obj: *mut JSPrincipals, other: *mut JSPrincipals) -> bool {
-    if let (Some(obj), Some(other)) = (NonNull::new(obj), NonNull::new(other)) {
-        let obj = ServoJSPrincipalsRef::from_raw_nonnull(obj);
-        let other = ServoJSPrincipalsRef::from_raw_nonnull(other);
-        let obj_origin = obj.origin();
-        let other_origin = other.origin();
-        obj_origin.same_origin_domain(&other_origin)
-    } else {
-        warn!("Received null JSPrincipals asrgument.");
-        false
+    match (NonNull::new(obj), NonNull::new(other)) {
+        (Some(obj), Some(other)) => {
+            let obj = ServoJSPrincipalsRef::from_raw_nonnull(obj);
+            let other = ServoJSPrincipalsRef::from_raw_nonnull(other);
+            let obj_origin = obj.origin();
+            let other_origin = other.origin();
+            obj_origin.same_origin_domain(&other_origin)
+        },
+        (None, Some(_)) => {
+            // See https://github.com/servo/servo/issues/32999#issuecomment-2542522289 for why
+            // it's safe to consider the null principal here subsumes all others.
+            true
+        },
+        _ => {
+            warn!("Received null JSPrincipal argument.");
+            false
+        },
     }
 }
