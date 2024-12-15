@@ -259,6 +259,11 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         console_messages(global, messages, LogLevel::Error)
     }
 
+    /// <https://console.spec.whatwg.org/#trace>
+    fn Trace(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Trace)
+    }
+
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {

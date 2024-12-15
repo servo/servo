@@ -15,7 +15,7 @@ namespace console {
   undefined info(any... messages);
   undefined log(any... messages);
   // undefined table(optional any tabularData, optional sequence<DOMString> properties);
-  // undefined trace(any... data);
+  undefined trace(any... data);
   undefined warn(any... messages);
   // undefined dir(optional any item, optional object? options);
   // undefined dirxml(any... data);

@@ -278,7 +278,8 @@ impl ConsoleActor {
             LogLevel::Warn => "warn",
             LogLevel::Error => "error",
             LogLevel::Clear => "clear",
-            _ => "log",
+            LogLevel::Trace => "trace",
+            LogLevel::Log => "log",
         }
         .to_owned();
 

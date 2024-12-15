@@ -280,6 +280,7 @@ pub enum LogLevel {
     Warn,
     Error,
     Clear,
+    Trace,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
