@@ -267,7 +267,10 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {
-            let message = DOMString::from(format!("Assertion failed: {}", stringify_handle_values(messages)));
+            let message = DOMString::from(format!(
+                "Assertion failed: {}",
+                stringify_handle_values(messages)
+            ));
             console_message(global, message, LogLevel::Error);
         }
     }
