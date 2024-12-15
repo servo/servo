@@ -694,6 +694,7 @@ fn run_server(
                     filename: css_error.filename,
                     line_number: css_error.line as usize,
                     column_number: css_error.column as usize,
+                    stacktrace: vec![],
                 };
                 handle_console_message(
                     actors.clone(),

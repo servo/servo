@@ -291,6 +291,15 @@ pub struct ConsoleMessage {
     pub filename: String,
     pub line_number: usize,
     pub column_number: usize,
+    pub stacktrace: Vec<StackFrame>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StackFrame {
+    pub filename: String,
+
+    #[serde(rename = "functionName")]
+    pub function_name: String,
 }
 
 bitflags! {
@@ -328,7 +337,7 @@ pub struct ConsoleLog {
     pub column_number: u32,
     pub time_stamp: u64,
     pub arguments: Vec<String>,
-    // pub stacktrace: Vec<...>,
+    pub stacktrace: Vec<StackFrame>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
