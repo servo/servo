@@ -264,5 +264,32 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
         });
   }, 'sec-fetch-user');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsCrossSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - Cross-site');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key, ['httpsSameSite'], { mime: 'application/javascript' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site');
   </script>
 </html>

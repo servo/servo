@@ -39,7 +39,7 @@ const paddingBox = {
   width: contentBox.width + 4 + 16,
   height: contentBox.height + 1 + 8,
 };
-for (let display of ["block", "flex", "grid"]) {
+for (let display of ["flow-root", "flex", "grid"]) {
   for (let flexDirection of ["row", "row-reverse", "column", "column-reverse"]) {
     if (flexDirection != "row" && display != "flex") {
       // Don't bother retesting with all flexDirection values unless we're actually a flex container

@@ -111,10 +111,10 @@ class ChromeDriverTestDriverProtocolPart(WebDriverTestDriverProtocolPart):
         else:
             self.webdriver.execute_script(message_script)
 
-    def _get_next_message_classic(self, url):
+    def _get_next_message_classic(self, url, script_resume):
         try:
             message_script, self._pending_message = self._pending_message, ""
-            return self.parent.base.execute_script(message_script + self.script_resume,
+            return self.parent.base.execute_script(message_script + script_resume,
                                                    asynchronous=True,
                                                    args=[strip_server(url)])
         except error.JavascriptErrorException as js_error:

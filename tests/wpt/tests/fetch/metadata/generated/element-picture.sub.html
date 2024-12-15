@@ -579,6 +579,141 @@ Sources:
     const key = '{{uuid()}}';
 
     return induceRequest(
+        makeRequestURL(key, ['httpOrigin']),
+        'img',
+        'src',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - img[src] - Not sent to non-trustworthy same-origin destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpOrigin']),
+        'img',
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - img[srcset] - Not sent to non-trustworthy same-origin destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpOrigin']),
+        'source',
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - source[srcset] - Not sent to non-trustworthy same-origin destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpSameSite']),
+        'img',
+        'src',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - img[src] - Not sent to non-trustworthy same-site destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpSameSite']),
+        'img',
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - img[srcset] - Not sent to non-trustworthy same-site destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpSameSite']),
+        'source',
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - source[srcset] - Not sent to non-trustworthy same-site destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpCrossSite']),
+        'img',
+        'src',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - img[src] - Not sent to non-trustworthy cross-site destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpCrossSite']),
+        'img',
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - img[srcset] - Not sent to non-trustworthy cross-site destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpCrossSite']),
+        'source',
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - source[srcset] - Not sent to non-trustworthy cross-site destination, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
         makeRequestURL(key, ['httpsOrigin', 'httpOrigin']),
         'img',
         'src',

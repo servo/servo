@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Gradient in HSL space - reference</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        div {
+            width: 200px;
+            height: 50px;
+            margin: 10px;
+            background-image: linear-gradient(to right in hsl longer hue, red 0%, red var(--pos) var(--pos), red 100%);
+        }
+    </style>
+</head>
+
+<body>
+    <div style="--pos: 0%"></div>
+    <div style="--pos: 25%"></div>
+    <div style="--pos: 50%"></div>
+    <div style="--pos: 75%"></div>
+    <div style="--pos: 100%"></div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!-- Tests that select respects explicit size -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="select-font-size-ref.tentative.html">
+
+<style>
+select {
+  font-size:48px;
+}
+</style>
+<select>
+  <option>option</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>
+

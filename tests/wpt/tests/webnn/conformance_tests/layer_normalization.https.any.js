@@ -31,6 +31,26 @@ const getLayerNormPrecisionTolerance = (graphResources) => {
 
 const layerNormTests = [
   {
+    'name': 'layerNormalization float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'layerNormInput': {
+          'data': [-35.51446533203125],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'layerNormalization',
+        'arguments': [{'input': 'layerNormInput'}],
+        'outputs': 'layerNormOutput'
+      }],
+      'expectedOutputs': {
+        'layerNormOutput':
+            {'data': [0], 'descriptor': {shape: [], dataType: 'float32'}}
+      }
+    }
+  },
+  {
     'name': 'layerNormalization float32 2D tensor default options',
     'graph': {
       'inputs': {
@@ -64,6 +84,87 @@ const layerNormTests = [
             1.2018805742263794,   -1.215880036354065,  0.378618448972702,
             -1.795186161994934,   -0.6376377940177917, 1.1961140632629395,
             0.034106940031051636, 0.9297415614128113,  0.2728613615036011
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'layerNormalization float32 2D tensor axes=[] and options.bias',
+    'graph': {
+      'inputs': {
+        'layerNormInput': {
+          'data': [
+            -35.51446533203125,  54.735408782958984,  19.659019470214844,
+            -15.882678031921387, 65.48657989501953,   25.818492889404297,
+            97.55302429199219,   -8.057161331176758,  62.9412956237793,
+            -48.91555404663086,  91.90644073486328,   46.67098617553711,
+            -74.85331726074219,  30.126361846923828,  26.13089370727539,
+            59.30270767211914,   -60.361995697021484, 18.55615234375,
+            -88.03730773925781,  -26.5667724609375,   70.81292724609375,
+            9.105611801147461,   56.66746139526367,   21.78444480895996
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
+        },
+        'layerNormBias': {
+          'data': [7.862982749938965],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'layerNormalization',
+        'arguments': [
+          {'input': 'layerNormInput'},
+          {'options': {'axes': [], 'bias': 'layerNormBias'}}
+        ],
+        'outputs': 'layerNormOutput'
+      }],
+      'expectedOutputs': {
+        'layerNormOutput': {
+          'data': [
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965,
+            7.862982749938965, 7.862982749938965, 7.862982749938965
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'layerNormalization float32 2D tensor axes=[]',
+    'graph': {
+      'inputs': {
+        'layerNormInput': {
+          'data': [
+            -35.51446533203125,  54.735408782958984,  19.659019470214844,
+            -15.882678031921387, 65.48657989501953,   25.818492889404297,
+            97.55302429199219,   -8.057161331176758,  62.9412956237793,
+            -48.91555404663086,  91.90644073486328,   46.67098617553711,
+            -74.85331726074219,  30.126361846923828,  26.13089370727539,
+            59.30270767211914,   -60.361995697021484, 18.55615234375,
+            -88.03730773925781,  -26.5667724609375,   70.81292724609375,
+            9.105611801147461,   56.66746139526367,   21.78444480895996
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'layerNormalization',
+        'arguments': [{'input': 'layerNormInput'}, {'options': {'axes': []}}],
+        'outputs': 'layerNormOutput'
+      }],
+      'expectedOutputs': {
+        'layerNormOutput': {
+          'data': [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
           ],
           'descriptor': {shape: [4, 6], dataType: 'float32'}
         }

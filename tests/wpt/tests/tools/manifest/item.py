@@ -166,7 +166,7 @@ class TestharnessTest(URLManifestItem):
         return self._extras.get("pac")
 
     @property
-    def testdriver(self) -> Optional[Text]:
+    def testdriver(self) -> Optional[bool]:
         return self._extras.get("testdriver")
 
     @property
@@ -240,6 +240,10 @@ class RefTest(URLManifestItem):
             rv[key] = v
         return rv
 
+    @property
+    def testdriver(self) -> Optional[bool]:
+        return self._extras.get("testdriver")
+
     def to_json(self) -> Tuple[Optional[Text], List[Tuple[Text, Text]], Dict[Text, Any]]:  # type: ignore
         rel_url = None if self._url == self.path else self._url
         rv: Tuple[Optional[Text], List[Tuple[Text, Text]], Dict[Text, Any]] = (rel_url, self.references, {})
@@ -252,6 +256,8 @@ class RefTest(URLManifestItem):
             extras["dpi"] = self.dpi
         if self.fuzzy:
             extras["fuzzy"] = list(self.fuzzy.items())
+        if self.testdriver:
+            extras["testdriver"] = self.testdriver
         return rv
 
     @classmethod
@@ -314,6 +320,16 @@ class CrashTest(URLManifestItem):
     @property
     def timeout(self) -> Optional[Text]:
         return None
+
+    @property
+    def testdriver(self) -> Optional[bool]:
+        return self._extras.get("testdriver")
+
+    def to_json(self):  # type: ignore
+        rel_url, extras = super().to_json()
+        if self.testdriver:
+            extras["testdriver"] = self.testdriver
+        return rel_url, extras
 
 
 class WebDriverSpecTest(URLManifestItem):

@@ -40,28 +40,32 @@ promise_test(async () => {
     'The innerHTML of <selectedcontent> should initially match the innerHTML of the selected <option>.');
 
   select.value = 'two';
-  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
     'The innerHTML of <selectedcontent> should change after the selected option is changed.');
 
   let oldInnerHTML = optionTwo.innerHTML;
   spanTwo.textContent = 'new span';
-  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, oldInnerHTML,
     '<selectedcontent> should not respond to <option> text content changes.');
 
   spanTwo.appendChild(document.createElement('div'));
-  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, oldInnerHTML,
     '<selectedcontent> should not respond to new elements being added to descendants of <option>.');
 
   spanTwo.setAttribute('data-foo', 'bar');
-  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, oldInnerHTML,
     '<selectedcontent> should not respond to attributes being added to descendants of <option>.');
 
+  select.value = select.value;
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    '<selectedcontent> should be updated in response to re-assigning select.value.');
+
+  spanTwo.firstElementChild.remove();
+  select.selectedIndex = select.selectedIndex;
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    '<selectedcontent> should be updated in response to re-assigning select.selectedIndex.');
+
   form.reset();
-  await new Promise(queueMicrotask);
   assert_equals(select.value, 'one',
     'form.reset() should change the selects value to one.');
   assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
@@ -70,14 +74,12 @@ promise_test(async () => {
   await test_driver.bless();
   select.showPicker();
   await test_driver.click(optionTwo);
-  await new Promise(queueMicrotask);
   assert_equals(select.value, 'two',
     'Clicking on another option should change select.value.');
   assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
     'Clicking on an option element should update the <selectedcontent>.');
 
   selectedcontent.remove();
-  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, '',
     'Removing the <selectedcontent> from the <select> should make it clear its contents.');
   button.appendChild(selectedcontent);
@@ -85,7 +87,6 @@ promise_test(async () => {
     'Re-inserting the <selectedcontent> should make it update its contents.');
 
   optionTwo.remove();
-  await new Promise(queueMicrotask);
   assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
     'The innerHTML of <selectedcontent> should be updated in response to selected <option> removal.');
   optionOne.remove();

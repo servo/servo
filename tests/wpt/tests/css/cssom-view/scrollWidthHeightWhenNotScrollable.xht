@@ -79,7 +79,7 @@
 
             test(function(){
                 assert_equals(elemOverflow.scrollHeight, 200);
-            }, "elemOverflow.scrollHeight is the height of its scrolled contents (ignoring padding, since we overflowed)");
+            }, "elemOverflow.scrollHeight is the height of its scrolled contents (plus padding, since we overflowed)");
 
             test(function(){
                 assert_equals(elemOverflow.clientWidth, 240);

@@ -232,6 +232,50 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
         });
   }, 'sec-fetch-user - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Cross-site - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Cross-site - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site - history.forward');
   </script>
   </body>
 </html>

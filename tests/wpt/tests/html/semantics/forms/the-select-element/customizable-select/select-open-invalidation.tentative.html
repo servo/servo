@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-40;totalPixels=0-2">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="select-open-invalidation-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select > button {
+  color: red;
+}
+select:open > button {
+  color: green;
+}
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <button>button</button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+(async () => {
+  await test_driver.bless();
+  await new Promise(requestAnimationFrame);
+  try {
+    document.querySelector('select').showPicker();
+  } catch (error) {}
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

@@ -1,4 +1,6 @@
-var callback = arguments[arguments.length - 1];
+const initialized = !!window.__wptrunner_url;
+window.__wptrunner_testdriver_callback = arguments[arguments.length - 1];
+window.__wptrunner_url = arguments.length > 1 ? arguments[0] : location.href;
 var observer = null;
 var root = document.documentElement;
 
@@ -12,7 +14,6 @@ function wait_load() {
     wait_paints();
   }
 }
-
 
 function wait_paints() {
   // As of 2017-04-05, the Chromium web browser exhibits a rendering bug
@@ -32,24 +33,36 @@ function wait_paints() {
 }
 
 function screenshot_if_ready() {
-  if (root &&
-      root.classList.contains("%(classname)s") &&
-      observer === null) {
-    observer = new MutationObserver(wait_paints);
-    observer.observe(root, {attributes: true});
-    var event = new Event("TestRendered", {bubbles: true});
-    root.dispatchEvent(event);
+  if (root && root.classList.contains("%(classname)s")) {
+    if (observer === null) {
+      observer = new MutationObserver(wait_paints);
+      observer.observe(root, {attributes: true});
+      var event = new Event("TestRendered", {bubbles: true});
+      root.dispatchEvent(event);
+    }
     return;
   }
   if (observer !== null) {
     observer.disconnect();
   }
-  callback();
+  if (window.__wptrunner_message_queue) {
+    __wptrunner_message_queue.push({type: "complete"});
+  } else {
+    // Not using `testdriver.js`, so manually post a raw completion message
+    // that the executor understands.
+    __wptrunner_testdriver_callback([__wptrunner_url, "complete", []]);
+  }
 }
 
-
-if (document.readyState != "complete") {
-  addEventListener('load', wait_load);
-} else {
-  wait_load();
+// The `initialized` flag ensures only up to one `load` handler or
+// `MutationObserver` is ever registered.
+if (!initialized) {
+  if (document.readyState != "complete") {
+    addEventListener('load', wait_load, { once: true });
+  } else {
+    wait_load();
+  }
+}
+if (window.__wptrunner_process_next_event) {
+  window.__wptrunner_process_next_event();
 }

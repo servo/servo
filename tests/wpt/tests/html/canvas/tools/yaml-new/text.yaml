@@ -1719,9 +1719,9 @@
                         () => tm.getActualBoundingBox(text.length, text.length + 1) );
     }
 
-- name: 2d.text.measure.caret-position.tentative
+- name: 2d.text.measure.index-from-offset.tentative
   desc: >-
-    Check that TextMetrics::caretPositionFromPoint() matches its DOM equivalent,
+    Check that TextMetrics::getIndexFromOffset() matches its DOM equivalent,
     where possible, with direction {{ text_direction }}, text align
     {{ text_align }}, {{ letter_spacing }} letter spacing and
     {{ variant_names[3] }}.
@@ -1812,7 +1812,7 @@
 
       offset = step;
       adjusted_offset = alignOffset(offset, text_width);
-      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
       doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
       assert_equals(tm_position,
                     doc_position,
@@ -1820,7 +1820,7 @@
 
       offset = text_width / 2 - 10;
       adjusted_offset = alignOffset(offset, text_width);
-      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
       doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
       assert_equals(tm_position,
                     doc_position,
@@ -1828,7 +1828,7 @@
 
       offset = text_width / 2 + 10;
       adjusted_offset = alignOffset(offset, text_width);
-      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
       doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
       assert_equals(tm_position,
                     doc_position,
@@ -1836,7 +1836,7 @@
 
       offset = text_width - step;
       adjusted_offset = alignOffset(offset, text_width);
-      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      tm_position = tm.getIndexFromOffset(adjusted_offset);
       doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
       assert_equals(tm_position,
                     doc_position,
@@ -1867,9 +1867,9 @@
     directional-override:
       use_directional_override: true
 
-- name: 2d.text.measure.caret-position-edges.tentative
+- name: 2d.text.measure.index-from-offset-edges.tentative
   desc: >-
-    Check that TextMetrics::caretPositionFromPoint() gives correct edges when
+    Check that TextMetrics::getIndexFromOffset() gives correct edges when
     the requested point is outside the range, with direction {{ text_direction }}
     and text align {{ text_align }}.
   code: |
@@ -1931,7 +1931,7 @@
     text_width = tm.width;
     for (const multiple of kPoints) {
       offset = multiple * text_width;
-      tm_position = tm.caretPositionFromPoint(offset);
+      tm_position = tm.getIndexFromOffset(offset);
       expected_position = computeExpected(text, text_width, offset);
       assert_equals(tm_position,
                     expected_position,
@@ -1954,9 +1954,9 @@
     align-end:
       text_align: end
 
-- name: 2d.text.measure.caret-position-edge-cases.tentative
+- name: 2d.text.measure.index-from-offset-edge-cases.tentative
   desc: >-
-    Test the edge cases for caretPositionFromPoint, where the point is at the
+    Test the edge cases for getIndexFromOffset, where the point is at the
     edge of glyph and at the midpoint.
   test_type: promise
   fonts:
@@ -1976,16 +1976,16 @@
     const epsilon = 1.0e-4;
 
     tm = ctx.measureText('ABC');
-    @assert tm.caretPositionFromPoint(0) == 0;
-    @assert tm.caretPositionFromPoint(a_width / 2) == 0;
-    @assert tm.caretPositionFromPoint(a_width / 2 + 1) == 1;
-    @assert tm.caretPositionFromPoint(a_width) == 1;
-    @assert tm.caretPositionFromPoint(a_width + b_width / 2) == 1;
-    @assert tm.caretPositionFromPoint(a_width + b_width / 2 + 1) == 2;
-    @assert tm.caretPositionFromPoint(a_width + b_width) == 2;
-    @assert tm.caretPositionFromPoint(a_width + b_width + c_width / 2) == 2;
-    @assert tm.caretPositionFromPoint(a_width + b_width + c_width / 2 + 1) == 3;
-    @assert tm.caretPositionFromPoint(a_width + b_width + c_width) == 3;
+    @assert tm.getIndexFromOffset(0) == 0;
+    @assert tm.getIndexFromOffset(a_width / 2) == 0;
+    @assert tm.getIndexFromOffset(a_width / 2 + 1) == 1;
+    @assert tm.getIndexFromOffset(a_width) == 1;
+    @assert tm.getIndexFromOffset(a_width + b_width / 2) == 1;
+    @assert tm.getIndexFromOffset(a_width + b_width / 2 + 1) == 2;
+    @assert tm.getIndexFromOffset(a_width + b_width) == 2;
+    @assert tm.getIndexFromOffset(a_width + b_width + c_width / 2) == 2;
+    @assert tm.getIndexFromOffset(a_width + b_width + c_width / 2 + 1) == 3;
+    @assert tm.getIndexFromOffset(a_width + b_width + c_width) == 3;
   variants:
   - *load-font-variant-definition
 
@@ -2297,6 +2297,64 @@
     @assert pixel 105,155 ==~ 0,255,0,255;
     @assert pixel 155,155 ==~ 255,0,0,255;
     @assert pixel 205,155 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.text-clusters-rendering-options.tentative
+  desc: >-
+    Test that fillTextCluster() correctly applies the options passed as a
+    dictionary.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [100, 300]
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'E';
+    const tm = ctx.measureText(text);
+    const cluster = tm.getTextClusters()[0];
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0f0';
+
+    // Override the align and baseline of the cluster.
+    ctx.fillTextCluster(cluster, 50, 50, {align: 'right', baseline: 'bottom'});
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 45,5 ==~ 0,255,0,255;
+    @assert pixel 5,45 ==~ 0,255,0,255;
+    @assert pixel 45,45 ==~ 0,255,0,255;
+    @assert pixel 55,5 ==~ 255,0,0,255;
+    @assert pixel 5,55 ==~ 255,0,0,255;
+    @assert pixel 5,55 ==~ 255,0,0,255;
+    @assert pixel 55,55 ==~ 255,0,0,255;
+
+    // Override the x and y values of the cluster.
+    ctx.fillTextCluster(cluster, 0, 100, {x: 10, y: 10});
+    @assert pixel 15,115 ==~ 0,255,0,255;
+    @assert pixel 55,115 ==~ 0,255,0,255;
+    @assert pixel 15,155 ==~ 0,255,0,255;
+    @assert pixel 55,155 ==~ 0,255,0,255;
+    @assert pixel 65,115 ==~ 255,0,0,255;
+    @assert pixel 15,165 ==~ 255,0,0,255;
+    @assert pixel 65,165 ==~ 255,0,0,255;
+
+    // Override the align, baseline, x, and y values of the cluster.
+    ctx.fillTextCluster(cluster, 50, 250,
+                        {align: 'right', baseline: 'bottom', x: 10,  y: 10});
+    @assert pixel 15,215 ==~ 0,255,0,255;
+    @assert pixel 55,215 ==~ 0,255,0,255;
+    @assert pixel 15,255 ==~ 0,255,0,255;
+    @assert pixel 55,255 ==~ 0,255,0,255;
+    @assert pixel 65,215 ==~ 255,0,0,255;
+    @assert pixel 15,265 ==~ 255,0,0,255;
+    @assert pixel 65,265 ==~ 255,0,0,255;
   variants:
   - *load-font-variant-definition
 

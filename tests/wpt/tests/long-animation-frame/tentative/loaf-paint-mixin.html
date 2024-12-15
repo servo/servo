@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: paint mixin</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: paint mixin</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+    assert_implements("paintTime" in window.PerformanceLongAnimationFrameTiming.prototype, "PerformanceLongAnimationFrameTiming doesn't expose `paintTime`");
+    document.querySelector("#log").innerText = "Text";
+    const entry = await generate_long_animation_frame();
+    assert_equals(entry.paintTime, entry.startTime + entry.duration);
+    assert_greater_than(entry.presentationTime, entry.paintTime);
+}, 'A LoAF that generates a frame should have paintTime/presentationTime');
+</script>
+</body>

@@ -553,6 +553,37 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
       });
   }, 'sec-fetch-user no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsCrossSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+      });
+  }, 'sec-fetch-storage-access - Cross-site no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      t,
+      makeRequestURL(key, ['httpsSameSite']),
+      {}
+    );
+
+    return retrieve(key, {poll:true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+      });
+  }, 'sec-fetch-storage-access - Same site no attributes');
   </script>
   </body>
 </html>

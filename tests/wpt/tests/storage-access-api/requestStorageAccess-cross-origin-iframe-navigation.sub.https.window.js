@@ -44,6 +44,9 @@
 
     assert_true(await FrameHasStorageAccess(frame), "frame has storage access after refresh.");
     assert_true(await HasUnpartitionedCookie(frame), "frame has access to cookies after refresh.");
+
+    let cookieOnLoad = await GetHTTPCookiesFromFrame(frame);
+    assert_true(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has cookie in initial load");
   }, "Self-initiated reloads preserve storage access");
 
   promise_test(async (t) => {
@@ -56,6 +59,8 @@
 
     assert_true(await FrameHasStorageAccess(frame), "frame has storage access after refresh.");
     assert_true(await HasUnpartitionedCookie(frame), "frame has access to cookies after refresh.");
+    let cookieOnLoad = await GetHTTPCookiesFromFrame(frame);
+    assert_true(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has cookie in initial load");
   }, "Self-initiated same-origin navigations preserve storage access");
 
   promise_test(async (t) => {
@@ -71,6 +76,8 @@
 
     assert_false(await FrameHasStorageAccess(frame), "frame does not have storage access after refresh.");
     assert_false(await HasUnpartitionedCookie(frame), "frame has access to cookies after refresh.");
+    let cookieOnLoad = await GetHTTPCookiesFromFrame(frame);
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has no cookie in initial load");
   }, "Non-self-initiated same-origin navigations do not preserve storage access");
 
   promise_test(async (t) => {
@@ -83,5 +90,7 @@
 
     assert_false(await FrameHasStorageAccess(frame), "frame does not have storage access after refresh.");
     assert_false(await HasUnpartitionedCookie(frame), "frame has access to cookies after refresh.");
+    let cookieOnLoad = await GetHTTPCookiesFromFrame(frame);
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has no cookie in initial load");
   }, "Self-initiated cross-origin navigations do not preserve storage access");
 })();

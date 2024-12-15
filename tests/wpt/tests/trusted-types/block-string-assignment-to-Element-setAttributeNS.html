@@ -4,7 +4,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
-
+  <script src="support/namespaces.js"></script>
   <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
 </head>
 <body>
@@ -25,11 +25,11 @@
 
     // Unknown attributes should not be TT checked:
     test(t => {
-      assert_element_accepts_non_trusted_type_set_ns('a', 'b', 'A string', 'A string', htmlNamespace, null);
+      assert_element_accepts_value_set_ns('a', 'b', 'A string', 'A string', htmlNamespace, null);
     }, "Element.setAttributeNS accepts untrusted string for non-specced accessor");
 
     test(t => {
-      assert_element_accepts_non_trusted_type_set_ns('a', 'b', null, 'null', htmlNamespace, null);
+      assert_element_accepts_value_set_ns('a', 'b', null, 'null', htmlNamespace, null);
     }, "Element.setAttributeNS accepts null for non-specced accessor");
 
     // Setup trusted values for use in subsequent tests.
@@ -37,25 +37,22 @@
     const html = createHTML_policy(window, '6').createHTML(INPUTS.HTML);
     const script = createScript_policy(window, '7').createScript(INPUTS.Script);
 
-    const xlinkNamespace = "http://www.w3.org/1999/xlink";
-    const svgNamespace = "http://www.w3.org/2000/svg";
-
     // svg:script xlink:href=... expects a TrustedScriptURL.
     // Assigning a TrustedScriptURL works.
     test(t => {
-      let elem = document.createElementNS(svgNamespace, "script");
-      elem.setAttributeNS(xlinkNamespace, "href", script_url);
+      let elem = document.createElementNS(NSURI_SVG, "script");
+      elem.setAttributeNS(NSURI_XLINK, "href", script_url);
       assert_equals("" + RESULTS.ScriptURL,
-                    elem.getAttributeNodeNS(xlinkNamespace, "href").value);
+                    elem.getAttributeNodeNS(NSURI_XLINK, "href").value);
     }, "Assigning TrustedScriptURL to <svg:script xlink:href=...> works");
 
     // Assigning things that ought to not work.
     test(t => {
-      let elem = document.createElementNS(svgNamespace, "script");
+      let elem = document.createElementNS(NSURI_SVG, "script");
       const values = [ "abc", null, html, script ];
       for (const v of values) {
         assert_throws_js(TypeError, _ => {
-          elem.setAttributeNS(xlinkNamespace, "href", v);
+          elem.setAttributeNS(NSURI_XLINK, "href", v);
         });
       }
     }, "Blocking non-TrustedScriptURL assignment to <svg:script xlink:href=...> works");
@@ -64,16 +61,16 @@
     const nonLowerCaseTests = [
       { element: "iframe", attribute: "SRCDOC", elementNamespace: htmlNamespace },
       { element: "script", attribute: "SRC", elementNamespace: htmlNamespace },
-      { element: "script", attribute: "HREF", elementNamespace: svgNamespace },
-      { element: "script", attribute: "HREF", elementNamespace: svgNamespace,
-        attributeNamespace: xlinkNamespace },
+      { element: "script", attribute: "HREF", elementNamespace: NSURI_SVG },
+      { element: "script", attribute: "HREF", elementNamespace: NSURI_SVG,
+        attributeNamespace: NSURI_XLINK },
     ];
 
     for (const testData of nonLowerCaseTests) {
       const attributeNamespace = testData.attributeNamespace ?? null;
 
       test(t => {
-        assert_element_accepts_non_trusted_type_set_ns(testData.element, testData.attribute, "v",
+        assert_element_accepts_value_set_ns(testData.element, testData.attribute, "v",
         "v", testData.elementNamespace, attributeNamespace);
       }, "Check `setAttributeNS` allows setting non-trusted string for non-lowercase attribute \"" +
          testData.attribute + "\" (ns=" + attributeNamespace + ") for \"" + testData.element +

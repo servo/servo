@@ -7,6 +7,9 @@
 <script src="../RTCPeerConnection-helper.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../mediacapture-streams/permission-helper.js"></script>
 <script>
 async function queryReceiverStats(pc) {
   const inboundStats = [];
@@ -34,6 +37,20 @@ function calculateFramerate(newStats, oldStats) {
   return deltaF / deltaT * 1000;
 }
 
+function calculateConservativeFramerate(newStats, oldStats) {
+  // The timestamp represents the exact point in time that the integer
+  // framesDecoded was sampled. For both samples, one time unit (say a
+  // nanosecond, i.e. virtually 0) could sway the integer framesDecoded value
+  // up to 1 frame. For checking that we don't exceed maxFramerate, in the worst
+  // case, the old timestamp is then at the end of a frame period (right before
+  // framesDecoded gets incremented) while the new timestamp is at the beginning
+  // of a frame period. Thus for avoiding intermittents we need to allow up to
+  // two frames more for the given sampling period, regardless of length.
+  const deltaF = newStats.framesDecoded - oldStats.framesDecoded - 2;
+  const deltaT = newStats.timestamp - oldStats.timestamp;
+  return deltaF / deltaT * 1000;
+}
+
 promise_test(async t => {
   const expectedFramerates = [15, 10, 5];
   const rids = [0, 1, 2];
@@ -42,13 +59,25 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+  await negotiateSimulcastAndWaitForVideo(
+    t,
+    await getCameraStream(t),
+    rids,
+    pc1,
+    pc2
+  );
 
-  // Assert that our framerate is bigger than 20, otherwise this test does not assert anything useful.
-  await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait for framerate to stabilize.
+  // Wait for framerate to stabilize.
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+
+  // Assert that our framerate is bigger than 20, otherwise this test does not
+  // assert anything useful.
   const defaultStats = await statsDelta(pc2, t);
   defaultStats.subsequentStats.forEach((_, idx) => {
-    const actualFramerate = calculateFramerate(defaultStats.subsequentStats[idx], defaultStats.initialStats[idx]);
+    const actualFramerate = calculateFramerate(
+      defaultStats.subsequentStats[idx],
+      defaultStats.initialStats[idx]
+    );
     assert_greater_than(actualFramerate, 20);
   });
 
@@ -58,7 +87,8 @@ promise_test(async t => {
     e.maxFramerate = expectedFramerates[idx];
   });
   await pc1.getSenders()[0].setParameters(parameters);
-  await new Promise(resolve => t.step_timeout(resolve, 100)); // Wait for the change to propagate to the receiver.
+  // Wait for the change to propagate to the receiver.
+  await new Promise(resolve => t.step_timeout(resolve, 100));
 
   // Assert the approximate framerate
   const newStats = await statsDelta(pc2, t);
@@ -66,9 +96,12 @@ promise_test(async t => {
   const framerates = [];
   newStats.subsequentStats.forEach((_, idx) => {
     const expectedFramerate = expectedFramerates[idx];
-    const actualFramerate = calculateFramerate(newStats.subsequentStats[idx], newStats.initialStats[idx]);
-    // Assert that the framerate is at most the expected framerate (plus a tiny bit).
-    assert_less_than(actualFramerate, expectedFramerate + 0.5);
+    const actualFramerate = calculateConservativeFramerate(
+      newStats.subsequentStats[idx],
+      newStats.initialStats[idx]
+    );
+    // Assert that the framerate is at most the expected framerate.
+    assert_less_than(actualFramerate, expectedFramerate);
     framerates.push(actualFramerate);
   });
   // Assert that the framerates are ordered as configured.

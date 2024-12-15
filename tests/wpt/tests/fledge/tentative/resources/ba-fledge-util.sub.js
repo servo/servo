@@ -256,11 +256,11 @@ BA.decodeInterestGroupData = async function(igData) {
   // Only version 0 in use now.
   assert_equals(header.version, 0);
 
-  // Test config uses keyId = 0x12 only
+  // Test config uses keyId = 0x14 only
   // If the feature is not set up properly we may get a different, non-test key.
   // We can't use assert_equals because it includes the (random) non-test key
   // in the error message if testing support for this feature is not present.
-  assert_true(header.keyId === 0x12, "valid key Id");
+  assert_true(header.keyId === 0x14, "valid key Id");
 
   // Current cipher config.
   assert_equals(header.kemId, hpke.KemId.DhkemX25519HkdfSha256);

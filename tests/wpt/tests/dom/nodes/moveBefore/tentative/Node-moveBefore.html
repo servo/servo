@@ -87,8 +87,8 @@ test(t => {
 }, "moveBefore() on a cross-document target node throws a HierarchyRequestError");
 
 // Pre-move validity, step 3:
-// "If parent is not an Element node, then throw a "HierarchyRequestError"
-// DOMException."
+// "If parent is not a Document, DocumentFragment, or Element node, then throw a
+// "HierarchyRequestError" DOMException."
 //
 // https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
 test(t => {
@@ -97,10 +97,20 @@ test(t => {
 
   assert_throws_dom("HIERARCHY_REQUEST_ERR", iframe.contentWindow.DOMException, () => {
     // Moving the body into the same place that it already is, which is a valid
-    // action in the normal case, when moving a node into an Element.
+    // action in the normal case, when moving an Element directly under the
+    // document. This is not `moveBefore()`-specific behavior; it is consistent
+    // with traditional Document insertion rules, just like `insertBefore()`.
     iframe.contentDocument.moveBefore(innerBody, null);
   });
 }, "moveBefore() into a Document throws a HierarchyRequestError");
+test(t => {
+  const iframe = document.body.appendChild(document.createElement('iframe'));
+  const comment = iframe.contentDocument.createComment("comment");
+  iframe.contentDocument.body.append(comment);
+
+  iframe.contentDocument.moveBefore(comment, null);
+  assert_equals(comment.parentNode, iframe.contentDocument);
+}, "moveBefore() CharacterData into a Document");
 test(t => {
   const comment = document.body.appendChild(document.createComment("comment"));
   const child = document.body.appendChild(document.createElement('p'));
@@ -243,10 +253,34 @@ test(() => {
   const disconnectedDestination = document.createElement('div');
   const p = disconnectedOrigin.appendChild(document.createElement('p'));
 
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    disconnectedDestination.moveBefore(p, null);
+  });
+}, "Moving a node from a disconnected container to a disconnected new parent " +
+   "without a shared ancestor throws a HIERARCHY_REQUEST_ERR");
+
+test(() => {
+  const disconnectedOrigin = document.createElement('div');
+  const disconnectedDestination = disconnectedOrigin.appendChild(document.createElement('div'));
+  const p = disconnectedOrigin.appendChild(document.createElement('p'));
+
   disconnectedDestination.moveBefore(p, null);
 
   assert_equals(disconnectedDestination.firstChild, p, "<p> Was successfully moved");
-}, "Moving a node from a disconnected container to a disconnected new parent succeeds");
+}, "Moving a node from a disconnected container to a disconnected new parent in the same tree succeeds");
+
+test(() => {
+  const disconnectedOrigin = document.createElement('div');
+  const disconnectedHost = disconnectedOrigin.appendChild(document.createElement('div'));
+  const p = disconnectedOrigin.appendChild(document.createElement('p'));
+  const shadow = disconnectedHost.attachShadow({mode: "closed"});
+  const disconnectedDestination = shadow.appendChild(document.createElement('div'));
+
+  disconnectedDestination.moveBefore(p, null);
+
+  assert_equals(disconnectedDestination.firstChild, p, "<p> Was successfully moved");
+}, "Moving a node from a disconnected container to a disconnected new parent in the same tree succeeds," +
+   "also across shadow-roots");
 
 test(() => {
   const disconnectedOrigin = document.createElement('div');
@@ -275,7 +309,7 @@ promise_test(async t => {
     });
 
   const oldParent = document.createElement('div');
-  const newParent = document.createElement('div');
+  const newParent = oldParent.appendChild(document.createElement('div'));
   const element = oldParent.appendChild(document.createElement(element_name));
   t.add_cleanup(() => {
     element.remove();

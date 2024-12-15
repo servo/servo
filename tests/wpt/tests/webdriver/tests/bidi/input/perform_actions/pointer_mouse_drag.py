@@ -9,6 +9,7 @@ from . import get_element_rect, get_inview_center_bidi
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])
 @pytest.mark.parametrize(
     "dx, dy", [(20, 0), (0, 15), (10, 15), (-20, 0), (10, -15), (-10, -15)]
@@ -54,12 +55,13 @@ async def test_drag_and_drop(
     assert e["type"] == "mouseup"
     assert e["pageX"] == pytest.approx(initial_center["x"] + dx, abs=1.0)
     assert e["pageY"] == pytest.approx(initial_center["y"] + dy, abs=1.0)
+
     # check resulting location of the dragged element
     final_rect = await get_element_rect(
         bidi_session, context=top_context, element=drag_target
     )
-    assert initial_rect["x"] + dx == final_rect["x"]
-    assert initial_rect["y"] + dy == final_rect["y"]
+    assert final_rect["x"] == pytest.approx(initial_rect["x"] + dx, abs=1.0)
+    assert final_rect["y"] == pytest.approx(initial_rect["y"] + dy, abs=1.0)
 
 
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])

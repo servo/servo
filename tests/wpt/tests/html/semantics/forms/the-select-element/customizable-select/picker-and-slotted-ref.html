@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+select::picker(select) {
+  border: thick solid blue;
+  background: lime;
+  color: maroon;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+
+(async () => {
+  await test_driver.bless();
+  document.querySelector('select').showPicker();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+
+</script>

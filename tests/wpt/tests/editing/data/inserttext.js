@@ -1527,4 +1527,15 @@ var browserTests = [
     "<div style=\"display:grid\"><span>abc</span><span><b>gh</b></span></div>",
     [true,true],
     {}],
+
+["<table><tr><td>a<td><b>[b</b><td><b>c</b><td><b>d]</b><td>e</table>",
+    [["inserttext","B"]],
+    "<table><tbody><tr><td>a</td><td><b>B</b></td><td><br></td><td><br></td><td>e</td></tr></tbody></table>",
+    [true],
+    {}],
+["<table><tr><th>a<th><b>[b</b><th><b>c</b><th><b>d]</b><th>e</table>",
+    [["inserttext","B"]],
+    "<table><tbody><tr><th>a</th><th><b>B</b></th><th><br></th><th><br></th><th>e</th></tr></tbody></table>",
+    [true],
+    {}],
 ]

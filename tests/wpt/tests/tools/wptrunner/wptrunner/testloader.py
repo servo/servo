@@ -168,7 +168,7 @@ class Subsuite:
                                                            str(self.run_info))
 
 
-def read_include_from_file(file):
+def read_test_prefixes_from_file(file):
     new_include = []
     with open(file) as f:
         for line in f:

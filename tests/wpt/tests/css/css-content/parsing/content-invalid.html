@@ -15,8 +15,6 @@
 function test_invalid_value_combinations(property, value) {
     test_invalid_value(property, value);
     test_invalid_value(property, `${value} / "alt text"`);
-    test_invalid_value(property, `${value} / "alt text" attr(foo) "bar"`);
-    test_invalid_value(property, `${value} / attr(foo)`);
 }
 
 function test_invalid_value_alt_text(property, value) {
@@ -24,7 +22,6 @@ function test_invalid_value_alt_text(property, value) {
     test_invalid_value(property, `${value} / no-open-quote`);
     test_invalid_value(property, `${value} / no-close-quote`);
     test_invalid_value(property, `${value} / "hi" no-close-quote`);
-    test_invalid_value(property, `${value} / attr(foo) open-quote`);
 }
 
 test_invalid_value_combinations("content", `attr()`);
@@ -35,9 +32,6 @@ test_invalid_value_alt_text("content", "open-quote");
 test_invalid_value_alt_text("content", "close-quote");
 test_invalid_value_alt_text("content", "no-open-quote");
 test_invalid_value_alt_text("content", "no-close-quote");
-
-test_invalid_value_alt_text("content", "attr(alt)");
-test_invalid_value_alt_text("content", "attr(data-foo)");
 
 test_invalid_value_alt_text("content", "counter(counter-name)");
 test_invalid_value_alt_text("content", "counter(counter-name, counter-style)");
@@ -50,7 +44,6 @@ test_invalid_value_alt_text("content", `url("https://www.example.com/picture.svg
 test_invalid_value_alt_text("content", `"hello"`);
 
 test_invalid_value_alt_text("content", `"hello" "world"`);
-test_invalid_value_alt_text("content", `"hello" attr(alt) "world"`);
 test_invalid_value_alt_text("content", `counter(counter-name) "potato"`);
 test_invalid_value_alt_text("content", `counters(counter-name, ".") "potato"`);
 test_invalid_value_alt_text("content", `"(" counters(counter-name, ".", counter-style) ")"`);

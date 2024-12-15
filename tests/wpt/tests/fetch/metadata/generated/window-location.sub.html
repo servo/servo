@@ -716,6 +716,174 @@ Sources:
 
   promise_test(() => {
     const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location = path;
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - location');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.href = path;
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - location.href');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.assign(path);
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - location.assign');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.replace(path);
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - location.replace');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location = path;
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - location');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.href = path;
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - location.href');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.assign(path);
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - location.assign');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.replace(path);
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - location.replace');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location = path;
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - location');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.href = path;
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - location.href');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.assign(path);
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - location.assign');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+
+    const navigate = (win, path) => {
+      win.location.replace(path);
+    };
+    return induceRequest(url, navigate, false)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - location.replace');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
     const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin'], responseParams);
 
     const navigate = (win, path) => {

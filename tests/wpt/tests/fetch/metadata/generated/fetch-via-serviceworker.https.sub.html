@@ -678,6 +678,68 @@ Sources:
         });
   }, 'sec-fetch-user - no init - fallback');
 
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, ['httpsCrossSite']),
+        {"credentials": "include", "mode": "no-cors"},
+        'respondWith'
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - Cross-site, init: mode=no-cors, credentials=include - respondWith');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, ['httpsCrossSite']),
+        {"credentials": "include", "mode": "no-cors"},
+        'fallback'
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - Cross-site, init: mode=no-cors, credentials=include - fallback');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, ['httpsSameSite']),
+        {"credentials": "include", "mode": "no-cors"},
+        'respondWith'
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site, init: mode=no-cors, credentials=include - respondWith');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, ['httpsSameSite']),
+        {"credentials": "include", "mode": "no-cors"},
+        'fallback'
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site, init: mode=no-cors, credentials=include - fallback');
+
   </script>
   </body>
 </html>

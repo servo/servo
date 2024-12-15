@@ -142,14 +142,18 @@
       eventList = [];
 
       // Click on an option, with preventDefault
-      wrapper.addEventListener('click',(e) => e.preventDefault(),{once:true});
+      wrapper.addEventListener('mouseup',(e) => e.preventDefault(),{once:true});
       assert_equals(select.selectedOptions[0].innerText,'two');
       await test_driver.click(option1);
       assert_true(select.matches(':open'),'click should be cancelled');
       assert_events([
         'pointerdown on option1 at select', 'pointerdown on option1 at wrapper',
         'mousedown on option1 at select', 'mousedown on option1 at wrapper',
-        'click on option1 at select', 'click on option1 at wrapper',
+        'focusout on option2 at select', 'focusout on option2 at wrapper',
+        'focusin on select at select', 'focusin on select at wrapper',
+        'pointerup on option1 at select', 'pointerup on option1 at wrapper',
+        'mouseup on option1 at select', 'mouseup on option1 at wrapper',
+        'click on option1 at select', 'click on option1 at wrapper'
       ],'click option, with preventDefault');
 
       // Click on an option, no preventDefault
@@ -159,11 +163,11 @@
       assert_events([
         'pointerdown on option1 at select', 'pointerdown on option1 at wrapper',
         'mousedown on option1 at select', 'mousedown on option1 at wrapper',
-        'click on option1 at select', 'click on option1 at wrapper',
+        'pointerup on option1 at select', 'pointerup on option1 at wrapper',
+        'mouseup on option1 at select', 'mouseup on option1 at wrapper',
         'input on select at select', 'input on select at wrapper',
         'change on select at select', 'change on select at wrapper',
-        'focusout on option2 at select', 'focusout on option2 at wrapper',
-        'focusin on select at select', 'focusin on select at wrapper'
+        'click on option1 at select', 'click on option1 at wrapper'
       ],'click option, no preventDefault');
     },`Events, ${wrapper.dataset.description}`);
   });

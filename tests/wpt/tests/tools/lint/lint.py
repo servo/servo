@@ -475,7 +475,7 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
 
     testdriver_vendor_nodes: List[ElementTree.Element] = []
     if source_file.testdriver_nodes:
-        if test_type != "testharness":
+        if test_type not in {"testharness", "reftest", "print-reftest", "crashtest", "support"}:
             errors.append(rules.TestdriverInUnsupportedType.error(path, (test_type,)))
 
         if len(source_file.testdriver_nodes) > 1:

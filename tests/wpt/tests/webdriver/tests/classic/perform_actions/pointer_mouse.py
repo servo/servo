@@ -293,6 +293,7 @@ def test_drag_and_drop(session,
     drag_target = session.find.css("#dragTarget", all=False)
     initial_rect = drag_target.rect
     initial_center = get_inview_center(initial_rect, get_viewport_rect(session))
+
     # Conclude chain with extra move to allow time for last queued
     # coordinate-update of drag_target and to test that drag_target is "dropped".
     mouse_chain \
@@ -302,15 +303,17 @@ def test_drag_and_drop(session,
         .pointer_up() \
         .pointer_move(80, 50, duration=100, origin="pointer") \
         .perform()
+
     # mouseup that ends the drag is at the expected destination
     e = get_events(session)[1]
     assert e["type"] == "mouseup"
     assert e["pageX"] == pytest.approx(initial_center["x"] + dx, abs=1.0)
     assert e["pageY"] == pytest.approx(initial_center["y"] + dy, abs=1.0)
+
     # check resulting location of the dragged element
     final_rect = drag_target.rect
-    assert initial_rect["x"] + dx == final_rect["x"]
-    assert initial_rect["y"] + dy == final_rect["y"]
+    assert final_rect["x"] == pytest.approx(initial_rect["x"] + dx, abs=1.0)
+    assert final_rect["y"] == pytest.approx(initial_rect["y"] + dy, abs=1.0)
 
 
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])

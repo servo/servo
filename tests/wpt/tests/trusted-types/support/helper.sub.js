@@ -158,7 +158,7 @@ function assert_throws_no_trusted_type_set_ns(tag, attribute, value) {
   });
 }
 
-function assert_element_accepts_non_trusted_type_set_ns(tag, attribute, value, expected,
+function assert_element_accepts_value_set_ns(tag, attribute, value, expected,
                                                         elementNamespace, attributeNamespace) {
   let elem = document.createElementNS(elementNamespace, tag);
   elem.setAttributeNS(attributeNamespace, attribute, value);

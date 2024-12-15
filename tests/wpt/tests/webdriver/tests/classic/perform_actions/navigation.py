@@ -1,6 +1,3 @@
-import pytest
-import webdriver.error as error
-
 from tests.classic.perform_actions.support.refine import get_events
 
 PAGE_CONTENT = """
@@ -32,7 +29,6 @@ def test_key(session, inline, key_chain):
             input.focus();
         </script>
         """)
-    input = session.find.css("input", all=False)
 
     key_chain \
         .key_down("1") \
@@ -42,8 +38,7 @@ def test_key(session, inline, key_chain):
         .key_up("2") \
         .perform()
 
-    with pytest.raises(error.StaleElementReferenceException):
-        input.rect
+    assert session.url == inline(PAGE_CONTENT)
 
     events = get_events(session)
     assert len(events) == 1
@@ -63,8 +58,7 @@ def test_pointer(session, inline, mouse_chain):
         .pointer_move(x=200, y=200) \
         .perform()
 
-    with pytest.raises(error.StaleElementReferenceException):
-        input.rect
+    assert session.url == inline(PAGE_CONTENT)
 
     events = get_events(session)
     assert len(events) == 1

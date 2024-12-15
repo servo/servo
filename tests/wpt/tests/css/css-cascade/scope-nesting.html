@@ -677,3 +677,37 @@ test((t) => {
   assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
 }, 'Insert a CSSNestedDeclarations rule directly in top-level @scope');
 </script>
+
+<template id=test_mutate_outer_selector_text_nested_declaration>
+<style>
+  #child {
+    color: green; /* Specificity: (1, 0, 0) */
+  }
+  .b {
+    #child {
+      @scope (&) {
+        --x: 1;
+        color: red; /* Specificity: (0, 0, 0), effectively :where(:scope) */
+      }
+    }
+  }
+</style>
+<div class=a>
+  <div id=child>Foo</div>
+</div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_mutate_outer_selector_text_nested_declaration.content.cloneNode(true));
+  assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+  assert_equals(getComputedStyle(child).getPropertyValue('--x'), '');
+
+  let outer_rule = main.querySelector('style').sheet.cssRules[1];
+  assert_equals(outer_rule.selectorText, '.b');
+  outer_rule.selectorText = '.a';
+
+  assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)'); // Unchanged.
+  assert_equals(getComputedStyle(child).getPropertyValue('--x'), '1'); // Changed.
+}, 'Mutating selectorText on outer style rule causes correct inner specificity');
+</script>

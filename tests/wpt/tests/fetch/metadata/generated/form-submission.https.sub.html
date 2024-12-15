@@ -517,6 +517,50 @@ Sources:
           assert_array_equals(headers['sec-fetch-user'], ['?1']);
         });
   }, 'sec-fetch-user - POST with user activation');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Cross-site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Cross-site - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site - POST');
   </script>
   </body>
 </html>

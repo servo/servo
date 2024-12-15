@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- Tests that select respects explicit size -->
+<link rel=author href="mailto:pkotwicz@chromium.org">
+<link rel="match" href="select-explicit-size-ref.tentative.html">
+
+<style>
+select {
+  width:400px;
+  height:50px;
+}
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+<select>
+  <option>option</option>
+</select>

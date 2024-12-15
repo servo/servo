@@ -350,37 +350,20 @@ def test_multiple_testharnessreport():
 def test_testdriver_in_unsupported():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">
-<link rel="match" href="test-ref.html"/>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 </html>
 """
-    error_map = check_with_files(code)
 
-    for (filename, (errors, kind)) in error_map.items():
-        check_errors(errors)
-
-        if kind in ["web-lax", "web-strict"]:
-            assert errors == [
-                (
-                    "NON-EXISTENT-REF",
-                    "Reference test with a non-existent 'match' relationship reference: "
-                    "'test-ref.html'",
-                    filename,
-                    None,
-                ),
-                (
-                    "TESTDRIVER-IN-UNSUPPORTED-TYPE",
-                    "testdriver.js included in a reftest test, which doesn't support "
-                    "testdriver.js",
-                    filename,
-                    None,
-                ),
-            ]
-        elif kind == "python":
-            assert errors == [
-                ("PARSE-FAILED", "Unable to parse file", filename, 2),
-            ]
+    filename = os.path.join("html", "test-manual.html")
+    errors = check_file_contents("", filename, io.BytesIO(code))
+    check_errors(errors)
+    assert errors == [(
+        "TESTDRIVER-IN-UNSUPPORTED-TYPE",
+        "testdriver.js included in a manual test, which doesn't support testdriver.js",
+        filename,
+        None,
+    )]
 
 
 def test_early_testdriver_vendor():
