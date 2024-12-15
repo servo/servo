@@ -34,8 +34,12 @@ impl ReadableStreamBYOBReader {
         }
     }
 
-    fn new(global: &GlobalScope) -> DomRoot<ReadableStreamBYOBReader> {
-        reflect_dom_object(Box::new(ReadableStreamBYOBReader::new_inherited()), global)
+    fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<ReadableStreamBYOBReader> {
+        reflect_dom_object(
+            Box::new(ReadableStreamBYOBReader::new_inherited()),
+            global,
+            can_gc,
+        )
     }
 }
 

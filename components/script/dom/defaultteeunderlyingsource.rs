@@ -72,6 +72,7 @@ impl DefaultTeeUnderlyingSource {
         reason_2: Rc<Box<Heap<Value>>>,
         cancel_promise: Rc<Promise>,
         tee_cancel_algorithm: TeeCancelAlgorithm,
+        can_gc: CanGc,
     ) -> DomRoot<DefaultTeeUnderlyingSource> {
         reflect_dom_object(
             Box::new(DefaultTeeUnderlyingSource {
@@ -91,6 +92,7 @@ impl DefaultTeeUnderlyingSource {
                 tee_cancel_algorithm,
             }),
             &*stream.global(),
+            can_gc,
         )
     }
 
@@ -104,7 +106,7 @@ impl DefaultTeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
-    pub fn pull_algorithm(&self) -> Option<Result<Rc<Promise>, Error>> {
+    pub fn pull_algorithm(&self, can_gc: CanGc) -> Option<Result<Rc<Promise>, Error>> {
         // If reading is true,
         if self.reading.get() {
             // Set readAgain to true.
@@ -134,6 +136,7 @@ impl DefaultTeeUnderlyingSource {
             self.clone_for_branch_2.clone(),
             self.cancel_promise.clone(),
             self,
+            can_gc,
         );
 
         let read_request = ReadRequest::DefaultTee {
