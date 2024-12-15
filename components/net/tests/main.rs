@@ -19,11 +19,12 @@ mod resource_thread;
 mod subresource_integrity;
 
 use core::convert::Infallible;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufReader};
 use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, Mutex, Weak};
+use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
@@ -34,6 +35,7 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use net::connector::{create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -95,6 +97,25 @@ fn create_embedder_proxy() -> EmbedderProxy {
     }
 }
 
+fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
+    let override_manager = net::connector::CertificateErrorOverrideManager::new();
+    HttpState {
+        hsts_list: RwLock::new(net::hsts::HstsList::default()),
+        cookie_jar: RwLock::new(net::cookie_storage::CookieStorage::new(150)),
+        auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
+        history_states: RwLock::new(HashMap::new()),
+        http_cache: RwLock::new(net::http_cache::HttpCache::default()),
+        http_cache_state: Mutex::new(HashMap::new()),
+        client: create_http_client(create_tls_config(
+            net::connector::CACertificates::Default,
+            false, /* ignore_certificate_errors */
+            override_manager.clone(),
+        )),
+        override_manager,
+        embedder_proxy: Mutex::new(fc.unwrap_or_else(|| create_embedder_proxy())),
+    }
+}
+
 fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
@@ -103,7 +124,7 @@ fn new_fetch_context(
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {
-        state: Arc::new(HttpState::default()),
+        state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(

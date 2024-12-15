@@ -200,7 +200,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: Mutex::new(Some(embedder_proxy.clone())),
+        embedder_proxy: Mutex::new(embedder_proxy.clone()),
     };
 
     let override_manager = CertificateErrorOverrideManager::new();
@@ -217,7 +217,7 @@ fn create_http_states(
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: Mutex::new(Some(embedder_proxy)),
+        embedder_proxy: Mutex::new(embedder_proxy),
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))
