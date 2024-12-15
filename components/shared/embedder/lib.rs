@@ -132,7 +132,7 @@ pub enum PromptDefinition {
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
     /// Ask user to enter their username and password
-    Credentials(String, IpcSender<PromptCredentialsInput>),
+    Credentials(IpcSender<PromptCredentialsInput>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]
