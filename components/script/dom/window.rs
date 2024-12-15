@@ -1886,8 +1886,6 @@ impl Window {
         // up-to-date contents.
         let for_display = reflow_goal.needs_display();
         if for_display {
-            #[cfg(feature = "webgpu")]
-            document.flush_dirty_webgpu_canvases();
             document.flush_dirty_webgl_canvases();
         }
 

@@ -106,6 +106,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
+use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
@@ -450,9 +451,9 @@ pub struct Document {
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
-    /// List of all WebGPU context IDs that need flushing.
+    /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
-    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
+    webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -2999,20 +3000,29 @@ impl Document {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn add_dirty_webgpu_canvas(&self, context: &GPUCanvasContext) {
-        self.dirty_webgpu_contexts
+    pub fn add_webgpu_canvas(&self, context: &GPUCanvasContext) {
+        self.webgpu_contexts
             .borrow_mut()
             .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
+            .or_insert_with(|| WeakRef::new(context));
     }
 
     #[allow(crown::unrooted_must_root)]
     #[cfg(feature = "webgpu")]
-    pub fn flush_dirty_webgpu_canvases(&self) {
-        self.dirty_webgpu_contexts
+    pub fn update_rendering_of_webgpu_canvases(&self) {
+        self.webgpu_contexts
             .borrow_mut()
-            .drain()
-            .for_each(|(_, context)| context.update_rendering_of_webgpu_canvas());
+            .iter()
+            .filter_map(|(_, context)| context.root())
+            .filter(|context| context.onscreen())
+            .for_each(|context| context.update_rendering_of_webgpu_canvas());
+    }
+
+    #[cfg(feature = "webgpu")]
+    pub fn remove_webgpu_context(&self, context: &GPUCanvasContext) {
+        self.webgpu_contexts
+            .borrow_mut()
+            .remove(&context.context_id());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -3386,7 +3396,7 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             #[cfg(feature = "webgpu")]
-            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())

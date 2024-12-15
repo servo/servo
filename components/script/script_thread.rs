@@ -1628,6 +1628,9 @@ impl ScriptThread {
                 window.reflow(ReflowGoal::UpdateTheRendering, can_gc);
             }
 
+            #[cfg(feature = "webgpu")]
+            document.update_rendering_of_webgpu_canvases();
+
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
