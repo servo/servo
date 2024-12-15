@@ -16,7 +16,9 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptCredentialsInput, PromptDefinition, PromptOrigin};
+use embedder_traits::{
+    EmbedderMsg, EmbedderProxy, PromptCredentialsInput, PromptDefinition, PromptOrigin,
+};
 use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
@@ -61,10 +63,7 @@ use tokio::sync::mpsc::{
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::HANDLE;
-use crate::connector::{
-    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
-    Connector,
-};
+use crate::connector::{CertificateErrorOverrideManager, Connector};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -104,7 +103,6 @@ pub struct HttpState {
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
     pub override_manager: CertificateErrorOverrideManager,
-    // optional for convenience, since the default trait is used in tests and makes its hard to provide a proxy
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }
 
