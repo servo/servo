@@ -8,7 +8,7 @@
  Exposed=*]
 namespace console {
   // Logging
-  undefined assert(boolean condition, optional any message);
+  undefined assert(optional boolean condition = false, any... data);
   undefined clear();
   undefined debug(any... messages);
   undefined error(any... messages);

@@ -27,8 +27,8 @@ const MAX_LOG_DEPTH: usize = 10;
 /// The maximum elements in an object logged by console methods.
 const MAX_LOG_CHILDREN: usize = 15;
 
-// https://developer.mozilla.org/en-US/docs/Web/API/Console
-pub struct Console(());
+/// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
+pub struct Console;
 
 impl Console {
     #[allow(unsafe_code)]
@@ -260,16 +260,11 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, message: HandleValue) {
+    fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {
-            let message = if message.is_undefined() {
-                DOMString::from("no message")
-            } else {
-                stringify_handle_value(message)
-            };
-            let message = DOMString::from(format!("Assertion failed: {}", message));
-            console_message(global, message, LogLevel::Error)
-        };
+            let message = DOMString::from(format!("Assertion failed: {}", stringify_handle_values(messages)));
+            console_message(global, message, LogLevel::Error);
+        }
     }
 
     // https://console.spec.whatwg.org/#time
