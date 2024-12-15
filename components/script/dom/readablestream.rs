@@ -453,6 +453,7 @@ impl ReadableStream {
                 can_gc,
             )),
             &*self.global(),
+            can_gc,
         );
 
         // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
@@ -729,6 +730,7 @@ impl ReadableStream {
             reason_2.clone(),
             cancel_promise.clone(),
             TeeCancelAlgorithm::Cancel1Algorithm,
+            can_gc,
         );
 
         let underlying_source_type_branch_1 =
@@ -746,6 +748,7 @@ impl ReadableStream {
             reason_2,
             cancel_promise.clone(),
             TeeCancelAlgorithm::Cancel2Algorithm,
+            can_gc,
         );
 
         let underlying_source_type_branch_2 =
