@@ -72,6 +72,7 @@ impl DefaultTeeReadRequest {
         clone_for_branch_2: Rc<Cell<bool>>,
         cancel_promise: Rc<Promise>,
         tee_underlying_source: &DefaultTeeUnderlyingSource,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(DefaultTeeReadRequest {
@@ -88,6 +89,7 @@ impl DefaultTeeReadRequest {
                 tee_underlying_source: Dom::from_ref(tee_underlying_source),
             }),
             &*stream.global(),
+            can_gc,
         )
     }
     /// Call into cancel of the stream,
@@ -175,7 +177,7 @@ impl DefaultTeeReadRequest {
         self.reading.set(false);
         // If readAgain is true, perform pullAlgorithm.
         if self.read_again.get() {
-            self.pull_algorithm();
+            self.pull_algorithm(can_gc);
         }
     }
     /// <https://streams.spec.whatwg.org/#read-request-close-steps>
@@ -230,7 +232,7 @@ impl DefaultTeeReadRequest {
         stream.get_default_controller().error(error);
     }
 
-    pub fn pull_algorithm(&self) {
-        self.tee_underlying_source.pull_algorithm();
+    pub fn pull_algorithm(&self, can_gc: CanGc) {
+        self.tee_underlying_source.pull_algorithm(can_gc);
     }
 }

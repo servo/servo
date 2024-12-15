@@ -342,6 +342,7 @@ impl ReadableStreamDefaultController {
                 can_gc,
             )),
             global,
+            can_gc,
         )
     }
 
@@ -500,7 +501,7 @@ impl ReadableStreamDefaultController {
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         let result = underlying_source
-            .call_pull_algorithm(controller)
+            .call_pull_algorithm(controller, can_gc)
             .unwrap_or_else(|| {
                 let promise = Promise::new(&global, can_gc);
                 promise.resolve_native(&());

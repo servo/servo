@@ -136,6 +136,7 @@ impl UnderlyingSourceContainer {
     pub fn call_pull_algorithm(
         &self,
         controller: Controller,
+        can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
             UnderlyingSourceType::Js(source, this_obj) => {
@@ -153,7 +154,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
-                tee_underlyin_source.pull_algorithm()
+                tee_underlyin_source.pull_algorithm(can_gc)
             },
             // Note: other source type have no pull steps for now.
             _ => None,
