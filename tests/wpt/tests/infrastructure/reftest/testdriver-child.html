@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  :root {
+    background-color: red;
+  }
+</style>
+<button>Turn green</button>
+<script>
+  test_driver.set_test_context(parent);
+  const button = document.querySelector("button");
+  button.addEventListener("click", () => {
+    button.remove();
+    document.documentElement.style.backgroundColor = "green";
+    test_driver.message_test("done");
+  });
+  test_driver.click(button);
+</script>

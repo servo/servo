@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  Tentative due to:
+  https://github.com/w3c/pointerevents/issues/530
+
+  TODO: Revisit the asserts below when the spec issue is resolved.
+-->
+<title>Click-like events on chorded button state changes</title>
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+    touch-action: none;
+    user-select: none;
+  }
+</style>
+<body onload="run()">
+  <div id="target"></div>
+  <div id="done"></div>
+</body>
+<script>
+  "use strict";
+
+  let event_log = [];
+
+  function eventLogger(e) {
+    event_log.push(e.type);
+  }
+
+  function run() {
+    var target = document.getElementById("target");
+    var done = document.getElementById("done");
+
+    ["click", "auxclick"].forEach(ename => {
+      target.addEventListener(ename, eventLogger);
+    });
+
+    promise_test(async test => {
+      event_log = [];
+
+      let done_click_promise = getEvent("click", done);
+
+      let actions = new test_driver.Actions();
+      actions = actions
+          .pointerMove(0,0, {origin:target})
+          .pointerDown({button:actions.ButtonType.LEFT})
+          .pointerDown({button:actions.ButtonType.MIDDLE})
+          .pointerUp({button:actions.ButtonType.MIDDLE})
+          .pointerUp({button:actions.ButtonType.LEFT})
+          .pointerMove(0,0, {origin:done})
+          .pointerDown()
+          .pointerUp();
+
+      await actions.send();
+      await done_click_promise;
+
+      assert_equals(event_log.toString(), "auxclick,click",
+          "received click-like events");
+    }, "Chorded button sequence L-down M-down M-up L-up");
+
+    promise_test(async test => {
+      event_log = [];
+
+      let done_click_promise = getEvent("click", done);
+
+      let actions = new test_driver.Actions();
+      actions = actions
+          .pointerMove(0,0, {origin:target})
+          .pointerDown({button:actions.ButtonType.MIDDLE})
+          .pointerDown({button:actions.ButtonType.LEFT})
+          .pointerUp({button:actions.ButtonType.LEFT})
+          .pointerUp({button:actions.ButtonType.MIDDLE})
+          .pointerMove(0,0, {origin:done})
+          .pointerDown()
+          .pointerUp();
+
+      await actions.send();
+      await done_click_promise;
+
+      assert_equals(event_log.toString(), "click,auxclick",
+          "received click-like events");
+    }, "Chorded button sequence M-down L-down L-up M-up");
+  }
+</script>

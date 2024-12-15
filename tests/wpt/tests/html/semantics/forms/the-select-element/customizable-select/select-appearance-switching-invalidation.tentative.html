@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-40;totalPixels=0-2">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="select-appearance-switching-invalidation-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+.blue {
+  color: blue;
+}
+select.base, select.base::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <button>button</button>
+  <option>
+    <span class=blue>option</span> one
+  </option>
+  <option>
+    <span class=blue>option</span> two
+  </option>
+</select>
+
+<script>
+requestAnimationFrame(async () => {
+  await test_driver.bless();
+  const select = document.querySelector('select');
+  select.classList.add('base');
+  select.showPicker();
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

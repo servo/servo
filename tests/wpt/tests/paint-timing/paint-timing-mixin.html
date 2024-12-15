@@ -24,7 +24,6 @@
                 resolve(entry);
         }).observe({type: "paint"});
     });
-    await new Promise(resolve => img.addEventListener("load", () => resolve()));
     const entry = await performance_entry_promise;
     assert_greater_than(entry.paintTime, reference_time);
     assert_greater_than(entry.presentationTime, entry.paintTime);

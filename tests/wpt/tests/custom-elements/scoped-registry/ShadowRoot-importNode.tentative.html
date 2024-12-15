@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests ShadowRoot.importNode APIs work with scoped custom element registries</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<link rel="help" href="https://wicg.github.io/webcomponents/proposals/Scoped-Custom-Element-Registries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+function createConnectedShadowTree(test, registry) {
+    const host = document.createElement('div');
+    const shadowRoot = host.attachShadow({mode: 'closed', registry});
+    document.body.appendChild(host);
+    test.add_cleanup(() => host.remove());
+    return shadowRoot;
+}
+
+test((test) => {
+    const registry = new CustomElementRegistry;
+    class SomeElement extends HTMLElement { };
+    registry.define('some-element', SomeElement);
+    const shadowRoot = createConnectedShadowTree(test, registry);
+    assert_true(shadowRoot.createElement('some-element') instanceof SomeElement);
+
+    const someElement = document.createElement('some-element');
+    assert_false(someElement instanceof SomeElement);
+    const clone = shadowRoot.importNode(someElement);
+    assert_true(clone instanceof SomeElement);
+}, 'ShadowRoot.importNode: an upgrade candidate from document');
+
+test((test) => {
+    const registry1 = new CustomElementRegistry;
+    class SomeElement1 extends HTMLElement { };
+    registry1.define('some-element', SomeElement1);
+    const shadowRoot1 = createConnectedShadowTree(test, registry1);
+    const someElement = shadowRoot1.createElement('some-element');
+    assert_true(someElement instanceof SomeElement1);
+
+    const registry2 = new CustomElementRegistry;
+    const shadowRoot2 = createConnectedShadowTree(test, registry2);
+    class SomeElement2 extends HTMLElement { }
+    registry2.define('some-element', SomeElement2);
+    assert_true(shadowRoot2.createElement('some-element') instanceof SomeElement2);
+
+    assert_true(shadowRoot2.importNode(someElement) instanceof SomeElement2);
+}, 'ShadowRoot.importNode: a custom element from another shadow tree');
+
+test((test) => {
+    const registry = new CustomElementRegistry;
+    const logs = [];
+    class SomeElement extends HTMLElement {
+        constructor() {
+            super();
+            logs.push('some-element');
+        }
+    };
+    class OtherElement extends HTMLElement {
+        constructor() {
+            super();
+            logs.push('other-element');
+        }
+    };
+    registry.define('some-element', SomeElement);
+    registry.define('other-element', OtherElement);
+
+    const template = document.createElement('template');
+    template.innerHTML = '<div><some-element>hello</some-element><other-element>world</other-element></div>';
+    assert_false(template.content.querySelector('some-element') instanceof SomeElement);
+    assert_false(template.content.querySelector('other-element') instanceof OtherElement);
+
+    const shadowRoot = createConnectedShadowTree(test, registry);
+    const clone = shadowRoot.importNode(template.content, /* deep */ true);
+    assert_true(clone.querySelector('some-element') instanceof SomeElement);
+    assert_true(clone.querySelector('other-element') instanceof OtherElement);
+    assert_array_equals(logs, ['some-element', 'other-element']);
+}, 'ShadowRoot.importNode: a template content from document');
+
+</script>
+</body>
+</html>

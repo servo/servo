@@ -513,11 +513,13 @@ class StaticHandler:
 
         Note that *.headers files have no effect in this handler.
 
-        :param path: Path to the template file to use
+        :param path: Path(s) to template files to use. If a sequence of paths is provided instead
+            of a single path, the contents of each file will be concatenated together before the
+            `format_args` are interpolated.
         :param format_args: Dictionary of values to substitute into the template file
         :param content_type: Content type header to server the response with
         :param headers: List of headers to send with responses"""
-        self._path = path
+        self._paths = [path] if isinstance(path, str) else path
         self._format_args = format_args
         self._content_type = content_type
         self._headers = headers
@@ -525,7 +527,7 @@ class StaticHandler:
 
     def __getnewargs_ex__(self):
         # Do not pickle `self._handler`, which can be arbitrarily large.
-        args = self._path, self._format_args, self._content_type
+        args = self._paths, self._format_args, self._content_type
         return args, self._headers
 
     def __call__(self, request, response):
@@ -534,8 +536,10 @@ class StaticHandler:
         # contents across processes can slow `wptserve` startup by several
         # seconds (crbug.com/1479850).
         if not self._handler:
-            with open(self._path) as f:
-                data = f.read()
+            data = ""
+            for path in self._paths:
+                with open(path) as f:
+                    data += f.read()
             if self._format_args:
                 data = data % self._format_args
             self._handler = StringHandler(data, self._content_type, **self._headers)

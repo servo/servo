@@ -17,8 +17,6 @@ function test_valid_value_combinations(property, value, serialized) {
         serialized = value;
     test_valid_value(property, value, serialized);
     test_valid_value(property, `${value} / "alt text"`, `${serialized} / "alt text"`);
-    test_valid_value(property, `${value} / "alt text" attr(foo) "bar"`, `${serialized} / "alt text" attr(foo) "bar"`);
-    test_valid_value(property, `${value} / attr(foo)`, `${serialized} / attr(foo)`);
 }
 
 test_valid_value("content", "none");
@@ -28,9 +26,6 @@ test_valid_value_combinations("content", "open-quote");
 test_valid_value_combinations("content", "close-quote");
 test_valid_value_combinations("content", "no-open-quote");
 test_valid_value_combinations("content", "no-close-quote");
-
-test_valid_value_combinations("content", "attr(alt)");
-test_valid_value_combinations("content", "attr(data-foo)");
 
 test_valid_value_combinations("content", "counter(counter-name)");
 test_valid_value_combinations("content", "counter(counter-name, counter-style)");
@@ -47,7 +42,6 @@ test_valid_value_combinations("content", `url("picture.svg")`);
 test_valid_value_combinations("content", `"hello"`);
 
 test_valid_value_combinations("content", `"hello" "world"`);
-test_valid_value_combinations("content", `"hello" attr(alt) "world"`);
 test_valid_value_combinations("content", `counter(counter-name) "potato"`);
 test_valid_value_combinations("content", `counters(counter-name, ".") "potato"`);
 test_valid_value_combinations("content", `"(" counters(counter-name, ".", counter-style) ")"`);

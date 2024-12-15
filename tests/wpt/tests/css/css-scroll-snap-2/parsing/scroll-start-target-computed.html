@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="utf-8">
-  <title> CSS Scroll Snap 2 Test: scroll-start-target-* computed values</title>
-  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-start-target">
+  <title> CSS Scroll Snap 2 Test: scroll-initial-target-* computed values</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-initial-target">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/css/support/computed-testcommon.js"></script>
@@ -13,8 +13,8 @@
 <body>
   <div id="target"></div>
   <script>
-    test_computed_value("scroll-start-target", "auto");
-    test_computed_value("scroll-start-target", "none");
+    test_computed_value("scroll-initial-target", "nearest");
+    test_computed_value("scroll-initial-target", "none");
     </script>
 </body>
 

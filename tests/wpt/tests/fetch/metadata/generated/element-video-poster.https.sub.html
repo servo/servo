@@ -238,6 +238,27 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
       });
   }, 'sec-fetch-user');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(t, makeRequestURL(key, ['httpsCrossSite'], params))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+      });
+  }, 'sec-fetch-storage-access - Cross-site');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(t, makeRequestURL(key, ['httpsSameSite'], params))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+      });
+  }, 'sec-fetch-storage-access - Same site');
   </script>
   </body>
 </html>

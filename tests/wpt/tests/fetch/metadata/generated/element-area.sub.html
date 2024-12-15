@@ -280,6 +280,66 @@ Sources:
     const key = '{{uuid()}}';
 
     induceRequest(
+      makeRequestURL(key, ['httpOrigin'], {mime: 'text/html'}),
+      {
+        test: t,
+        userActivated: false,
+        attributes: {}
+      }
+    );
+
+    // `induceRequest` does not necessarily trigger a navigation, so the Python
+    // handler must be polled until it has received the initial request.
+    return retrieve(key, {poll: true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      makeRequestURL(key, ['httpSameSite'], {mime: 'text/html'}),
+      {
+        test: t,
+        userActivated: false,
+        attributes: {}
+      }
+    );
+
+    // `induceRequest` does not necessarily trigger a navigation, so the Python
+    // handler must be polled until it has received the initial request.
+    return retrieve(key, {poll: true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      makeRequestURL(key, ['httpCrossSite'], {mime: 'text/html'}),
+      {
+        test: t,
+        userActivated: false,
+        attributes: {}
+      }
+    );
+
+    // `induceRequest` does not necessarily trigger a navigation, so the Python
+    // handler must be polled until it has received the initial request.
+    return retrieve(key, {poll: true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
       makeRequestURL(key, ['httpsOrigin', 'httpOrigin'], {mime: 'text/html'}),
       {
         test: t,

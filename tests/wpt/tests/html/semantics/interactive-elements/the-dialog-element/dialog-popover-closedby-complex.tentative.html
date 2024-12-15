@@ -11,24 +11,45 @@
 <script src="../../popovers/resources/popover-utils.js"></script>
 
 <div id=unrelated>Unrelated</div>
-<dialog id=dialogA closedby=any>Dialog 1
-  <div id=popoverA popover>Popover 1
-    <dialog id=dialogB closedby=any>Dialog 2
-      <div id=popoverB popover>Popover 2</div>
-    </dialog>
-  </div>
-</dialog>
 
-<style>
-  #dialogA { top: 100px; bottom: auto; padding:0; }
-  #popoverA { top: 150px; bottom: auto; padding:0; }
-  #dialogB { top: 200px; bottom: auto; padding:0; }
-  #popoverB { top: 250px; bottom: auto; padding:0; }
-  dialog { position: fixed; }
-</style>
+<div class=testcase data-description="normal DOM nesting">
+  <dialog class=dialogA closedby=any style="position: fixed; top: 100px; bottom: auto; padding:0;">Dialog 1
+    <div class=popoverA popover style="top: 150px; bottom: auto; padding:0;">Popover 1
+      <dialog class=dialogB closedby=any style="position: fixed; top: 200px; bottom: auto; padding:0;">Dialog 2
+        <div class=popoverB popover style="top: 250px; bottom: auto; padding:0;">Popover 2</div>
+      </dialog>
+    </div>
+  </dialog>
+</div>
+
+<div class=testcase data-description="same structure, but with shadow DOM slots">
+  <div>
+    <template shadowrootmode=open>
+      <dialog class=dialogA closedby=any style="position: fixed; top: 100px; bottom: auto; padding:0;">Dialog 1
+        <slot></slot>
+      </dialog>
+    </template>
+    <div>
+      <template shadowrootmode=open>
+        <div class=popoverA popover style="top: 150px; bottom: auto; padding:0;">Popover 1
+          <slot></slot>
+        </div>
+      </template>
+      <div>
+        <template shadowrootmode=open>
+          <dialog class=dialogB closedby=any style="position: fixed; top: 200px; bottom: auto; padding:0;">Dialog 2
+            <slot></slot>
+          </dialog>
+        </template>
+        <div class=popoverB popover style="top: 250px; bottom: auto; padding:0;">Popover 2</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 function openDialog(dialog,modal) {
+  assert_true(!!dialog);
   assert_false(dialog.open);
   if (modal) {
     dialog.showModal();
@@ -38,78 +59,100 @@ function openDialog(dialog,modal) {
   assert_true(dialog.open);
   assert_equals(dialog.matches(':modal'),modal);
 }
-function assertStates(dialogAExpected,popoverAExpected,
+function assertStates(elements,dialogAExpected,popoverAExpected,
     dialogBExpected,popoverBExpected) {
-  assert_equals(dialogA.open,dialogAExpected,
-    `First dialog should be ${dialogAExpected ? 'open' : 'closed'}`);
-  assert_equals(popoverA.matches(':popover-open'),popoverAExpected,
-    `First popover should be ${popoverAExpected ? 'open' : 'closed'}`);
-  assert_equals(dialogB.open,dialogBExpected,
-    `Second dialog should be ${dialogBExpected ? 'open' : 'closed'}`);
-  assert_equals(popoverB.matches(':popover-open'),popoverBExpected,
-    `Second popover should be ${popoverBExpected ? 'open' : 'closed'}`);
+  assert_equals(elements.dialogA.open,dialogAExpected,
+    `dialogA should be ${dialogAExpected ? 'open' : 'closed'}`);
+  assert_equals(elements.popoverA.matches(':popover-open'),popoverAExpected,
+    `popoverA should be ${popoverAExpected ? 'open' : 'closed'}`);
+  assert_equals(elements.dialogB.open,dialogBExpected,
+    `dialogB should be ${dialogBExpected ? 'open' : 'closed'}`);
+  assert_equals(elements.popoverB.matches(':popover-open'),popoverBExpected,
+    `popoverB should be ${popoverBExpected ? 'open' : 'closed'}`);
 }
-function openDialogPopoverStack(t,modalA,modalB) {
-  t.add_cleanup(() => {
-    dialogA.close();
-    popoverA.hidePopover();
-    dialogB.close();
-    popoverB.hidePopover();
+function findElements(wrapper) {
+  let elements = {};
+  if (!wrapper) {
+    return elements;
+  }
+  Array.from(wrapper.children).forEach(child => {
+    ['dialogA','popoverA','dialogB','popoverB'].forEach(pattern => {
+      if (child.matches(`.${pattern}`)) {
+        assert_false(elements.hasOwnProperty(pattern),'Multiple elements with the same class');
+        elements[pattern] = child;
+      }
+      elements = {...elements, ...findElements(child)};
+      elements = {...elements, ...findElements(child.shadowRoot)};
+    });
   });
-  openDialog(dialogA,modalA);
-  popoverA.showPopover();
-  openDialog(dialogB,modalB);
-  popoverB.showPopover();
-  assertStates(true,true,true,true);
+  return elements;
+}
+function openDialogPopoverStack(t,elements,modalA,modalB) {
+  t.add_cleanup(() => {
+    elements.dialogA.close();
+    elements.popoverA.hidePopover();
+    elements.dialogB.close();
+    elements.popoverB.hidePopover();
+  });
+  openDialog(elements.dialogA,modalA);
+  elements.popoverA.showPopover();
+  openDialog(elements.dialogB,modalB);
+  elements.popoverB.showPopover();
+  assertStates(elements,true,true,true,true);
 }
 
-[false,true].forEach(modalA => {
-  [false,true].forEach(modalB => {
-    const modalAString = modalA ? 'modal dialogA' : 'modeless dialogA';
-    const modalBString = modalB ? 'modal dialogB' : 'modeless dialogB';
-    promise_test(async (t) => {
-      openDialogPopoverStack(t,modalA,modalB);
-      await clickOn(unrelated);
-      // Clicking outside all is actually a click on a dialog backdrop.
-      // If dialogB is modal, it'll be dialogB, which is nested inside popoverA.
-      // Either way, both popoverB and dialogB should close.
-      assertStates(true,modalB,false,false);
-      await clickOn(unrelated);
-      // Clicking outside again should close the remaining two.
-      assertStates(false,false,false,false);
-    },`clicking outside all with ${modalAString} and ${modalBString}`);
+document.querySelectorAll('.testcase').forEach(testcase => {
+  const testDescription = `, ${testcase.dataset.description}`;
+  const elements = findElements(testcase);
+  assert_array_equals(Object.keys(elements).sort(),['dialogA','popoverA','dialogB','popoverB'].sort());
+  [false,true].forEach(modalA => {
+    [false,true].forEach(modalB => {
+      const modalAString = modalA ? 'modal dialogA' : 'modeless dialogA';
+      const modalBString = modalB ? 'modal dialogB' : 'modeless dialogB';
+      promise_test(async (t) => {
+        openDialogPopoverStack(t,elements,modalA,modalB);
+        await clickOn(unrelated);
+        // Clicking outside all is actually a click on a dialog backdrop.
+        // If dialogB is modal, it'll be dialogB, which is nested inside popoverA.
+        // Either way, both popoverB and dialogB should close.
+        assertStates(elements,true,modalB,false,false);
+        await clickOn(unrelated);
+        // Clicking outside again should close the remaining two.
+        assertStates(elements,false,false,false,false);
+      },`clicking outside all with ${modalAString} and ${modalBString}${testDescription}`);
 
-    promise_test(async (t) => {
-      openDialogPopoverStack(t,modalA,modalB);
-      await clickOn(popoverB);
-      // Clicking popoverB should keep everything open.
-      assertStates(true,true,true,true);
-    },`clicking popoverB with ${modalAString} and ${modalBString}`);
+      promise_test(async (t) => {
+        openDialogPopoverStack(t,elements,modalA,modalB);
+        await clickOn(elements.popoverB);
+        // Clicking popoverB should keep everything open.
+        assertStates(elements,true,true,true,true);
+      },`clicking popoverB with ${modalAString} and ${modalBString}${testDescription}`);
 
-    promise_test(async (t) => {
-      openDialogPopoverStack(t,modalA,modalB);
-      await clickOn(dialogB);
-      // Only popoverB should be light dismissed.
-      assertStates(true,true,true,false);
-    },`clicking dialogB with ${modalAString} and ${modalBString}`);
+      promise_test(async (t) => {
+        openDialogPopoverStack(t,elements,modalA,modalB);
+        await clickOn(elements.dialogB);
+        // Only popoverB should be light dismissed.
+        assertStates(elements,true,true,true,false);
+      },`clicking dialogB with ${modalAString} and ${modalBString}${testDescription}`);
 
-    promise_test(async (t) => {
-      openDialogPopoverStack(t,modalA,modalB);
-      await clickOn(popoverA);
-      // Both dialogB and popoverB should be light dismissed.
-      assertStates(true,true,false,false);
-    },`clicking popoverA with ${modalAString} and ${modalBString}`);
+      promise_test(async (t) => {
+        openDialogPopoverStack(t,elements,modalA,modalB);
+        await clickOn(elements.popoverA);
+        // Both dialogB and popoverB should be light dismissed.
+        assertStates(elements,true,true,false,false);
+      },`clicking popoverA with ${modalAString} and ${modalBString}${testDescription}`);
 
-    promise_test(async (t) => {
-      openDialogPopoverStack(t,modalA,modalB);
-      await clickOn(dialogA);
-      // If dialogB is modal, clicking on dialogA is actually clicking on dialogB,
-      // which means popoverB will stay open.
-      assertStates(true,modalB,false,false);
-      await clickOn(dialogA);
-      // The next click on dialogA should light dismiss popoverA.
-      assertStates(true,false,false,false);
-    },`clicking dialogA with ${modalAString} and ${modalBString}`);
+      promise_test(async (t) => {
+        openDialogPopoverStack(t,elements,modalA,modalB);
+        await clickOn(elements.dialogA);
+        // If dialogB is modal, clicking on dialogA is actually clicking on dialogB,
+        // which means popoverB will stay open.
+        assertStates(elements,true,modalB,false,false);
+        await clickOn(elements.dialogA);
+        // The next click on dialogA should light dismiss popoverA.
+        assertStates(elements,true,false,false,false);
+      },`clicking dialogA with ${modalAString} and ${modalBString}${testDescription}`);
+    });
   });
 });
 </script>

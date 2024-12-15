@@ -528,6 +528,132 @@ async function prepareOutputsForGraph(context, resources) {
   return outputs;
 }
 
+function getInputName(operatorArguments, operandName) {
+  for (let argument of operatorArguments) {
+    const name = Object.keys(argument)[0];
+    if (name === operandName) {
+      return argument[operandName];
+    } else if (name === 'options') {
+      if (Object.keys(argument[name]).includes(operandName)) {
+        return argument[name][operandName];
+      }
+    }
+  }
+  return null;
+}
+
+// This assert() function is to check whether configurations of test case are
+// set correctly.
+function assert(condition, message) {
+  if (!condition) {
+    throw new Error(`Wrong test case, ${message}`);
+  }
+}
+
+function validateContextSupportsGraph(context, graph) {
+  const supportLimits = context.opSupportLimits();
+  const inputDataTypes = supportLimits.input.dataTypes;
+  const constantDataTypes = supportLimits.constant.dataTypes;
+  const outputDataTypes = supportLimits.output.dataTypes;
+
+  function validateInputOrConstantDataType(
+      inputName, operatorSupportLimits, operand) {
+    const inputDataType = graph.inputs[inputName].descriptor.dataType;
+    if (graph.inputs[inputName].constant) {
+      if (!constantDataTypes.includes(inputDataType)) {
+        throw new TypeError(
+            `Unsupported data type, constant '${operand}' data type ${
+                inputDataType} must be one of [${constantDataTypes}].`);
+      }
+    } else {
+      if (!inputDataTypes.includes(inputDataType)) {
+        throw new TypeError(
+            `Unsupported data type, input '${operand}' data type ${
+                inputDataType} must be one of [${inputDataTypes}].`);
+      }
+    }
+
+    if (!operatorSupportLimits[operand].dataTypes.includes(inputDataType)) {
+      throw new TypeError(`Unsupported data type, input '${
+          operand}' data type ${inputDataType} must be one of [${
+          operatorSupportLimits[operand].dataTypes}].`);
+    }
+  }
+
+  function validateOutputDataType(outputName, operatorSupportLimits, operand) {
+    const outputDataType =
+        graph.expectedOutputs[outputName].descriptor.dataType;
+    if (!outputDataTypes.includes(outputDataType)) {
+      throw new TypeError(
+          `Unsupported data type, output '${operand}' data type ${
+              outputDataType} must be one of [${outputDataTypes}].`);
+    }
+
+    if (!operatorSupportLimits[operand].dataTypes.includes(outputDataType)) {
+      throw new TypeError(`Unsupported data type, output '${
+          operand}' data type ${outputDataType} must be one of [${
+          operatorSupportLimits[operand].dataTypes}].`);
+    }
+  }
+
+  for (let operator of graph.operators) {
+    const operatorName = operator.name;
+    const operatorSupportLimits = supportLimits[operatorName];
+    for (let operand of Object.keys(operatorSupportLimits)) {
+      if (operand === 'output') {
+        // single output operand
+        assert(
+            typeof operator.outputs === 'string',
+            `the outputs of ${operatorName} should be a string.`);
+        if (!graph.expectedOutputs[operator.outputs]) {
+          // intermediate output
+          continue;
+        }
+        validateOutputDataType(
+            operator.outputs, operatorSupportLimits, 'output');
+      } else if (operand === 'outputs') {
+        // multiples output operands
+        assert(
+            Array.isArray(operator.outputs),
+            `the outputs of ${operatorName} should be a string array.`);
+        for (const outputName of operator.outputs) {
+          assert(
+              typeof outputName === 'string',
+              `the outputs' item of ${operatorName} should be a string.`);
+          if (!graph.expectedOutputs[outputName]) {
+            // intermediate output
+            continue;
+          }
+          validateOutputDataType(outputName, operatorSupportLimits, 'outputs');
+        }
+      } else {
+        // input operand(s)
+        if (operatorName === 'concat') {
+          const inputNameArray = operator.arguments[0][operand];
+          assert(
+              Array.isArray(inputNameArray),
+              `the inputs of ${operatorName} should be a string array.`);
+          for (const inputName of inputNameArray) {
+            assert(
+                typeof inputName === 'string',
+                `the inputs' item of ${operatorName} should be a string.`);
+            validateInputOrConstantDataType(
+                inputName, operatorSupportLimits, 'inputs');
+          }
+        } else {
+          const inputName = getInputName(operator.arguments, operand);
+          if (inputName === null || !graph.inputs[inputName]) {
+            // default options argument or intermediate input
+            continue;
+          }
+          validateInputOrConstantDataType(
+              inputName, operatorSupportLimits, operand);
+        }
+      }
+    }
+  }
+}
+
 /**
  * This function is to execute the compiled graph.
  * @param {MLContext} context
@@ -825,7 +951,7 @@ const getReducedElementCount =
           sizes.reduce(
               (accumulator, currentValue) => accumulator * currentValue) :
           1;
-    }
+    };
 
 const webnn_conformance_test =
     (buildAndExecuteGraphFunc, toleranceFunc, testResources) => {
@@ -837,6 +963,7 @@ const webnn_conformance_test =
           throw new AssertionError(
               `Unable to create context for ${variant} variant. ${e}`);
         }
+        validateContextSupportsGraph(context, testResources.graph);
         const builder = new MLGraphBuilder(context);
         const {result, intermediateOperands} = await buildAndExecuteGraphFunc(
             context, builder, testResources.graph);

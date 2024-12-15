@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filter Effects: Test feColorMatrix with negative matrix entries</title>
+    <link rel="author" title="Toby Cathcart Burn" href="mailto:tcathcartburn@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#feColorMatrixElement">
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#element-attrdef-fecolormatrix-type">
+    <link rel="match" href="fecolormatrix-negative-ref.html">
+    <meta name="assert" content="If the test runs, you should see a cyan(#00ffff) colored rectangle.">
+</head>
+
+<body>
+
+    <p>You should see a cyan colored rectangle.</p>
+
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+        <defs>
+            <filter id='invert' color-interpolation-filters='sRGB'>
+                <feColorMatrix in='SourceGraphic'
+                values='-1 0 0 0 1
+                        0 -1 0 0 1
+                        0 0 -1 0 1
+                        0 0 0 1 0' result='ef0'>
+                </feColorMatrix>
+                <feComposite in='ef0' in2='ef0' operator='arithmetic' k2='255'>
+                </feComposite>
+            </filter>
+        </defs>
+
+        <rect x='0' y='0' width='100' height='100' fill="#ffaa00" filter="url(#invert)"></rect>
+    </svg>
+
+</body>
+
+</html>

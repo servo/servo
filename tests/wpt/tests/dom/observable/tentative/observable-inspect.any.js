@@ -20,20 +20,20 @@ test(() => {
       results.push(`inspect() subscribe ${inspectSubscribeCall}`);
     },
     next: (value) => results.push(`inspect() next ${value}`),
-    error: (e) => results.push(`inspect() error ${e.message}`),
-    complete: () => results.push(`inspect() complete`),
+    error: () => results.push('inspect() error'),
+    complete: () => results.push('inspect() complete'),
   });
 
   result.subscribe({
     next: (value) => results.push(`result next ${value}`),
-    error: (e) => results.push(`result error ${e.message}`),
-    complete: () => results.push(`result complete`),
+    error: () => results.push('result error'),
+    complete: () => results.push('result complete'),
   });
 
   result.subscribe({
     next: (value) => results.push(`result next ${value}`),
-    error: (e) => results.push(`result error ${e.message}`),
-    complete: () => results.push(`result complete`),
+    error: () => results.push('result error'),
+    complete: () => results.push('result complete'),
   });
 
   assert_array_equals(results,
@@ -267,21 +267,22 @@ test(() => {
 
 test(() => {
   const source = new Observable(subscriber => {});
+  const error = new Error("error from do subscribe handler");
 
   const result = source.inspect({
     subscribe: () => {
-      throw new Error("error from do subscribe handler");
+      throw error;
     },
   });
 
   const results = [];
   result.subscribe({
     next: () => results.push("next"),
-    error: (e) => results.push(e.message),
+    error: (e) => results.push(e),
     complete: () => results.push("complete"),
   });
 
-  assert_array_equals(results, ["error from do subscribe handler"]);
+  assert_array_equals(results, [error]);
 }, "inspect(): Errors thrown in subscribe() Inspector handler subscribe " +
    "handler are caught and sent to error callback");
 
@@ -306,7 +307,7 @@ test(() => {
       results.push(`inspect() abort ${doUnsubscribeCall} ${reason}`);
     },
     next: (value) => results.push(`inspect() next ${value}`),
-    error: (e) => results.push(`inspect() error ${e.message}`),
+    error: () => results.push('inspect() error'),
     complete: () => results.push(`inspect() complete`),
   });
 
@@ -318,7 +319,7 @@ test(() => {
         controller.abort("abort reason");
       }
     },
-    error: (e) => results.push(`result error ${e.message}`),
+    error: () => results.push('result error'),
     complete: () => results.push(`result complete`),
   }, { signal: controller.signal });
 
@@ -381,32 +382,39 @@ test(() => {
   });
 
   const results = [];
+  const error = new Error("error from inspect() subscribe handler");
 
   const result = source.inspect({
     abort: () => {
-      results.push('abort() handler run');
-      throw new Error("error from inspect() subscribe handler");
+      results.push("abort() handler run");
+      throw error;
     },
   });
 
   const controller = new AbortController();
 
-  self.when('error').take(1).subscribe(e =>
-      results.push(e.message + ', from report exception'));
+  self.when("error").take(1).subscribe((e) => {
+    results.push("from report exception");
+    results.push(e.error);
+  });
 
   result.subscribe({
     next: (value) => {
       results.push(value);
       controller.abort();
     },
-    // This should not be invoked at all!!
-    error: (e) => results.push(e.message + ', from Observer#error()'),
+    error: () => {
+      assert_unreached("This should not be invoked at all!!");
+    },
     complete: () => results.push("complete"),
-  }, {signal: controller.signal});
+  }, { signal: controller.signal });
 
-  assert_array_equals(results, [1, "abort() handler run",
-      "Uncaught Error: error from inspect() subscribe handler, from report " +
-      "exception"]);
+  assert_array_equals(results, [
+    1,
+    "abort() handler run",
+    "from report exception",
+    error,
+  ]);
 }, "inspect(): Errors thrown from inspect()'s abort() handler are caught " +
    "and reported to the global, because the subscription is already closed " +
    "by the time the handler runs");

@@ -304,6 +304,35 @@ Sources:
           assert_array_equals(headers['sec-fetch-user'], ['?1']);
         });
   }, 'sec-fetch-user with user activation');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsCrossSite'], {mime: 'text/html'}),
+        t,
+        false
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - Cross-site');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsSameSite'], {mime: 'text/html'}),
+        t,
+        false
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site');
   </script>
   </body>
 </html>

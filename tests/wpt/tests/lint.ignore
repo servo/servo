@@ -768,15 +768,8 @@ HTML INVALID SYNTAX: mathml/crashtests/mozilla/411603-1.html
 HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
 HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.html
 
-# Tests which include testdriver.js but aren't testharness.js tests
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-grid/grid-model/grid-layout-stale-001.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-grid/grid-model/grid-layout-stale-002.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-scroll-anchoring/fullscreen-crash.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-shadow-parts/interaction-with-nested-pseudo-class.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-text-decor/invalidation/text-decoration-thickness.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-view-transitions/hit-test-unpainted-element.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-view-transitions/hit-test-unrelated-element.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/selectors/remove-hovered-element.html
+# Tests that incorrectly include `testdriver.js`, which isn't supported for some
+# test types.
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-IndexedDB-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-getUniqueId-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-isSameEntry-manual.https.html
@@ -806,13 +799,9 @@ TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemWritableFileS
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showDirectoryPicker-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showOpenFilePicker-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showSaveFilePicker-manual.https.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/crashtests/fieldset-middleclick.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_crossorigin.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_testdriver.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: mediacapture-streams/MediaStreamTrack-end-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-payment-method-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-address-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-option-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/payment-request-event-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/supports-shipping-contact-delegation-manual.https.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: shadow-dom/crashtests/move-to-new-tree-1343016.html

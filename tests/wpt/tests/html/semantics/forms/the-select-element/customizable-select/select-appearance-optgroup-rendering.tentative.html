@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-1;totalPixels=0-1">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="select-appearance-optgroup-rendering-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+div {
+  border: 2px solid green;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <optgroup label=labelattribute>
+    <option>two</option>
+    <div>
+      <option>three</option>
+    </div>
+  </optgroup>
+  <option>four</option>
+</select>
+
+<script>
+(async () => {
+  await test_driver.bless();
+  document.querySelector('select').showPicker();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

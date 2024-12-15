@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+  <style>
+    :root {
+      margin: 0px;
+    }
+
+    #spacer {
+      height: 100vh;
+      width: 100px;
+    }
+
+    #top_box {
+      width: 100px;
+      height: 60vh;
+      background-color: blue;
+    }
+    #middle_box {
+      width: 100px;
+      height: 60vh;
+      scroll-initial-target: nearest;
+      background-color: purple;
+    }
+    #bottom_box {
+      width: 100px;
+      height: 60vh;
+      background-color: yellow;
+    }
+
+    #fragment_target {
+      width: 100px;
+      height: 100px;
+      background-color: red;
+    }
+  </style>
+  <div id="top_box"></div>
+  <div id="middle_box"></div>
+  <div id="bottom_box"></div>
+  <div id="spacer"></div>
+  <div id="fragment_target">Target</div>
+  <script>
+    function stashResult(key, results) {
+      fetch(`/css/css-scroll-snap-2/scroll-initial-target/stash.py?key=${key}`, {
+        method: "POST",
+        body: JSON.stringify(results)
+      }).then(() => {
+        window.close();
+      });
+    }
+    function record() {
+      let scroll_position = "UNKNOWN";
+      // Expect page is scrolled all the way down as the text is at the bottom of
+      // the page.
+      const expected_scroll_top = document.scrollingElement.scrollHeight -
+        document.scrollingElement.clientHeight;
+
+      const scroll_start_target_top = top_box.getBoundingClientRect().height;
+
+      if (document.scrollingElement.scrollTop == scroll_start_target_top) {
+        scroll_position = "AT_SCROLL_START_TARGET";
+      } else if (document.scrollingElement.scrollTop == expected_scroll_top) {
+        scroll_position = "AT_TEXT_FRAGMENT";
+      }
+
+      const result = {
+        scroll_position: scroll_position
+      };
+
+      let key = (new URL(document.location)).searchParams.get("key");
+      stashResult(key, result);
+    }
+
+    window.onload = () => {
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(record);
+      })
+    }
+  </script>
+</body>
+
+</html>

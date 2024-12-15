@@ -159,6 +159,8 @@ scheme host and port.""")
                                       help="A file listing URL prefix for tests")
     test_selection_group.add_argument("--exclude", action="append",
                                       help="URL prefix to exclude")
+    test_selection_group.add_argument("--exclude-file", action="store",
+                                      help="A file listing URL prefix for tests")
     test_selection_group.add_argument("--include-manifest", type=abs_path,
                                       help="Path to manifest listing tests to include")
     test_selection_group.add_argument("--test-groups", dest="test_groups_file", type=abs_path,

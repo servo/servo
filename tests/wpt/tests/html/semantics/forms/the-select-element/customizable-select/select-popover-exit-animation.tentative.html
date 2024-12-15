@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-41;totalPixels=0-6">
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=match href="select-popover-exit-animation-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div>hover target</div>
+<select>
+  <option>option</option>
+</select>
+
+<style>
+select,::picker(select) {
+  appearance: base-select;
+}
+select.animate::picker(select) {
+  transition: display 10000s allow-discrete, overlay 10000s allow-discrete;
+}
+</style>
+
+<script>
+(async () => {
+  const select = document.querySelector('select');
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  select.classList.add('animate');
+  await test_driver.click(select);
+  select.blur();
+  await (new test_driver.Actions()
+    .pointerMove(1, 1, {origin: document.querySelector('div')}))
+    .send();
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

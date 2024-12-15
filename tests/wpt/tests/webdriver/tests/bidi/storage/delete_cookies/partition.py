@@ -132,7 +132,7 @@ async def test_partition_context_iframe(
     )
 
     result = await bidi_session.storage.delete_cookies(partition=frame_partition)
-    await assert_partition_key(bidi_session, actual=result["partitionKey"], context=new_tab["context"])
+    await assert_partition_key(bidi_session, actual=result["partitionKey"], context=iframe_context["context"])
 
     await assert_cookies_are_not_present(bidi_session, frame_partition)
 

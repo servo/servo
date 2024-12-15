@@ -328,6 +328,72 @@ Sources:
 
   promise_test(() => {
     const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('GET', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - GET');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+    const userActivated = false;
+    return induceRequest('POST', url, userActivated)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - POST');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
     const url = makeRequestURL(key, ['httpsOrigin', 'httpOrigin'], responseParams);
     const userActivated = false;
     return induceRequest('GET', url, userActivated)

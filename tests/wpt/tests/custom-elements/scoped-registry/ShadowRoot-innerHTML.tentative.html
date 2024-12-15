@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests innerHTML should use the scoped custom element registry used to create the context object</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<link rel="help" href="https://github.com/WICG/webcomponents/issues/1078">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+function createConnectedShadowTree(test, registry) {
+    const host = document.createElement('div');
+    const shadowRoot = host.attachShadow({mode: 'closed', registry});
+    document.body.appendChild(host);
+    test.add_cleanup(() => host.remove());
+    return shadowRoot;
+}
+
+test((test) => {
+    const registry = new CustomElementRegistry;
+
+    class SomeElement extends HTMLElement { };
+    registry.define('some-element', SomeElement);
+
+    class OtherElement extends HTMLElement { };
+    registry.define('other-element', OtherElement);
+
+    const shadowRoot = createConnectedShadowTree(test, registry);
+    assert_true(shadowRoot.createElement('some-element') instanceof SomeElement);
+    assert_true(shadowRoot.createElement('other-element') instanceof OtherElement);
+    shadowRoot.innerHTML = '<some-element></some-element><other-element></other-element>';
+
+    assert_true(shadowRoot.querySelector('some-element') instanceof SomeElement);
+    assert_true(shadowRoot.querySelector('other-element') instanceof OtherElement);
+}, 'innerHTML on a shadow root should use scoped custom element registry');
+
+test((test) => {
+    const registry = new CustomElementRegistry;
+
+    class SomeElement extends HTMLElement { };
+    registry.define('some-element', SomeElement);
+
+    class OtherElement extends HTMLElement { };
+    registry.define('other-element', OtherElement);
+
+    const shadowRoot = createConnectedShadowTree(test, registry);
+    const someElement = shadowRoot.createElement('some-element');
+    assert_true(someElement instanceof SomeElement);
+    someElement.innerHTML = '<other-element></other-element>';
+    assert_true(someElement.querySelector('other-element') instanceof OtherElement);
+}, 'innerHTML on a disconnected element should use the associated scoped custom element registry');
+
+test((test) => {
+    class SomeElement1 extends HTMLElement { };
+    customElements.define('some-element', SomeElement1);
+
+    const registry = new CustomElementRegistry;
+    class SomeElement2 extends HTMLElement { };
+    registry.define('some-element', SomeElement2);
+
+    const shadowRoot = createConnectedShadowTree(test, registry);
+    shadowRoot.innerHTML = '<some-element></some-element>';
+    assert_true(shadowRoot.querySelector('some-element') instanceof SomeElement2);
+}, 'innerHTML on a connected shadow root should use its scoped custom element');
+
+test((test) => {
+    class OtherElement1 extends HTMLElement { };
+    customElements.define('other-element', OtherElement1);
+
+    const registry1 = new CustomElementRegistry;
+    class SomeElement extends HTMLElement { };
+    registry1.define('some-element', SomeElement);
+    class OtherElement2 extends HTMLElement { };
+    registry1.define('other-element', OtherElement2);
+
+    const registry2 = new CustomElementRegistry;
+    class OtherElement3 extends HTMLElement { };
+    registry2.define('other-element', OtherElement3);
+
+    const shadowRoot1 = createConnectedShadowTree(test, registry1);
+    const shadowRoot2 = createConnectedShadowTree(test, registry2);
+    const someElement = shadowRoot1.createElement('some-element');
+    someElement.innerHTML = '<other-element></other-element>';
+    assert_true(someElement.querySelector('other-element') instanceof OtherElement2);
+    shadowRoot2.appendChild(someElement);
+    someElement.innerHTML = '<other-element>b</other-element>';
+    assert_true(someElement.querySelector('other-element') instanceof OtherElement3);
+    someElement.remove();
+    someElement.innerHTML = '<other-element></other-element>';
+    assert_true(someElement.querySelector('other-element') instanceof OtherElement3);
+}, 'innerHTML on an inserted element should use the scoped custom element of the ancestor shadow root');
+
+test((test) => {
+    const registry = new CustomElementRegistry;
+    class SomeElement extends HTMLElement { };
+    registry.define('some-element', SomeElement);
+    const shadowRoot = createConnectedShadowTree(test, registry);
+
+    shadowRoot.innerHTML = '<some-element></some-element><template><some-element></some-element></template>';
+    assert_equals(shadowRoot.querySelector('some-element').__proto__.constructor.name, 'SomeElement');
+    assert_equals(shadowRoot.querySelector('template').content.querySelector('some-element').__proto__.constructor.name, 'HTMLElement');
+}, 'innerHTML should not upgrade a custom element inside a template element');
+
+</script>
+</body>
+</html>

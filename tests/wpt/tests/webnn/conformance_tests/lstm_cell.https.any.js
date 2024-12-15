@@ -63,14 +63,16 @@ const lstmCellTests = [
         },
         'lstmCellWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellHiddenState': {
           'data': [0, 0, 0, 0],
@@ -82,11 +84,13 @@ const lstmCellTests = [
         },
         'lstmCellBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         }
       },
       'operators': [{
@@ -128,14 +132,16 @@ const lstmCellTests = [
         },
         'lstmCellWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellHiddenState': {
           'data': [0, 0, 0, 0],
@@ -147,15 +153,18 @@ const lstmCellTests = [
         },
         'lstmCellBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellPeepholeWeight': {
           'data': [0, 0, 0, 0, 0, 0],
-          'descriptor': {shape: [6], dataType: 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'},
+          'constant': true
         }
       },
       'operators': [{
@@ -198,14 +207,16 @@ const lstmCellTests = [
         },
         'lstmCellWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellHiddenState': {
           'data': [0, 0, 0, 0],
@@ -217,11 +228,13 @@ const lstmCellTests = [
         },
         'lstmCellBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         }
       },
       'operators': [{
@@ -264,14 +277,16 @@ const lstmCellTests = [
         },
         'lstmCellWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellHiddenState': {
           'data': [0, 0, 0, 0],
@@ -283,11 +298,13 @@ const lstmCellTests = [
         },
         'lstmCellBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         }
       },
       'operators': [{
@@ -329,14 +346,16 @@ const lstmCellTests = [
         },
         'lstmCellWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {shape: [8, 2], dataType: 'float32'}
+          'descriptor': {shape: [8, 2], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellHiddenState': {
           'data': [0, 0, 0, 0],
@@ -348,15 +367,18 @@ const lstmCellTests = [
         },
         'lstmCellBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {shape: [8], dataType: 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'},
+          'constant': true
         },
         'lstmCellPeepholeWeight': {
           'data': [0, 0, 0, 0, 0, 0],
-          'descriptor': {shape: [6], dataType: 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'},
+          'constant': true
         }
       },
       'operators': [{

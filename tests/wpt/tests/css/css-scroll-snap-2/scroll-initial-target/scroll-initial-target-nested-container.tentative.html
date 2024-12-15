@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title> CSS Scroll Snap 2 Test: scroll-initial-target*</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#scroll-initial-target">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/css/css-animations/support/testcommon.js"></script>
+  </head>
+  <body>
+    <style>
+      /**
+        large-space divs are added to simplify scrolling calculations
+        (i.e. expected offsets are just distances from scroller border top to
+        scrollee border top).
+      */
+      .large-space {
+        position: absolute;
+        height: 500vh;
+        width: 500vw;
+      }
+      #space-filler {
+        width: 500px;
+        height: 500px;
+        background-color: green;
+      }
+      #outer-container {
+        width: 400px;
+        height: 400px;
+        overflow: scroll;
+        position: relative;
+        background-color: yellow;
+      }
+      #inner-container {
+        top: 20px;
+        left: 20px;
+        width: 400px;
+        height: 400px;
+        overflow: visible;
+        position: relative;
+        background-color: blue;
+      }
+      #target {
+        width: 100px;
+        height: 100px;
+        background-color: pink;
+        scroll-initial-target: nearest;
+      }
+    </style>
+    <div id="outer-container">
+      <div class="large-space" id="large_space_outer"></div>
+      <div id="space-filler"></div>
+      <div id="inner-container">
+        <div class="large-space" id="large_space_inner"></div>
+        <div id="space-filler"></div>
+        <div id="target">
+        </div>
+      </div>
+    </div>
+    <script>
+      let outer_container = document.getElementById("outer-container");
+      let inner_container = document.getElementById("inner-container");
+      let space_filler = document.getElementById("space-filler");
+      let target = document.getElementById("target");
+
+      const inner_scroller_top_offset = 20;
+      const target_height = target.getBoundingClientRect().height;
+      const space_filler_height = space_filler.getBoundingClientRect().height;
+      const inner_content_height = target_height + space_filler_height;
+      const inner_container_height = inner_container.getBoundingClientRect().height;
+
+      let outer_to_target_scrolltop =
+      /*outer space-filler*/space_filler_height +
+      /* 20px top */  inner_scroller_top_offset +
+      /*inner space filler*/ space_filler_height;
+
+      let outer_to_inner_scrolltop =
+      /* outer space-filler*/ space_filler_height +
+      /* 20px top    */  inner_scroller_top_offset;
+
+      let inner_to_target_scrolltop =
+      /*inner space filler*/ space_filler_height;
+
+      async function resetDisplay() {
+        outer_container.style.display = "block";
+        inner_container.style.display = "block";
+        target.style.display = "block";
+        return waitForAnimationFrames(2);
+      }
+
+      promise_test(async (t) => {
+        await resetDisplay();
+        assert_equals(outer_container.scrollTop, outer_to_target_scrolltop,
+          "outer-container is scrolled to scroll-initial-target");
+
+        // Remove large_space_outer so we can observe outer-container adjust to
+        // its new content height.
+        large_space_outer.style.display = "none";
+        inner_container.style.display = "none";
+        await waitForAnimationFrames(2);
+
+        assert_equals(outer_container.scrollTop,
+            space_filler_height - outer_container.clientHeight,
+            "outer-container has only the outer space filler to scroll");
+
+        large_space_outer.style.display = "initial";
+        inner_container.style.display = "block";
+        await waitForAnimationFrames(2);
+
+        assert_equals(outer_container.scrollTop, outer_to_target_scrolltop,
+            "outer-scroller is updated as scroll-initial-target reappears");
+      }, "display:none scroll-initial-target becomes display:block");
+
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+        await resetDisplay();
+        assert_equals(outer_container.scrollTop, outer_to_target_scrolltop,
+            "outer-container is scrolled to scroll-initial-target");
+
+        // Remove large_space_outer so we can observe outer-container adjust to
+        // its new content height.
+        large_space_outer.style.display = "none";
+        inner_container.style.overflow = "scroll";
+        await waitForAnimationFrames(2);
+
+        // inner-container has become a scroller and should be scrolled to
+        // scroll-initial-target.
+        assert_equals(inner_container.scrollTop,
+          inner_to_target_scrolltop,
+          "inner-container is fully scrolled to target");
+        // outer-container should be adjusted to its new max scroll offset.
+        assert_equals(outer_container.scrollTop,
+            space_filler_height + inner_scroller_top_offset +
+            inner_container_height - outer_container.clientHeight,
+            "outer-container's overflowing content is only its direct " +
+            "children");
+
+        large_space_outer.style.display = "initial";
+        inner_container.style.overflow = "visible";
+        await waitForAnimationFrames(2);
+
+        assert_equals(inner_container.scrollTop, 0,
+            "inner-container is no longer a scroll container");
+        assert_equals(outer_container.scrollTop, outer_to_target_scrolltop,
+            "outer-scroller is the scroll container for target once again");
+      }, "intermediate overflow:visible container becomes overflow:scroll");
+
+      promise_test(async (t) => {
+        // This test verifies that:
+        // 1. when both the child and grandchild are scroll-initial-targets, the
+        //    first-in-tree-order (i.e. the child) wins/is scrolled to.
+        // 2. if/when the grandchild stops being a scroll-initial-target, the
+        //    child (inner container) is scrolled to.
+        await waitForCompositorCommit();
+        await resetDisplay();
+        t.add_cleanup(async () => {
+          inner_container.style.scrollInitialTarget = "none";
+          await waitForAnimationFrames(2);
+        });
+
+        assert_equals(outer_container.scrollTop, outer_to_target_scrolltop,
+          "outer-container is scrolled to scroll-initial-target");
+        // Make the inner container a scroll-initial-target.
+        inner_container.style.scrollInitialTarget = "nearest";
+        await waitForAnimationFrames(2);
+
+        // The inner container has overflow: visible, so it's not the scroll
+        // container of target.
+        assert_equals(outer_container.scrollTop,
+          outer_to_inner_scrolltop,
+          "outer-container is scrolled to inner-container (which is before the" +
+          "inner scroll-initial-target in tree order)");
+      }, "outer scroll-initial-target takes precedence over inner");
+
+      promise_test(async (t) => {
+        // This test verifies that a child which is a scroller, is a
+        // scroll-initial-target, and has a scroll-initial-target is scrolled to
+        // by its scrolling container, and also scrolls to its own
+        // scroll-initial-target.
+        await waitForCompositorCommit();
+        await resetDisplay();
+        t.add_cleanup(async () => {
+          inner_container.style.overflow = "visible";
+          inner_container.style.scrollInitialTarget = "none";
+          await waitForAnimationFrames(2);
+        });
+
+        assert_equals(outer_container.scrollTop, outer_to_target_scrolltop,
+          "outer-container is scrolled to scroll-initial-target");
+
+        // Make the inner container a scroll-initial-target.
+        inner_container.style.scrollInitialTarget = "nearest";
+        await waitForAnimationFrames(2);
+
+        assert_equals(outer_container.scrollTop,
+          outer_to_inner_scrolltop,
+          "outer-container is still scrolled to inner scroll-container" +
+          "as it is a scroll-initial-target and comes before #target in " +
+          "tree-order");
+
+        // Make the inner container a scroller.
+        inner_container.style.overflow = "scroll";
+        await waitForAnimationFrames(2);
+
+        assert_equals(outer_container.scrollTop,
+          outer_to_inner_scrolltop,
+          "outer-container is scrolled to the inner container");
+        assert_equals(inner_container.scrollTop,
+          inner_to_target_scrolltop,
+          "inner-container is scrolled to target");
+      }, "scroll containers can also be scroll-initial-targets");
+    </script>
+  </body>
+</html>

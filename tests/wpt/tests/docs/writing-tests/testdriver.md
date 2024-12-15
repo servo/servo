@@ -13,8 +13,12 @@ written purely using web platform APIs. Outside of automation
 contexts, it allows human operators to provide expected input
 manually (for operations which may be described in simple terms).
 
-It is currently supported only for [testharness.js](testharness)
-tests.
+testdriver.js supports the following test types:
+* [testharness.js](testharness) tests
+* [reftests](reftests) and [print-reftests](print-reftests) that use the
+  `class=reftest-wait` attribute on the root element to control completion
+* [crashtests](crashtest) that use the `class=test-wait` attribute to control
+  completion
 
 ## Markup ##
 

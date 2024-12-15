@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>InputEvent.getTargetRanges() should return same array in various timings</title>
+<div contenteditable id="target"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+// https://w3c.github.io/input-events/#events-inputevents is not clear that
+// the StaticRange-based APIs are internally represented as Range during event
+// propagation.  However, at least Blink does this, and it requires that an
+// exception thrown when converting a StaticRange to a Range propagates the
+// exception.
+
+let target = document.getElementById("target");
+
+test(() => {
+  target.innerHTML = "hello<span> </span>world";
+  let ev = new InputEvent("input",
+                          {
+                            data: "a",
+                            inputType: "insertText",
+                            targetRanges: [
+                              new StaticRange({
+                                                startContainer: target,
+                                                startOffset: 0,
+                                                endContainer: target,
+                                                endOffset: 3,
+                                              }),
+                            ],
+                          });
+  target.querySelector("span").remove();
+  target.normalize();
+  let ranges = ev.getTargetRanges();
+  assert_equals(ranges.length, 1);
+  assert_equals(ranges[0].startContainer, target);
+  assert_equals(ranges[0].startOffset, 0);
+  assert_equals(ranges[0].endContainer, target);
+  assert_equals(ranges[0].endOffset, 1);
+}, "valid target ranges in Element don't throw exceptions");
+
+test(() => {
+  target.innerHTML = "hello<span> </span>world";
+  assert_throws_dom(
+    "IndexSizeError",
+    () => {
+      // This should throw:
+      let ev = new InputEvent("input",
+                              {
+                                data: "a",
+                                inputType: "insertText",
+                                targetRanges: [
+                                  new StaticRange({
+                                                    startContainer: target,
+                                                    startOffset: 0,
+                                                    endContainer: target,
+                                                    endOffset: 5,
+                                                  }),
+                                ],
+                              });
+      // Run this in case it doesn't throw, to make sure it doesn't crash:
+      ev.getTargetRanges()[0].endOffset;
+    });
+}, "InputEvent constructor throws with invalid range in Element");
+
+test(() => {
+  target.innerHTML = "hello<span> </span>world";
+  let text = target.firstChild;
+  let ev = new InputEvent("input",
+                          {
+                            data: "a",
+                            inputType: "insertText",
+                            targetRanges: [
+                              new StaticRange({
+                                                startContainer: text,
+                                                startOffset: 0,
+                                                endContainer: text,
+                                                endOffset: 3,
+                                              }),
+                            ],
+                          });
+  text.replaceData(1, 1, "eee");
+  let ranges = ev.getTargetRanges();
+  assert_equals(ranges.length, 1);
+  assert_equals(ranges[0].startContainer, text);
+  assert_equals(ranges[0].startOffset, 0);
+  assert_equals(ranges[0].endContainer, text);
+  assert_equals(ranges[0].endOffset, 5);
+}, "valid target ranges in Text don't throw exceptions");
+
+test(() => {
+  target.innerHTML = "hello<span> </span>world";
+  let text = target.firstChild;
+  assert_throws_dom(
+    "IndexSizeError",
+    () => {
+      // This should throw:
+      let ev = new InputEvent("input",
+                              {
+                                data: "a",
+                                inputType: "insertText",
+                                targetRanges: [
+                                  new StaticRange({
+                                                    startContainer: text,
+                                                    startOffset: 0,
+                                                    endContainer: text,
+                                                    endOffset: 12,
+                                                  }),
+                                ],
+                              });
+      // Run this in case it doesn't throw, to make sure it doesn't crash:
+      ev.getTargetRanges()[0].endOffset;
+    });
+}, "InputEvent constructor throws with invalid range in Text");
+
+</script>

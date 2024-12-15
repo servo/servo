@@ -6,7 +6,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="../../popovers/resources/popover-utils.js"></script>
 
 <dialog>Dialog</dialog>
 
@@ -29,18 +28,6 @@ function getSignal(t) {
   return signal;
 }
 
-// Run this test first, since the user activation from other tests will persist.
-promise_test(async (t) => {
-  t.add_cleanup(() => dialog.close());
-  const signal = getSignal(t);
-  dialog.addEventListener('cancel',(e) => {
-    e.preventDefault();
-  },{signal});
-  openDialog(/*modal*/true);
-  dialog.requestClose();
-  assert_false(dialog.open,'Without user activation, requestClose can\'t be cancelled');
-},`requestClose requires user activation in order to be cancelable`);
-
 async function setup(t,closedby) {
   t.add_cleanup(() => {
     dialog.close();
@@ -62,13 +49,8 @@ async function setup(t,closedby) {
     promise_test(async (t) => {
       await setup(t,closedby);
       openDialog(modal);
-      if (dialog.closedBy != "none") {
-        dialog.requestClose();
-        assert_false(dialog.open);
-      } else {
-        assert_throws_dom('InvalidStateError',() => dialog.requestClose());
-        assert_true(dialog.open);
-      }
+      dialog.requestClose();
+      assert_false(dialog.open);
     },`requestClose basic behavior ${testDescription}`);
 
     promise_test(async (t) => {
@@ -78,15 +60,11 @@ async function setup(t,closedby) {
       dialog.addEventListener('close',() => events.push('close'),{signal});
       openDialog(modal);
       assert_array_equals(events,[]);
-      if (dialog.closedBy != "none") {
-        dialog.requestClose();
-        assert_false(dialog.open);
-        assert_array_equals(events,['cancel'],'close is scheduled');
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        assert_array_equals(events,['cancel','close']);
-      } else {
-        assert_throws_dom('InvalidStateError',() => dialog.requestClose());
-      }
+      dialog.requestClose();
+      assert_false(dialog.open);
+      assert_array_equals(events,['cancel'],'close is scheduled');
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      assert_array_equals(events,['cancel','close']);
     },`requestClose fires both cancel and close ${testDescription}`);
 
     promise_test(async (t) => {
@@ -97,29 +75,17 @@ async function setup(t,closedby) {
       openDialog(modal);
       dialog.setAttribute('closedby',closedby);
       assert_array_equals(events,[]);
-      if (dialog.closedBy != "none") {
-        dialog.requestClose();
-        assert_false(dialog.open);
-      } else {
-        assert_throws_dom('InvalidStateError',() => dialog.requestClose());
-      }
-    },`changing closedby from 'none' to '${closedby}' for ${modal ? "modal" : "modeless"} dialog`);
-
-    promise_test(async (t) => {
-      const signal = await setup(t,closedby);
-      let events = [];
-      dialog.addEventListener('cancel',() => events.push('cancel'),{signal});
-      dialog.addEventListener('close',() => events.push('close'),{signal});
+      dialog.requestClose();
+      assert_false(dialog.open,'Adding closedby after dialog is open');
+      assert_array_equals(events,['cancel']);
+      events=[];
       openDialog(modal);
       dialog.removeAttribute('closedby');
       assert_array_equals(events,[]);
-      if (dialog.closedBy != "none") {
-        dialog.requestClose();
-        assert_false(dialog.open);
-      } else {
-        assert_throws_dom('InvalidStateError',() => dialog.requestClose());
-      }
-    },`Removing closedby when closedby='${closedby}' for ${modal ? "modal" : "modeless"} dialog`);
+      dialog.requestClose();
+      assert_false(dialog.open,'Removing closedby after dialog is open');
+      assert_array_equals(events,['cancel']);
+    },`closedby has no effect on dialog.requestClose() ${testDescription}`);
 
     if (dialog.closedBy != "none") {
       promise_test(async (t) => {
@@ -131,14 +97,23 @@ async function setup(t,closedby) {
           }
         },{signal});
         openDialog(modal);
-        await clickOn(dialog); // User activation
         dialog.requestClose();
         assert_true(dialog.open,'cancel event was cancelled - dialog shouldn\'t close');
         shouldPreventDefault = false;
-        await clickOn(dialog); // User activation
         dialog.requestClose();
         assert_false(dialog.open,'cancel event was not cancelled - dialog should now close');
       },`requestClose can be cancelled ${testDescription}`);
+
+      promise_test(async (t) => {
+        const signal = await setup(t,closedby);
+        dialog.addEventListener('cancel',(e) => e.preventDefault(),{signal});
+        openDialog(modal);
+        // No user activation here.
+        dialog.requestClose();
+        dialog.requestClose();
+        dialog.requestClose();
+        assert_true(dialog.open,'cancel event was cancelled - dialog shouldn\'t close');
+      },`requestClose avoids abuse prevention logic ${testDescription}`);
 
       promise_test(async (t) => {
         await setup(t,closedby);

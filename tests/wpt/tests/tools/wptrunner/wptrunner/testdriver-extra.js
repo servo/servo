@@ -58,8 +58,17 @@
         event.stopImmediatePropagation();
     });
 
+    const root_classes = document.documentElement.classList;
+    // For non-testharness tests, the presence of `(ref)test-wait` indicates
+    // it's the "main" browsing context through which testdriver actions are
+    // routed. Evaluate this eagerly before the test starts and removes these
+    // classes.
+    if (root_classes.contains("reftest-wait") || root_classes.contains("test-wait")) {
+      window.__wptrunner_is_test_context = true;
+    }
+
     function is_test_context() {
-      return window.__wptrunner_message_queue !== undefined;
+      return !!window.__wptrunner_is_test_context;
     }
 
     // Code copied from /common/utils.js
@@ -242,7 +251,7 @@
     };
 
     window.test_driver_internal.set_test_context = function(context) {
-        if (window.__wptrunner_message_queue) {
+        if (is_test_context()) {
             throw new Error("Tried to set testharness context in a window containing testharness.js");
         }
         testharness_context = context;

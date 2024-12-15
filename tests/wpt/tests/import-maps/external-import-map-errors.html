@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  window.markupErrored = false;
+  window.markupLoaded = false;
+</script>
+<script src="/import-maps/resources/empty.js" type="importmap"
+ onload="window.markupLoaded = true;" onerror="window.markupErrored = true;">
+</script>
+<script>
+  promise_test(async () => {
+    await new Promise((resolve, reject) => {
+      const element = document.createElement("script");
+      element.onload = () => { reject("Got an unexpected load event"); };
+      element.onerror = () => { resolve("Got an error event"); };
+      element.src = "/import-maps/resources/empty.js";
+      element.type = "importmap";
+      document.head.appendChild(element);
+    })
+  }, "Test that an external import map fires an error event");
+
+  promise_test(async () => {
+    await new Promise((resolve, reject) => {
+      const element = document.createElement("script");
+      element.type = "importmap";
+      element.onload = () => { reject("Got an unexpected load event"); };
+      element.onerror = () => { resolve("Got an error event"); };
+      element.src = "/import-maps/resources/empty.js";
+      document.head.appendChild(element);
+    })
+  }, "Test that an external import map fires an error event, regardless of attribute order");
+
+  promise_test(async () => {
+    assert_true(window.markupErrored, "error");
+    assert_false(window.markupLoaded, "load");
+  }, "Test that an external import map in markup fires an error event");
+</script>
+</head>

@@ -109,6 +109,15 @@ class EditorTestUtils {
     );
   }
 
+  sendCutShortcutKey() {
+    return this.sendKey(
+      "x",
+      this.window.navigator.platform.includes("Mac")
+        ? this.kMeta
+        : this.kControl
+    );
+  }
+
   sendPasteShortcutKey() {
     return this.sendKey(
       "v",

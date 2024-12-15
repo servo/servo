@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: parsing column-rule-style with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-style">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="column-rule-style supports the full grammar '[ <line-style-list> | <auto-line-style-list> ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+// <repeat-line-style>  = repeat( [ <integer [1,∞]> ] , [ <style> ]+ )
+test_valid_value("column-rule-style", "repeat(4, dotted)");
+test_valid_value("column-rule-style", "repeat(3, dashed double dotted)");
+test_valid_value("column-rule-style", "repeat(1, dashed double dotted solid)");
+
+// <line-style-or-repeat> = [ <style> | <repeat-line-style> ]
+test_valid_value("column-rule-style", "dashed");
+test_valid_value("column-rule-style", "repeat(4, double)");
+
+// <line-style-list> = [ <line-style-or-repeat> ]+
+test_valid_value("column-rule-style", "dotted ridge");
+test_valid_value("column-rule-style", "dotted dashed solid groove ridge");
+test_valid_value("column-rule-style", "repeat(3, groove) repeat(4, ridge)");
+test_valid_value("column-rule-style", "inset repeat(3, ridge) none repeat(4, groove hidden dashed)");
+test_valid_value("column-rule-style", "repeat(4, none ridge solid) repeat(5, hidden) double");
+
+// <auto-repeat-line-style>   = repeat( auto , [ <style> ]+ )
+test_valid_value("column-rule-style", "repeat(auto, solid)");
+test_valid_value("column-rule-style", "repeat(auto, dotted solid inset)");
+
+// <auto-line-style-list>    = [ <line-style-or-repeat> ]*
+//                              <auto-repeat-line-style>
+//                              [ <line-style-or-repeat> ]*
+test_valid_value("column-rule-style", "repeat(auto, dashed groove) ridge");
+test_valid_value("column-rule-style", "repeat(4, dotted double dashed) repeat(auto, solid)");
+test_valid_value("column-rule-style", "inset repeat(auto, solid ridge) repeat(4, none groove hidden)");
+</script>
+</body>
+</html>

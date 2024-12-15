@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Clicking a button should submit the form</title>
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form">
+  <button id="button" type="reset"></button>
+</form>
+
+<script>
+  const form = document.getElementById("form");
+  const button = document.getElementById("button");
+
+  function resetState() {
+    button.removeAttribute("commandfor");
+    button.removeAttribute("command");
+    button.removeAttribute("disabled");
+    button.removeAttribute("form");
+    button.setAttribute("type", "reset");
+  }
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("command", "--foo");
+
+    let called = false;
+    form.addEventListener("reset", (e) => {
+      called = true;
+    });
+    button.click();
+    assert_true(called, "reset should have been dispatched");
+  }, "clicking a reset button should trigger a reset (with command attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("commandfor", "whatever");
+
+    let called = false;
+    form.addEventListener("reset", (e) => {
+      called = true;
+    });
+    button.click();
+    assert_true(called, "reset should have been dispatched");
+  }, "clicking a button should trigger a reset (with commandfor attribute)");
+
+  test((t) => {
+    t.add_cleanup(resetState);
+    button.setAttribute("command", "--foo");
+    button.setAttribute("commandfor", "whatever");
+
+    let called = false;
+    form.addEventListener("reset", (e) => {
+      called = true;
+    });
+    button.click();
+    assert_true(called, "reset should have been dispatched");
+  }, "clicking a button should trigger a reset (with command and commandfor attribute)");
+</script>

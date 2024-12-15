@@ -14,7 +14,7 @@ test(t => {
 
   watcher.requestClose();
 
-  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
 }, "requestClose() with no user activation");
 
 test(t => {
@@ -43,10 +43,10 @@ test(t => {
   let watcher = createRecordingCloseWatcher(t, events);
 
   watcher.requestClose();
-  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
 
   watcher.destroy();
-  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
 }, "requestClose() then destroy()");
 
 test(t => {
