@@ -16,7 +16,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptCredentialsInput};
 use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
@@ -1594,11 +1594,8 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            // TODO(#33616, #27439): Prompt the user for username and password from the window
             let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-            if let Some((username, password)) = credentials {
-                dbg!(username, password);
-            }
+            if let Some(_credentials) = credentials {}
             // Wrong, but will have to do until we are able to prompt the user
             // otherwise this creates an infinite loop
             // We basically pretend that the user declined to enter credentials (#33616)
@@ -1635,9 +1632,9 @@ async fn http_network_or_cache_fetch(
         // TODO(#33616): Step 15.3 If fetchParams is canceled, then return
         // the appropriate network error for fetchParams.
 
-        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window
+        // Step 15.4 Prompt the end user as appropriate in request’s window
         let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-        if let Some((_username, _password)) = credentials {
+        if let Some(_credentials) = credentials {
             // TODO(#33616): store the result as a proxy-authentication entry.
             // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
         }
@@ -1748,9 +1745,9 @@ impl Drop for ResponseEndTimer {
 
 fn prompt_user_for_credentials(
     embedder_proxy: &Mutex<Option<EmbedderProxy>>,
-) -> Option<(Option<String>, Option<String>)> {
+) -> Option<PromptCredentialsInput> {
     let Ok(guard) = embedder_proxy.lock() else {
-        warn!("error while acquiring mutex for embedder proxy");
+        error!("error while acquiring mutex for embedder proxy");
         return None;
     };
 
@@ -1759,47 +1756,29 @@ fn prompt_user_for_credentials(
         return None;
     };
 
-    let username_receiver = {
-        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
-        embedder_proxy.send((
-            None,
-            EmbedderMsg::Prompt(
-                embedder_traits::PromptDefinition::Input(
-                    "Enter username".to_string(),
-                    "username".to_string(),
-                    ipc_sender,
-                ),
-                embedder_traits::PromptOrigin::Trusted,
-            ),
-        ));
-        ipc_receiver
-    };
-    let Ok(username) = username_receiver.recv() else {
-        warn!("error getting username");
+    let Ok((ipc_sender, ipc_receiver)) = ipc::channel() else {
+        error!("couldn't create ipc sender and receiver");
         return None;
     };
 
-    let password_receiver = {
-        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
-        embedder_proxy.send((
-            None,
-            EmbedderMsg::Prompt(
-                embedder_traits::PromptDefinition::Input(
-                    "Enter password".to_string(),
-                    "password".to_string(),
-                    ipc_sender,
-                ),
-                embedder_traits::PromptOrigin::Trusted,
+    embedder_proxy.send((
+        None,
+        EmbedderMsg::Prompt(
+            embedder_traits::PromptDefinition::Credentials(
+                // TODO: figure out how to make the message a localized string
+                "Enter username".to_string(),
+                ipc_sender,
             ),
-        ));
-        ipc_receiver
-    };
-    let Ok(password) = password_receiver.recv() else {
-        warn!("error getting password");
+            embedder_traits::PromptOrigin::Trusted,
+        ),
+    ));
+
+    let Ok(credentials) = ipc_receiver.recv() else {
+        warn!("error getting user credentials");
         return None;
     };
 
-    Some((username, password))
+    Some(credentials)
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
