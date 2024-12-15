@@ -223,11 +223,11 @@ impl GPUCanvasContext {
 // Internal helper methods
 impl GPUCanvasContext {
     fn layout_handle(&self) -> HTMLCanvasDataSource {
-        //if self.drawing_buffer.borrow().cleared {
-        //    HTMLCanvasDataSource::Empty
-        //} else {
-        HTMLCanvasDataSource::WebGPU(self.webrender_image)
-        //}
+        if self.drawing_buffer.borrow().cleared {
+            HTMLCanvasDataSource::Empty
+        } else {
+            HTMLCanvasDataSource::WebGPU(self.webrender_image)
+        }
     }
 
     fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {

@@ -1621,15 +1621,15 @@ impl ScriptThread {
 
             // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
 
+            #[cfg(feature = "webgpu")]
+            document.update_rendering_of_webgpu_canvases();
+
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
             if document.is_fully_active() {
                 window.reflow(ReflowGoal::UpdateTheRendering, can_gc);
             }
-
-            #[cfg(feature = "webgpu")]
-            document.update_rendering_of_webgpu_canvases();
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
