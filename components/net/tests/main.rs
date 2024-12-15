@@ -95,6 +95,25 @@ fn create_embedder_proxy() -> EmbedderProxy {
     }
 }
 
+fn create_http_state() -> HttpState {
+    let override_manager = net::connector::CertificateErrorOverrideManager::new();
+    Self {
+        hsts_list: RwLock::new(HstsList::default()),
+        cookie_jar: RwLock::new(CookieStorage::new(150)),
+        auth_cache: RwLock::new(AuthCache::default()),
+        history_states: RwLock::new(HashMap::new()),
+        http_cache: RwLock::new(HttpCache::default()),
+        http_cache_state: Mutex::new(HashMap::new()),
+        client: create_http_client(create_tls_config(
+            CACertificates::Default,
+            false, /* ignore_certificate_errors */
+            override_manager.clone(),
+        )),
+        override_manager,
+        embedder_proxy: Mutex::new(create_embedder_proxy()),
+    }
+}
+
 fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
@@ -103,7 +122,7 @@ fn new_fetch_context(
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {
-        state: Arc::new(HttpState::default()),
+        state: Arc::new(create_http_state()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(

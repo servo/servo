@@ -16,7 +16,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptCredentialsInput};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptCredentialsInput, PromptDefinition, PromptOrigin};
 use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
@@ -105,28 +105,7 @@ pub struct HttpState {
     pub client: Client<Connector, Body>,
     pub override_manager: CertificateErrorOverrideManager,
     // optional for convenience, since the default trait is used in tests and makes its hard to provide a proxy
-    pub embedder_proxy: Mutex<Option<EmbedderProxy>>,
-}
-
-impl Default for HttpState {
-    fn default() -> Self {
-        let override_manager = CertificateErrorOverrideManager::new();
-        Self {
-            hsts_list: RwLock::new(HstsList::default()),
-            cookie_jar: RwLock::new(CookieStorage::new(150)),
-            auth_cache: RwLock::new(AuthCache::default()),
-            history_states: RwLock::new(HashMap::new()),
-            http_cache: RwLock::new(HttpCache::default()),
-            http_cache_state: Mutex::new(HashMap::new()),
-            client: create_http_client(create_tls_config(
-                CACertificates::Default,
-                false, /* ignore_certificate_errors */
-                override_manager.clone(),
-            )),
-            override_manager,
-            embedder_proxy: Mutex::new(None),
-        }
-    }
+    pub embedder_proxy: Mutex<EmbedderProxy>,
 }
 
 /// Step 13 of <https://fetch.spec.whatwg.org/#concept-fetch>.
@@ -1744,32 +1723,24 @@ impl Drop for ResponseEndTimer {
 }
 
 fn prompt_user_for_credentials(
-    embedder_proxy: &Mutex<Option<EmbedderProxy>>,
+    embedder_proxy: &Mutex<EmbedderProxy>,
 ) -> Option<PromptCredentialsInput> {
-    let Ok(guard) = embedder_proxy.lock() else {
-        error!("error while acquiring mutex for embedder proxy");
-        return None;
-    };
-
-    let Some(embedder_proxy) = guard.as_ref() else {
-        warn!("embedder proxy doesn't exist.");
-        return None;
-    };
+    let proxy = embedder_proxy.lock().unwrap();
 
     let Ok((ipc_sender, ipc_receiver)) = ipc::channel() else {
         error!("couldn't create ipc sender and receiver");
         return None;
     };
 
-    embedder_proxy.send((
+    proxy.send((
         None,
         EmbedderMsg::Prompt(
-            embedder_traits::PromptDefinition::Credentials(
+            PromptDefinition::Credentials(
                 // TODO: figure out how to make the message a localized string
                 "Enter username".to_string(),
                 ipc_sender,
             ),
-            embedder_traits::PromptOrigin::Trusted,
+            PromptOrigin::Trusted,
         ),
     ));
 
