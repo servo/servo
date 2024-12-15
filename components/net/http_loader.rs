@@ -1725,19 +1725,12 @@ fn prompt_user_for_credentials(
 ) -> Option<PromptCredentialsInput> {
     let proxy = embedder_proxy.lock().unwrap();
 
-    let Ok((ipc_sender, ipc_receiver)) = ipc::channel() else {
-        error!("couldn't create ipc sender and receiver");
-        return None;
-    };
+    let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
 
     proxy.send((
         None,
         EmbedderMsg::Prompt(
-            PromptDefinition::Credentials(
-                // TODO: figure out how to make the message a localized string
-                "Enter username".to_string(),
-                ipc_sender,
-            ),
+            PromptDefinition::Credentials(ipc_sender),
             PromptOrigin::Trusted,
         ),
     ));
