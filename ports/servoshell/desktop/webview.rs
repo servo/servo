@@ -697,7 +697,7 @@ where
                             PromptDefinition::Input(_message, default, sender) => {
                                 sender.send(Some(default.to_owned()))
                             },
-                            PromptDefinition::Credentials(_message, sender) => {
+                            PromptDefinition::Credentials(sender) => {
                                 sender.send(PromptCredentialsInput {
                                     username: None,
                                     password: None,
@@ -757,10 +757,8 @@ where
                                     let result = tinyfiledialogs::input_box("", &message, &default);
                                     sender.send(result)
                                 },
-                                PromptDefinition::Credentials(mut message, sender) => {
-                                    if origin == PromptOrigin::Untrusted {
-                                        message = tiny_dialog_escape(&message);
-                                    }
+                                PromptDefinition::Credentials(sender) => {
+                                    // TODO: figure out how to make the message a localized string
                                     let username = tinyfiledialogs::input_box("", "username", "");
                                     let password = tinyfiledialogs::input_box("", "password", "");
                                     sender.send(PromptCredentialsInput { username, password })

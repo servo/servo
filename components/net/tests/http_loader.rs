@@ -6,10 +6,10 @@
 
 use std::collections::HashMap;
 use std::io::Write;
-use std::str;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
+use std::{str, thread};
 
 use base::id::TEST_PIPELINE_ID;
 use cookie::Cookie as CookiePair;
@@ -18,6 +18,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
+use embedder_traits::PromptCredentialsInput;
 use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
 use headers::authorization::Basic;
@@ -1478,4 +1479,177 @@ fn test_origin_serialization_compatability() {
     ensure_serialiations_match("http://example.com:1234");
 
     ensure_serialiations_match("data:,dataurltexta");
+}
+
+#[test]
+fn test_user_credentials_prompt() {
+    // functions to look at
+    // test_if_auth_creds_not_in_url_but_in_cache_it_sets_it
+    // test_auth_ui_needs_www_auth
+
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        // let auth = request.headers()
+        //     .typed_get::<Authorization<Basic>>()
+        //     .unwrap();
+        dbg!(request.headers());
+        let url = request.uri();
+        dbg!(url);
+
+        // if auth == expected {
+        if false {
+            *response.status_mut() = StatusCode::OK;
+        } else {
+            // *response.status_mut() = StatusCode::UNAUTHORIZED;
+            *response.status_mut() = StatusCode::PROXY_AUTHENTICATION_REQUIRED;
+            // (*response.headers_mut()).append(
+            //     http::header::WWW_AUTHENTICATE,
+            //     r#"Basic realm="Demo Realm""#.parse().unwrap(),
+            // );
+            // (*response.headers_mut()).append(
+            //     http::header::CONTENT_TYPE,
+            //     r#"application/json"#.parse().unwrap(),
+            //     );
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    // create an embedder but I have to get the send and receive channels
+    // put the receive channel in a new thread
+    // this thread will handle the embedder prompt message that gets sent from the send channel
+    // and return some credentials for the server
+    // pass embedder into new fetch context
+    //
+    // make the request
+
+    let (sender, receiver) = unbounded();
+    // let another_receiver = receiver.clone();
+    let event_loop_waker = || {
+        struct DummyEventLoopWaker {}
+        impl DummyEventLoopWaker {
+            fn new() -> DummyEventLoopWaker {
+                DummyEventLoopWaker {}
+            }
+        }
+        impl embedder_traits::EventLoopWaker for DummyEventLoopWaker {
+            fn wake(&self) {}
+            fn clone_box(&self) -> Box<dyn embedder_traits::EventLoopWaker> {
+                Box::new(DummyEventLoopWaker {})
+            }
+        }
+
+        Box::new(DummyEventLoopWaker::new())
+    };
+
+    let embedder_proxy = embedder_traits::EmbedderProxy {
+        sender: sender.clone(),
+        event_loop_waker: event_loop_waker(),
+    };
+
+    thread::spawn(move || {
+        let msg = receiver.recv().unwrap();
+        match msg {
+            (_browser_context_id, embedder_msg) => match embedder_msg {
+                embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
+                    match prompt_definition {
+                        embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
+                            ipc_sender.send(PromptCredentialsInput {
+                                username: Some("username".to_string()),
+                                password: Some("test".to_string()),
+                            }).unwrap();
+                        },
+                        _ => unreachable!(),
+                    }
+                },
+                _ => unreachable!(),
+            },
+
+            // (msg, ShutdownState::NotShuttingDown) => {
+            // },
+            _ => unreachable!(),
+        }
+    });
+
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    let _ = server.close();
+    dbg!(&response);
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_success());
+
+}
+
+#[test]
+fn another_test() {
+
+    // let auth_entry = AuthCacheEntry {
+    //     user_name: "username".to_owned(),
+    //     password: "test".to_owned(),
+    // };
+
+    // context
+    //     .state
+    //     .auth_cache
+    //     .write()
+    //     .unwrap()
+    //     .entries
+    //     .insert(url.origin().clone().ascii_serialization(), auth_entry);
+    let handler = move |request: HyperRequest<Body>, _response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        assert_eq!(
+            request.headers().typed_get::<Authorization<Basic>>(),
+            Some(expected)
+        );
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let mut context = new_fetch_context(None, None, None);
+
+    let auth_entry = AuthCacheEntry {
+        user_name: "username".to_owned(),
+        password: "test".to_owned(),
+    };
+
+    context
+        .state
+        .auth_cache
+        .write()
+        .unwrap()
+        .entries
+        .insert(url.origin().clone().ascii_serialization(), auth_entry);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    let _ = server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_success());
 }

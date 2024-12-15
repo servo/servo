@@ -132,14 +132,14 @@ pub enum PromptDefinition {
     /// Ask the user to enter text.
     Input(String, String, IpcSender<Option<String>>),
     /// Ask user to enter their username and password
-    Credentials(String, IpcSender<PromptCredentialsInput>),
+    Credentials(IpcSender<PromptCredentialsInput>),
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PromptCredentialsInput {
-    /// username for http request authentication
+    /// Username for http request authentication
     pub username: Option<String>,
-    /// password for http request authentication
+    /// Password for http request authentication
     pub password: Option<String>,
 }
 

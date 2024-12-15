@@ -16,7 +16,9 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptCredentialsInput};
+use embedder_traits::{
+    EmbedderMsg, EmbedderProxy, PromptCredentialsInput, PromptDefinition, PromptOrigin,
+};
 use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
 use headers::authorization::Basic;
 use headers::{
@@ -49,8 +51,8 @@ use net_traits::request::{
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
-    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    user_info_percent_encode, CookieSource, FetchMetadata, NetworkError, RedirectEndValue,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -61,10 +63,7 @@ use tokio::sync::mpsc::{
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::HANDLE;
-use crate::connector::{
-    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
-    Connector,
-};
+use crate::connector::{CertificateErrorOverrideManager, Connector};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -73,7 +72,7 @@ use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUs
 use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
-use crate::resource_thread::AuthCache;
+use crate::resource_thread::{AuthCache, AuthCacheEntry};
 
 /// <https://fetch.spec.whatwg.org/#document-accept-header-value>
 pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
@@ -104,29 +103,7 @@ pub struct HttpState {
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
     pub override_manager: CertificateErrorOverrideManager,
-    // optional for convenience, since the default trait is used in tests and makes its hard to provide a proxy
-    pub embedder_proxy: Mutex<Option<EmbedderProxy>>,
-}
-
-impl Default for HttpState {
-    fn default() -> Self {
-        let override_manager = CertificateErrorOverrideManager::new();
-        Self {
-            hsts_list: RwLock::new(HstsList::default()),
-            cookie_jar: RwLock::new(CookieStorage::new(150)),
-            auth_cache: RwLock::new(AuthCache::default()),
-            history_states: RwLock::new(HashMap::new()),
-            http_cache: RwLock::new(HttpCache::default()),
-            http_cache_state: Mutex::new(HashMap::new()),
-            client: create_http_client(create_tls_config(
-                CACertificates::Default,
-                false, /* ignore_certificate_errors */
-                override_manager.clone(),
-            )),
-            override_manager,
-            embedder_proxy: Mutex::new(None),
-        }
-    }
+    pub embedder_proxy: Mutex<EmbedderProxy>,
 }
 
 /// Step 13 of <https://fetch.spec.whatwg.org/#concept-fetch>.
@@ -1594,12 +1571,28 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-            if let Some(_credentials) = credentials {}
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials (#33616)
-            return response;
+            let Some(credentials) = prompt_user_for_credentials(&context.state.embedder_proxy)
+            else {
+                return response;
+            };
+            let Some(username) = credentials.username else {
+                return response;
+            };
+            let Some(password) = credentials.password else {
+                return response;
+            };
+
+            let username = user_info_percent_encode(&username);
+            let password = Some(user_info_percent_encode(&password));
+
+            http_request
+                .current_url_mut()
+                .set_username(&username)
+                .unwrap();
+            http_request
+                .current_url_mut()
+                .set_password(password.as_deref())
+                .unwrap();
         }
 
         // Make sure this is set to None,
@@ -1633,15 +1626,41 @@ async fn http_network_or_cache_fetch(
         // the appropriate network error for fetchParams.
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
-        let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-        if let Some(_credentials) = credentials {
-            // TODO(#33616): store the result as a proxy-authentication entry.
-            // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
+        // window and store the result as a proxy-authentication entry.
+        let Some(credentials) = prompt_user_for_credentials(&context.state.embedder_proxy) else {
+            return response;
+        };
+        let Some(user_name) = credentials.username else {
+            return response;
+        };
+        let Some(password) = credentials.password else {
+            return response;
+        };
+
+        // store the credentials as a proxy-authentication entry.
+        let entry = AuthCacheEntry {
+            user_name,
+            password,
+        };
+        {
+            let mut auth_cache = context.state.auth_cache.write().unwrap();
+            let key = http_request.current_url().origin().ascii_serialization();
+            auth_cache.entries.insert(key, entry);
         }
-        // Wrong, but will have to do until we are able to prompt the user
-        // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials (#33616)
-        return response;
+
+        // Make sure this is set to None,
+        // since we're about to start a new `http_network_or_cache_fetch`.
+        *done_chan = None;
+
+        // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
+        response = http_network_or_cache_fetch(
+            http_request,
+            true, /* authentication flag */
+            cors_flag,
+            done_chan,
+            context,
+        )
+        .await;
     }
 
     // TODO(#33616): Step 16. If all of the following are true:
@@ -1744,32 +1763,17 @@ impl Drop for ResponseEndTimer {
 }
 
 fn prompt_user_for_credentials(
-    embedder_proxy: &Mutex<Option<EmbedderProxy>>,
+    embedder_proxy: &Mutex<EmbedderProxy>,
 ) -> Option<PromptCredentialsInput> {
-    let Ok(guard) = embedder_proxy.lock() else {
-        error!("error while acquiring mutex for embedder proxy");
-        return None;
-    };
+    let proxy = embedder_proxy.lock().unwrap();
 
-    let Some(embedder_proxy) = guard.as_ref() else {
-        warn!("embedder proxy doesn't exist.");
-        return None;
-    };
+    let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
 
-    let Ok((ipc_sender, ipc_receiver)) = ipc::channel() else {
-        error!("couldn't create ipc sender and receiver");
-        return None;
-    };
-
-    embedder_proxy.send((
+    proxy.send((
         None,
         EmbedderMsg::Prompt(
-            embedder_traits::PromptDefinition::Credentials(
-                // TODO: figure out how to make the message a localized string
-                "Enter username".to_string(),
-                ipc_sender,
-            ),
-            embedder_traits::PromptOrigin::Trusted,
+            PromptDefinition::Credentials(ipc_sender),
+            PromptOrigin::Trusted,
         ),
     ));
 
