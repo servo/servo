@@ -30,6 +30,8 @@ jobs:
           token: ${{ secrets.WPT_SYNC_TOKEN }}
       - name: Setup Python
         uses: ./servo/.github/actions/setup-python
+        with:
+          python-version-file-path: ./servo/.python-version
       - name: Install requirements
         run: |
           uv venv
