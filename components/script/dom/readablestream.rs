@@ -234,17 +234,6 @@ impl ReadableStream {
         assert!(has_no_controller);
     }
 
-    /// Used from RustCodegen.py
-    /// TODO: remove here and its use in codegen.
-    #[allow(unsafe_code)]
-    pub unsafe fn from_js(
-        _cx: SafeJSContext,
-        _obj: *mut JSObject,
-        _realm: InRealm,
-    ) -> Result<DomRoot<ReadableStream>, ()> {
-        Err(())
-    }
-
     /// Build a stream backed by a Rust source that has already been read into memory.
     pub fn new_from_bytes(
         global: &GlobalScope,
