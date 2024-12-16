@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
+use js::gc::MutableHandleValue;
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JSAutoRealm, JSContext, JSObject,
     JS_ClearPendingException, JS_GetFunctionObject, JS_NewFunction, NewFunctionWithReserved,
@@ -150,24 +151,34 @@ impl Promise {
     pub fn new_resolved(
         global: &GlobalScope,
         cx: SafeJSContext,
-        value: HandleValue,
+        value: impl ToJSValConvertible,
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-        rooted!(in(*cx) let p = unsafe { CallOriginalPromiseResolve(*cx, value) });
-        assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle(), cx))
+        unsafe {
+            let mut holder = js::jsapi::Value { asBits_: 0 };
+            let rval = MutableHandleValue::new(&mut holder);
+            value.to_jsval(*cx, rval);
+            rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
+            assert!(!p.handle().is_null());
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(crown::unrooted_must_root, unsafe_code)]
     pub fn new_rejected(
         global: &GlobalScope,
         cx: SafeJSContext,
-        value: HandleValue,
+        value: impl ToJSValConvertible,
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-        rooted!(in(*cx) let p = unsafe { CallOriginalPromiseReject(*cx, value) });
-        assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle(), cx))
+        unsafe {
+            let mut holder = js::jsapi::Value { asBits_: 0 };
+            let rval = MutableHandleValue::new(&mut holder);
+            value.to_jsval(*cx, rval);
+            rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
+            assert!(!p.handle().is_null());
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(unsafe_code)]
