@@ -339,11 +339,11 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
 
 #[allow(unsafe_code)]
 fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
-    const MAX_FRAME_COUNT: Option<u32> = Some(128);
+    const MAX_FRAME_COUNT: u32 = 128;
 
     let mut frames = vec![];
     rooted!(in(cx) let mut handle =  ptr::null_mut());
-    let captured_js_stack = unsafe { CapturedJSStack::new(cx, handle, MAX_FRAME_COUNT) };
+    let captured_js_stack = unsafe { CapturedJSStack::new(cx, handle, Some(MAX_FRAME_COUNT)) };
     let Some(captured_js_stack) = captured_js_stack else {
         return frames;
     };
