@@ -284,7 +284,7 @@ impl ConsoleActor {
         .to_owned();
 
         let console_api = ConsoleLog {
-            level: level,
+            level,
             filename: console_message.filename,
             line_number: console_message.line_number as u32,
             column_number: console_message.column_number as u32,

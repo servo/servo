@@ -30,67 +30,6 @@ const MAX_LOG_CHILDREN: usize = 15;
 /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
 pub struct Console;
 
-#[allow(unsafe_code)]
-fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
-    const MAX_FRAME_COUNT: Option<u32> = Some(128);
-
-    let mut frames = vec![];
-    rooted!(in(cx) let mut handle =  ptr::null_mut());
-    let captured_js_stack = unsafe { CapturedJSStack::new(cx, handle, MAX_FRAME_COUNT) };
-    let Some(captured_js_stack) = captured_js_stack else {
-        return frames;
-    };
-
-    captured_js_stack.for_each_stack_frame(|frame| {
-        let function_name;
-        let filename;
-
-        rooted!(in(cx) let mut result: *mut jsapi::JSString = ptr::null_mut());
-
-        // Get function name
-        unsafe {
-            jsapi::GetSavedFrameFunctionDisplayName(
-                cx,
-                ptr::null_mut(),
-                frame.into(),
-                result.handle_mut().into(),
-                jsapi::SavedFrameSelfHosted::Include,
-            );
-        }
-        function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
-        } else {
-            "<anonymous>".into()
-        };
-
-        // Get source file name
-        result.set(ptr::null_mut());
-        unsafe {
-            jsapi::GetSavedFrameSource(
-                cx,
-                ptr::null_mut(),
-                frame.into(),
-                result.handle_mut().into(),
-                jsapi::SavedFrameSelfHosted::Include,
-            );
-        }
-        filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
-            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
-        } else {
-            "<anonymous>".into()
-        };
-
-        let frame = StackFrame {
-            filename,
-            function_name,
-        };
-
-        frames.push(frame);
-    });
-
-    frames
-}
-
 impl Console {
     #[allow(unsafe_code)]
     fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: String) {
@@ -396,4 +335,86 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             )
         }
     }
+}
+
+#[allow(unsafe_code)]
+fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
+    const MAX_FRAME_COUNT: Option<u32> = Some(128);
+
+    let mut frames = vec![];
+    rooted!(in(cx) let mut handle =  ptr::null_mut());
+    let captured_js_stack = unsafe { CapturedJSStack::new(cx, handle, MAX_FRAME_COUNT) };
+    let Some(captured_js_stack) = captured_js_stack else {
+        return frames;
+    };
+
+    captured_js_stack.for_each_stack_frame(|frame| {
+        rooted!(in(cx) let mut result: *mut jsapi::JSString = ptr::null_mut());
+
+        // Get function name
+        unsafe {
+            jsapi::GetSavedFrameFunctionDisplayName(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                result.handle_mut().into(),
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+        let function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
+            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
+        } else {
+            "<anonymous>".into()
+        };
+
+        // Get source file name
+        result.set(ptr::null_mut());
+        unsafe {
+            jsapi::GetSavedFrameSource(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                result.handle_mut().into(),
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+        let filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
+            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
+        } else {
+            "<anonymous>".into()
+        };
+
+        // get line/column number
+        let mut line_number = 0;
+        unsafe {
+            jsapi::GetSavedFrameLine(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                &mut line_number,
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+
+        let mut column_number = jsapi::JS::TaggedColumnNumberOneOrigin { value_: 0 };
+        unsafe {
+            jsapi::GetSavedFrameColumn(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                &mut column_number,
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+        let frame = StackFrame {
+            filename,
+            function_name,
+            line_number,
+            column_number: column_number.value_,
+        };
+
+        frames.push(frame);
+    });
+
+    frames
 }

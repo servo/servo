@@ -300,6 +300,12 @@ pub struct StackFrame {
 
     #[serde(rename = "functionName")]
     pub function_name: String,
+
+    #[serde(rename = "columnNumber")]
+    pub column_number: u32,
+
+    #[serde(rename = "lineNumber")]
+    pub line_number: u32,
 }
 
 bitflags! {
