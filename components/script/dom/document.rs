@@ -47,11 +47,10 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
-use script_traits::serializable::BlobImpl;
 use script_traits::{
-    AnimationState, AnimationTickType, ClipboardEventType, ClipboardItem, CompositorEvent,
-    DocumentActivity, MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId,
-    UntrustedNodeAddress, WheelDelta,
+    AnimationState, AnimationTickType, ClipboardEventType, CompositorEvent, DocumentActivity,
+    MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
+    WheelDelta,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -73,7 +72,6 @@ use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
-use super::file::File;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -188,7 +186,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
-use crate::drag_data_store::{Binary, DragDataStore, Kind, Mode, PlainString};
+use crate::drag_data_store::{DragDataStore, Kind, Mode, PlainString};
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::network_listener::{NetworkListener, PreInvoke};
@@ -1481,38 +1479,20 @@ impl Document {
                 drag_data_store.set_mode(Mode::ReadOnly);
                 // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
                 if trusted {
-                    // Step 7.1.2.1
-                    for content in contents {
-                        match content {
-                            ClipboardItem::Text(data) => {
-                                let plain_string = PlainString::new(
-                                    DOMString::from_string(data.to_string()),
-                                    DOMString::from("text/plain"),
-                                );
-                                let _ = drag_data_store.add(Kind::Text(plain_string));
-                            },
-                            ClipboardItem::Html(data) => {
-                                // For now do the same of above
-                                // See https://www.w3.org/TR/clipboard-apis/#process-an-html-paste-event
-                                let plain_string = PlainString::new(
-                                    DOMString::from_string(data.to_string()),
-                                    DOMString::from("text/html"),
-                                );
-                                let _ = drag_data_store.add(Kind::Text(plain_string));
-                            },
-                            ClipboardItem::Png(data) => {
-                                // We don't have access to filename
-                                let binary = Binary::new(
-                                    data.to_vec(),
-                                    DOMString::from("servo-img"),
-                                    "image/png".to_string(),
-                                );
-                                let _ = drag_data_store.add(Kind::File(binary));
-                            },
-                        }
-                    }
-                    // Step 7.1.3 Update clipboard-event-data’s files to match entries in clipboard-event-data’s items
-                    // Step 7.1.4 Update clipboard-event-data’s types to match entries in clipboard-event-data’s items
+                    // Step 7.1.2.1 For each clipboard-part on the OS clipboard:
+
+                    // Step 7.1.2.1.1 If clipboard-part contains plain text, then
+                    let plain_string = PlainString::new(
+                        DOMString::from_string(contents.to_string()),
+                        DOMString::from("text/plain"),
+                    );
+                    let _ = drag_data_store.add(Kind::Text(plain_string));
+
+                    // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference
+                    // Step 7.1.2.1.3 TODO If clipboard-part contains HTML- or XHTML-formatted text then
+
+                    // Step 7.1.3 Update clipboard-event-data’s files to match clipboard-event-data’s items
+                    // Step 7.1.4 Update clipboard-event-data’s types to match clipboard-event-data’s items
                 }
             },
             ClipboardEventType::Change => (),

@@ -151,10 +151,6 @@ skip = [
 
     # wgpu crates still depend on 1.1.0
     "rustc-hash",
-
-    # required for testing
-    "image",
-    "arboard",
 ]
 
 # github.com organizations to allow git sources for
