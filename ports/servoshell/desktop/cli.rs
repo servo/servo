@@ -9,10 +9,9 @@ use log::error;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
 
+use super::events_loop::EventsLoop;
 use crate::desktop::app::App;
 use crate::panic_hook;
-
-use super::events_loop::EventsLoop;
 
 pub fn main() {
     crate::crash_handler::install();

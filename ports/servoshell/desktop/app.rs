@@ -218,7 +218,7 @@ impl App {
         self.servo = Some(servo);
     }
 
-    fn is_animating(&self) -> bool {
+    pub fn is_animating(&self) -> bool {
         self.windows.iter().any(|(_, window)| window.is_animating())
     }
 
@@ -361,6 +361,53 @@ impl App {
         }
     }
 
+    /// Handle all servo events with headless mode. Return true if servo request to shutdown.
+    pub fn handle_events_with_headless(&mut self) -> bool {
+        let now = Instant::now();
+        let event = winit::event::Event::UserEvent(WakerEvent);
+        trace_winit_event!(
+            event,
+            "@{:?} (+{:?}) {event:?}",
+            now - self.t_start,
+            now - self.t
+        );
+        self.t = now;
+        // If self.servo is None here, it means that we're in the process of shutting down,
+        // let's ignore events.
+        if self.servo.is_none() {
+            return false;
+        }
+        self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
+
+        let mut exit = false;
+        match self.handle_events() {
+            PumpResult::Shutdown => {
+                exit = true;
+                self.servo.take().unwrap().deinit();
+                if let Some(mut minibrowser) = self.minibrowser() {
+                    minibrowser.context.destroy();
+                }
+            },
+            PumpResult::Continue { present, .. } => {
+                match present {
+                    Present::Immediate => {
+                        // The window was resized.
+                        trace!("PumpResult::Present::Immediate");
+                        self.servo.as_mut().unwrap().present();
+                    },
+                    Present::Deferred => {
+                        // The compositor has painted to this frame.
+                        trace!("PumpResult::Present::Deferred");
+                        // In headless mode, we present directly.
+                        self.servo.as_mut().unwrap().present();
+                    },
+                    Present::None => {},
+                }
+            },
+        }
+        exit
+    }
+
     fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
         self.minibrowser.as_ref().map(|x| x.borrow_mut())
     }
@@ -368,7 +415,7 @@ impl App {
 
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        // let _guard = EventLoopGuard::new(event_loop);
+        let _guard = EventLoopGuard::new(event_loop);
         self.init();
     }
 

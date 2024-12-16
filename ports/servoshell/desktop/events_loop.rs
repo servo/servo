@@ -11,7 +11,6 @@ use std::time;
 use log::warn;
 use servo::embedder_traits::EventLoopWaker;
 use winit::error::EventLoopError;
-use winit::event::{Event, StartCause};
 use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
@@ -96,50 +95,21 @@ impl EventsLoop {
                     .run_app(app)
                     .expect("Failed while running events loop");
             },
-            EventLoop::Headless(_) => {
+            EventLoop::Headless(ref data) => {
+                let (flag, condvar) = &**data;
                 app.init();
-                // TODO: loop
+                loop {
+                    self.sleep(flag, condvar);
+                    if app.handle_events_with_headless() {
+                        break;
+                    }
+                    if !app.is_animating() {
+                        *flag.lock().unwrap() = false;
+                    }
+                }
             },
         }
     }
-
-    // pub fn run_forever<F>(self, mut callback: F)
-    // where
-    //     F: 'static + FnMut(Event<WakerEvent>, &mut ControlFlow),
-    // {
-    //     match self.0 {
-    //         EventLoop::Winit(events_loop) => {
-    //             let events_loop = events_loop.expect("Can't run an unavailable event loop.");
-    //             #[allow(deprecated)]
-    //             events_loop
-    //                 .run(move |e, window_target| {
-    //                     let mut control_flow = ControlFlow::default();
-    //                     let _guard = EventLoopGuard::new(window_target);
-    //                     callback(e, &mut control_flow);
-    //                     control_flow.apply_to(window_target);
-    //                 })
-    //                 .expect("Failed while running events loop");
-    //         },
-    //         EventLoop::Headless(ref data) => {
-    //             let (flag, condvar) = &**data;
-    //             let mut event = Event::NewEvents(StartCause::Init);
-    //             loop {
-    //                 self.sleep(flag, condvar);
-    //                 let mut control_flow = ControlFlow::Poll;
-    //                 callback(event, &mut control_flow);
-    //                 event = Event::<WakerEvent>::UserEvent(WakerEvent);
-    //
-    //                 if control_flow != ControlFlow::Poll {
-    //                     *flag.lock().unwrap() = false;
-    //                 }
-    //
-    //                 if control_flow == ControlFlow::Exit {
-    //                     break;
-    //                 }
-    //             }
-    //         },
-    //     }
-    // }
 
     fn sleep(&self, lock: &Mutex<bool>, condvar: &Condvar) {
         // To avoid sleeping when we should be processing events, do two things:
