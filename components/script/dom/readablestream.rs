@@ -234,17 +234,6 @@ impl ReadableStream {
         assert!(has_no_controller);
     }
 
-    /// Used from RustCodegen.py
-    /// TODO: remove here and its use in codegen.
-    #[allow(unsafe_code)]
-    pub unsafe fn from_js(
-        _cx: SafeJSContext,
-        _obj: *mut JSObject,
-        _realm: InRealm,
-    ) -> Result<DomRoot<ReadableStream>, ()> {
-        Err(())
-    }
-
     /// Build a stream backed by a Rust source that has already been read into memory.
     pub fn new_from_bytes(
         global: &GlobalScope,
@@ -357,24 +346,23 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
-        // step 1
+        // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
-        // step 2
+        // Set stream.[[state]] to "errored".
         self.state.set(ReadableStreamState::Errored);
-        // step 3
+        // Set stream.[[storedError]] to e.
         self.stored_error.set(e.get());
 
-        // step 4
+        // Let reader be stream.[[reader]].
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    // step 5
+                    // If reader is undefined, return.
                     return;
                 };
-
-                // steps 6, 7, 8
                 reader.error(e);
             },
+            // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
             _ => todo!(),
         }
     }
@@ -857,7 +845,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
         if underlying_source_dict.type_.is_some() {
             // TODO: If underlyingSourceDict["type"] is "bytes"
-            todo!()
+            return Err(Error::Type("Bytes streams not implemented".to_string()));
         } else {
             // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
             let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
