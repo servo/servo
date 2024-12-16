@@ -155,9 +155,8 @@ impl Promise {
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
-            let mut holder = js::jsapi::Value { asBits_: 0 };
-            let rval = MutableHandleValue::new(&mut holder);
-            value.to_jsval(*cx, rval);
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
             assert!(!p.handle().is_null());
             Ok(Promise::new_with_js_promise(p.handle(), cx))
@@ -172,9 +171,8 @@ impl Promise {
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
         unsafe {
-            let mut holder = js::jsapi::Value { asBits_: 0 };
-            let rval = MutableHandleValue::new(&mut holder);
-            value.to_jsval(*cx, rval);
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            value.to_jsval(*cx, rval.handle_mut());
             rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
             assert!(!p.handle().is_null());
             Ok(Promise::new_with_js_promise(p.handle(), cx))
