@@ -189,6 +189,7 @@ mod from_script {
                 #[cfg(feature = "webgpu")]
                 Self::GetWebGPUChan(..) => target!("GetWebGPUChan"),
                 Self::TitleChanged(..) => target!("TitleChanged"),
+                Self::IFrameSizes(..) => target!("IFrameSizes"),
             }
         }
     }
@@ -257,7 +258,6 @@ mod from_layout {
     impl LogTarget for script_traits::LayoutMsg {
         fn log_target(&self) -> &'static str {
             match self {
-                Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::PendingPaintMetric(..) => target!("PendingPaintMetric"),
             }
         }

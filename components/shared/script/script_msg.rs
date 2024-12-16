@@ -46,8 +46,6 @@ pub struct IFrameSizeMsg {
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutMsg {
-    /// Inform the constellation of the size of the iframe's viewport.
-    IFrameSizes(Vec<IFrameSizeMsg>),
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
     PendingPaintMetric(PipelineId, Epoch),
@@ -57,7 +55,6 @@ impl fmt::Debug for LayoutMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::LayoutMsg::*;
         let variant = match *self {
-            IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
         };
         write!(formatter, "LayoutMsg::{}", variant)
@@ -260,6 +257,8 @@ pub enum ScriptMsg {
     GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
     TitleChanged(PipelineId, String),
+    /// Notify the constellation that the size of some `<iframe>`s has changed.
+    IFrameSizes(Vec<IFrameSizeMsg>),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -320,6 +319,7 @@ impl fmt::Debug for ScriptMsg {
             #[cfg(feature = "webgpu")]
             GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
+            IFrameSizes(..) => "IFramSizes",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

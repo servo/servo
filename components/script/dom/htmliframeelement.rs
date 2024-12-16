@@ -196,7 +196,7 @@ impl HTMLIFrameElement {
 
         let window_size = WindowSizeData {
             initial_viewport: window
-                .inner_window_dimensions_query(browsing_context_id, can_gc)
+                .get_iframe_size_if_known(browsing_context_id, can_gc)
                 .unwrap_or_default(),
             device_pixel_ratio: window.device_pixel_ratio(),
         };

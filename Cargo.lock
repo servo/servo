@@ -6088,6 +6088,7 @@ dependencies = [
  "canvas_traits",
  "crossbeam-channel",
  "euclid",
+ "fnv",
  "fonts",
  "fonts_traits",
  "html5ever",

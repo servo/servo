@@ -1399,6 +1399,7 @@ impl ReplacedContents {
     fn layout_in_flow_block_level(
         &self,
         base: &LayoutBoxBase,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) -> BoxFragment {
@@ -1420,7 +1421,7 @@ impl ReplacedContents {
 
         let containing_block_writing_mode = containing_block.style.writing_mode;
         let physical_content_size = content_size.to_physical_size(containing_block_writing_mode);
-        let fragments = self.make_fragments(&base.style, physical_content_size);
+        let fragments = self.make_fragments(layout_context, &base.style, physical_content_size);
 
         let clearance;
         if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -2071,7 +2072,12 @@ impl IndependentFormattingContext {
                     sequential_layout_state,
                 ),
             IndependentFormattingContextContents::Replaced(contents) => contents
-                .layout_in_flow_block_level(&self.base, containing_block, sequential_layout_state),
+                .layout_in_flow_block_level(
+                    &self.base,
+                    layout_context,
+                    containing_block,
+                    sequential_layout_state,
+                ),
         }
     }
     pub(crate) fn layout_float_or_atomic_inline(
@@ -2099,7 +2105,7 @@ impl IndependentFormattingContext {
                         &content_box_sizes_and_pbm,
                     )
                     .to_physical_size(container_writing_mode);
-                let fragments = replaced.make_fragments(style, content_size);
+                let fragments = replaced.make_fragments(layout_context, style, content_size);
 
                 let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
                 (fragments, content_rect, None)
