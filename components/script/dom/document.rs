@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -256,6 +256,9 @@ pub enum DeclarativeRefresh {
     CreatedAfterLoad,
 }
 
+pub(crate) type WebGPUContextsMap =
+    Rc<RefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>>;
+
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub struct Document {
@@ -453,7 +456,8 @@ pub struct Document {
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
-    webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    webgpu_contexts: WebGPUContextsMap,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -3000,11 +3004,8 @@ impl Document {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn add_webgpu_canvas(&self, context: &GPUCanvasContext) {
-        self.webgpu_contexts
-            .borrow_mut()
-            .entry(context.context_id())
-            .or_insert_with(|| WeakRef::new(context));
+    pub fn webgpu_contexts(&self) -> WebGPUContextsMap {
+        self.webgpu_contexts.clone()
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -3016,13 +3017,6 @@ impl Document {
             .filter_map(|(_, context)| context.root())
             .filter(|context| context.onscreen())
             .for_each(|context| context.update_rendering_of_webgpu_canvas());
-    }
-
-    #[cfg(feature = "webgpu")]
-    pub fn remove_webgpu_context(&self, context: &GPUCanvasContext) {
-        self.webgpu_contexts
-            .borrow_mut()
-            .remove(&context.context_id());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -3396,7 +3390,7 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             #[cfg(feature = "webgpu")]
-            webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())

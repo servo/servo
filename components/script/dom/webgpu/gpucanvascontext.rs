@@ -34,6 +34,8 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::weakref::WeakRef;
+use crate::dom::document::WebGPUContextsMap;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
@@ -94,6 +96,9 @@ pub struct GPUCanvasContext {
     drawing_buffer: RefCell<DrawingBuffer>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     current_texture: MutNullableDom<GPUTexture>,
+    /// This is used for clearing
+    #[ignore_malloc_size_of = "Rc are hard"]
+    webgpu_contexts: WebGPUContextsMap,
 }
 
 impl GPUCanvasContext {
@@ -101,6 +106,7 @@ impl GPUCanvasContext {
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         channel: WebGPU,
+        webgpu_contexts: WebGPUContextsMap,
     ) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
         let size = canvas.size().cast().cast_unit();
@@ -130,21 +136,26 @@ impl GPUCanvasContext {
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
+            webgpu_contexts,
         }
     }
 
     pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
+        let document = document_from_node(canvas);
         let this = reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
                 channel,
+                document.webgpu_contexts(),
             )),
             global,
             CanGc::note(),
         );
-        let document = document_from_node(canvas);
-        document.add_webgpu_canvas(&this);
+        this.webgpu_contexts
+            .borrow_mut()
+            .entry(this.context_id())
+            .or_insert_with(|| WeakRef::new(&this));
         this
     }
 }
@@ -390,10 +401,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
 impl Drop for GPUCanvasContext {
     fn drop(&mut self) {
-        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) = self.canvas {
-            let document = document_from_node(&**canvas);
-            document.remove_webgpu_context(self);
-        }
+        self.webgpu_contexts.borrow_mut().remove(&self.context_id());
         if let Err(e) = self.channel.0.send(WebGPURequest::DestroyContext {
             context_id: self.context_id,
         }) {
