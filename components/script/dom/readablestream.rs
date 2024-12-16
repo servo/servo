@@ -845,7 +845,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
         if underlying_source_dict.type_.is_some() {
             // TODO: If underlyingSourceDict["type"] is "bytes"
-            todo!()
+            return Err(Error::Type("Bytes streams not implemented".to_string()));
         } else {
             // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
             let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
