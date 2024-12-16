@@ -150,24 +150,32 @@ impl Promise {
     pub fn new_resolved(
         global: &GlobalScope,
         cx: SafeJSContext,
-        value: HandleValue,
+        value: impl ToJSValConvertible,
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-        rooted!(in(*cx) let p = unsafe { CallOriginalPromiseResolve(*cx, value) });
-        assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle(), cx))
+        unsafe {
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            value.to_jsval(*cx, rval.handle_mut());
+            rooted!(in(*cx) let p = CallOriginalPromiseResolve(*cx, rval.handle()));
+            assert!(!p.handle().is_null());
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(crown::unrooted_must_root, unsafe_code)]
     pub fn new_rejected(
         global: &GlobalScope,
         cx: SafeJSContext,
-        value: HandleValue,
+        value: impl ToJSValConvertible,
     ) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoRealm::new(*cx, global.reflector().get_jsobject().get());
-        rooted!(in(*cx) let p = unsafe { CallOriginalPromiseReject(*cx, value) });
-        assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle(), cx))
+        unsafe {
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            value.to_jsval(*cx, rval.handle_mut());
+            rooted!(in(*cx) let p = CallOriginalPromiseReject(*cx, rval.handle()));
+            assert!(!p.handle().is_null());
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(unsafe_code)]
