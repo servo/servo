@@ -6,11 +6,9 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::Au;
-use base::id::BrowsingContextId;
 use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
-use fnv::FnvHashMap;
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::UsePlaceholder;
@@ -32,7 +30,6 @@ use style::values::generics::NonNegative;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style::Zero;
-use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
@@ -162,12 +159,6 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// The [DisplayList] used to collect display list items and metadata.
     pub display_list: &'a mut DisplayList,
 
-    /// A recording of the sizes of iframes encountered when building this
-    /// display list. This information is forwarded to layout for the
-    /// iframe so that its layout knows how large the initial containing block /
-    /// viewport is.
-    iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
-
     /// Contentful paint i.e. whether the display list contains items of type
     /// text, image, non-white canvas or SVG). Used by metrics.
     /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
@@ -175,12 +166,13 @@ pub(crate) struct DisplayListBuilder<'a> {
 }
 
 impl DisplayList {
+    /// Build the display list, returning true if it was contentful.
     pub fn build(
         &mut self,
         context: &LayoutContext,
         fragment_tree: &FragmentTree,
         root_stacking_context: &StackingContext,
-    ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
+    ) -> bool {
         #[cfg(feature = "tracing")]
         let _span = tracing::trace_span!("display_list::build", servo_profiling = true).entered();
         let mut builder = DisplayListBuilder {
@@ -191,10 +183,9 @@ impl DisplayList {
             is_contentful: false,
             context,
             display_list: self,
-            iframe_sizes: FnvHashMap::default(),
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
-        (builder.iframe_sizes, builder.is_contentful)
+        builder.is_contentful
     }
 }
 
@@ -317,11 +308,6 @@ impl Fragment {
                 Visibility::Visible => {
                     builder.is_contentful = true;
                     let rect = iframe.rect.translate(containing_block.origin.to_vector());
-
-                    builder.iframe_sizes.insert(
-                        iframe.browsing_context_id,
-                        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
-                    );
 
                     let common = builder.common_properties(rect.to_webrender(), &iframe.style);
                     builder.wr().push_iframe(

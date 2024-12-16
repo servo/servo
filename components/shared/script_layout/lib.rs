@@ -23,6 +23,7 @@ use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
+use fnv::FnvHashMap;
 use fonts::SystemFontServiceProxy;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
@@ -257,10 +258,6 @@ pub trait Layout {
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: OpaqueNode) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
-    fn query_inner_window_dimension(
-        &self,
-        context: BrowsingContextId,
-    ) -> Option<Size2D<f32, CSSPixel>>;
     fn query_nodes_from_point(
         &self,
         point: Point2D<f32>,
@@ -400,11 +397,24 @@ pub struct Reflow {
     pub page_clip_rect: Rect<Au>,
 }
 
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct IFrameSize {
+    pub browsing_context_id: BrowsingContextId,
+    pub pipeline_id: PipelineId,
+    pub size: Size2D<f32, CSSPixel>,
+}
+
+pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
+
 /// Information derived from a layout pass that needs to be returned to the script thread.
 #[derive(Debug, Default)]
 pub struct ReflowResult {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
+    /// The list of iframes in this layout and their sizes, used in order
+    /// to communicate them with the Constellation and also the `Window`
+    /// element of their content pages.
+    pub iframe_sizes: IFrameSizes,
 }
 
 /// Information needed for a script-initiated reflow.

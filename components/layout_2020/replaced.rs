@@ -10,9 +10,11 @@ use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use data_url::DataUrl;
+use euclid::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
+use script_layout_interface::IFrameSize;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
@@ -280,6 +282,7 @@ impl ReplacedContents {
 
     pub fn make_fragments(
         &self,
+        layout_context: &LayoutContext,
         style: &ServoArc<ComputedValues>,
         size: PhysicalSize<Au>,
     ) -> Vec<Fragment> {
@@ -349,6 +352,15 @@ impl ReplacedContents {
                 image_key: video.as_ref().map(|video| video.image_key),
             })],
             ReplacedContentKind::IFrame(iframe) => {
+                let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
+                layout_context.iframe_sizes.lock().insert(
+                    iframe.browsing_context_id,
+                    IFrameSize {
+                        browsing_context_id: iframe.browsing_context_id,
+                        pipeline_id: iframe.pipeline_id,
+                        size,
+                    },
+                );
                 vec![Fragment::IFrame(IFrameFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),

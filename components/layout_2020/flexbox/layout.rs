@@ -1987,8 +1987,11 @@ impl FlexItem<'_> {
                     }
                 }
 
-                let fragments = replaced
-                    .make_fragments(item_style, size.to_physical_size(container_writing_mode));
+                let fragments = replaced.make_fragments(
+                    flex_context.layout_context,
+                    item_style,
+                    size.to_physical_size(container_writing_mode),
+                );
 
                 Some(FlexItemLayoutResult {
                     hypothetical_cross_size,

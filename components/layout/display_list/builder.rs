@@ -13,7 +13,7 @@ use std::sync::Arc;
 use std::{f32, mem};
 
 use app_units::{Au, AU_PER_PX};
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::PipelineId;
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use embedder_traits::Cursor;
@@ -25,7 +25,9 @@ use ipc_channel::ipc;
 use log::{debug, warn};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
-use script_layout_interface::{combine_id_with_fragment_type, FragmentType};
+use script_layout_interface::{
+    combine_id_with_fragment_type, FragmentType, IFrameSize, IFrameSizes,
+};
 use servo_config::opts;
 use servo_geometry::{self, MaxRect};
 use style::color::AbsoluteColor;
@@ -43,7 +45,7 @@ use style::values::computed::{ClipRectOrAuto, Gradient};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::ui::CursorKind;
-use style_traits::{CSSPixel, ToCss};
+use style_traits::ToCss;
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{
     self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
@@ -327,7 +329,7 @@ pub struct DisplayListBuildState<'a> {
 
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
-    pub iframe_sizes: FnvHashMap<BrowsingContextId, euclid::Size2D<f32, CSSPixel>>,
+    pub iframe_sizes: IFrameSizes,
 
     /// Stores text runs to answer text queries used to place a cursor inside text.
     pub indexable_text: IndexableText,
@@ -1872,19 +1874,25 @@ impl Fragment {
             },
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {
-                    let browsing_context_id = match fragment_info.browsing_context_id {
-                        Some(browsing_context_id) => browsing_context_id,
-                        None => return warn!("No browsing context id for iframe."),
+                    let Some(browsing_context_id) = fragment_info.browsing_context_id else {
+                        return warn!("No browsing context id for iframe.");
+                    };
+                    let Some(pipeline_id) = fragment_info.pipeline_id else {
+                        return warn!("No pipeline id for iframe.");
                     };
 
                     let base = create_base_display_item(state);
                     let bounds = stacking_relative_content_box.to_layout();
 
-                    // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
-                    //         looks bogus.
                     state.iframe_sizes.insert(
                         browsing_context_id,
-                        euclid::Size2D::new(bounds.size().width, bounds.size().height),
+                        IFrameSize {
+                            browsing_context_id,
+                            pipeline_id,
+                            // XXXjdm: This sleight-of-hand to convert LayoutRect -> Size2D<CSSPixel>
+                            //         looks bogus.
+                            size: euclid::Size2D::new(bounds.size().width, bounds.size().height),
+                        },
                     );
 
                     let pipeline_id = match fragment_info.pipeline_id {

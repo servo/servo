@@ -174,8 +174,11 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         // Create fragments if the RunMode if PerformLayout
                         // If the RunMode is ComputeSize then only the returned size will be used
                         if inputs.run_mode == RunMode::PerformLayout {
-                            child.child_fragments =
-                                replaced.make_fragments(style, content_box_size);
+                            child.child_fragments = replaced.make_fragments(
+                                self.layout_context,
+                                style,
+                                content_box_size,
+                            );
                         }
 
                         let computed_size = taffy::Size {
