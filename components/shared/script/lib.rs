@@ -617,7 +617,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
             CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
-            CompositorEvent::ClipboardEvent(..) => todo!(),
+            CompositorEvent::ClipboardEvent(..) => CompositorEventVariant::ClipboardEvent,
         }
     }
 }

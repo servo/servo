@@ -48,7 +48,6 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
-use script_traits::serializable::BlobImpl;
 use script_traits::{
     AnimationState, AnimationTickType, ClipboardEventType, ClipboardItem, CompositorEvent,
     DocumentActivity, MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId,
@@ -74,7 +73,6 @@ use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
-use super::file::File;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -1553,8 +1551,8 @@ impl Document {
                             },
                         }
                     }
-                    // Step 7.1.3 Update clipboard-event-data’s files to match entries in clipboard-event-data’s items
-                    // Step 7.1.4 Update clipboard-event-data’s types to match entries in clipboard-event-data’s items
+                    // Step 7.1.3 Update clipboard-event-data’s files to match clipboard-event-data’s items
+                    // Step 7.1.4 Update clipboard-event-data’s types to match clipboard-event-data’s items
                 }
             },
             ClipboardEventType::Change => (),
