@@ -391,7 +391,7 @@ fn connect(
         ignore_certificate_errors,
         http_state.override_manager.clone(),
     );
-    tls_config.alpn_protocols = vec!["h2".to_string().into(), "http/1.1".to_string().into()];
+    tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
 
     let resource_event_sender2 = resource_event_sender.clone();
     match HANDLE.lock().unwrap().as_mut() {
