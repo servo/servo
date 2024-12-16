@@ -16,7 +16,7 @@ use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::PipelineId;
 use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
@@ -35,7 +35,7 @@ use layout::query::{
 };
 use layout::traversal::RecalcStyle;
 use layout::{layout_debug, BoxTree, FragmentTree};
-use log::{debug, error, warn};
+use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -52,8 +52,8 @@ use script_layout_interface::{
     ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
-    PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DrawAPaintImageResult, PaintWorkletError, Painter, ScrollState,
+    UntrustedNodeAddress, WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -115,9 +115,6 @@ pub struct LayoutThread {
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
 
-    /// The channel on which messages can be sent to the constellation.
-    constellation_chan: IpcSender<ConstellationMsg>,
-
     /// The channel on which messages can be sent to the script thread.
     script_chan: IpcSender<ConstellationControlMsg>,
 
@@ -164,9 +161,6 @@ pub struct LayoutThread {
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
 
-    /// The sizes of all iframes encountered during the last layout operation.
-    last_iframe_sizes: RefCell<FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
-
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DebugOptions,
@@ -180,7 +174,6 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.id,
             config.url,
             config.is_iframe,
-            config.constellation_chan,
             config.script_chan,
             config.image_cache,
             config.resource_threads,
@@ -293,15 +286,6 @@ impl Layout for LayoutThread {
     ) -> String {
         let node = unsafe { ServoLayoutNode::new(&node) };
         get_the_text_steps(node)
-    }
-
-    fn query_inner_window_dimension(
-        &self,
-        _context: BrowsingContextId,
-    ) -> Option<Size2D<f32, CSSPixel>> {
-        // TODO(jdm): port the iframe sizing code from layout2013's display
-        //            builder in order to support query iframe sizing.
-        None
     }
 
     #[cfg_attr(
@@ -505,7 +489,6 @@ impl LayoutThread {
         id: PipelineId,
         url: ServoUrl,
         is_iframe: bool,
-        constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
@@ -548,7 +531,6 @@ impl LayoutThread {
             id,
             url,
             is_iframe,
-            constellation_chan,
             script_chan: script_chan.clone(),
             time_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
@@ -569,7 +551,6 @@ impl LayoutThread {
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             webrender_image_cache: Default::default(),
             paint_time_metrics,
-            last_iframe_sizes: Default::default(),
             debug: opts::get().debug.clone(),
         }
     }
@@ -623,7 +604,8 @@ impl LayoutThread {
             image_cache: self.image_cache.clone(),
             font_context: self.font_context.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: Mutex::new(vec![]),
+            pending_images: Mutex::default(),
+            iframe_sizes: Mutex::default(),
             use_rayon,
         }
     }
@@ -867,7 +849,11 @@ impl LayoutThread {
         }
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
-        Some(ReflowResult { pending_images })
+        let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
+        Some(ReflowResult {
+            pending_images,
+            iframe_sizes,
+        })
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {
@@ -935,8 +921,7 @@ impl LayoutThread {
             display_list.build_stacking_context_tree(&fragment_tree, &self.debug);
 
         // Build the rest of the display list which inclues all of the WebRender primitives.
-        let (iframe_sizes, is_contentful) =
-            display_list.build(context, &fragment_tree, &root_stacking_context);
+        let is_contentful = display_list.build(context, &fragment_tree, &root_stacking_context);
 
         if self.debug.dump_flow_tree {
             fragment_tree.print();
@@ -962,8 +947,6 @@ impl LayoutThread {
             self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
         }
-
-        self.update_iframe_sizes(iframe_sizes);
 
         if self.debug.trace_layout {
             layout_debug::end_trace(self.generation.get());
@@ -1005,48 +988,6 @@ impl LayoutThread {
         for node in &invalid_nodes {
             if let Some(state) = animations.get_mut(node) {
                 state.cancel_all_animations();
-            }
-        }
-    }
-
-    /// Update the recorded iframe sizes of the contents of layout and when these sizes changes,
-    /// send a message to the constellation informing it of the new sizes.
-    fn update_iframe_sizes(
-        &self,
-        new_iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
-    ) {
-        let old_iframe_sizes =
-            std::mem::replace(&mut *self.last_iframe_sizes.borrow_mut(), new_iframe_sizes);
-
-        if self.last_iframe_sizes.borrow().is_empty() {
-            return;
-        }
-
-        let size_messages: Vec<_> = self
-            .last_iframe_sizes
-            .borrow()
-            .iter()
-            .filter_map(|(browsing_context_id, size)| {
-                match old_iframe_sizes.get(browsing_context_id) {
-                    Some(old_size) if old_size != size => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: *size,
-                        type_: WindowSizeType::Resize,
-                    }),
-                    None => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: *size,
-                        type_: WindowSizeType::Initial,
-                    }),
-                    _ => None,
-                }
-            })
-            .collect();
-
-        if !size_messages.is_empty() {
-            let msg = ConstellationMsg::IFrameSizes(size_messages);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Layout resize to constellation failed ({}).", e);
             }
         }
     }
