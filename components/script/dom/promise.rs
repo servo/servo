@@ -16,7 +16,6 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::gc::MutableHandleValue;
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JSAutoRealm, JSContext, JSObject,
     JS_ClearPendingException, JS_GetFunctionObject, JS_NewFunction, NewFunctionWithReserved,
