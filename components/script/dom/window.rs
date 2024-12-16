@@ -151,7 +151,7 @@ use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
 use crate::script_thread::{
-    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
+    with_script_thread, ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
     SendableMainThreadScriptChan,
 };
 use crate::task_manager::TaskManager;
@@ -380,6 +380,8 @@ pub struct Window {
 
     /// Sizes of the various `<iframes>` that we might have on this [`Window`].
     /// This is used to:
+    ///  - Let same-`ScriptThread` `<iframe>`s know synchronously when their
+    ///    size has changed, ensuring that the next layout has the right size.
     ///  - Send the proper size for the `<iframe>` during new-Pipeline creation
     ///    when the `src` attribute changes.
     ///  - Let the `Constellation` know about `BrowsingContext` (one per `<iframe>`)
@@ -1982,6 +1984,24 @@ impl Window {
             return;
         }
 
+        // Batch resize message to any local `Pipeline`s now, rather than waiting for them
+        // to filter asynchronously through the `Constellation`. This allows the new value
+        // to be reflected immediately in layout.
+        let device_pixel_ratio = self.device_pixel_ratio();
+        with_script_thread(|script_thread| {
+            for iframe_size in new_iframe_sizes.values() {
+                script_thread.handle_resize_message(
+                    iframe_size.pipeline_id,
+                    WindowSizeData {
+                        initial_viewport: iframe_size.size,
+                        device_pixel_ratio,
+                    },
+                    // TODO: This might send an extra resize event. This can fixed by explicitly
+                    // supporting `<iframe>` creation when the size isn't known yet.
+                    WindowSizeType::Resize,
+                );
+            }
+        });
         // Send asynchronous updates to `Constellation.`
         let size_messages: Vec<_> = new_iframe_sizes
             .iter()

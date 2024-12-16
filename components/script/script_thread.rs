@@ -1546,8 +1546,10 @@ impl ScriptThread {
         // > the order it is found in the list.
         let documents_in_order = self.documents.borrow().documents_in_order();
 
-        // Note: the spec reads: "for doc in docs" at each step
-        // whereas this runs all steps per doc in docs.
+        // TODO: The specification reads: "for doc in docs" at each step whereas this runs all
+        // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
+        // queue resize events on a child and have those run in the same call to this method, so
+        // that needs to be sorted out to fix this.
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1618,8 +1620,6 @@ impl ScriptThread {
             // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
-
-            // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
 
             #[cfg(feature = "webgpu")]
             document.update_rendering_of_webgpu_canvases();
@@ -2828,7 +2828,7 @@ impl ScriptThread {
 
     /// Batch window resize operations into a single "update the rendering" task,
     /// or, if a load is in progress, set the window size directly.
-    fn handle_resize_message(
+    pub(crate) fn handle_resize_message(
         &self,
         id: PipelineId,
         size: WindowSizeData,
@@ -2843,9 +2843,7 @@ impl ScriptThread {
             let mut loads = self.incomplete_loads.borrow_mut();
             if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
                 load.window_size = size;
-                return;
             }
-            warn!("resize sent to nonexistent pipeline");
         })
     }
 
