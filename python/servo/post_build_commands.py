@@ -80,8 +80,7 @@ class PostBuildCommands(CommandBase):
     @CommandBase.allow_target_configuration
     def run(self, servo_binary: str, params, debugger=False, debugger_cmd=None,
             headless=False, software=False, emulator=False, usb=False):
-        self._run(servo_binary, params, debugger, debugger_cmd,
-                  headless, software, emulator, usb)
+        return self._run(servo_binary, params, debugger, debugger_cmd, headless, software, emulator, usb)
 
     def _run(self, servo_binary: str, params, debugger=False, debugger_cmd=None,
              headless=False, software=False, emulator=False, usb=False):

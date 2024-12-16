@@ -18,7 +18,7 @@ import subprocess
 import textwrap
 import json
 
-from python.servo.post_build_commands import PostBuildCommands
+from servo.post_build_commands import PostBuildCommands
 import wpt
 import wpt.manifestupdate
 import wpt.run
