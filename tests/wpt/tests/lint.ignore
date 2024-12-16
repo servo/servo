@@ -480,10 +480,10 @@ SET TIMEOUT: css/css-transitions/events-007.html
 SET TIMEOUT: css/css-transitions/support/generalParallelTest.js
 SET TIMEOUT: css/css-transitions/support/runParallelAsyncHarness.js
 SET TIMEOUT: css/css-transitions/transitioncancel-001.html
-SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome-ref.html
-SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome_iframe-ref.html
-SET TIMEOUT: css/css-values/vh_not_refreshing_on_chrome.html
-SET TIMEOUT: css/css-values/support/vh_not_refreshing_on_chrome_iframe.html
+SET TIMEOUT: css/css-values/reference/vh-update-and-transition-in-subframe-ref.html
+SET TIMEOUT: css/css-values/reference/vh-update-and-transition-in-subframe-iframe-ref.html
+SET TIMEOUT: css/css-values/vh-update-and-transition-in-subframe.html
+SET TIMEOUT: css/css-values/vh-update-and-transition-in-subframe-iframe.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001a.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001b.html
