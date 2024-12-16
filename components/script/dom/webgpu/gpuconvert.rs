@@ -406,19 +406,21 @@ impl Convert<wgt::BlendComponent> for &GPUBlendComponent {
     }
 }
 
-pub fn convert_load_op(op: Option<GPULoadOp>) -> wgpu_com::LoadOp {
-    match op {
-        Some(GPULoadOp::Load) => wgpu_com::LoadOp::Load,
-        Some(GPULoadOp::Clear) => wgpu_com::LoadOp::Clear,
-        None => wgpu_com::LoadOp::Clear,
+impl Convert<wgpu_com::LoadOp> for &GPULoadOp {
+    fn convert(self) -> wgpu_com::LoadOp {
+        match self {
+            GPULoadOp::Load => wgpu_com::LoadOp::Load,
+            GPULoadOp::Clear => wgpu_com::LoadOp::Clear,
+        }
     }
 }
 
-pub fn convert_store_op(op: Option<GPUStoreOp>) -> wgpu_com::StoreOp {
-    match op {
-        Some(GPUStoreOp::Store) => wgpu_com::StoreOp::Store,
-        Some(GPUStoreOp::Discard) => wgpu_com::StoreOp::Discard,
-        None => wgpu_com::StoreOp::Discard,
+impl Convert<wgpu_com::StoreOp> for &GPUStoreOp {
+    fn convert(self) -> wgpu_com::StoreOp {
+        match self {
+            GPUStoreOp::Store => wgpu_com::StoreOp::Store,
+            GPUStoreOp::Discard => wgpu_com::StoreOp::Discard,
+        }
     }
 }
 
