@@ -52,9 +52,10 @@ jobs:
           path: ${{ inputs.profile }}-binary-linux
       - name: unPackage binary
         run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
         run: |
-          python3 -m pip install --upgrade pip
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
           python3 ./mach bootstrap --skip-lints
