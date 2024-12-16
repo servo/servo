@@ -346,24 +346,23 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
-        // step 1
+        // Assert: stream.[[state]] is "readable".
         assert!(self.is_readable());
-        // step 2
+        // Set stream.[[state]] to "errored".
         self.state.set(ReadableStreamState::Errored);
-        // step 3
+        // Set stream.[[storedError]] to e.
         self.stored_error.set(e.get());
 
-        // step 4
+        // Let reader be stream.[[reader]].
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    // step 5
+                    // If reader is undefined, return.
                     return;
                 };
-
-                // steps 6, 7, 8
                 reader.error(e);
             },
+            // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).
             _ => todo!(),
         }
     }

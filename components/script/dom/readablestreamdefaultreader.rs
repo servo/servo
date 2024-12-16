@@ -261,15 +261,15 @@ impl ReadableStreamDefaultReader {
         self.read_requests.borrow().len()
     }
 
-    /// steps 6, 7, 8 of <https://streams.spec.whatwg.org/#readable-stream-error>
+    /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
-        // step 6
+        // Reject reader.[[closedPromise]] with e.
         self.closed_promise.borrow().reject_native(&e);
 
-        // step 7
+        // Set reader.[[closedPromise]].[[PromiseIsHandled]] to true.
         self.closed_promise.borrow().set_promise_is_handled();
 
-        // step 8
+        // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
         self.error_read_requests(e);
     }
 
