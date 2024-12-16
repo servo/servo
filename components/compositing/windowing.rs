@@ -14,8 +14,8 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
 use script_traits::{
-    ClipboardEventType, GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType, TouchId,
-    TraversalDirection, WheelDelta,
+    ClipboardEventType, GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType,
+    TouchId, TraversalDirection, WheelDelta,
 };
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;

@@ -103,7 +103,6 @@ pub enum Mode {
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-rw>
     ReadWrite,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-ro>
-    #[allow(dead_code)] // TODO this used by ClipboardEvent.
     ReadOnly,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-p>
     Protected,
