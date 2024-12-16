@@ -64,9 +64,9 @@ use webrender_traits::{
 };
 
 pub use crate::script_msg::{
-    DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
-    JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
-    ScriptMsg, ServiceWorkerMsg, TraversalDirection,
+    DOMMessage, EventResult, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType,
+    LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
+    TraversalDirection,
 };
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;
@@ -233,6 +233,21 @@ pub enum DiscardBrowsingContext {
     No,
 }
 
+/// <https://html.spec.whatwg.org/multipage/#navigation-supporting-concepts:navigationhistorybehavior>
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+pub enum NavigationHistoryBehavior {
+    /// The default value, which will be converted very early in the navigate algorithm into "push"
+    /// or "replace". Usually it becomes "push", but under certain circumstances it becomes
+    /// "replace" instead.
+    #[default]
+    Auto,
+    /// A regular navigation which adds a new session history entry, and will clear the forward
+    /// session history.
+    Push,
+    /// A navigation that will replace the active session history entry.
+    Replace,
+}
+
 /// Is a document fully active, active or inactive?
 /// A document is active if it is the current active document in its session history,
 /// it is fuly active if it is active and all of its ancestors are active,
@@ -316,7 +331,7 @@ pub enum ConstellationControlMsg {
         PipelineId,
         BrowsingContextId,
         LoadData,
-        HistoryEntryReplacement,
+        NavigationHistoryBehavior,
     ),
     /// Post a message to a given window.
     PostMessage {
@@ -721,9 +736,9 @@ pub struct IFrameLoadInfo {
     pub is_private: bool,
     ///  Whether this iframe should be considered secure
     pub inherited_secure_context: Option<bool>,
-    /// Wether this load should replace the current entry (reload). If true, the current
+    /// Whether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
-    pub replace: HistoryEntryReplacement,
+    pub history_handling: NavigationHistoryBehavior,
 }
 
 /// Specifies the information required to load a URL in an iframe.
