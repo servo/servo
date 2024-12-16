@@ -64,8 +64,11 @@ cfg-if = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
+headers = { workspace = true }
 hitrace = { workspace = true, optional = true }
 mime_guess = { workspace = true }
+net = { path = "../../components/net" }
+net_traits = { workspace = true }
 url = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true, optional = true }
@@ -113,10 +116,10 @@ euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
 glow = "0.14.2"
-headers = { workspace = true }
 http = { workspace = true }
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
+keyboard-types = { workspace = true }
 raw-window-handle = "0.6"
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }

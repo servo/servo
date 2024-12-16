@@ -10,6 +10,7 @@ use std::rc::Rc;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
+use net::protocols::ProtocolRegistry;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
@@ -695,6 +696,14 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         if let Some(discovery) = self.xr_discovery.take() {
             registry.register(discovery);
         }
+    }
+
+    fn get_protocol_handlers(&self) -> ProtocolRegistry {
+        let mut registry = ProtocolRegistry::default();
+        registry.register("urlinfo", crate::protocols::urlinfo::UrlInfoProtocolHander::default());
+        registry.register("servo", crate::protocols::servo::ServoProtocolHandler::default());
+        registry.register("resource", crate::protocols::resource::ResourceProtocolHandler::default());
+        registry
     }
 }
 

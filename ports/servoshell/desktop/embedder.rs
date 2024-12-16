@@ -12,7 +12,7 @@ use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::OpenXrDiscovery;
 
-use crate::desktop::protocols::{resource, servo as servo_handler, urlinfo};
+use crate::protocols::{resource, servo as servo_handler, urlinfo};
 
 pub enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
