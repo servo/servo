@@ -627,7 +627,7 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
 
 /// The possible values accepted by the sizing properties.
 /// <https://drafts.csswg.org/css-sizing/#sizing-properties>
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Size<T> {
     /// Represents an `auto` value for the preferred and minimum size properties,
     /// or `none` for the maximum size properties.

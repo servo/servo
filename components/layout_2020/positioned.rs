@@ -799,7 +799,6 @@ impl<'a> AbsoluteAxisSolver<'a> {
         // A LazyCell will only invoke it once if needed, and then reuse the result.
         let content_size = get_content_size.map(LazyCell::new);
         let solve_size = |initial_behavior, stretch_size: Au| -> SizeConstraint {
-            let initial_is_stretch = initial_behavior == Size::Stretch;
             let stretch_size = stretch_size.max(Au::zero());
             if let Some(ref content_size) = content_size {
                 let preferred_size = Some(self.computed_size.resolve(
@@ -816,10 +815,12 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     .resolve_non_initial(stretch_size, content_size);
                 SizeConstraint::new(preferred_size, min_size, max_size)
             } else {
-                let preferred_size = self
-                    .computed_size
-                    .maybe_resolve_extrinsic(Some(stretch_size))
-                    .or(initial_is_stretch.then_some(stretch_size));
+                let preferred_size = if self.computed_size.is_initial() {
+                    initial_behavior
+                } else {
+                    self.computed_size
+                }
+                .maybe_resolve_extrinsic(Some(stretch_size));
                 let min_size = self
                     .computed_min_size
                     .maybe_resolve_extrinsic(Some(stretch_size))
