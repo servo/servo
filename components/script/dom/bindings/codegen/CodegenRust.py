@@ -933,6 +933,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             """
             {
                 use crate::realms::{AlreadyInRealm, InRealm};
+                use crate::dom::readablestream::ReadableStream;
                 let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
                 match ReadableStream::from_js(cx, $${val}.get().to_object(), InRealm::Already(&in_realm_proof)) {
                     Ok(val) => val,
@@ -949,7 +950,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = wrapObjectTemplate(templateBody, "None",
                                           isDefinitelyObject, type, failureCode)
 
-        declType = CGGeneric("DomRoot<ReadableStream>")
+        declType = CGGeneric("DomRoot<dom::readablestream::ReadableStream>")
 
         return handleOptional(templateBody, declType,
                               handleDefault("None"))
@@ -7718,7 +7719,7 @@ class CGCallback(CGClass):
             f"unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}")
         return [ClassMethod(f'{method.name}_', method.returnType, args,
                             bodyInHeader=True,
-                            templateArgs=["T: DomObject"],
+                            templateArgs=["T: ThisReflector"],
                             body=bodyWithThis,
                             visibility='pub'),
                 ClassMethod(f'{method.name}__', method.returnType, argsWithoutThis,
