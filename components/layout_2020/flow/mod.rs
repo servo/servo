@@ -5,8 +5,6 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
-use std::cell::LazyCell;
-
 use app_units::Au;
 use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -35,7 +33,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, ToLogical, ToLogicalWithContainingBlock,
+    Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -796,9 +794,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
-        preferred_block_size,
-        min_block_size,
-        max_block_size,
+        block_sizes,
         depends_on_block_constraints,
         available_block_size,
     } = solve_containing_block_padding_and_border_for_in_flow_box(
@@ -939,16 +935,12 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         content_block_size += collapsible_margins_in_children.end.solve();
     }
 
-    let available_block_size = available_block_size.unwrap_or(content_block_size);
-    let block_content_sizes = LazyCell::new(|| content_block_size.into());
-    let preferred_block_size =
-        preferred_block_size.resolve(Size::FitContent, available_block_size, &block_content_sizes);
-    let min_block_size = min_block_size
-        .resolve_non_initial(available_block_size, &block_content_sizes)
-        .unwrap_or_default();
-    let max_block_size =
-        max_block_size.resolve_non_initial(available_block_size, &block_content_sizes);
-    let block_size = preferred_block_size.clamp_between_extremums(min_block_size, max_block_size);
+    let block_size = block_sizes.resolve(
+        Size::FitContent,
+        Au::zero(),
+        available_block_size.unwrap_or(content_block_size),
+        || content_block_size.into(),
+    );
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         // Now that we're done laying out our children, we can restore the
@@ -1042,9 +1034,7 @@ impl IndependentNonReplacedContents {
         let ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm,
-            preferred_block_size,
-            min_block_size,
-            max_block_size,
+            block_sizes,
             depends_on_block_constraints,
             available_block_size,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
@@ -1063,21 +1053,12 @@ impl IndependentNonReplacedContents {
         let (block_size, inline_size) = match layout.content_inline_size_for_table {
             Some(inline_size) => (layout.content_block_size, inline_size),
             None => {
-                let available_block_size =
-                    available_block_size.unwrap_or(layout.content_block_size);
-                let block_content_sizes = LazyCell::new(|| layout.content_block_size.into());
-                let preferred_block_size = preferred_block_size.resolve(
+                let block_size = block_sizes.resolve(
                     Size::FitContent,
-                    available_block_size,
-                    &block_content_sizes,
+                    Au::zero(),
+                    available_block_size.unwrap_or(layout.content_block_size),
+                    || layout.content_block_size.into(),
                 );
-                let min_block_size = min_block_size
-                    .resolve_non_initial(available_block_size, &block_content_sizes)
-                    .unwrap_or_default();
-                let max_block_size =
-                    max_block_size.resolve_non_initial(available_block_size, &block_content_sizes);
-                let block_size =
-                    preferred_block_size.clamp_between_extremums(min_block_size, max_block_size);
                 (block_size, containing_block_for_children.size.inline)
             },
         };
@@ -1137,9 +1118,7 @@ impl IndependentNonReplacedContents {
         let style = &base.style;
         let containing_block_writing_mode = containing_block.style.writing_mode;
         let ContentBoxSizesAndPBM {
-            content_box_size,
-            content_min_box_size,
-            content_max_box_size,
+            content_box_sizes,
             pbm,
             depends_on_block_constraints,
         } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
@@ -1181,21 +1160,14 @@ impl IndependentNonReplacedContents {
             .block
             .non_auto()
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
-        let preferred_block_size = content_box_size
+        let (preferred_block_size, min_block_size, max_block_size) = content_box_sizes
             .block
-            .maybe_resolve_extrinsic(available_block_size);
-        let min_block_size = content_min_box_size
-            .block
-            .maybe_resolve_extrinsic(available_block_size)
-            .unwrap_or_default();
-        let max_block_size = content_max_box_size
-            .block
-            .maybe_resolve_extrinsic(available_block_size);
+            .resolve_each_extrinsic(Size::FitContent, Au::zero(), available_block_size);
         let tentative_block_size =
             SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
 
         // With the tentative block size we can compute the inline min/max-content sizes.
-        let inline_content_sizes = LazyCell::new(|| {
+        let get_inline_content_sizes = || {
             let constraint_space = ConstraintSpace::new(
                 tentative_block_size,
                 style.writing_mode,
@@ -1203,55 +1175,29 @@ impl IndependentNonReplacedContents {
             );
             base.inline_content_sizes(layout_context, &constraint_space, self)
                 .sizes
-        });
+        };
 
-        // The final inline size can depend on the available space, which depends on where
-        // we are placing the box, since floats reduce the available space.
-        // TODO: this logic could be refined further, since even if some of the 3 sizes
-        // depends on the available space, the resulting size might not. For example,
-        // `min-width: 200px; width: 100px; max-width: stretch`.
-        let inline_size_depends_on_available_space = matches!(
-            content_box_size.inline,
-            Size::Initial | Size::Stretch | Size::FitContent
-        ) || matches!(
-            content_min_box_size.inline,
-            Size::Stretch | Size::FitContent
-        ) || matches!(
-            content_max_box_size.inline,
-            Size::Stretch | Size::FitContent
-        );
         let compute_inline_size = |stretch_size| {
-            let preferred_inline_size =
-                content_box_size
-                    .inline
-                    .resolve(Size::Stretch, stretch_size, &inline_content_sizes);
-            let min_inline_size = content_min_box_size
-                .inline
-                .resolve_non_initial(stretch_size, &inline_content_sizes)
-                .unwrap_or_default();
-            let max_inline_size = content_max_box_size
-                .inline
-                .resolve_non_initial(stretch_size, &inline_content_sizes);
-            preferred_inline_size.clamp_between_extremums(min_inline_size, max_inline_size)
+            content_box_sizes.inline.resolve(
+                Size::Stretch,
+                Au::zero(),
+                stretch_size,
+                get_inline_content_sizes,
+            )
         };
 
         let compute_block_size = |layout: &IndependentLayout| {
-            let stretch_size = available_block_size.unwrap_or(layout.content_block_size);
-            let block_contents_size = LazyCell::new(|| layout.content_block_size.into());
-            let min_block_size = content_min_box_size
-                .block
-                .resolve_non_initial(stretch_size, &block_contents_size)
-                .unwrap_or_default();
-            let max_block_size = content_max_box_size
-                .block
-                .resolve_non_initial(stretch_size, &block_contents_size);
-            tentative_block_size
-                .to_definite()
-                .unwrap_or(layout.content_block_size)
-                .clamp_between_extremums(min_block_size, max_block_size)
+            content_box_sizes.block.resolve(
+                Size::FitContent,
+                Au::zero(),
+                available_block_size.unwrap_or(layout.content_block_size),
+                || layout.content_block_size.into(),
+            )
         };
 
-        if !inline_size_depends_on_available_space {
+        // The final inline size can depend on the available space, which depends on where
+        // we are placing the box, since floats reduce the available space.
+        if !content_box_sizes.inline.depends_on_available_space() {
             // If the inline size doesn't depend on the available inline space, we can just
             // compute it with an available inline space of zero. Then, after layout we can
             // compute the block size, and finally place among floats.
@@ -1591,9 +1537,7 @@ impl ReplacedContents {
 struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
-    preferred_block_size: Size<Au>,
-    min_block_size: Size<Au>,
-    max_block_size: Size<Au>,
+    block_sizes: Sizes,
     depends_on_block_constraints: bool,
     available_block_size: Option<Au>,
 }
@@ -1637,9 +1581,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         return ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm: PaddingBorderMargin::zero(),
-            preferred_block_size: Size::default(),
-            min_block_size: Size::default(),
-            max_block_size: Size::default(),
+            block_sizes: Sizes::default(),
             depends_on_block_constraints: false,
             // The available block size may actually be definite, but it should be irrelevant
             // since the sizing properties are set to their initial value.
@@ -1648,9 +1590,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     }
 
     let ContentBoxSizesAndPBM {
-        content_box_size,
-        content_min_box_size,
-        content_max_box_size,
+        content_box_sizes,
         pbm,
         depends_on_block_constraints,
     } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
@@ -1668,42 +1608,27 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
 
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-    let preferred_block_size = content_box_size
-        .block
-        .maybe_resolve_extrinsic(available_block_size);
-    let min_block_size = content_min_box_size
-        .block
-        .maybe_resolve_extrinsic(available_block_size)
-        .unwrap_or_default();
-    let max_block_size = content_max_box_size
-        .block
-        .maybe_resolve_extrinsic(available_block_size);
-    let tentative_block_size =
-        SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+    let tentative_block_size = content_box_sizes.block.resolve_extrinsic(
+        Size::FitContent,
+        Au::zero(),
+        available_block_size,
+    );
 
     // https://drafts.csswg.org/css2/#the-width-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-    let inline_content_sizes = LazyCell::new(|| {
+    let get_inline_content_sizes = || {
         get_inline_content_sizes(&ConstraintSpace::new(
             tentative_block_size,
             writing_mode,
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         ))
-    });
-    let preferred_inline_size = content_box_size.inline.resolve(
+    };
+    let inline_size = content_box_sizes.inline.resolve(
         Size::Stretch,
+        Au::zero(),
         available_inline_size,
-        &inline_content_sizes,
+        get_inline_content_sizes,
     );
-    let min_inline_size = content_min_box_size
-        .inline
-        .resolve_non_initial(available_inline_size, &inline_content_sizes)
-        .unwrap_or_default();
-    let max_inline_size = content_max_box_size
-        .inline
-        .resolve_non_initial(available_inline_size, &inline_content_sizes);
-    let inline_size =
-        preferred_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
 
     let containing_block_for_children = ContainingBlock {
         size: ContainingBlockSize {
@@ -1724,9 +1649,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
-        preferred_block_size: content_box_size.block,
-        min_block_size: content_min_box_size.block,
-        max_block_size: content_max_box_size.block,
+        block_sizes: content_box_sizes.block,
         depends_on_block_constraints,
         available_block_size,
     }
@@ -2182,23 +2105,12 @@ impl IndependentFormattingContext {
                     .block
                     .non_auto()
                     .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
-                let preferred_block_size = content_box_sizes_and_pbm
-                    .content_box_size
+                let tentative_block_size = content_box_sizes_and_pbm
+                    .content_box_sizes
                     .block
-                    .maybe_resolve_extrinsic(available_block_size);
-                let min_block_size = content_box_sizes_and_pbm
-                    .content_min_box_size
-                    .block
-                    .maybe_resolve_extrinsic(available_block_size)
-                    .unwrap_or_default();
-                let max_block_size = content_box_sizes_and_pbm
-                    .content_max_box_size
-                    .block
-                    .maybe_resolve_extrinsic(available_block_size);
-                let tentative_block_size =
-                    SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+                    .resolve_extrinsic(Size::FitContent, Au::zero(), available_block_size);
 
-                let content_size = LazyCell::new(|| {
+                let get_content_size = || {
                     let constraint_space = ConstraintSpace::new(
                         tentative_block_size,
                         writing_mode,
@@ -2206,29 +2118,14 @@ impl IndependentFormattingContext {
                     );
                     self.inline_content_sizes(layout_context, &constraint_space)
                         .sizes
-                });
+                };
 
-                // https://drafts.csswg.org/css2/visudet.html#float-width
-                // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
-                let tentative_inline_size = content_box_sizes_and_pbm
-                    .content_box_size
-                    .inline
-                    .resolve(Size::FitContent, available_inline_size, &content_size);
-
-                // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-                // In this case “applying the rules above again” with a non-auto inline-size
-                // always results in that size.
-                let min_inline_size = content_box_sizes_and_pbm
-                    .content_min_box_size
-                    .inline
-                    .resolve_non_initial(available_inline_size, &content_size)
-                    .unwrap_or_default();
-                let max_inline_size = content_box_sizes_and_pbm
-                    .content_max_box_size
-                    .inline
-                    .resolve_non_initial(available_inline_size, &content_size);
-                let inline_size =
-                    tentative_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
+                let inline_size = content_box_sizes_and_pbm.content_box_sizes.inline.resolve(
+                    Size::FitContent,
+                    Au::zero(),
+                    available_inline_size,
+                    get_content_size,
+                );
 
                 let containing_block_for_children = ContainingBlock {
                     size: ContainingBlockSize {
@@ -2249,31 +2146,21 @@ impl IndependentFormattingContext {
                     &containing_block_for_children,
                     containing_block,
                 );
-                let (inline_size, block_size) =
-                    match independent_layout.content_inline_size_for_table {
-                        Some(inline) => (inline, independent_layout.content_block_size),
-                        None => {
-                            // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-                            let stretch_size = available_block_size
-                                .unwrap_or(independent_layout.content_block_size);
-                            let content_size =
-                                LazyCell::new(|| independent_layout.content_block_size.into());
-                            let min_block_size = content_box_sizes_and_pbm
-                                .content_min_box_size
-                                .block
-                                .resolve_non_initial(stretch_size, &content_size)
-                                .unwrap_or_default();
-                            let max_block_size = content_box_sizes_and_pbm
-                                .content_max_box_size
-                                .block
-                                .resolve_non_initial(stretch_size, &content_size);
-                            let block_size = tentative_block_size
-                                .to_definite()
-                                .unwrap_or(independent_layout.content_block_size)
-                                .clamp_between_extremums(min_block_size, max_block_size);
-                            (inline_size, block_size)
-                        },
-                    };
+                let (inline_size, block_size) = match independent_layout
+                    .content_inline_size_for_table
+                {
+                    Some(inline) => (inline, independent_layout.content_block_size),
+                    None => {
+                        // https://drafts.csswg.org/css2/visudet.html#block-root-margin
+                        let block_size = content_box_sizes_and_pbm.content_box_sizes.block.resolve(
+                            Size::FitContent,
+                            Au::zero(),
+                            available_block_size.unwrap_or(independent_layout.content_block_size),
+                            || independent_layout.content_block_size.into(),
+                        );
+                        (inline_size, block_size)
+                    },
+                };
 
                 let content_size = LogicalVec2 {
                     block: block_size,

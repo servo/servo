@@ -30,7 +30,7 @@ use webrender_api::ImageKey;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
@@ -439,9 +439,8 @@ impl ReplacedContents {
             containing_block,
             style,
             self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
-            content_box_sizes_and_pbm.content_box_size,
-            content_box_sizes_and_pbm.content_min_box_size,
-            content_box_sizes_and_pbm.content_max_box_size,
+            &content_box_sizes_and_pbm.content_box_sizes.block,
+            &content_box_sizes_and_pbm.content_box_sizes.inline,
             pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
         )
     }
@@ -481,15 +480,13 @@ impl ReplacedContents {
     ///
     /// <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
     /// <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         preferred_aspect_ratio: Option<AspectRatio>,
-        box_size: LogicalVec2<Size<Au>>,
-        min_box_size: LogicalVec2<Size<Au>>,
-        max_box_size: LogicalVec2<Size<Au>>,
+        block_sizes: &Sizes,
+        inline_sizes: &Sizes,
         pbm_sums: LogicalVec2<Au>,
     ) -> LogicalVec2<Au> {
         // <https://drafts.csswg.org/css-images-3/#natural-dimensions>
@@ -520,19 +517,9 @@ impl ReplacedContents {
         // First, compute the inline size. Intrinsic values depend on the block sizing properties
         // through the aspect ratio, but these can also be intrinsic and depend on the inline size.
         // Therefore, we tentatively treat intrinsic block sizing properties as their initial value.
-        let inline_content_size = LazyCell::new(|| {
-            let get_block_size = || {
-                SizeConstraint::new(
-                    box_size.block.maybe_resolve_extrinsic(block_stretch_size),
-                    min_box_size
-                        .block
-                        .maybe_resolve_extrinsic(block_stretch_size)
-                        .unwrap_or_default(),
-                    max_box_size
-                        .block
-                        .maybe_resolve_extrinsic(block_stretch_size),
-                )
-            };
+        let get_inline_content_size = || {
+            let get_block_size =
+                || block_sizes.resolve_extrinsic(Size::FitContent, Au::zero(), block_stretch_size);
             self.content_size(
                 Direction::Inline,
                 preferred_aspect_ratio,
@@ -540,24 +527,19 @@ impl ReplacedContents {
                 &get_inline_fallback_size,
             )
             .into()
-        });
-        let preferred_inline =
-            box_size
-                .inline
-                .resolve(Size::FitContent, inline_stretch_size, &inline_content_size);
-        let min_inline = min_box_size
-            .inline
-            .resolve_non_initial(inline_stretch_size, &inline_content_size)
-            .unwrap_or_default();
-        let max_inline = max_box_size
-            .inline
-            .resolve_non_initial(inline_stretch_size, &inline_content_size);
+        };
+        let (preferred_inline, min_inline, max_inline) = inline_sizes.resolve_each(
+            Size::FitContent,
+            Au::zero(),
+            inline_stretch_size,
+            get_inline_content_size,
+        );
         let inline_size = preferred_inline.clamp_between_extremums(min_inline, max_inline);
 
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
             let get_inline_size = || {
-                if box_size.inline.is_initial() {
+                if inline_sizes.preferred.is_initial() {
                     // TODO: do we really need to special-case `auto`?
                     // https://github.com/w3c/csswg-drafts/issues/11236
                     SizeConstraint::MinMax(min_inline, max_inline)
@@ -573,20 +555,12 @@ impl ReplacedContents {
             )
             .into()
         });
-        let block_stretch_size =
-            block_stretch_size.unwrap_or_else(|| block_content_size.max_content);
-        let preferred_block =
-            box_size
-                .block
-                .resolve(Size::FitContent, block_stretch_size, &block_content_size);
-        let min_block = min_box_size
-            .block
-            .resolve_non_initial(block_stretch_size, &block_content_size)
-            .unwrap_or_default();
-        let max_block = max_box_size
-            .block
-            .resolve_non_initial(block_stretch_size, &block_content_size);
-        let block_size = preferred_block.clamp_between_extremums(min_block, max_block);
+        let block_size = block_sizes.resolve(
+            Size::FitContent,
+            Au::zero(),
+            block_stretch_size.unwrap_or_else(|| block_content_size.max_content),
+            || *block_content_size,
+        );
 
         LogicalVec2 {
             inline: inline_size,

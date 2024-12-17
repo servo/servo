@@ -29,7 +29,7 @@ use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec, Size,
+    PhysicalVec, Size, Sizes,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -189,9 +189,7 @@ impl AspectRatio {
 
 #[derive(Clone)]
 pub(crate) struct ContentBoxSizesAndPBM {
-    pub content_box_size: LogicalVec2<Size<Au>>,
-    pub content_min_box_size: LogicalVec2<Size<Au>>,
-    pub content_max_box_size: LogicalVec2<Size<Au>>,
+    pub content_box_sizes: LogicalVec2<Sizes>,
     pub pbm: PaddingBorderMargin,
     pub depends_on_block_constraints: bool,
 }
@@ -199,9 +197,11 @@ pub(crate) struct ContentBoxSizesAndPBM {
 impl From<ContentBoxSizesAndPBM> for ContentBoxSizesAndPBMDeprecated {
     fn from(sizes: ContentBoxSizesAndPBM) -> Self {
         Self {
-            content_box_size: sizes.content_box_size.map(Size::to_auto_or),
-            content_min_box_size: sizes.content_min_box_size.map(Size::to_auto_or),
-            content_max_box_size: sizes.content_max_box_size.map(Size::to_numeric),
+            content_box_size: sizes
+                .content_box_sizes
+                .map(|size| size.preferred.to_auto_or()),
+            content_min_box_size: sizes.content_box_sizes.map(|size| size.min.to_auto_or()),
+            content_max_box_size: sizes.content_box_sizes.map(|size| size.max.to_numeric()),
             pbm: sizes.pbm.clone(),
             depends_on_block_constraints: sizes.depends_on_block_constraints,
         }
@@ -560,9 +560,18 @@ impl ComputedValuesExt for ComputedValues {
             .content_max_box_size_for_max_size(max_size, &pbm)
             .map(|v| v.map(Au::from));
         ContentBoxSizesAndPBM {
-            content_box_size,
-            content_min_box_size,
-            content_max_box_size,
+            content_box_sizes: LogicalVec2 {
+                block: Sizes::new(
+                    content_box_size.block,
+                    content_min_box_size.block,
+                    content_max_box_size.block,
+                ),
+                inline: Sizes::new(
+                    content_box_size.inline,
+                    content_min_box_size.inline,
+                    content_max_box_size.inline,
+                ),
+            },
             pbm,
             depends_on_block_constraints,
         }
