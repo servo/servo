@@ -2023,23 +2023,22 @@ impl Window {
         let mut issued_reflow = false;
         let condition = self.Document().needs_reflow();
         let updating_the_rendering = reflow_goal == ReflowGoal::UpdateTheRendering;
+        let for_display = reflow_goal.needs_display();
         if !updating_the_rendering || condition.is_some() {
             debug!("Reflowing document ({:?})", self.pipeline_id());
             issued_reflow = self.force_reflow(reflow_goal, condition);
 
-            // We shouldn't need a reflow immediately after a
-            // reflow, except if we're waiting for a deferred paint.
-            let condition = self.Document().needs_reflow();
-            assert!(
-                {
-                    condition.is_none() ||
-                        (!updating_the_rendering &&
-                            condition == Some(ReflowTriggerCondition::PaintPostponed)) ||
-                        self.layout_blocker.get().layout_blocked()
-                },
-                "condition was {:?}",
-                condition
-            );
+            // We shouldn't need a reflow immediately after a completed reflow, unless the reflow didn't
+            // display anything and it wasn't for display. Queries can cause this to happen.
+            if issued_reflow {
+                let condition = self.Document().needs_reflow();
+                let display_is_pending = condition == Some(ReflowTriggerCondition::PaintPostponed);
+                assert!(
+                    condition.is_none() || (display_is_pending && !for_display),
+                    "Needed reflow after reflow: {:?}",
+                    condition
+                );
+            }
         } else {
             debug!(
                 "Document ({:?}) doesn't need reflow - skipping it (goal {reflow_goal:?})",
