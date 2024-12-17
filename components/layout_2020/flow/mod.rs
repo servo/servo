@@ -796,9 +796,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
-        box_size,
-        min_box_size,
-        max_box_size,
+        preferred_block_size,
+        min_block_size,
+        max_block_size,
         depends_on_block_constraints,
         available_block_size,
     } = solve_containing_block_padding_and_border_for_in_flow_box(
@@ -942,16 +942,12 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let available_block_size = available_block_size.unwrap_or(content_block_size);
     let block_content_sizes = LazyCell::new(|| content_block_size.into());
     let preferred_block_size =
-        box_size
-            .block
-            .resolve(Size::FitContent, available_block_size, &block_content_sizes);
-    let min_block_size = min_box_size
-        .block
+        preferred_block_size.resolve(Size::FitContent, available_block_size, &block_content_sizes);
+    let min_block_size = min_block_size
         .resolve_non_initial(available_block_size, &block_content_sizes)
         .unwrap_or_default();
-    let max_block_size = max_box_size
-        .block
-        .resolve_non_initial(available_block_size, &block_content_sizes);
+    let max_block_size =
+        max_block_size.resolve_non_initial(available_block_size, &block_content_sizes);
     let block_size = preferred_block_size.clamp_between_extremums(min_block_size, max_block_size);
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -1046,9 +1042,9 @@ impl IndependentNonReplacedContents {
         let ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm,
-            box_size,
-            min_box_size,
-            max_box_size,
+            preferred_block_size,
+            min_block_size,
+            max_block_size,
             depends_on_block_constraints,
             available_block_size,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
@@ -1070,18 +1066,16 @@ impl IndependentNonReplacedContents {
                 let available_block_size =
                     available_block_size.unwrap_or(layout.content_block_size);
                 let block_content_sizes = LazyCell::new(|| layout.content_block_size.into());
-                let preferred_block_size = box_size.block.resolve(
+                let preferred_block_size = preferred_block_size.resolve(
                     Size::FitContent,
                     available_block_size,
                     &block_content_sizes,
                 );
-                let min_block_size = min_box_size
-                    .block
+                let min_block_size = min_block_size
                     .resolve_non_initial(available_block_size, &block_content_sizes)
                     .unwrap_or_default();
-                let max_block_size = max_box_size
-                    .block
-                    .resolve_non_initial(available_block_size, &block_content_sizes);
+                let max_block_size =
+                    max_block_size.resolve_non_initial(available_block_size, &block_content_sizes);
                 let block_size =
                     preferred_block_size.clamp_between_extremums(min_block_size, max_block_size);
                 (block_size, containing_block_for_children.size.inline)
@@ -1597,9 +1591,9 @@ impl ReplacedContents {
 struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
-    box_size: LogicalVec2<Size<Au>>,
-    min_box_size: LogicalVec2<Size<Au>>,
-    max_box_size: LogicalVec2<Size<Au>>,
+    preferred_block_size: Size<Au>,
+    min_block_size: Size<Au>,
+    max_block_size: Size<Au>,
     depends_on_block_constraints: bool,
     available_block_size: Option<Au>,
 }
@@ -1643,9 +1637,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         return ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm: PaddingBorderMargin::zero(),
-            box_size: LogicalVec2::default(),
-            min_box_size: LogicalVec2::default(),
-            max_box_size: LogicalVec2::default(),
+            preferred_block_size: Size::default(),
+            min_block_size: Size::default(),
+            max_block_size: Size::default(),
             depends_on_block_constraints: false,
             // The available block size may actually be definite, but it should be irrelevant
             // since the sizing properties are set to their initial value.
@@ -1730,9 +1724,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
-        box_size: content_box_size,
-        min_box_size: content_min_box_size,
-        max_box_size: content_max_box_size,
+        preferred_block_size: content_box_size.block,
+        min_block_size: content_min_box_size.block,
+        max_block_size: content_max_box_size.block,
         depends_on_block_constraints,
         available_block_size,
     }
