@@ -497,55 +497,6 @@ pub struct Document {
     status_code: Option<u16>,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-struct ImagesFilter;
-impl CollectionFilter for ImagesFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLImageElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct EmbedsFilter;
-impl CollectionFilter for EmbedsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLEmbedElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct LinksFilter;
-impl CollectionFilter for LinksFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        (elem.is::<HTMLAnchorElement>() || elem.is::<HTMLAreaElement>()) &&
-            elem.has_attribute(&local_name!("href"))
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct FormsFilter;
-impl CollectionFilter for FormsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLFormElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct ScriptsFilter;
-impl CollectionFilter for ScriptsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLScriptElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct AnchorsFilter;
-impl CollectionFilter for AnchorsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLAnchorElement>() && elem.has_attribute(&local_name!("href"))
-    }
-}
-
 #[allow(non_snake_case)]
 impl Document {
     pub fn note_node_with_dirty_descendants(&self, node: &Node) {
@@ -4907,16 +4858,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
-            let filter = Box::new(ImagesFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLImageElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
-            let filter = Box::new(EmbedsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLEmbedElement>()
+            })
         })
     }
 
@@ -4928,32 +4881,37 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
-            let filter = Box::new(LinksFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
+                    element.has_attribute(&local_name!("href"))
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
-            let filter = Box::new(FormsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLFormElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
-            let filter = Box::new(ScriptsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLScriptElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
-            let filter = Box::new(AnchorsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
+            })
         })
     }
 
