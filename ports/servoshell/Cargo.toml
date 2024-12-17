@@ -112,7 +112,7 @@ egui-winit = { version = "0.30.0", default-features = false, features = ["clipbo
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
-glow = "0.14.2"
+glow = "0.16.0"
 headers = { workspace = true }
 http = { workspace = true }
 net = { path = "../../components/net" }

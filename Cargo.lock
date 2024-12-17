@@ -694,7 +694,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "fonts",
- "glow 0.16.0",
+ "glow",
  "half",
  "ipc-channel",
  "log",
@@ -722,7 +722,7 @@ dependencies = [
  "base",
  "crossbeam-channel",
  "euclid",
- "glow 0.16.0",
+ "glow",
  "ipc-channel",
  "malloc_size_of_derive",
  "pixels",
@@ -1729,7 +1729,7 @@ dependencies = [
  "bytemuck",
  "egui",
  "egui-winit",
- "glow 0.16.0",
+ "glow",
  "log",
  "memoffset",
  "profiling",
@@ -2469,18 +2469,6 @@ name = "glob"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
-
-[[package]]
-name = "glow"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d51fa363f025f5c111e03f13eda21162faeacb6911fe8caa0c0349f9cf0c4483"
-dependencies = [
- "js-sys",
- "slotmap",
- "wasm-bindgen",
- "web-sys",
-]
 
 [[package]]
 name = "glow"
@@ -6011,7 +5999,7 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "fxhash",
- "glow 0.16.0",
+ "glow",
  "headers",
  "html5ever",
  "http",
@@ -6608,7 +6596,7 @@ dependencies = [
  "gilrs",
  "gl_generator",
  "gleam",
- "glow 0.14.2",
+ "glow",
  "headers",
  "hilog",
  "hitrace",
@@ -7054,7 +7042,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gl_generator",
- "glow 0.16.0",
+ "glow",
  "io-surface",
  "libc",
  "log",
@@ -8300,7 +8288,7 @@ source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825
 dependencies = [
  "crossbeam-channel",
  "euclid",
- "glow 0.16.0",
+ "glow",
  "log",
  "openxr",
  "serde",
@@ -8366,7 +8354,7 @@ dependencies = [
  "bytemuck",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "glow 0.16.0",
+ "glow",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-allocator",
