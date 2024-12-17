@@ -1621,6 +1621,9 @@ impl ScriptThread {
 
             // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
 
+            #[cfg(feature = "webgpu")]
+            document.update_rendering_of_webgpu_canvases();
+
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
