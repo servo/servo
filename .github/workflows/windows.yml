@@ -45,7 +45,6 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  CCACHE: "ccache"
   CARGO_TARGET_DIR: C:\\a\\servo\\servo\\target
   # clang_sys will search msys path before Program Files\LLVM
   # so we need to override this behaviour until we update clang-sys
@@ -102,6 +101,9 @@ jobs:
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         uses: hendrikmuhs/ccache-action@v1.2
+      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        run: |
+          echo CCACHE=ccache >> $GITHUB_ENV
 
       # Install missing tools in a GitHub-hosted runner.
       # Workaround for https://github.com/actions/runner-images/issues/10001:
