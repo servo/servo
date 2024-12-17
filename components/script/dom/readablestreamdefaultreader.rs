@@ -32,7 +32,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#read-request>
-#[derive(JSTraceable)]
+#[derive(Clone, JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
 pub enum ReadRequest {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
@@ -90,6 +90,7 @@ impl ReadRequest {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-tee>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[crown::unrooted_must_root_lint::must_root]
 struct ClosedPromiseRejectionHandler {
     branch_1_controller: Dom<ReadableStreamDefaultController>,
     branch_2_controller: Dom<ReadableStreamDefaultController>,
@@ -237,6 +238,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
+    #[allow(crown::unrooted_must_root)]
     pub fn close(&self) {
         // Resolve reader.[[closedPromise]] with undefined.
         self.closed_promise.borrow().resolve_native(&());
@@ -252,8 +254,10 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
-    pub fn add_read_request(&self, read_request: ReadRequest) {
-        self.read_requests.borrow_mut().push_back(read_request);
+    pub fn add_read_request(&self, read_request: &ReadRequest) {
+        self.read_requests
+            .borrow_mut()
+            .push_back(read_request.clone());
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
@@ -274,6 +278,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
+    #[allow(crown::unrooted_must_root)]
     pub fn remove_read_request(&self) -> ReadRequest {
         self.read_requests
             .borrow_mut()
@@ -346,6 +351,7 @@ impl ReadableStreamDefaultReader {
         self.error_read_requests(error.handle());
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn take_read_requests(&self) -> VecDeque<ReadRequest> {
         mem::take(&mut *self.read_requests.borrow_mut())
     }
@@ -364,6 +370,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
+    #[allow(crown::unrooted_must_root)]
     fn error_read_requests(&self, rval: SafeHandleValue) {
         // step 1
         let mut read_requests = self.take_read_requests();
@@ -375,7 +382,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub fn read(&self, read_request: ReadRequest) {
+    pub fn read(&self, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -400,7 +407,7 @@ impl ReadableStreamDefaultReader {
             // Assert: stream.[[state]] is "readable".
             assert!(stream.is_readable());
             // Perform ! stream.[[controller]].[[PullSteps]](readRequest).
-            stream.perform_pull_steps(read_request);
+            stream.perform_pull_steps(read_request, can_gc);
         }
     }
 
@@ -419,14 +426,17 @@ impl ReadableStreamDefaultReader {
         let branch_2_controller = branch_2.get_default_controller();
 
         let global = self.global();
-        let rejection_handler = Box::new(ClosedPromiseRejectionHandler {
-            branch_1_controller: Dom::from_ref(&branch_1_controller),
-            branch_2_controller: Dom::from_ref(&branch_2_controller),
-            canceled_1,
-            canceled_2,
-            cancel_promise,
-        });
-        let handler = PromiseNativeHandler::new(&global, None, Some(rejection_handler));
+        let handler = PromiseNativeHandler::new(
+            &global,
+            None,
+            Some(Box::new(ClosedPromiseRejectionHandler {
+                branch_1_controller: Dom::from_ref(&branch_1_controller),
+                branch_2_controller: Dom::from_ref(&branch_2_controller),
+                canceled_1,
+                canceled_2,
+                cancel_promise,
+            })),
+        );
 
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
@@ -450,6 +460,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     #[allow(unsafe_code)]
+    #[allow(crown::unrooted_must_root)]
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
@@ -476,10 +487,14 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         //
         // error steps, given e
         // Reject promise with e.
+
+        // Rooting(unrooted_must_root): the read request contains only a promise,
+        // which does not need to be rooted,
+        // as it is safely managed natively via an Rc.
         let read_request = ReadRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamDefaultReaderRead(this, readRequest).
-        self.read(read_request);
+        self.read(&read_request, can_gc);
 
         // Return promise.
         promise

@@ -106,6 +106,7 @@ impl DefaultTeeUnderlyingSource {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     /// Let pullAlgorithm be the following steps:
+    #[allow(crown::unrooted_must_root)]
     pub fn pull_algorithm(&self, can_gc: CanGc) -> Option<Result<Rc<Promise>, Error>> {
         // If reading is true,
         if self.reading.get() {
@@ -139,12 +140,13 @@ impl DefaultTeeUnderlyingSource {
             can_gc,
         );
 
+        // Rooting: the tee read request is rooted above.
         let read_request = ReadRequest::DefaultTee {
             tee_read_request: Dom::from_ref(&tee_read_request),
         };
 
         // Perform ! ReadableStreamDefaultReaderRead(reader, readRequest).
-        self.reader.read(read_request);
+        self.reader.read(&read_request, can_gc);
 
         // Return a promise resolved with undefined.
         let cx = GlobalScope::get_cx();
