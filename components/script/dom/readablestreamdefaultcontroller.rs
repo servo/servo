@@ -203,6 +203,7 @@ pub struct QueueWithSizes {
 
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
+    #[allow(crown::unrooted_must_root)]
     fn dequeue_value(&mut self) -> EnqueuedValue {
         let value = self
             .queue
@@ -213,6 +214,7 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
+    #[allow(crown::unrooted_must_root)]
     fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
@@ -418,6 +420,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
+    #[allow(crown::unrooted_must_root)]
     fn dequeue_value(&self) -> EnqueuedValue {
         let mut queue = self.queue.borrow_mut();
         queue.dequeue_value()
@@ -565,7 +568,8 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
-    pub fn perform_pull_steps(&self, read_request: ReadRequest) {
+    #[allow(crown::unrooted_must_root)]
+    pub fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be this.[[stream]].
         // Note: the spec does not assert that there is a stream.
         let Some(stream) = self.stream.get() else {
@@ -574,7 +578,14 @@ impl ReadableStreamDefaultController {
 
         // if queue contains bytes, perform chunk steps.
         if !self.queue.borrow().is_empty() {
+            // Rooting: chunk will be tied to a rooted value
+            // before calling into a function that can GC.
             let chunk = self.dequeue_value();
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            let result = RootedTraceableBox::new(Heap::default());
+            chunk.to_jsval(cx, rval.handle_mut());
+            result.set(*rval);
 
             // If this.[[closeRequested]] is true and this.[[queue]] is empty
             if self.close_requested.get() && self.queue.borrow().is_empty() {
@@ -585,14 +596,8 @@ impl ReadableStreamDefaultController {
                 stream.close();
             } else {
                 // Otherwise, perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
-                self.call_pull_if_needed(CanGc::note());
+                self.call_pull_if_needed(can_gc);
             }
-
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            let result = RootedTraceableBox::new(Heap::default());
-            chunk.to_jsval(cx, rval.handle_mut());
-            result.set(*rval);
             // Perform readRequest’s chunk steps, given chunk.
             read_request.chunk_steps(result);
         } else {
@@ -600,7 +605,7 @@ impl ReadableStreamDefaultController {
             stream.add_read_request(read_request);
 
             // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(this).
-            self.call_pull_if_needed(CanGc::note());
+            self.call_pull_if_needed(can_gc);
         }
     }
 
@@ -665,18 +670,14 @@ impl ReadableStreamDefaultController {
                 0.
             };
 
-            // We create the value-with-size created inside
-            // EnqueueValueWithSize here.
-            let value_with_size = ValueWithSize {
-                value: Heap::boxed(chunk.get()),
-                size,
-            };
-
             {
                 // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
                 let res = {
                     let mut queue = self.queue.borrow_mut();
-                    queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size))
+                    queue.enqueue_value_with_size(EnqueuedValue::Js(ValueWithSize {
+                        value: Heap::boxed(chunk.get()),
+                        size,
+                    }))
                 };
                 if let Err(error) = res {
                     // If enqueueResult is an abrupt completion,
@@ -710,6 +711,7 @@ impl ReadableStreamDefaultController {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
+    #[allow(crown::unrooted_must_root)]
     pub fn enqueue_native(&self, chunk: Vec<u8>) {
         let stream = self
             .stream

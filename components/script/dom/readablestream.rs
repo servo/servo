@@ -292,18 +292,18 @@ impl ReadableStream {
     /// Call into the pull steps of the controller,
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub fn perform_pull_steps(&self, read_request: ReadRequest) {
+    pub fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
         match self.controller {
             ControllerType::Default(ref controller) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_steps(read_request),
+                .perform_pull_steps(read_request, can_gc),
             ControllerType::Byte(_) => todo!(),
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
-    pub fn add_read_request(&self, read_request: ReadRequest) {
+    pub fn add_read_request(&self, read_request: &ReadRequest) {
         match self.reader {
             // Assert: stream.[[reader]] implements ReadableStreamDefaultReader.
             ReaderType::Default(ref reader) => {
@@ -553,6 +553,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
+    #[allow(crown::unrooted_must_root)]
     pub fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
         // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
