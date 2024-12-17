@@ -1209,9 +1209,7 @@ pub fn run_content_process(token: String) {
 
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_options(unprivileged_content.opts());
-    prefs::pref_map()
-        .set_all(unprivileged_content.prefs())
-        .expect("Failed to set preferences");
+    prefs::add_user_prefs(unprivileged_content.prefs());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {
