@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -74,7 +74,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
-    ShadowRootMethods, ShadowRootMode,
+    ShadowRootMethods, ShadowRootMode, SlotAssignmentMode,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     ScrollBehavior, ScrollToOptions, WindowMethods,
@@ -105,6 +105,7 @@ use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
@@ -124,6 +125,7 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
+use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable, SlottableData};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
 use crate::dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
@@ -188,6 +190,7 @@ pub(crate) struct Element {
     #[no_trace]
     selector_flags: Cell<ElementSelectorFlags>,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
+    slottable_data: RefCell<SlottableData>,
 }
 
 impl fmt::Debug for Element {
@@ -306,6 +309,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
             rare_data: Default::default(),
+            slottable_data: Default::default(),
         }
     }
 
@@ -510,6 +514,7 @@ impl Element {
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
+        slot_assignment_mode: SlotAssignmentMode,
     ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
         // If element’s namespace is not the HTML namespace,
@@ -536,7 +541,13 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc(), mode, clonable);
+        let shadow_root = ShadowRoot::new(
+            self,
+            &self.node.owner_doc(),
+            mode,
+            slot_assignment_mode,
+            clonable,
+        );
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -602,6 +613,10 @@ impl Element {
             None => false,
             Some(node) => node.is::<Document>(),
         }
+    }
+
+    pub(crate) fn slottable_data(&self) -> &RefCell<SlottableData> {
+        &self.slottable_data
     }
 }
 
@@ -3084,7 +3099,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn AttachShadow(&self, init: &ShadowRootInit) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
         // init["delegatesFocus"], and init["slotAssignment"].
-        let shadow_root = self.attach_shadow(IsUserAgentWidget::No, init.mode, init.clonable)?;
+        let shadow_root = self.attach_shadow(
+            IsUserAgentWidget::No,
+            init.mode,
+            init.clonable,
+            init.slotAssignment,
+        )?;
 
         // Step 2. Return this’s shadow root.
         Ok(shadow_root)
@@ -3459,6 +3479,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     fn SetAriaValueText(&self, value: Option<DOMString>, can_gc: CanGc) {
         self.set_nullable_string_attribute(&local_name!("aria-valuetext"), value, can_gc);
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>
+    fn GetAssignedSlot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let cx = GlobalScope::get_cx();
+
+        // > The assignedSlot getter steps are to return the result of
+        // > find a slot given this and with the open flag set.
+        rooted!(in(*cx) let slottable = Slottable::Element(Dom::from_ref(self)));
+        slottable.find_a_slot(true)
     }
 }
 

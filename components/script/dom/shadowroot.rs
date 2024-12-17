@@ -12,8 +12,10 @@ use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -57,6 +59,9 @@ pub(crate) struct ShadowRoot {
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-mode>
     mode: ShadowRootMode,
 
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-slotassignment>
+    slot_assignment_mode: SlotAssignmentMode,
+
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     clonable: bool,
 }
@@ -67,6 +72,7 @@ impl ShadowRoot {
         host: &Element,
         document: &Document,
         mode: ShadowRootMode,
+        slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
     ) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
@@ -86,6 +92,7 @@ impl ShadowRoot {
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
             mode,
+            slot_assignment_mode,
             clonable,
         }
     }
@@ -94,10 +101,17 @@ impl ShadowRoot {
         host: &Element,
         document: &Document,
         mode: ShadowRootMode,
+        slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
     ) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
-            Box::new(ShadowRoot::new_inherited(host, document, mode, clonable)),
+            Box::new(ShadowRoot::new_inherited(
+                host,
+                document,
+                mode,
+                slot_assignment_mode,
+                clonable,
+            )),
             document.window(),
             CanGc::note(),
         )
@@ -305,6 +319,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         // Step 4. Replace all with fragment within this.
         Node::replace_all(Some(frag.upcast()), self.upcast());
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-slotassignment>
+    fn SlotAssignment(&self) -> SlotAssignmentMode {
+        self.slot_assignment_mode
     }
 }
 

@@ -91,6 +91,7 @@ use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMe
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use crate::dom::htmllinkelement::HTMLLinkElement;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
@@ -1316,6 +1317,17 @@ impl Node {
             .as_ref()
             .map(|data| data.element_data.borrow().styles.primary().clone())
     }
+
+    /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
+    pub fn assign_slottables_for_a_tree(&self) {
+        // > To assign slottables for a tree, given a node root, run assign slottables for each slot
+        // > slot in root’s inclusive descendants, in tree order.
+        for node in self.traverse_preorder(ShadowIncluding::No) {
+            if let Some(slot) = node.downcast::<HTMLSlotElement>() {
+                slot.assign_slottables();
+            }
+        }
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -2464,7 +2476,7 @@ impl Node {
                 // node’s shadow root’s serializable, node’s shadow root’s delegates focus,
                 // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
-                    copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true)
+                    copy_elem.attach_shadow(IsUserAgentWidget::No, shadow_root.Mode(), true, shadow_root.SlotAssignment())
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
                 // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.

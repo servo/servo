@@ -398,6 +398,7 @@ pub(crate) mod htmlquoteelement;
 #[allow(dead_code)]
 pub(crate) mod htmlscriptelement;
 pub(crate) mod htmlselectelement;
+pub(crate) mod htmlslotelement;
 pub(crate) mod htmlsourceelement;
 pub(crate) mod htmlspanelement;
 pub(crate) mod htmlstyleelement;
