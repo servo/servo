@@ -294,7 +294,7 @@ impl FileManager {
             FileImpl::Memory(buf) => {
                 let bounds = match bounds {
                     BlobBounds::Unresolved(range) => get_range_request_bounds(range, buf.size),
-                    BlobBounds::Resolved(bounds) => bounds
+                    BlobBounds::Resolved(bounds) => bounds,
                 };
                 let range = bounds
                     .get_final(Some(buf.size))
@@ -330,7 +330,7 @@ impl FileManager {
 
                 let bounds = match bounds {
                     BlobBounds::Unresolved(range) => get_range_request_bounds(range, metadata.size),
-                    BlobBounds::Resolved(bounds) => bounds
+                    BlobBounds::Resolved(bounds) => bounds,
                 };
                 let range = bounds
                     .get_final(Some(metadata.size))
