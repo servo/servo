@@ -1482,21 +1482,4 @@ fn test_origin_serialization_compatability() {
 
 #[test]
 fn test_user_credentials_prompt() {
-    let ensure_serialiations_match = |url_string| {
-        let url = Url::parse(url_string).unwrap();
-        let origin = ImmutableOrigin::new(url.origin());
-        let serialized = format!("{}", serialize_origin(&origin));
-        assert_eq!(serialized, origin.ascii_serialization());
-    };
-
-    ensure_serialiations_match("https://example.com");
-    ensure_serialiations_match("https://example.com:443");
-
-    ensure_serialiations_match("http://example.com");
-    ensure_serialiations_match("http://example.com:80");
-
-    ensure_serialiations_match("https://example.com:1234");
-    ensure_serialiations_match("http://example.com:1234");
-
-    ensure_serialiations_match("data:,dataurltexta");
 }

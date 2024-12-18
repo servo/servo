@@ -72,7 +72,7 @@ use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUs
 use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
-use crate::resource_thread::AuthCache;
+use crate::resource_thread::{AuthCache, AuthCacheEntry};
 
 /// <https://fetch.spec.whatwg.org/#document-accept-header-value>
 pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
@@ -1572,11 +1572,20 @@ async fn http_network_or_cache_fetch(
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
             let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-            if let Some(_credentials) = credentials {}
+            if let Some(credentials) = credentials {
+                // TODO(#33616): store the result as a proxy-authentication entry.
+                let entry = AuthCacheEntry {
+                    user_name: credentials.username.unwrap(),
+                    password: credentials.password.unwrap(),
+                };
+
+                let mut auth_cache = context.state.auth_cache.write().unwrap();
+                auth_cache.entries.insert("credentials".to_string(), entry);
+            }
             // Wrong, but will have to do until we are able to prompt the user
             // otherwise this creates an infinite loop
             // We basically pretend that the user declined to enter credentials (#33616)
-            return response;
+            // return response;
         }
 
         // Make sure this is set to None,
@@ -1610,15 +1619,39 @@ async fn http_network_or_cache_fetch(
         // the appropriate network error for fetchParams.
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
+        // window and store the result as a proxy-authentication entry.
         let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-        if let Some(_credentials) = credentials {
+        if let Some(credentials) = credentials {
             // TODO(#33616): store the result as a proxy-authentication entry.
+            let entry = AuthCacheEntry {
+                user_name: credentials.username.unwrap(),
+                password: credentials.password.unwrap(),
+            };
+
+            // reduce scope of auth_cache access because auth_cache isn't send
+            {
+                let mut auth_cache = context.state.auth_cache.write().unwrap();
+                auth_cache.entries.insert("credentials".to_string(), entry);
+            }
+            // Make sure this is set to None,
+            // since we're about to start a new `http_network_or_cache_fetch`.
+            *done_chan = None;
+
             // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
+            http_network_or_cache_fetch(
+                http_request,
+                true, /* authentication flag */
+                cors_flag,
+                done_chan,
+                context,
+            )
+            .await;
         }
+
         // Wrong, but will have to do until we are able to prompt the user
         // otherwise this creates an infinite loop
         // We basically pretend that the user declined to enter credentials (#33616)
-        return response;
+        // return response;
     }
 
     // TODO(#33616): Step 16. If all of the following are true:
