@@ -1481,5 +1481,4 @@ fn test_origin_serialization_compatability() {
 }
 
 #[test]
-fn test_user_credentials_prompt() {
-}
+fn test_user_credentials_prompt() {}

@@ -50,8 +50,8 @@ use net_traits::request::{
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
-    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    user_info_percent_encode, CookieSource, FetchMetadata, NetworkError, RedirectEndValue,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -1569,17 +1569,31 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-            if let Some(credentials) = credentials {
-                // TODO(#33616): store the result as a proxy-authentication entry.
-                let entry = AuthCacheEntry {
-                    user_name: credentials.username.unwrap(),
-                    password: credentials.password.unwrap(),
-                };
+            let Some(credentials) = prompt_user_for_credentials(&context.state.embedder_proxy)
+            else {
+                return response;
+            };
+            let Some(username) = credentials.username else {
+                return response;
+            };
 
-                let mut auth_cache = context.state.auth_cache.write().unwrap();
-                auth_cache.entries.insert("credentials".to_string(), entry);
-            }
+            let (username, password) = {
+                let username = user_info_percent_encode(&username);
+                let password = credentials
+                    .password
+                    .map(|password| user_info_percent_encode(&password));
+
+                (username, password)
+            };
+
+            http_request
+                .current_url_mut()
+                .set_username(&username)
+                .unwrap();
+            http_request
+                .current_url_mut()
+                .set_password(password.as_deref())
+                .unwrap();
         }
 
         // Make sure this is set to None,
@@ -1614,34 +1628,41 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
         // window and store the result as a proxy-authentication entry.
-        let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
-        if let Some(credentials) = credentials {
-            let entry = AuthCacheEntry {
-                user_name: credentials.username.unwrap(),
-                password: credentials.password.unwrap(),
-            };
+        let Some(credentials) = prompt_user_for_credentials(&context.state.embedder_proxy) else {
+            return response;
+        };
+        let Some(user_name) = credentials.username else {
+            return response;
+        };
+        let Some(password) = credentials.password else {
+            return response;
+        };
 
-            // reduce scope of auth_cache access because auth_cache isn't send
-            {
-                // TODO(#33616): store the result as a proxy-authentication entry.
-                let mut auth_cache = context.state.auth_cache.write().unwrap();
-                auth_cache.entries.insert("credentials".to_string(), entry);
-            }
+        // TODO(#33616): store the result as a proxy-authentication entry.
+        let entry = AuthCacheEntry {
+            user_name,
+            password,
+        };
 
-            // Make sure this is set to None,
-            // since we're about to start a new `http_network_or_cache_fetch`.
-            *done_chan = None;
-
-            // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
-            response = http_network_or_cache_fetch(
-                http_request,
-                true, /* authentication flag */
-                cors_flag,
-                done_chan,
-                context,
-            )
-            .await;
+        {
+            let mut auth_cache = context.state.auth_cache.write().unwrap();
+            let key = http_request.current_url().origin().ascii_serialization();
+            auth_cache.entries.insert(key, entry);
         }
+
+        // Make sure this is set to None,
+        // since we're about to start a new `http_network_or_cache_fetch`.
+        *done_chan = None;
+
+        // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
+        response = http_network_or_cache_fetch(
+            http_request,
+            true, /* authentication flag */
+            cors_flag,
+            done_chan,
+            context,
+        )
+        .await;
     }
 
     // TODO(#33616): Step 16. If all of the following are true:

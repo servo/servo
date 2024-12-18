@@ -29,7 +29,6 @@ use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::CoreResourceThreadPool;
-use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
