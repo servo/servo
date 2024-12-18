@@ -7,7 +7,7 @@
 use html5ever::{local_name, namespace_url, ns};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
@@ -367,20 +367,17 @@ pub fn follow_hyperlink(
     let noopener = relations.get_element_noopener(target_attribute_value.as_ref());
 
     // Step 7.
-    let (maybe_chosen, replace) = match target_attribute_value {
+    let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
             let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);
-            let replace = if new {
-                HistoryEntryReplacement::Enabled
+            let history_handling = if new {
+                NavigationHistoryBehavior::Replace
             } else {
-                HistoryEntryReplacement::Disabled
+                NavigationHistoryBehavior::Push
             };
-            (maybe_chosen, replace)
+            (maybe_chosen, history_handling)
         },
-        None => (
-            Some(window.window_proxy()),
-            HistoryEntryReplacement::Disabled,
-        ),
+        None => (Some(window.window_proxy()), NavigationHistoryBehavior::Push),
     };
 
     // Step 8.
@@ -433,7 +430,7 @@ pub fn follow_hyperlink(
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
             debug!("following hyperlink to {}", load_data.url);
-            target.root().load_url(replace, false, load_data, CanGc::note());
+            target.root().load_url(history_handling, false, load_data, CanGc::note());
         });
         target_window
             .task_manager()

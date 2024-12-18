@@ -832,6 +832,10 @@ class CommandBase(object):
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
+        # mozjs gets its Python from `env['PYTHON3']`, which defaults to `python3`,
+        # but uv venv on Windows only provides a `python`, not `python3`.
+        env['PYTHON3'] = "python"
+
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_adb_path(self, env):

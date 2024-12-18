@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -106,6 +106,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
+use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
@@ -254,6 +255,9 @@ pub enum DeclarativeRefresh {
     },
     CreatedAfterLoad,
 }
+#[cfg(feature = "webgpu")]
+pub(crate) type WebGPUContextsMap =
+    Rc<RefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>>;
 
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
@@ -450,9 +454,10 @@ pub struct Document {
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
-    /// List of all WebGPU context IDs that need flushing.
+    /// List of all WebGPU contexts.
     #[cfg(feature = "webgpu")]
-    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
+    #[ignore_malloc_size_of = "Rc are hard"]
+    webgpu_contexts: WebGPUContextsMap,
     /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
@@ -490,55 +495,6 @@ pub struct Document {
     visibility_state: Cell<DocumentVisibilityState>,
     /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
     status_code: Option<u16>,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct ImagesFilter;
-impl CollectionFilter for ImagesFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLImageElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct EmbedsFilter;
-impl CollectionFilter for EmbedsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLEmbedElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct LinksFilter;
-impl CollectionFilter for LinksFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        (elem.is::<HTMLAnchorElement>() || elem.is::<HTMLAreaElement>()) &&
-            elem.has_attribute(&local_name!("href"))
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct FormsFilter;
-impl CollectionFilter for FormsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLFormElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct ScriptsFilter;
-impl CollectionFilter for ScriptsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLScriptElement>()
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-struct AnchorsFilter;
-impl CollectionFilter for AnchorsFilter {
-    fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is::<HTMLAnchorElement>() && elem.has_attribute(&local_name!("href"))
-    }
 }
 
 #[allow(non_snake_case)]
@@ -2999,20 +2955,19 @@ impl Document {
     }
 
     #[cfg(feature = "webgpu")]
-    pub fn add_dirty_webgpu_canvas(&self, context: &GPUCanvasContext) {
-        self.dirty_webgpu_contexts
-            .borrow_mut()
-            .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
+    pub fn webgpu_contexts(&self) -> WebGPUContextsMap {
+        self.webgpu_contexts.clone()
     }
 
     #[allow(crown::unrooted_must_root)]
     #[cfg(feature = "webgpu")]
-    pub fn flush_dirty_webgpu_canvases(&self) {
-        self.dirty_webgpu_contexts
+    pub fn update_rendering_of_webgpu_canvases(&self) {
+        self.webgpu_contexts
             .borrow_mut()
-            .drain()
-            .for_each(|(_, context)| context.update_rendering_of_webgpu_canvas());
+            .iter()
+            .filter_map(|(_, context)| context.root())
+            .filter(|context| context.onscreen())
+            .for_each(|context| context.update_rendering_of_webgpu_canvas());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -3386,7 +3341,7 @@ impl Document {
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             #[cfg(feature = "webgpu")]
-            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {
                 DomRefCell::new(AnimationTimeline::new_for_testing())
@@ -4903,16 +4858,18 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
-            let filter = Box::new(ImagesFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLImageElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
-            let filter = Box::new(EmbedsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLEmbedElement>()
+            })
         })
     }
 
@@ -4924,32 +4881,37 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
-            let filter = Box::new(LinksFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
+                    element.has_attribute(&local_name!("href"))
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
-            let filter = Box::new(FormsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLFormElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
-            let filter = Box::new(ScriptsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLScriptElement>()
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
-            let filter = Box::new(AnchorsFilter);
-            HTMLCollection::create(&self.window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
+                element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
+            })
         })
     }
 

@@ -300,20 +300,16 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tbodies
     fn TBodies(&self) -> DomRoot<HTMLCollection> {
-        #[derive(JSTraceable)]
-        struct TBodiesFilter;
-        impl CollectionFilter for TBodiesFilter {
-            fn filter(&self, elem: &Element, root: &Node) -> bool {
-                elem.is::<HTMLTableSectionElement>() &&
-                    elem.local_name() == &local_name!("tbody") &&
-                    elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-            }
-        }
-
         self.tbodies.or_init(|| {
-            let window = window_from_node(self);
-            let filter = Box::new(TBodiesFilter);
-            HTMLCollection::create(&window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(
+                &window_from_node(self),
+                self.upcast(),
+                |element, root| {
+                    element.is::<HTMLTableSectionElement>() &&
+                        element.local_name() == &local_name!("tbody") &&
+                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                },
+            )
         })
     }
 

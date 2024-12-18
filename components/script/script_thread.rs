@@ -82,9 +82,9 @@ use script_layout_interface::{
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
-    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
+    EventResult, InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin,
+    MediaSessionActionType, MouseButton, MouseEventType, NavigationHistoryBehavior, NewLayoutInfo,
+    Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
     StructuredSerializedData, Theme, TimerSchedulerMsg, TouchEventType, TouchId,
     UntrustedNodeAddress, UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
@@ -915,7 +915,7 @@ impl ScriptThread {
         browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
     ) {
         with_script_thread(|script_thread| {
             let is_javascript = load_data.url.scheme() == "javascript";
@@ -936,7 +936,7 @@ impl ScriptThread {
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
-                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
                                 .unwrap();
                         }
                     }
@@ -955,7 +955,7 @@ impl ScriptThread {
 
                 script_thread
                     .script_sender
-                    .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                    .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
                     .expect("Sending a LoadUrl message to the constellation failed");
             }
         });
@@ -1546,8 +1546,10 @@ impl ScriptThread {
         // > the order it is found in the list.
         let documents_in_order = self.documents.borrow().documents_in_order();
 
-        // Note: the spec reads: "for doc in docs" at each step
-        // whereas this runs all steps per doc in docs.
+        // TODO: The specification reads: "for doc in docs" at each step whereas this runs all
+        // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
+        // queue resize events on a child and have those run in the same call to this method, so
+        // that needs to be sorted out to fix this.
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
@@ -1619,7 +1621,8 @@ impl ScriptThread {
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
-            // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
+            #[cfg(feature = "webgpu")]
+            document.update_rendering_of_webgpu_canvases();
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
@@ -2239,12 +2242,12 @@ impl ScriptThread {
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
-                replace,
+                history_handling,
             ) => self.handle_navigate_iframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
-                replace,
+                history_handling,
                 can_gc,
             ),
             ConstellationControlMsg::UnloadDocument(pipeline_id) => {
@@ -2825,7 +2828,7 @@ impl ScriptThread {
 
     /// Batch window resize operations into a single "update the rendering" task,
     /// or, if a load is in progress, set the window size directly.
-    fn handle_resize_message(
+    pub(crate) fn handle_resize_message(
         &self,
         id: PipelineId,
         size: WindowSizeData,
@@ -2840,9 +2843,7 @@ impl ScriptThread {
             let mut loads = self.incomplete_loads.borrow_mut();
             if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
                 load.window_size = size;
-                return;
             }
-            warn!("resize sent to nonexistent pipeline");
         })
     }
 
@@ -3922,7 +3923,7 @@ impl ScriptThread {
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
         let iframe = self
@@ -3930,7 +3931,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
+            iframe.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
         }
     }
 

@@ -45,7 +45,6 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  CCACHE: "ccache"
   CARGO_TARGET_DIR: C:\\a\\servo\\servo\\target
   # clang_sys will search msys path before Program Files\LLVM
   # so we need to override this behaviour until we update clang-sys
@@ -78,20 +77,20 @@ jobs:
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+      - if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
         uses: actions/checkout@v4
-      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+      - if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $env:GITHUB_SHA
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - if: ${{ runner.environment == 'self-hosted' }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
         run: |
@@ -100,16 +99,19 @@ jobs:
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: hendrikmuhs/ccache-action@v1.2
+      - if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          echo CCACHE=ccache >> $GITHUB_ENV
 
       # Install missing tools in a GitHub-hosted runner.
       # Workaround for https://github.com/actions/runner-images/issues/10001:
       - name: Upgrade llvm
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: choco upgrade llvm
       - name: Install wixtoolset
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           choco install wixtoolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -117,16 +119,16 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
         with:
-          skip-python-setup: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+          skip-python-setup: ${{ runner.environment == 'self-hosted' }}
       - name: Bootstrap
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           python mach fetch
           python mach bootstrap-gstreamer
       # For some reason WiX isn't currently on the GitHub runner path. This is a
       # temporary workaround until that is fixed.
       - name: Add WiX to Path
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           "$env:WIX\bin" >> $env:GITHUB_PATH
 
@@ -137,7 +139,7 @@ jobs:
         run: cargo install --path support/crown --force
 
       - name: Debug logging for incremental builds
-        if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment == 'self-hosted' }}
         run: |
           cat C:\init\incremental_build_debug.txt
           echo "`$env:LIBCLANG_PATH now = $env:LIBCLANG_PATH"
@@ -148,7 +150,7 @@ jobs:
           python mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         # GitHub-hosted runners check out the repo on D: drive.
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest

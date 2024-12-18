@@ -2,23 +2,39 @@
 <html>
 <!-- Submitted from TestTWF Paris -->
 <head>
-
-    <title>CSS Reference File</title>
+	<title>CSS Reference File</title>
 	<link rel="author" title="Marc Bourlon" href="mailto:marc@bourlon.com">
-
 	<style type="text/css">
-
-		* { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
-
-		#testBoxWithVhOnly { background: #F00; width: 60px; float: left; }
-		#testBoxNotGrownHorizontallyByJS { background: #F0F; height: 60px; float: left; }
-		#testBoxWithTransition { background: #FF0; width: 40px; height: 40px; float: left; }
-		#referenceBoxGrownHorizontallyByJS { background: #0F0; height: 40px; float: left; }
-
-		p { clear: both; margin: 10px 0; }
-
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		p {
+			clear: both;
+			margin: 10px 0;
+		}
+		#testBoxWithVhOnly {
+			background: #F00;
+			width: 60px;
+			float: left;
+		}
+		#testBoxNotGrownHorizontallyByJS {
+			background: #F0F;
+			height: 60px;
+			float: left;
+		}
+		#testBoxWithTransition {
+			background: #FF0;
+			width: 40px;
+			height: 40px;
+			float: left;
+		}
+		#referenceBoxGrownHorizontallyByJS {
+			background: #0F0;
+			height: 40px;
+			float: left;
+		}
 	</style>
-
 </head>
 <body>
 
@@ -33,30 +49,13 @@
 
 <script type="text/javascript">
 	'use strict';
-
-	// In case this file was opened by mistake, redirects to proper test
-	if (window.top.location.href  === document.location.href) {
-
-		window.top.location.href = "vh_not_refreshing_on_chrome-ref.html";
-
-	}
-
-	function setDimension(id, dimension, value) {
-
-		var element = document.getElementById(id);
-
-		element.style[dimension] = value + "px";
-
-	}
-
 	function animate() {
-
 		var viewportHeight = document.documentElement.clientHeight;
+		var referenceDimension = Math.round(20 * viewportHeight / 100);
 
-		var sizeH = 20;
-
-		var referenceDimension = Math.round(sizeH * viewportHeight / 100);
-
+		let setDimension = (id, dimension, value) => {
+			document.getElementById(id).style[dimension] = value + "px";
+		}
 		setDimension('testBoxWithVhOnly', 'height', referenceDimension);
 		setDimension('testBoxNotGrownHorizontallyByJS', 'width', referenceDimension);
 		setDimension('testBoxWithTransition', 'width', referenceDimension);
@@ -67,12 +66,11 @@
 		if (referenceDimension < 60) {
 			setTimeout(animate, 20);
 		} else {
-			parent.postMessage('testBoxWithVhOnly', '*');
+			parent.postMessage('testEnded', '*');
 		}
 	}
-
 	setTimeout(animate, 20);
-
+	parent.postMessage('frameLoaded', '*');
 </script>
 
 </body>

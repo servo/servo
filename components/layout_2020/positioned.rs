@@ -572,6 +572,7 @@ impl HoistedAbsolutelyPositionedBox {
                         block: block_axis.size.to_definite().unwrap(),
                     };
                     fragments = replaced.make_fragments(
+                        layout_context,
                         &style,
                         content_size.to_physical_size(containing_block_writing_mode),
                     );

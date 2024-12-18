@@ -30,7 +30,8 @@ use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
+use crate::dom::readablestream::ReadableStream;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, StreamConsumer};
 
 #[dom_struct]
@@ -53,10 +54,11 @@ pub struct Response {
 
 #[allow(non_snake_case)]
 impl Response {
-    pub fn new_inherited(global: &GlobalScope) -> Response {
+    pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Response {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
-            ExternalUnderlyingSource::FetchResponse,
+            UnderlyingSourceType::FetchResponse,
+            can_gc,
         );
         Response {
             reflector_: Reflector::new(),
@@ -82,7 +84,7 @@ impl Response {
         can_gc: CanGc,
     ) -> DomRoot<Response> {
         reflect_dom_object_with_proto(
-            Box::new(Response::new_inherited(global)),
+            Box::new(Response::new_inherited(global, can_gc)),
             global,
             proto,
             can_gc,
@@ -444,19 +446,19 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+    pub fn stream_chunk(&self, chunk: Vec<u8>) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.body_stream.get() {
-            body.enqueue_native(chunk, can_gc);
+            body.enqueue_native(chunk);
         }
     }
 
     #[allow(crown::unrooted_must_root)]
     pub fn finish(&self) {
         if let Some(body) = self.body_stream.get() {
-            body.close_native();
+            body.controller_close_native();
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {

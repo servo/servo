@@ -24,7 +24,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::webgpu::gpuconvert::{convert_load_op, convert_store_op};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpurenderpassencoder::GPURenderPassEncoder;
 use crate::script_runtime::CanGc;
@@ -154,21 +153,21 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         &self,
         descriptor: &GPURenderPassDescriptor,
     ) -> Fallible<DomRoot<GPURenderPassEncoder>> {
-        let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|depth| {
+        let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|ds| {
             wgpu_com::RenderPassDepthStencilAttachment {
                 depth: wgpu_com::PassChannel {
-                    load_op: convert_load_op(depth.depthLoadOp),
-                    store_op: convert_store_op(depth.depthStoreOp),
-                    clear_value: *depth.depthClearValue.unwrap_or_default(),
-                    read_only: depth.depthReadOnly,
+                    load_op: ds.depthLoadOp.as_ref().map(Convert::convert),
+                    store_op: ds.depthStoreOp.as_ref().map(Convert::convert),
+                    clear_value: *ds.depthClearValue.unwrap_or_default(),
+                    read_only: ds.depthReadOnly,
                 },
                 stencil: wgpu_com::PassChannel {
-                    load_op: convert_load_op(depth.stencilLoadOp),
-                    store_op: convert_store_op(depth.stencilStoreOp),
-                    clear_value: depth.stencilClearValue,
-                    read_only: depth.stencilReadOnly,
+                    load_op: ds.stencilLoadOp.as_ref().map(Convert::convert),
+                    store_op: ds.stencilStoreOp.as_ref().map(Convert::convert),
+                    clear_value: ds.stencilClearValue,
+                    read_only: ds.stencilReadOnly,
                 },
-                view: depth.view.id().0,
+                view: ds.view.id().0,
             }
         });
 
@@ -178,8 +177,8 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .map(|color| -> Fallible<_> {
                 Ok(Some(wgpu_com::RenderPassColorAttachment {
                     resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                    load_op: convert_load_op(Some(color.loadOp)),
-                    store_op: convert_store_op(Some(color.storeOp)),
+                    load_op: color.loadOp.convert(),
+                    store_op: color.storeOp.convert(),
                     clear_value: color
                         .clearValue
                         .as_ref()

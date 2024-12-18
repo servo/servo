@@ -31,8 +31,8 @@ use js::JSCLASS_IS_GLOBAL;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
 use script_traits::{
-    AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin, NewLayoutInfo,
-    ScriptMsg,
+    AuxiliaryBrowsingContextLoadInfo, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    NewLayoutInfo, ScriptMsg,
 };
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -526,12 +526,13 @@ impl WindowProxy {
                 referrer_policy,
                 Some(secure),
             );
-            let replacement_flag = if new {
-                HistoryEntryReplacement::Enabled
+            let history_handling = if new {
+                NavigationHistoryBehavior::Replace
             } else {
-                HistoryEntryReplacement::Disabled
+                NavigationHistoryBehavior::Push
             };
-            target_window.load_url(replacement_flag, false, load_data, can_gc);
+
+            target_window.load_url(history_handling, false, load_data, can_gc);
         }
         if noopener {
             // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).

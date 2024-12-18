@@ -148,9 +148,6 @@ skip = [
     # gilrs is on 0.10.0, but Servo is still on 0.9.4
     "core-foundation",
 
-    # some non-servo crates still use 0.14
-    "glow",
-
     # wgpu crates still depend on 1.1.0
     "rustc-hash",
 ]

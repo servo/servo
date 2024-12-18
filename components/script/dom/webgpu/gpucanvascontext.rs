@@ -34,6 +34,8 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::weakref::WeakRef;
+use crate::dom::document::WebGPUContextsMap;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
@@ -94,6 +96,9 @@ pub struct GPUCanvasContext {
     drawing_buffer: RefCell<DrawingBuffer>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     current_texture: MutNullableDom<GPUTexture>,
+    /// This is used for clearing
+    #[ignore_malloc_size_of = "Rc are hard"]
+    webgpu_contexts: WebGPUContextsMap,
 }
 
 impl GPUCanvasContext {
@@ -101,6 +106,7 @@ impl GPUCanvasContext {
         global: &GlobalScope,
         canvas: HTMLCanvasElementOrOffscreenCanvas,
         channel: WebGPU,
+        webgpu_contexts: WebGPUContextsMap,
     ) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
         let size = canvas.size().cast().cast_unit();
@@ -130,19 +136,27 @@ impl GPUCanvasContext {
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
+            webgpu_contexts,
         }
     }
 
     pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
-        reflect_dom_object(
+        let document = document_from_node(canvas);
+        let this = reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
                 channel,
+                document.webgpu_contexts(),
             )),
             global,
             CanGc::note(),
-        )
+        );
+        this.webgpu_contexts
+            .borrow_mut()
+            .entry(this.context_id())
+            .or_insert_with(|| WeakRef::new(&this));
+        this
     }
 }
 
@@ -257,8 +271,16 @@ impl GPUCanvasContext {
     pub(crate) fn mark_as_dirty(&self) {
         if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            let document = document_from_node(&**canvas);
-            document.add_dirty_webgpu_canvas(self);
+        }
+    }
+
+    pub(crate) fn onscreen(&self) -> bool {
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().is_connected()
+            },
+            // FIXME(#34628): Handle this properly
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
         }
     }
 
@@ -351,26 +373,27 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
     fn GetCurrentTexture(&self) -> Fallible<DomRoot<GPUTexture>> {
-        // Step 1
+        // Step 1: If this.[[configuration]] is null, throw an InvalidStateError and return.
         let configuration = self.configuration.borrow();
         let Some(configuration) = configuration.as_ref() else {
             return Err(Error::InvalidState);
         };
-        // Step 2
+        // Step 2: Assert this.[[textureDescriptor]] is not null.
         let texture_descriptor = self.texture_descriptor.borrow();
         let texture_descriptor = texture_descriptor.as_ref().unwrap();
         // Step 6
         let current_texture = if let Some(current_texture) = self.current_texture.get() {
             current_texture
         } else {
-            // Step 3&4
+            // Step 4.1
             self.replace_drawing_buffer();
+            // Step 4.2
             let current_texture = configuration.device.CreateTexture(texture_descriptor)?;
             self.current_texture.set(Some(&current_texture));
+            // We only need to mark new texture
+            self.mark_as_dirty();
             current_texture
         };
-        // Step 5
-        self.mark_as_dirty();
         // Step 6
         Ok(current_texture)
     }
@@ -378,6 +401,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
 impl Drop for GPUCanvasContext {
     fn drop(&mut self) {
+        self.webgpu_contexts.borrow_mut().remove(&self.context_id());
         if let Err(e) = self.channel.0.send(WebGPURequest::DestroyContext {
             context_id: self.context_id,
         }) {
