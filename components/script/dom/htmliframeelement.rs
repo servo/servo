@@ -13,8 +13,8 @@ use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
-    HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData,
-    LoadOrigin, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
+    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
+    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
 };
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -117,17 +117,22 @@ impl HTMLIFrameElement {
     pub fn navigate_or_reload_child_browsing_context(
         &self,
         load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
-        self.start_new_pipeline(load_data, PipelineType::Navigation, replace, can_gc);
+        self.start_new_pipeline(
+            load_data,
+            PipelineType::Navigation,
+            history_handling,
+            can_gc,
+        );
     }
 
     fn start_new_pipeline(
         &self,
         mut load_data: LoadData,
         pipeline_type: PipelineType,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
         let sandboxed = if self.is_sandboxed() {
@@ -191,7 +196,7 @@ impl HTMLIFrameElement {
             new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
-            replace,
+            history_handling,
         };
 
         let window_size = WindowSizeData {
@@ -269,7 +274,7 @@ impl HTMLIFrameElement {
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
                 load_data,
-                HistoryEntryReplacement::Disabled,
+                NavigationHistoryBehavior::Push,
                 can_gc,
             );
             return;
@@ -361,12 +366,14 @@ impl HTMLIFrameElement {
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
-        let replace = if is_about_blank {
-            HistoryEntryReplacement::Enabled
+
+        let history_handling = if is_about_blank {
+            NavigationHistoryBehavior::Replace
         } else {
-            HistoryEntryReplacement::Disabled
+            NavigationHistoryBehavior::Push
         };
-        self.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
+
+        self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
@@ -407,7 +414,7 @@ impl HTMLIFrameElement {
         self.start_new_pipeline(
             load_data,
             PipelineType::InitialAboutBlank,
-            HistoryEntryReplacement::Disabled,
+            NavigationHistoryBehavior::Push,
             can_gc,
         );
     }

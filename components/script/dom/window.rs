@@ -56,7 +56,7 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, HistoryEntryReplacement, IFrameSizeMsg, LoadData,
+    ConstellationControlMsg, DocumentState, IFrameSizeMsg, LoadData, NavigationHistoryBehavior,
     ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme,
     TimerSchedulerMsg, WindowSizeData, WindowSizeType,
 };
@@ -2387,7 +2387,7 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
     pub fn load_url(
         &self,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         force_reload: bool,
         load_data: LoadData,
         can_gc: CanGc,
@@ -2403,7 +2403,7 @@ impl Window {
             if let Some(fragment) = load_data.url.fragment() {
                 self.send_to_constellation(ScriptMsg::NavigatedToFragment(
                     load_data.url.clone(),
-                    replace,
+                    history_handling,
                 ));
                 doc.check_and_scroll_fragment(fragment, can_gc);
                 let this = Trusted::new(self);
@@ -2462,7 +2462,7 @@ impl Window {
                 window_proxy.browsing_context_id(),
                 pipeline_id,
                 load_data,
-                replace,
+                history_handling,
             );
         };
     }

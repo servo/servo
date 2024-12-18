@@ -82,9 +82,9 @@ use script_layout_interface::{
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
-    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
+    EventResult, InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin,
+    MediaSessionActionType, MouseButton, MouseEventType, NavigationHistoryBehavior, NewLayoutInfo,
+    Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
     StructuredSerializedData, Theme, TimerSchedulerMsg, TouchEventType, TouchId,
     UntrustedNodeAddress, UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
@@ -915,7 +915,7 @@ impl ScriptThread {
         browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
     ) {
         with_script_thread(|script_thread| {
             let is_javascript = load_data.url.scheme() == "javascript";
@@ -936,7 +936,7 @@ impl ScriptThread {
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
-                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
                                 .unwrap();
                         }
                     }
@@ -955,7 +955,7 @@ impl ScriptThread {
 
                 script_thread
                     .script_sender
-                    .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
+                    .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
                     .expect("Sending a LoadUrl message to the constellation failed");
             }
         });
@@ -2242,12 +2242,12 @@ impl ScriptThread {
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
-                replace,
+                history_handling,
             ) => self.handle_navigate_iframe(
                 parent_pipeline_id,
                 browsing_context_id,
                 load_data,
-                replace,
+                history_handling,
                 can_gc,
             ),
             ConstellationControlMsg::UnloadDocument(pipeline_id) => {
@@ -3923,7 +3923,7 @@ impl ScriptThread {
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
-        replace: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
         let iframe = self
@@ -3931,7 +3931,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
+            iframe.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
         }
     }
 
