@@ -154,9 +154,6 @@ skip = [
     # wgpu crates still depend on 1.1.0
     "rustc-hash",
 
-    # some non-servo crates still use 0.14
-    "glow",
-
     # duplicated by webdriver
     "h2",
     "headers",
