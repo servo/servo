@@ -427,11 +427,7 @@ fn handle_range_request(
             let Some(body_len) = content_range.as_ref().and_then(|range| range.bytes_len()) else {
                 continue;
             };
-            match range_spec
-                .satisfiable_ranges(body_len - 1)
-                .next()
-                .unwrap()
-            {
+            match range_spec.satisfiable_ranges(body_len - 1).next().unwrap() {
                 (Bound::Included(beginning), Bound::Included(end)) => {
                     let (res_beginning, res_end) = match content_range {
                         Some(range) => {

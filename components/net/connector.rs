@@ -18,7 +18,7 @@ use hyper_util::client::legacy::Client;
 use log::warn;
 use rustls::client::WebPkiServerVerifier;
 use rustls::{ClientConfig, RootCertStore};
-use rustls_pki_types::{CertificateDer, ServerName, TrustAnchor, UnixTime};
+use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
 use tower_service::Service;
 
 use crate::async_runtime::HANDLE;
@@ -151,11 +151,10 @@ pub fn create_tls_config(
         ignore_certificate_errors,
         override_manager,
     );
-    rustls::client::danger::DangerousClientConfigBuilder {
-        cfg: rustls::ClientConfig::builder(),
-    }
-    .with_custom_certificate_verifier(Arc::new(verifier))
-    .with_no_client_auth()
+    rustls::ClientConfig::builder()
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(verifier))
+        .with_no_client_auth()
 }
 
 #[derive(Clone)]
@@ -184,14 +183,8 @@ impl CertificateVerificationOverrideVerifier {
         override_manager: CertificateErrorOverrideManager,
     ) -> Self {
         let root_cert_store = match ca_certficates {
-            CACertificates::Default => {
-                let mut root_cert_store = rustls::RootCertStore::empty();
-                root_cert_store.extend(
-                    webpki_roots::TLS_SERVER_ROOTS
-                        .iter()
-                        .map(TrustAnchor::to_owned),
-                );
-                root_cert_store
+            CACertificates::Default => rustls::RootCertStore {
+                roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
             },
             CACertificates::Override(root_cert_store) => root_cert_store,
         };

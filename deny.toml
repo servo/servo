@@ -163,6 +163,9 @@ skip = [
     "http",
     "http-body",
     "hyper",
+
+    # duplicated by aws-lc-sys
+    "bindgen",
 ]
 
 # github.com organizations to allow git sources for
