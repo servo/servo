@@ -345,7 +345,6 @@ fn create_resource_with_bytes_from_resource(
 fn handle_range_request(
     request: &Request,
     candidates: &[&CachedResource],
-    //range_spec: Vec<(Bound<u64>, Bound<u64>)>,
     range_spec: &Range,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
@@ -402,26 +401,6 @@ fn handle_range_request(
                 if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
                     let b = beginning as usize;
                     let requested = body.get(b..);
-                    if let Some(bytes) = requested {
-                        let new_resource =
-                            create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.lock().unwrap();
-                        let cached_response = create_cached_response(
-                            request,
-                            &new_resource,
-                            &cached_headers,
-                            done_chan,
-                        );
-                        if let Some(cached_response) = cached_response {
-                            return Some(cached_response);
-                        }
-                    }
-                }
-            },
-            (Bound::Unbounded, Bound::Included(offset)) => {
-                if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
-                    let from_byte = body.len() - offset as usize;
-                    let requested = body.get(from_byte..);
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
