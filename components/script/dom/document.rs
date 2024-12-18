@@ -255,7 +255,7 @@ pub enum DeclarativeRefresh {
     },
     CreatedAfterLoad,
 }
-
+#[cfg(feature = "webgpu")]
 pub(crate) type WebGPUContextsMap =
     Rc<RefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>>;
 
