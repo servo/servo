@@ -98,7 +98,7 @@ jobs:
     secrets: inherit
     with:
       unique-id: ${{ needs.runner-select.outputs.unique-id }}
-      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      is-self-hosted: ${{ runner.environment == 'self-hosted' }}
 
   build:
     needs:
@@ -106,7 +106,7 @@ jobs:
     name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - if: ${{ runner.environment != 'self-hosted' }}
         run: |
           echo SCCACHE_GHA_ENABLED=true >> $GITHUB_ENV
           echo RUSTC_WRAPPER=sccache >> $GITHUB_ENV
@@ -114,20 +114,20 @@ jobs:
           echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - if: ${{ runner.environment == 'self-hosted' }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
         run: |
@@ -136,17 +136,17 @@ jobs:
 
       # Install missing tools in a GitHub-hosted runner.
       - name: Run sccache-cache
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: mozilla-actions/sccache-action@v0.0.6
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
+        if: ${{ runner.environment != 'self-hosted' && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Setup Python
         uses: ./.github/actions/setup-python
         with:
-          skip-python-setup: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+          skip-python-setup: ${{ runner.environment == 'self-hosted' }}
       - name: Bootstrap dependencies
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           sudo apt update
           python3 ./mach bootstrap --skip-lints
