@@ -100,18 +100,18 @@ pub fn main() {
         None
     };
 
-    let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
+    let event_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
         .expect("Failed to create events loop");
 
     let mut app = App::new(
-        &events_loop,
+        &event_loop,
         do_not_use_native_titlebar,
         device_pixel_ratio_override,
         user_agent,
         url_opt.map(|s| s.to_string()),
     );
 
-    events_loop.run_app(&mut app);
+    event_loop.run_app(&mut app);
 
     crate::platform::deinit(clean_shutdown)
 }
