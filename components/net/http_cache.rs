@@ -522,43 +522,6 @@ fn handle_range_request(
                     }
                 },
 
-                (Bound::Unbounded, Bound::Included(offset)) => {
-                    let (res_beginning, res_end, total) = if let Some(range) = content_range {
-                        match (range.bytes_range(), range.bytes_len()) {
-                            (Some(bytes_range), Some(total)) => {
-                                (bytes_range.0, bytes_range.1, total)
-                            },
-                            _ => continue,
-                        }
-                    } else {
-                        continue;
-                    };
-                    if total < res_beginning || total < res_end || offset == 0 || offset == u64::MAX
-                    {
-                        // Prevent overflow in the below operations from occuring.
-                        continue;
-                    }
-                    if (total - res_beginning) > (offset - 1) && (total - res_end) < offset + 1 {
-                        let resource_body = &*partial_resource.body.lock().unwrap();
-                        let requested = match resource_body {
-                            ResponseBody::Done(body) => {
-                                let from_byte = body.len() - offset as usize;
-                                body.get(from_byte..)
-                            },
-                            _ => continue,
-                        };
-                        if let Some(bytes) = requested {
-                            let new_resource =
-                                create_resource_with_bytes_from_resource(bytes, partial_resource);
-                            let cached_response =
-                                create_cached_response(request, &new_resource, &headers, done_chan);
-                            if let Some(cached_response) = cached_response {
-                                return Some(cached_response);
-                            }
-                        }
-                    }
-                },
-
                 _ => continue,
             }
         }
