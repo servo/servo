@@ -1582,10 +1582,6 @@ async fn http_network_or_cache_fetch(
                 let mut auth_cache = context.state.auth_cache.write().unwrap();
                 auth_cache.entries.insert("credentials".to_string(), entry);
             }
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials (#33616)
-            // return response;
         }
 
         // Make sure this is set to None,
@@ -1622,7 +1618,6 @@ async fn http_network_or_cache_fetch(
         // window and store the result as a proxy-authentication entry.
         let credentials = prompt_user_for_credentials(&context.state.embedder_proxy);
         if let Some(credentials) = credentials {
-            // TODO(#33616): store the result as a proxy-authentication entry.
             let entry = AuthCacheEntry {
                 user_name: credentials.username.unwrap(),
                 password: credentials.password.unwrap(),
@@ -1630,15 +1625,17 @@ async fn http_network_or_cache_fetch(
 
             // reduce scope of auth_cache access because auth_cache isn't send
             {
+                // TODO(#33616): store the result as a proxy-authentication entry.
                 let mut auth_cache = context.state.auth_cache.write().unwrap();
                 auth_cache.entries.insert("credentials".to_string(), entry);
             }
+
             // Make sure this is set to None,
             // since we're about to start a new `http_network_or_cache_fetch`.
             *done_chan = None;
 
             // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
-            http_network_or_cache_fetch(
+            response = http_network_or_cache_fetch(
                 http_request,
                 true, /* authentication flag */
                 cors_flag,
@@ -1647,11 +1644,6 @@ async fn http_network_or_cache_fetch(
             )
             .await;
         }
-
-        // Wrong, but will have to do until we are able to prompt the user
-        // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials (#33616)
-        // return response;
     }
 
     // TODO(#33616): Step 16. If all of the following are true:
