@@ -274,7 +274,6 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 }
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
-//pub type BoxedBody = hyper::body::Incoming;
 
 pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, BoxedBody> {
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
