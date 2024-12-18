@@ -278,20 +278,22 @@ impl ConsoleActor {
             LogLevel::Warn => "warn",
             LogLevel::Error => "error",
             LogLevel::Clear => "clear",
-            _ => "log",
+            LogLevel::Trace => "trace",
+            LogLevel::Log => "log",
         }
         .to_owned();
 
         let console_api = ConsoleLog {
-            level: level.clone(),
-            filename: console_message.filename.clone(),
+            level,
+            filename: console_message.filename,
             line_number: console_message.line_number as u32,
             column_number: console_message.column_number as u32,
             time_stamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as u64,
-            arguments: vec![console_message.message.clone()],
+            arguments: vec![console_message.message],
+            stacktrace: console_message.stacktrace,
         };
 
         self.cached_events

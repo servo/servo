@@ -280,6 +280,7 @@ pub enum LogLevel {
     Warn,
     Error,
     Clear,
+    Trace,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -290,6 +291,21 @@ pub struct ConsoleMessage {
     pub filename: String,
     pub line_number: usize,
     pub column_number: usize,
+    pub stacktrace: Vec<StackFrame>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StackFrame {
+    pub filename: String,
+
+    #[serde(rename = "functionName")]
+    pub function_name: String,
+
+    #[serde(rename = "columnNumber")]
+    pub column_number: u32,
+
+    #[serde(rename = "lineNumber")]
+    pub line_number: u32,
 }
 
 bitflags! {
@@ -327,7 +343,7 @@ pub struct ConsoleLog {
     pub column_number: u32,
     pub time_stamp: u64,
     pub arguments: Vec<String>,
-    // pub stacktrace: Vec<...>,
+    pub stacktrace: Vec<StackFrame>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
