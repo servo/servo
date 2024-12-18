@@ -601,7 +601,6 @@ async fn obtain_response(
                             None => warn!("Failed to read all chunks from request body."),
                         }
                     }
-                    //body.into()
                     Full::new(body.into()).map_err(|_| unreachable!()).boxed()
                 },
             };
