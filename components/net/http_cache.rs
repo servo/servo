@@ -445,12 +445,11 @@ fn handle_range_request(
             let headers = partial_resource.metadata.headers.lock().unwrap();
             let content_range = headers.typed_get::<ContentRange>();
 
-            let body_len = match *partial_resource.body.lock().unwrap() {
-                ResponseBody::Done(ref body) => body.len(),
-                _ => continue,
+            let Some(body_len) = content_range.as_ref().and_then(|range| range.bytes_len()) else {
+                continue;
             };
             match range_spec
-                .satisfiable_ranges(body_len.try_into().unwrap())
+                .satisfiable_ranges((body_len - 1).try_into().unwrap())
                 .next()
                 .unwrap()
             {
@@ -502,7 +501,7 @@ fn handle_range_request(
                         // Prevent overflow in the below operations from occuring.
                         continue;
                     };
-                    if res_beginning < beginning && res_end == total - 1 {
+                    if res_beginning <= beginning && res_end == total - 1 {
                         let resource_body = &*partial_resource.body.lock().unwrap();
                         let requested = match resource_body {
                             ResponseBody::Done(body) => {
