@@ -40,9 +40,6 @@ impl ProtocolHandler for BlobProtocolHander {
 
         let range_header = request.headers.typed_get::<Range>();
         let is_range_request = range_header.is_some();
-        // We will get a final version of this range once we have
-        // the length of the data backing the blob.
-        //let range = get_range_request_bounds(range_header);
 
         let (id, origin) = match parse_blob_url(&url) {
             Ok((id, origin)) => (id, origin),
