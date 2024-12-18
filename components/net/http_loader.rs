@@ -1578,15 +1578,12 @@ async fn http_network_or_cache_fetch(
             let Some(username) = credentials.username else {
                 return response;
             };
-
-            let (username, password) = {
-                let username = user_info_percent_encode(&username);
-                let password = credentials
-                    .password
-                    .map(|password| user_info_percent_encode(&password));
-
-                (username, password)
+            let Some(password ) = credentials.password else {
+                return response;
             };
+
+            let username = user_info_percent_encode(&username);
+            let password = Some(user_info_percent_encode(&password));
 
             http_request
                 .current_url_mut()
