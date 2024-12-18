@@ -76,7 +76,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   # Increment this to purge the cache (https://github.com/mozilla/sccache/blob/main/docs/GHA.md)
-  SCCACHE_GHA_VERSION: 2
+  SCCACHE_GHA_VERSION: 3
 
 jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
