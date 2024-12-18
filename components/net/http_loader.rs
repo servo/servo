@@ -29,6 +29,7 @@ use http::header::{
     CONTENT_TYPE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
+use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
 use hyper::{Body, Client, Response as HyperResponse};
 use hyper_serde::Serde;
@@ -584,7 +585,7 @@ async fn obtain_response(
                         },
                     };
 
-                    devtools_bytes.lock().unwrap().append(&mut bytes.clone());
+                    devtools_bytes.lock().unwrap().extend_from_slice(&bytes);
 
                     // Step 5.1.2.2, transmit chunk over the network,
                     // currently implemented by sending the bytes to the fetch worker.
@@ -712,6 +713,7 @@ async fn obtain_response(
                     debug!("Not notifying devtools (no request_id)");
                     None
                 };
+
                 future::ready(Ok((Decoder::detect(res, is_secure_scheme), msg)))
             })
             .map_err(move |error| {
@@ -1864,14 +1866,15 @@ async fn http_network_fetch(
     let timing = context.timing.lock().unwrap().clone();
     let mut response = Response::new(url.clone(), timing);
 
-    response.status = HttpStatus::new(
-        res.status(),
-        res.status()
-            .canonical_reason()
-            .unwrap_or("")
-            .as_bytes()
-            .to_vec(),
-    );
+    let status_text = res
+        .extensions()
+        .get::<ReasonPhrase>()
+        .map(ReasonPhrase::as_bytes)
+        .or_else(|| res.status().canonical_reason().map(str::as_bytes))
+        .map(Vec::from)
+        .unwrap_or_default();
+    response.status = HttpStatus::new(res.status(), status_text);
+
     info!("got {:?} response for {:?}", res.status(), request.url());
     response.headers = res.headers().clone();
     response.referrer = request.referrer.to_url().cloned();
