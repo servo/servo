@@ -428,7 +428,7 @@ fn handle_range_request(
                 continue;
             };
             match range_spec
-                .satisfiable_ranges((body_len - 1).try_into().unwrap())
+                .satisfiable_ranges(body_len - 1)
                 .next()
                 .unwrap()
             {
