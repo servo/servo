@@ -98,7 +98,7 @@ jobs:
     secrets: inherit
     with:
       unique-id: ${{ needs.runner-select.outputs.unique-id }}
-      is-self-hosted: ${{ runner.environment == 'self-hosted' }}
+      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
 
   build:
     needs:
