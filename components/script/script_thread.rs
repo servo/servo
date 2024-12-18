@@ -2988,15 +2988,15 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
         can_gc: CanGc,
     ) {
-        let doc = self
+        let document = self
             .documents
             .borrow()
             .find_document(parent_pipeline_id)
             .unwrap();
-        let frame_element = doc.find_iframe(browsing_context_id);
 
-        if let Some(ref frame_element) = frame_element {
-            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent, can_gc);
+        let iframes = document.iframes();
+        if let Some(iframe) = iframes.get(browsing_context_id) {
+            document.request_focus(Some(iframe.element.upcast()), FocusType::Parent, can_gc);
         }
     }
 

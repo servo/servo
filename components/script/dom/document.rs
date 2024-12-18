@@ -15,7 +15,6 @@ use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::BrowsingContextId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
 use content_security_policy::{self as csp, CspList};
@@ -185,6 +184,7 @@ use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::fetch::FetchCanceller;
+use crate::iframe_collection::IFrameCollection;
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
@@ -294,6 +294,8 @@ pub struct Document {
     scripts: MutNullableDom<HTMLCollection>,
     anchors: MutNullableDom<HTMLCollection>,
     applets: MutNullableDom<HTMLCollection>,
+    /// Information about the `<iframes>` in this [`Document`].
+    iframes: RefCell<IFrameCollection>,
     /// Lock use for style attributes and author-origin stylesheet objects in this document.
     /// Can be acquired once for accessing many objects.
     #[no_trace]
@@ -2251,9 +2253,12 @@ impl Document {
         }
         // Step 9
         if !recursive_flag {
-            for iframe in self.iter_iframes() {
+            // `prompt_to_unload` might cause futher modifications to the DOM so collecting here prevents
+            // a double borrow if the `IFrameCollection` needs to be validated again.
+            let iframes: Vec<_> = self.iframes().iter().collect();
+            for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
-                let document = document_from_node(&*iframe);
+                let document = document_from_node(&**iframe);
                 can_unload = document.prompt_to_unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
@@ -2320,9 +2325,12 @@ impl Document {
 
         // Step 13
         if !recursive_flag {
-            for iframe in self.iter_iframes() {
+            // `unload` might cause futher modifications to the DOM so collecting here prevents
+            // a double borrow if the `IFrameCollection` needs to be validated again.
+            let iframes: Vec<_> = self.iframes().iter().collect();
+            for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
-                let document = document_from_node(&*iframe);
+                let document = document_from_node(&**iframe);
                 document.unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
@@ -2677,7 +2685,7 @@ impl Document {
         self.loader.borrow_mut().inhibit_events();
 
         // Step 1.
-        for iframe in self.iter_iframes() {
+        for iframe in self.iframes().iter() {
             if let Some(document) = iframe.GetContentDocument() {
                 // TODO: abort the active documents of every child browsing context.
                 document.abort(can_gc);
@@ -2726,20 +2734,18 @@ impl Document {
         self.current_parser.get()
     }
 
-    /// Iterate over all iframes in the document.
-    pub fn iter_iframes(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> {
-        self.upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-            .filter_map(DomRoot::downcast::<HTMLIFrameElement>)
+    /// A reference to the [`IFrameCollection`] of this [`Document`], holding information about
+    /// `<iframe>`s found within it.
+    pub(crate) fn iframes(&self) -> Ref<IFrameCollection> {
+        self.iframes.borrow_mut().validate(self);
+        self.iframes.borrow()
     }
 
-    /// Find an iframe element in the document.
-    pub fn find_iframe(
-        &self,
-        browsing_context_id: BrowsingContextId,
-    ) -> Option<DomRoot<HTMLIFrameElement>> {
-        self.iter_iframes()
-            .find(|node| node.browsing_context_id() == Some(browsing_context_id))
+    /// A mutable reference to the [`IFrameCollection`] of this [`Document`], holding information about
+    /// `<iframe>`s found within it.
+    pub(crate) fn iframes_mut(&self) -> RefMut<IFrameCollection> {
+        self.iframes.borrow_mut().validate(self);
+        self.iframes.borrow_mut()
     }
 
     pub fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
@@ -3266,6 +3272,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            iframes: Default::default(),
             style_shared_lock: {
                 /// Per-process shared lock for author-origin stylesheets
                 ///

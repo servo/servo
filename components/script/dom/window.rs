@@ -51,14 +51,14 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{
-    combine_id_with_fragment_type, FragmentType, IFrameSizes, Layout, PendingImageState, QueryMsg,
-    Reflow, ReflowGoal, ReflowRequest, TrustedNodeAddress,
+    combine_id_with_fragment_type, FragmentType, Layout, PendingImageState, QueryMsg, Reflow,
+    ReflowGoal, ReflowRequest, TrustedNodeAddress,
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, IFrameSizeMsg, LoadData, NavigationHistoryBehavior,
-    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme,
-    TimerSchedulerMsg, WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DocumentState, LoadData, NavigationHistoryBehavior, ScriptMsg,
+    ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme, TimerSchedulerMsg,
+    WindowSizeData, WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -151,7 +151,7 @@ use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
 use crate::script_thread::{
-    with_script_thread, ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
+    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
     SendableMainThreadScriptChan,
 };
 use crate::task_manager::TaskManager;
@@ -377,17 +377,6 @@ pub struct Window {
 
     /// <https://dom.spec.whatwg.org/#window-current-event>
     current_event: DomRefCell<Option<Dom<Event>>>,
-
-    /// Sizes of the various `<iframes>` that we might have on this [`Window`].
-    /// This is used to:
-    ///  - Let same-`ScriptThread` `<iframe>`s know synchronously when their
-    ///    size has changed, ensuring that the next layout has the right size.
-    ///  - Send the proper size for the `<iframe>` during new-Pipeline creation
-    ///    when the `src` attribute changes.
-    ///  - Let the `Constellation` know about `BrowsingContext` (one per `<iframe>`)
-    ///    size changes when an `<iframe>` changes size during layout.
-    #[no_trace]
-    iframe_sizes: RefCell<IFrameSizes>,
 }
 
 impl Window {
@@ -997,8 +986,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     fn Length(&self) -> u32 {
-        let doc = self.Document();
-        doc.iter_iframes().count() as u32
+        self.Document().iframes().iter().count() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
@@ -1447,7 +1435,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // https://html.spec.whatwg.org/multipage/#document-tree-child-browsing-context-name-property-set
         let iframes: Vec<_> = document
-            .iter_iframes()
+            .iframes()
+            .iter()
             .filter(|iframe| {
                 if let Some(window) = iframe.GetContentWindow() {
                     return window.get_name() == name;
@@ -1967,64 +1956,18 @@ impl Window {
             }
         }
 
-        self.handle_new_iframe_sizes_after_layout(results.iframe_sizes);
+        let size_messages = self
+            .Document()
+            .iframes_mut()
+            .handle_new_iframe_sizes_after_layout(results.iframe_sizes, self.device_pixel_ratio());
+        if !size_messages.is_empty() {
+            self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
+        }
 
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
         true
-    }
-
-    /// Update the recorded iframe sizes of the contents of layout. When these sizes change,
-    /// send a message to the `Constellation` informing it of the new sizes.
-    fn handle_new_iframe_sizes_after_layout(&self, new_iframe_sizes: IFrameSizes) {
-        let old_iframe_sizes = self.iframe_sizes.replace(new_iframe_sizes);
-        let new_iframe_sizes = self.iframe_sizes.borrow();
-        if new_iframe_sizes.is_empty() {
-            return;
-        }
-
-        // Batch resize message to any local `Pipeline`s now, rather than waiting for them
-        // to filter asynchronously through the `Constellation`. This allows the new value
-        // to be reflected immediately in layout.
-        let device_pixel_ratio = self.device_pixel_ratio();
-        with_script_thread(|script_thread| {
-            for iframe_size in new_iframe_sizes.values() {
-                script_thread.handle_resize_message(
-                    iframe_size.pipeline_id,
-                    WindowSizeData {
-                        initial_viewport: iframe_size.size,
-                        device_pixel_ratio,
-                    },
-                    // TODO: This might send an extra resize event. This can fixed by explicitly
-                    // supporting `<iframe>` creation when the size isn't known yet.
-                    WindowSizeType::Resize,
-                );
-            }
-        });
-        // Send asynchronous updates to `Constellation.`
-        let size_messages: Vec<_> = new_iframe_sizes
-            .iter()
-            .filter_map(|(browsing_context_id, size)| {
-                match old_iframe_sizes.get(browsing_context_id) {
-                    Some(old_size) if old_size.size == size.size => None,
-                    Some(..) => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: size.size,
-                        type_: WindowSizeType::Resize,
-                    }),
-                    None => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: size.size,
-                        type_: WindowSizeType::Initial,
-                    }),
-                }
-            })
-            .collect();
-
-        if !size_messages.is_empty() {
-            self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
-        }
     }
 
     /// Reflows the page if it's possible to do so and the page is dirty. Returns true if layout
@@ -2327,10 +2270,10 @@ impl Window {
     ) -> Option<Size2D<f32, CSSPixel>> {
         // Reflow might fail, but do a best effort to return the right size.
         self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc);
-        self.iframe_sizes
-            .borrow()
-            .get(&browsing_context_id)
-            .map(|iframe_size| iframe_size.size)
+        self.Document()
+            .iframes()
+            .get(browsing_context_id)
+            .and_then(|iframe| iframe.size)
     }
 
     #[allow(unsafe_code)]
@@ -2865,7 +2808,6 @@ impl Window {
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
             theme: Cell::new(PrefersColorScheme::Light),
-            iframe_sizes: RefCell::default(),
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
