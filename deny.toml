@@ -150,6 +150,17 @@ skip = [
 
     # wgpu crates still depend on 1.1.0
     "rustc-hash",
+
+    # duplicated by webdriver
+    "h2",
+    "headers",
+    "headers-core",
+    "http",
+    "http-body",
+    "hyper",
+
+    # duplicated by aws-lc-sys
+    "bindgen",
 ]
 
 # github.com organizations to allow git sources for
