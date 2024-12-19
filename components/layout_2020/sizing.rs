@@ -114,6 +114,7 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
+    is_table: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
     get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
@@ -182,10 +183,12 @@ pub(crate) fn outer_inline(
     let (preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
         resolve_non_initial(content_box_size.inline)
             .unwrap_or_else(|| resolve_non_initial(Size::FitContent).unwrap());
-    let (min_min_content, min_max_content, min_depends_on_block_constraints) = resolve_non_initial(
-        content_min_box_size.inline,
-    )
-    .unwrap_or((auto_minimum.inline, auto_minimum.inline, false));
+    let (mut min_min_content, mut min_max_content, min_depends_on_block_constraints) =
+        resolve_non_initial(content_min_box_size.inline).unwrap_or((
+            auto_minimum.inline,
+            auto_minimum.inline,
+            false,
+        ));
     let (max_min_content, max_max_content, max_depends_on_block_constraints) =
         resolve_non_initial(content_max_box_size.inline)
             .map(|(min_content, max_content, depends_on_block_constraints)| {
@@ -196,6 +199,14 @@ pub(crate) fn outer_inline(
                 )
             })
             .unwrap_or_default();
+
+    // Regardless of their sizing properties, tables are always forced to be at least
+    // as big as their min-content size, so floor the minimums.
+    if is_table {
+        min_min_content.max_assign(content_size.sizes.min_content);
+        min_max_content.max_assign(content_size.sizes.min_content);
+    }
+
     InlineContentSizesResult {
         sizes: ContentSizes {
             min_content: preferred_min_content
