@@ -10,6 +10,7 @@ use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSaf
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
+use style::dom::{TElement, TShadowRoot};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
@@ -467,6 +468,10 @@ pub(crate) fn iter_child_nodes<'dom, Node>(parent: Node) -> impl Iterator<Item =
 where
     Node: NodeExt<'dom>,
 {
+    if let Some(shadow) = parent.as_element().and_then(|e| e.shadow_root()) {
+        return iter_child_nodes(shadow.as_node());
+    };
+
     let mut next = parent.first_child();
     std::iter::from_fn(move || {
         next.inspect(|child| {
