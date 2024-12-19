@@ -22,7 +22,7 @@ use crate::formatting_contexts::{
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
-    SizeConstraint,
+    SizeConstraint, Sizes,
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -155,18 +155,16 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                 style,
                                 independent_context
                                     .preferred_aspect_ratio(&pbm.padding_border_sums),
-                                LogicalVec2 {
-                                    inline: option_f32_to_size(content_box_known_dimensions.width),
-                                    block: option_f32_to_size(content_box_known_dimensions.height),
-                                },
-                                LogicalVec2 {
-                                    inline: Size::Numeric(Au::zero()),
-                                    block: Size::Numeric(Au::zero()),
-                                },
-                                LogicalVec2 {
-                                    inline: Size::Initial,
-                                    block: Size::Initial,
-                                },
+                                &Sizes::new(
+                                    option_f32_to_size(content_box_known_dimensions.height),
+                                    Size::Initial,
+                                    Size::Initial,
+                                ),
+                                &Sizes::new(
+                                    option_f32_to_size(content_box_known_dimensions.width),
+                                    Size::Initial,
+                                    Size::Initial,
+                                ),
                                 pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
                             )
                             .to_physical_size(self.style.writing_mode);

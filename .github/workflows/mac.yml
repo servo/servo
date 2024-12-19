@@ -52,11 +52,6 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  # Increment this to purge the cache (https://github.com/mozilla/sccache/blob/main/docs/GHA.md)
-  SCCACHE_GHA_VERSION: 4
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
-  CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -81,8 +76,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Setup Python
         uses: ./.github/actions/setup-python
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Install crown
         run: cargo install --path support/crown
       - name: Bootstrap

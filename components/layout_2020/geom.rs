@@ -627,7 +627,7 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
 
 /// The possible values accepted by the sizing properties.
 /// <https://drafts.csswg.org/css-sizing/#sizing-properties>
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum Size<T> {
     /// Represents an `auto` value for the preferred and minimum size properties,
     /// or `none` for the maximum size properties.
@@ -868,5 +868,124 @@ impl SizeConstraint {
     pub(crate) fn to_auto_or(self) -> AutoOr<Au> {
         self.to_definite()
             .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
+    }
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct Sizes {
+    /// <https://drafts.csswg.org/css-sizing-3/#preferred-size-properties>
+    pub preferred: Size<Au>,
+    /// <https://drafts.csswg.org/css-sizing-3/#min-size-properties>
+    pub min: Size<Au>,
+    /// <https://drafts.csswg.org/css-sizing-3/#max-size-properties>
+    pub max: Size<Au>,
+}
+
+impl Sizes {
+    #[inline]
+    pub(crate) fn new(preferred: Size<Au>, min: Size<Au>, max: Size<Au>) -> Self {
+        Self {
+            preferred,
+            min,
+            max,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn depends_on_available_space(&self) -> bool {
+        // TODO: this logic could be refined further, since even if some of the 3 sizes
+        // depends on the available space, the resulting size might not. For example,
+        // `min-width: 200px; width: 100px; max-width: stretch`.
+        matches!(
+            self.preferred,
+            Size::Initial | Size::Stretch | Size::FitContent
+        ) || matches!(self.min, Size::Stretch | Size::FitContent) ||
+            matches!(self.max, Size::Stretch | Size::FitContent)
+    }
+
+    /// Resolves the three sizes into a single numerical value.
+    #[inline]
+    pub(crate) fn resolve(
+        &self,
+        automatic_size: Size<Au>,
+        automatic_minimum_size: Au,
+        stretch_size: Au,
+        get_content_size: impl FnOnce() -> ContentSizes,
+    ) -> Au {
+        let (preferred, min, max) = self.resolve_each(
+            automatic_size,
+            automatic_minimum_size,
+            stretch_size,
+            get_content_size,
+        );
+        preferred.clamp_between_extremums(min, max)
+    }
+
+    /// Resolves each of the three sizes into a numerical value, separately.
+    #[inline]
+    pub(crate) fn resolve_each(
+        &self,
+        automatic_size: Size<Au>,
+        automatic_minimum_size: Au,
+        stretch_size: Au,
+        get_content_size: impl FnOnce() -> ContentSizes,
+    ) -> (Au, Au, Option<Au>) {
+        // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
+        // A LazyCell will only invoke it once if needed, and then reuse the result.
+        let content_size = LazyCell::new(get_content_size);
+        (
+            self.preferred
+                .resolve(automatic_size, stretch_size, &content_size),
+            self.min
+                .resolve_non_initial(stretch_size, &content_size)
+                .unwrap_or(automatic_minimum_size),
+            self.max.resolve_non_initial(stretch_size, &content_size),
+        )
+    }
+
+    /// Tries to extrinsically resolve the three sizes into a single [`SizeConstraint`].
+    /// Values that are intrinsic or need `stretch_size` when it's `None` are handled as such:
+    /// - On the preferred size, they make the returned value be an indefinite [`SizeConstraint::MinMax`].
+    /// - On the min size, they are treated as `auto`, enforcing the automatic minimum size.
+    /// - On the max size, they are treated as `none`, enforcing no maximum.
+    #[inline]
+    pub(crate) fn resolve_extrinsic(
+        &self,
+        automatic_size: Size<Au>,
+        automatic_minimum_size: Au,
+        stretch_size: Option<Au>,
+    ) -> SizeConstraint {
+        let (preferred, min, max) =
+            self.resolve_each_extrinsic(automatic_size, automatic_minimum_size, stretch_size);
+        SizeConstraint::new(preferred, min, max)
+    }
+
+    /// Tries to extrinsically resolve each of the three sizes into a numerical value, separately.
+    /// This can't resolve values that are intrinsic or need `stretch_size` but it's `None`.
+    /// - The 1st returned value is the resolved preferred size. If it can't be resolved then
+    ///   the returned value is `None`. Note that this is different than treating it as `auto`.
+    ///   TODO: This needs to be discussed in <https://github.com/w3c/csswg-drafts/issues/11387>.
+    /// - The 2nd returned value is the resolved minimum size. If it can't be resolved then we
+    ///   treat it as the initial `auto`, returning the automatic minimum size.
+    /// - The 3rd returned value is the resolved maximum size. If it can't be resolved then we
+    ///   treat it as the initial `none`, returning `None`.
+    #[inline]
+    pub(crate) fn resolve_each_extrinsic(
+        &self,
+        automatic_size: Size<Au>,
+        automatic_minimum_size: Au,
+        stretch_size: Option<Au>,
+    ) -> (Option<Au>, Au, Option<Au>) {
+        (
+            if self.preferred.is_initial() {
+                automatic_size.maybe_resolve_extrinsic(stretch_size)
+            } else {
+                self.preferred.maybe_resolve_extrinsic(stretch_size)
+            },
+            self.min
+                .maybe_resolve_extrinsic(stretch_size)
+                .unwrap_or(automatic_minimum_size),
+            self.max.maybe_resolve_extrinsic(stretch_size),
+        )
     }
 }

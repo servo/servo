@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::convert::TryFrom;
-use std::io;
+use std::{io, ptr};
 
-use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
+use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg, StackFrame};
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{
     GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IdToValue, JS_ValueToSource,
 };
-use js::rust::{describe_scripted_caller, HandleValue, IdVector};
+use js::rust::{describe_scripted_caller, CapturedJSStack, HandleValue, IdVector};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 use crate::dom::bindings::conversions::jsstring_to_str;
@@ -27,8 +27,8 @@ const MAX_LOG_DEPTH: usize = 10;
 /// The maximum elements in an object logged by console methods.
 const MAX_LOG_CHILDREN: usize = 15;
 
-// https://developer.mozilla.org/en-US/docs/Web/API/Console
-pub struct Console(());
+/// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
+pub struct Console;
 
 impl Console {
     #[allow(unsafe_code)]
@@ -36,12 +36,14 @@ impl Console {
         if let Some(chan) = global.devtools_chan() {
             let caller =
                 unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+
             let console_message = ConsoleMessage {
                 message,
                 log_level: level,
                 filename: caller.filename,
                 line_number: caller.line as usize,
                 column_number: caller.col as usize,
+                stacktrace: get_js_stack(*GlobalScope::get_cx()),
             };
             let worker_id = global
                 .downcast::<WorkerGlobalScope>()
@@ -259,17 +261,20 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         console_messages(global, messages, LogLevel::Error)
     }
 
+    /// <https://console.spec.whatwg.org/#trace>
+    fn Trace(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Trace)
+    }
+
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, message: HandleValue) {
+    fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {
-            let message = if message.is_undefined() {
-                DOMString::from("no message")
-            } else {
-                stringify_handle_value(message)
-            };
-            let message = DOMString::from(format!("Assertion failed: {}", message));
-            console_message(global, message, LogLevel::Error)
-        };
+            let message = DOMString::from(format!(
+                "Assertion failed: {}",
+                stringify_handle_values(messages)
+            ));
+            console_message(global, message, LogLevel::Error);
+        }
     }
 
     // https://console.spec.whatwg.org/#time
@@ -330,4 +335,86 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             )
         }
     }
+}
+
+#[allow(unsafe_code)]
+fn get_js_stack(cx: *mut jsapi::JSContext) -> Vec<StackFrame> {
+    const MAX_FRAME_COUNT: u32 = 128;
+
+    let mut frames = vec![];
+    rooted!(in(cx) let mut handle =  ptr::null_mut());
+    let captured_js_stack = unsafe { CapturedJSStack::new(cx, handle, Some(MAX_FRAME_COUNT)) };
+    let Some(captured_js_stack) = captured_js_stack else {
+        return frames;
+    };
+
+    captured_js_stack.for_each_stack_frame(|frame| {
+        rooted!(in(cx) let mut result: *mut jsapi::JSString = ptr::null_mut());
+
+        // Get function name
+        unsafe {
+            jsapi::GetSavedFrameFunctionDisplayName(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                result.handle_mut().into(),
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+        let function_name = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
+            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
+        } else {
+            "<anonymous>".into()
+        };
+
+        // Get source file name
+        result.set(ptr::null_mut());
+        unsafe {
+            jsapi::GetSavedFrameSource(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                result.handle_mut().into(),
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+        let filename = if let Some(nonnull_result) = ptr::NonNull::new(*result) {
+            unsafe { jsstring_to_str(cx, nonnull_result) }.into()
+        } else {
+            "<anonymous>".into()
+        };
+
+        // get line/column number
+        let mut line_number = 0;
+        unsafe {
+            jsapi::GetSavedFrameLine(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                &mut line_number,
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+
+        let mut column_number = jsapi::JS::TaggedColumnNumberOneOrigin { value_: 0 };
+        unsafe {
+            jsapi::GetSavedFrameColumn(
+                cx,
+                ptr::null_mut(),
+                frame.into(),
+                &mut column_number,
+                jsapi::SavedFrameSelfHosted::Include,
+            );
+        }
+        let frame = StackFrame {
+            filename,
+            function_name,
+            line_number,
+            column_number: column_number.value_,
+        };
+
+        frames.push(frame);
+    });
+
+    frames
 }

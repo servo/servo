@@ -5,16 +5,20 @@
 // https://console.spec.whatwg.org/
 
 [ClassString="Console",
- Exposed=(Window,Worker,Worklet)]
+ Exposed=*]
 namespace console {
   // Logging
-  undefined log(any... messages);
-  undefined debug(any... messages);
-  undefined info(any... messages);
-  undefined warn(any... messages);
-  undefined error(any... messages);
-  undefined assert(boolean condition, optional any message);
+  undefined assert(optional boolean condition = false, any... data);
   undefined clear();
+  undefined debug(any... messages);
+  undefined error(any... messages);
+  undefined info(any... messages);
+  undefined log(any... messages);
+  // undefined table(optional any tabularData, optional sequence<DOMString> properties);
+  undefined trace(any... data);
+  undefined warn(any... messages);
+  // undefined dir(optional any item, optional object? options);
+  // undefined dirxml(any... data);
 
   // Counting
   undefined count(optional DOMString label = "default");
