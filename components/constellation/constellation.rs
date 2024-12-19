@@ -110,7 +110,7 @@ use canvas_traits::ConstellationCanvasMsg;
 use compositing_traits::{
     CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
 };
-use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
+use crossbeam_channel::{select, unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
@@ -143,7 +143,7 @@ use script_traits::{
     LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType, NavigationHistoryBehavior,
     PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
     ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, Theme, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
+    StructuredSerializedData, Theme, TraversalDirection, UpdatePipelineIdReason,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
@@ -172,7 +172,6 @@ use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
-use crate::timer_scheduler::TimerScheduler;
 use crate::webview::WebViewManager;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
@@ -380,15 +379,6 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to send messages to the
     /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
-
-    /// A channel for a pipeline to schedule timer events.
-    scheduler_ipc_sender: IpcSender<TimerSchedulerMsg>,
-
-    /// The receiver to which the IPC requests from scheduler_chan will be forwarded.
-    scheduler_receiver: Receiver<Result<TimerSchedulerMsg, IpcError>>,
-
-    /// The logic and data behing scheduling timer events.
-    timer_scheduler: TimerScheduler,
 
     /// A single WebRender document the constellation operates on.
     webrender_document: DocumentId,
@@ -660,13 +650,6 @@ where
                         namespace_ipc_receiver,
                     );
 
-                let (scheduler_ipc_sender, scheduler_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let scheduler_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        scheduler_ipc_receiver,
-                    );
-
                 let (background_hang_monitor_ipc_sender, background_hang_monitor_ipc_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let background_hang_monitor_receiver =
@@ -762,9 +745,6 @@ where
                     window_size: initial_window_size,
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
-                    timer_scheduler: TimerScheduler::new(),
-                    scheduler_ipc_sender,
-                    scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
                     #[cfg(feature = "webgpu")]
@@ -1015,7 +995,6 @@ where
                 .clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
             layout_factory: self.layout_factory.clone(),
-            scheduler_chan: self.scheduler_ipc_sender.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
@@ -1187,16 +1166,7 @@ where
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
             FromSWManager(SWManagerMsg),
-            Timer(TimerSchedulerMsg),
         }
-
-        // A timeout corresponding to the earliest scheduled timer event, if any.
-        let scheduler_timeout = self
-            .timer_scheduler
-            .check_timers()
-            .map(after)
-            .unwrap_or(never());
-
         // Get one incoming request.
         // This is one of the few places where the compositor is
         // allowed to panic. If one of the receiver.recv() calls
@@ -1236,14 +1206,6 @@ where
                 recv(self.swmanager_receiver) -> msg => {
                     msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
                 }
-                recv(self.scheduler_receiver) -> msg => {
-                    msg.expect("Unexpected schedule channel panic in constellation").map(Request::Timer)
-                }
-                recv(scheduler_timeout) -> _ => {
-                    // Note: by returning, we go back to the top,
-                    // where check_timers will be called.
-                    return;
-                },
             }
         };
 
@@ -1271,9 +1233,6 @@ where
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
-            },
-            Request::Timer(message) => {
-                self.timer_scheduler.handle_timer_request(message);
             },
         }
     }
