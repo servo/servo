@@ -7603,9 +7603,9 @@ checksum = "ce607aae8ab0ab3abf3a2723a9ab6f09bb8639ed83fdd888d857b8e556c868d8"
 
 [[package]]
 name = "truetype"
-version = "0.47.6"
+version = "0.47.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fb887b8a8ee8832e5810114ad4ef84d89f0aae569d198baee7fb7f7363a4ca4"
+checksum = "b40af9bc7c90804e84f86fa71596f0fa2d5adee45418da733ace413fdc318c24"
 dependencies = [
  "typeface",
 ]
