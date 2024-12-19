@@ -45,6 +45,7 @@ impl std::error::Error for Error {
 
 /// Parse an XPath expression from a string
 pub fn parse(xpath: &str) -> Result<Expr, Error> {
+    debug!("Parsing XPath: {}", xpath);
     match parse_impl(xpath) {
         Ok(expr) => {
             debug!("Parsed XPath: {:?}", expr);
