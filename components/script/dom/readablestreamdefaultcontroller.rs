@@ -203,14 +203,13 @@ pub struct QueueWithSizes {
 
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    #[allow(crown::unrooted_must_root)]
-    fn dequeue_value(&mut self) -> EnqueuedValue {
-        let value = self
-            .queue
-            .pop_front()
-            .expect("Buffer cannot be empty when dequeue value is called into.");
+    fn dequeue_value(&mut self, cx: SafeJSContext, rval: MutableHandleValue) {
+        let Some(value) = self.queue.front() else {
+            unreachable!("Buffer cannot be empty when dequeue value is called into.");
+        };
         self.total_size -= value.size();
-        value
+        value.to_jsval(cx, rval);
+        self.queue.pop_front();
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
@@ -420,10 +419,9 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#dequeue-value>
-    #[allow(crown::unrooted_must_root)]
-    fn dequeue_value(&self) -> EnqueuedValue {
+    fn dequeue_value(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         let mut queue = self.queue.borrow_mut();
-        queue.dequeue_value()
+        queue.dequeue_value(cx, rval);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
@@ -568,7 +566,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
-    #[allow(crown::unrooted_must_root)]
     pub fn perform_pull_steps(&self, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be this.[[stream]].
         // Note: the spec does not assert that there is a stream.
@@ -578,13 +575,10 @@ impl ReadableStreamDefaultController {
 
         // if queue contains bytes, perform chunk steps.
         if !self.queue.borrow().is_empty() {
-            // Rooting: chunk will be tied to a rooted value
-            // before calling into a function that can GC.
-            let chunk = self.dequeue_value();
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             let result = RootedTraceableBox::new(Heap::default());
-            chunk.to_jsval(cx, rval.handle_mut());
+            self.dequeue_value(cx, rval.handle_mut());
             result.set(*rval);
 
             // If this.[[closeRequested]] is true and this.[[queue]] is empty
@@ -711,7 +705,6 @@ impl ReadableStreamDefaultController {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    #[allow(crown::unrooted_must_root)]
     pub fn enqueue_native(&self, chunk: Vec<u8>) {
         let stream = self
             .stream
@@ -720,8 +713,7 @@ impl ReadableStreamDefaultController {
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            let enqueued_chunk = EnqueuedValue::Native(chunk.into_boxed_slice());
-            enqueued_chunk.to_jsval(cx, rval.handle_mut());
+            EnqueuedValue::Native(chunk.into_boxed_slice()).to_jsval(cx, rval.handle_mut());
             stream.fulfill_read_request(rval.handle(), false);
         } else {
             let mut queue = self.queue.borrow_mut();
