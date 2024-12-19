@@ -558,19 +558,24 @@ impl Element {
         };
         shadow_root.bind_to_tree(&bind_context);
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        let node = self.upcast::<Node>();
+        node.dirty(NodeDamage::OtherNodeDamage);
+        node.rev_version();
 
         Ok(shadow_root)
     }
 
     pub fn detach_shadow(&self) {
-        if let Some(ref shadow_root) = self.shadow_root() {
-            self.upcast::<Node>().note_dirty_descendants();
-            shadow_root.detach();
-            self.ensure_rare_data().shadow_root = None;
-        } else {
-            debug_assert!(false, "Trying to detach a non-attached shadow root");
-        }
+        let Some(ref shadow_root) = self.shadow_root() else {
+            unreachable!("Trying to detach a non-attached shadow root");
+        };
+
+        let node = self.upcast::<Node>();
+        node.note_dirty_descendants();
+        node.rev_version();
+
+        shadow_root.detach();
+        self.ensure_rare_data().shadow_root = None;
     }
 
     // https://html.spec.whatwg.org/multipage/#translation-mode
