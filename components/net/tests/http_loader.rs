@@ -1479,3 +1479,6 @@ fn test_origin_serialization_compatability() {
 
     ensure_serialiations_match("data:,dataurltexta");
 }
+
+#[test]
+fn test_user_credentials_prompt() {}
