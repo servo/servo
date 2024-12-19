@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::LazyCell;
 use std::mem;
 
 use app_units::Au;
@@ -28,10 +27,10 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalVec, Size, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalRect, PhysicalVec, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::sizing::ContentSizes;
-use crate::style_ext::{ComputedValuesExt, DisplayInside};
+use crate::style_ext::{ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock, SizeConstraint,
 };
@@ -460,11 +459,12 @@ impl HoistedAbsolutelyPositionedBox {
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let context = &absolutely_positioned_box.context;
         let style = context.style().clone();
+        let ContentBoxSizesAndPBM {
+            content_box_sizes,
+            pbm,
+            ..
+        } = style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
-        let pbm = style.padding_border_margin(containing_block);
-        let computed_size = style.content_box_size(containing_block, &pbm);
-        let computed_min_size = style.content_min_box_size(containing_block, &pbm);
-        let computed_max_size = style.content_max_box_size(containing_block, &pbm);
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
@@ -489,9 +489,7 @@ impl HoistedAbsolutelyPositionedBox {
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
             computed_margin_end: pbm.margin.inline_end,
-            computed_size: computed_size.inline,
-            computed_min_size: computed_min_size.inline,
-            computed_max_size: computed_max_size.inline,
+            computed_sizes: content_box_sizes.inline,
             avoid_negative_margin_start: true,
             box_offsets: inline_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Inline),
@@ -515,9 +513,7 @@ impl HoistedAbsolutelyPositionedBox {
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
             computed_margin_end: pbm.margin.block_end,
-            computed_size: computed_size.block,
-            computed_min_size: computed_min_size.block,
-            computed_max_size: computed_max_size.block,
+            computed_sizes: content_box_sizes.block,
             avoid_negative_margin_start: false,
             box_offsets: block_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
@@ -536,9 +532,8 @@ impl HoistedAbsolutelyPositionedBox {
                 containing_block,
                 &style,
                 context.preferred_aspect_ratio(&pbm.padding_border_sums),
-                computed_size,
-                computed_min_size,
-                computed_max_size,
+                &block_axis_solver.computed_sizes,
+                &inline_axis_solver.computed_sizes,
                 pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum() + inset_sums,
             );
             inline_axis_solver.override_size(used_size.inline);
@@ -746,9 +741,7 @@ struct AbsoluteAxisSolver<'a> {
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
     computed_margin_end: AuOrAuto,
-    computed_size: Size<Au>,
-    computed_min_size: Size<Au>,
-    computed_max_size: Size<Au>,
+    computed_sizes: Sizes,
     avoid_negative_margin_start: bool,
     box_offsets: AbsoluteBoxOffsets<'a>,
     static_position_rect_axis: RectAxis,
@@ -795,40 +788,21 @@ impl<'a> AbsoluteAxisSolver<'a> {
     ///
     /// In the replaced case, `size` is never `Auto`.
     fn solve(&self, get_content_size: Option<impl FnOnce() -> ContentSizes>) -> AxisResult {
-        // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
-        // A LazyCell will only invoke it once if needed, and then reuse the result.
-        let content_size = get_content_size.map(LazyCell::new);
         let solve_size = |initial_behavior, stretch_size: Au| -> SizeConstraint {
             let stretch_size = stretch_size.max(Au::zero());
-            if let Some(ref content_size) = content_size {
-                let preferred_size = Some(self.computed_size.resolve(
+            if let Some(get_content_size) = get_content_size {
+                SizeConstraint::Definite(self.computed_sizes.resolve(
                     initial_behavior,
+                    Au::zero(),
                     stretch_size,
-                    content_size,
-                ));
-                let min_size = self
-                    .computed_min_size
-                    .resolve_non_initial(stretch_size, content_size)
-                    .unwrap_or_default();
-                let max_size = self
-                    .computed_max_size
-                    .resolve_non_initial(stretch_size, content_size);
-                SizeConstraint::new(preferred_size, min_size, max_size)
+                    get_content_size,
+                ))
             } else {
-                let preferred_size = if self.computed_size.is_initial() {
-                    initial_behavior
-                } else {
-                    self.computed_size
-                }
-                .maybe_resolve_extrinsic(Some(stretch_size));
-                let min_size = self
-                    .computed_min_size
-                    .maybe_resolve_extrinsic(Some(stretch_size))
-                    .unwrap_or_default();
-                let max_size = self
-                    .computed_max_size
-                    .maybe_resolve_extrinsic(Some(stretch_size));
-                SizeConstraint::new(preferred_size, min_size, max_size)
+                self.computed_sizes.resolve_extrinsic(
+                    initial_behavior,
+                    Au::zero(),
+                    Some(stretch_size),
+                )
             }
         };
         if self.box_offsets.either_auto() {
@@ -891,9 +865,9 @@ impl<'a> AbsoluteAxisSolver<'a> {
     }
 
     fn override_size(&mut self, size: Au) {
-        self.computed_size = Size::Numeric(size);
-        self.computed_min_size = Size::default();
-        self.computed_max_size = Size::default();
+        self.computed_sizes.preferred = Size::Numeric(size);
+        self.computed_sizes.min = Size::default();
+        self.computed_sizes.max = Size::default();
     }
 
     fn origin_for_margin_box(

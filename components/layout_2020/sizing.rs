@@ -15,7 +15,7 @@ use style::Zero;
 use crate::context::LayoutContext;
 use crate::geom::Size;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
-use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2, SizeConstraint};
+use crate::{ConstraintSpace, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
 pub(crate) enum IntrinsicSizingMode {
@@ -118,9 +118,7 @@ pub(crate) fn outer_inline(
     get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
     let ContentBoxSizesAndPBM {
-        content_box_size,
-        content_min_box_size,
-        content_max_box_size,
+        content_box_sizes,
         pbm,
         mut depends_on_block_constraints,
     } = style.content_box_sizes_and_padding_border_margin(containing_block);
@@ -135,25 +133,20 @@ pub(crate) fn outer_inline(
             .block
             .non_auto()
             .map(|v| Au::zero().max(v - pbm_sums.block));
-        let preferred_block_size = if content_box_size.block.is_initial() &&
+        let automatic_size = if content_box_sizes.block.preferred.is_initial() &&
             auto_block_size_stretches_to_containing_block
         {
             depends_on_block_constraints = true;
-            available_block_size
+            Size::Stretch
         } else {
-            content_box_size
-                .block
-                .maybe_resolve_extrinsic(available_block_size)
+            Size::FitContent
         };
-        let min_block_size = content_min_box_size
-            .block
-            .maybe_resolve_extrinsic(available_block_size)
-            .unwrap_or(auto_minimum.block);
-        let max_block_size = content_max_box_size
-            .block
-            .maybe_resolve_extrinsic(available_block_size);
         get_content_size(&ConstraintSpace::new(
-            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
+            content_box_sizes.block.resolve_extrinsic(
+                automatic_size,
+                auto_minimum.block,
+                available_block_size,
+            ),
             style.writing_mode,
             get_preferred_aspect_ratio(&pbm.padding_border_sums),
         ))
@@ -180,14 +173,14 @@ pub(crate) fn outer_inline(
         })
     };
     let (preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
-        resolve_non_initial(content_box_size.inline)
+        resolve_non_initial(content_box_sizes.inline.preferred)
             .unwrap_or_else(|| resolve_non_initial(Size::FitContent).unwrap());
     let (min_min_content, min_max_content, min_depends_on_block_constraints) = resolve_non_initial(
-        content_min_box_size.inline,
+        content_box_sizes.inline.min,
     )
     .unwrap_or((auto_minimum.inline, auto_minimum.inline, false));
     let (max_min_content, max_max_content, max_depends_on_block_constraints) =
-        resolve_non_initial(content_max_box_size.inline)
+        resolve_non_initial(content_box_sizes.inline.max)
             .map(|(min_content, max_content, depends_on_block_constraints)| {
                 (
                     Some(min_content),

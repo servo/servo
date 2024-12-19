@@ -34,7 +34,7 @@ use crate::formatting_contexts::{
     Baselines, IndependentFormattingContextContents, IndependentLayout,
 };
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
-use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size};
+use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -1957,20 +1957,22 @@ impl FlexItem<'_> {
         let item_style = independent_formatting_context.style();
         match &independent_formatting_context.contents {
             IndependentFormattingContextContents::Replaced(replaced) => {
+                let min_size = flex_axis.vec2_to_flow_relative(self.content_min_size);
+                let max_size = flex_axis.vec2_to_flow_relative(self.content_max_size);
                 let size = replaced.used_size_as_if_inline_element_from_content_box_sizes(
                     containing_block,
                     item_style,
                     self.preferred_aspect_ratio,
-                    LogicalVec2 {
-                        inline: Size::Numeric(inline_size),
-                        block: block_size.non_auto().map_or(Size::Initial, Size::Numeric),
-                    },
-                    flex_axis
-                        .vec2_to_flow_relative(self.content_min_size)
-                        .map(|size| Size::Numeric(*size)),
-                    flex_axis
-                        .vec2_to_flow_relative(self.content_max_size)
-                        .map(|size| size.map_or(Size::Initial, Size::Numeric)),
+                    &Sizes::new(
+                        block_size.non_auto().map_or(Size::Initial, Size::Numeric),
+                        Size::Numeric(min_size.block),
+                        max_size.block.map_or(Size::Initial, Size::Numeric),
+                    ),
+                    &Sizes::new(
+                        Size::Numeric(inline_size),
+                        Size::Numeric(min_size.inline),
+                        max_size.inline.map_or(Size::Initial, Size::Numeric),
+                    ),
                     flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
                 );
                 let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
@@ -2777,10 +2779,22 @@ impl FlexItemBox {
                         flex_context.containing_block,
                         style,
                         preferred_aspect_ratio,
-                        content_box_size
-                            .map(|size| size.non_auto().map_or(Size::Initial, Size::Numeric)),
-                        min_size.map(|size| Size::Numeric(*size)),
-                        max_size.map(|size| size.map_or(Size::Initial, Size::Numeric)),
+                        &Sizes::new(
+                            content_box_size
+                                .block
+                                .non_auto()
+                                .map_or(Size::Initial, Size::Numeric),
+                            Size::Numeric(min_size.block),
+                            max_size.block.map_or(Size::Initial, Size::Numeric),
+                        ),
+                        &Sizes::new(
+                            content_box_size
+                                .inline
+                                .non_auto()
+                                .map_or(Size::Initial, Size::Numeric),
+                            Size::Numeric(min_size.inline),
+                            max_size.inline.map_or(Size::Initial, Size::Numeric),
+                        ),
                         padding_border_margin.padding_border_sums +
                             padding_border_margin.margin.auto_is(Au::zero).sum(),
                     )
