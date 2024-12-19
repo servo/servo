@@ -9,6 +9,7 @@ use log::error;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
 
+use super::events_loop::EventsLoop;
 use crate::desktop::app::App;
 use crate::panic_hook;
 
@@ -99,12 +100,18 @@ pub fn main() {
         None
     };
 
-    App::run(
+    let event_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
+        .expect("Failed to create events loop");
+
+    let mut app = App::new(
+        &event_loop,
         do_not_use_native_titlebar,
         device_pixel_ratio_override,
         user_agent,
         url_opt.map(|s| s.to_string()),
     );
+
+    event_loop.run_app(&mut app);
 
     crate::platform::deinit(clean_shutdown)
 }
