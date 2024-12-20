@@ -1280,27 +1280,6 @@ impl Node {
         }
     }
 
-    /// <https://dom.spec.whatwg.org/#retarget>
-    pub fn retarget(&self, b: &Node) -> DomRoot<Node> {
-        let mut a = DomRoot::from_ref(self);
-        loop {
-            // Step 1.
-            let a_root = a.GetRootNode(&GetRootNodeOptions::empty());
-            if !a_root.is::<ShadowRoot>() || a_root.is_shadow_including_inclusive_ancestor_of(b) {
-                return DomRoot::from_ref(&a);
-            }
-
-            // Step 2.
-            a = DomRoot::from_ref(
-                a_root
-                    .downcast::<ShadowRoot>()
-                    .unwrap()
-                    .Host()
-                    .upcast::<Node>(),
-            );
-        }
-    }
-
     pub fn is_styled(&self) -> bool {
         self.style_data.borrow().is_some()
     }

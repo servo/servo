@@ -37,6 +37,7 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
     AddEventListenerOptions, EventListenerOptions, EventTargetMethods,
 };
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -810,6 +811,41 @@ impl EventTarget {
         }
 
         None
+    }
+
+    // FIXME: This algorithm operates on "objects", which may not be event targets.
+    // All our current use-cases only work on event targets, but this might change in the future
+    /// <https://dom.spec.whatwg.org/#retarget>
+    pub fn retarget(&self, b: &Self) -> DomRoot<EventTarget> {
+        // To retarget an object A against an object B, repeat these steps until they return an object:
+        let mut a = DomRoot::from_ref(self);
+        loop {
+            // Step 1. If one of the following is true
+            // * A is not a node
+            // * A’s root is not a shadow root
+            // * B is a node and A’s root is a shadow-including inclusive ancestor of B
+            let Some(a_node) = a.downcast::<Node>() else {
+                return a;
+            };
+            let a_root = a_node.GetRootNode(&GetRootNodeOptions::empty());
+            if !a_root.is::<ShadowRoot>() {
+                return a;
+            }
+            if let Some(b_node) = b.downcast::<Node>() {
+                if a_root.is_shadow_including_inclusive_ancestor_of(b_node) {
+                    return a;
+                }
+            }
+
+            // Step 2. Set A to A’s root’s host.
+            a = DomRoot::from_ref(
+                a_root
+                    .downcast::<ShadowRoot>()
+                    .unwrap()
+                    .Host()
+                    .upcast::<EventTarget>(),
+            );
+        }
     }
 }
 
