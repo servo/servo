@@ -123,10 +123,13 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, EmbedderReceiver) {
 
     let embedder_receiver = EmbedderReceiver { receiver };
     (embedder_proxy, embedder_receiver)
-    
 }
 
-fn receive_credential_prompt_msgs(mut embedder_receiver: EmbedderReceiver, username: Option<String>, password: Option<String>) -> std::thread::JoinHandle<()> {
+fn receive_credential_prompt_msgs(
+    mut embedder_receiver: EmbedderReceiver,
+    username: Option<String>,
+    password: Option<String>,
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let msg = embedder_receiver.recv_embedder_msg();
         match msg {
@@ -134,10 +137,12 @@ fn receive_credential_prompt_msgs(mut embedder_receiver: EmbedderReceiver, usern
                 embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
                     match prompt_definition {
                         embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
-                            ipc_sender.send(embedder_traits::PromptCredentialsInput {
-                                username,
-                                password,
-                            }).unwrap();
+                            ipc_sender
+                                .send(embedder_traits::PromptCredentialsInput {
+                                    username,
+                                    password,
+                                })
+                                .unwrap();
                         },
                         _ => unreachable!(),
                     }

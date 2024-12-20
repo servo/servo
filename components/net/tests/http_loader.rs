@@ -48,7 +48,10 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio_test::block_on;
 use url::Url;
 
-use crate::{create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_server, new_fetch_context, receive_credential_prompt_msgs};
+use crate::{
+    create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_server, new_fetch_context,
+    receive_credential_prompt_msgs,
+};
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()
@@ -1485,8 +1488,7 @@ fn test_origin_serialization_compatability() {
 fn test_user_credentials_prompt_for_proxy_authentication() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
-        if let Some(credentials) = request.headers()
-            .typed_get::<Authorization<Basic>>() {
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
             if credentials == expected {
                 *response.status_mut() = StatusCode::OK;
             } else {
@@ -1508,7 +1510,11 @@ fn test_user_credentials_prompt_for_proxy_authentication() {
         .build();
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
-    let _ = receive_credential_prompt_msgs(embedder_receiver, Some("username".to_string()), Some("test".to_string()));
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some("username".to_string()),
+        Some("test".to_string()),
+    );
 
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
@@ -1522,15 +1528,13 @@ fn test_user_credentials_prompt_for_proxy_authentication() {
         .status
         .code()
         .is_success());
-
 }
 
 #[test]
 fn test_prompt_credentials_when_authenticating() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
-        if let Some(credentials) = request.headers()
-            .typed_get::<Authorization<Basic>>() {
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
             if credentials == expected {
                 *response.status_mut() = StatusCode::OK;
             } else {
@@ -1552,7 +1556,11 @@ fn test_prompt_credentials_when_authenticating() {
         .build();
 
     let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
-    let _ = receive_credential_prompt_msgs(embedder_receiver, Some("username".to_string()), Some("test".to_string()));
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some("username".to_string()),
+        Some("test".to_string()),
+    );
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
     let response = fetch_with_context(&mut request, &mut context);
@@ -1565,15 +1573,13 @@ fn test_prompt_credentials_when_authenticating() {
         .status
         .code()
         .is_success());
-
 }
 
 #[test]
 fn test_prompt_credentials_user_cancels_dialog() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
-        if let Some(credentials) = request.headers()
-            .typed_get::<Authorization<Basic>>() {
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
             if credentials == expected {
                 *response.status_mut() = StatusCode::OK;
             } else {
@@ -1608,15 +1614,13 @@ fn test_prompt_credentials_user_cancels_dialog() {
         .status
         .code()
         .is_client_error());
-
 }
 
 #[test]
 fn test_prompt_credentials_user_input_incorrect_credentials() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
-        if let Some(credentials) = request.headers()
-            .typed_get::<Authorization<Basic>>() {
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
             if credentials == expected {
                 *response.status_mut() = StatusCode::OK;
             } else {
@@ -1638,7 +1642,11 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .build();
 
     let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
-    let _ = receive_credential_prompt_msgs(embedder_receiver, Some("test".to_string()), Some("test".to_string()));
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some("test".to_string()),
+        Some("test".to_string()),
+    );
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
     let response = fetch_with_context(&mut request, &mut context);
@@ -1651,5 +1659,4 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .status
         .code()
         .is_client_error());
-
 }
