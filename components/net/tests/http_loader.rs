@@ -9,7 +9,6 @@ use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
-use std::{str, thread};
 
 use base::id::TEST_PIPELINE_ID;
 use cookie::Cookie as CookiePair;
@@ -18,7 +17,6 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use embedder_traits::PromptCredentialsInput;
 use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
 use headers::authorization::Basic;
@@ -1555,7 +1553,7 @@ fn test_prompt_credentials_when_authenticating() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some("username".to_string()),
@@ -1641,7 +1639,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(
         embedder_receiver,
         Some("test".to_string()),
