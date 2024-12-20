@@ -24,7 +24,6 @@ use libc::c_char;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 
-use super::bindings::trace::HashMapTracedValues;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
@@ -38,6 +37,8 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
     AddEventListenerOptions, EventListenerOptions, EventTargetMethods,
 };
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{
     AddEventListenerOptionsOrBoolean, EventListenerOptionsOrBoolean, EventOrString,
@@ -47,12 +48,15 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::FormControlElementHelpers;
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -780,6 +784,32 @@ impl EventTarget {
                 entry.remove(position);
             }
         }
+    }
+
+    /// <https://dom.spec.whatwg.org/#get-the-parent>
+    pub fn get_the_parent(&self, event: &Event) -> Option<DomRoot<EventTarget>> {
+        if let Some(document) = self.downcast::<Document>() {
+            if event.type_() == atom!("load") || !document.has_browsing_context() {
+                return None;
+            } else {
+                return Some(DomRoot::from_ref(document.window().upcast::<EventTarget>()));
+            }
+        }
+
+        if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
+            // FIXME: Handle event composed flag here
+            return Some(DomRoot::from_ref(
+                shadow_root.Host().upcast::<EventTarget>(),
+            ));
+        }
+
+        if let Some(node) = self.downcast::<Node>() {
+            // FIXME: Handle slottables here
+            let parent = node.GetParentNode()?;
+            return Some(DomRoot::from_ref(parent.upcast::<EventTarget>()));
+        }
+
+        None
     }
 }
 
