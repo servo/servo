@@ -456,11 +456,126 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-composedpath>
     fn ComposedPath(&self) -> Vec<DomRoot<EventTarget>> {
-        if let Some(target) = self.target.get() {
-            self.construct_event_path(&target)
-        } else {
-            vec![]
+        // Step 1. Let composedPath be an empty list.
+        let mut composed_path = vec![];
+
+        // Step 2. Let path be this’s path.
+        let path = self.path.borrow();
+
+        // Step 3. If path is empty, then return composedPath.
+        if path.is_empty() {
+            return composed_path;
         }
+
+        // Step 4. Let currentTarget be this’s currentTarget attribute value.
+        let current_target = self.GetCurrentTarget();
+
+        // Step 5. Append currentTarget to composedPath.
+        // TODO: https://github.com/whatwg/dom/issues/1343
+        if let Some(current_target) = &current_target {
+            composed_path.push(current_target.clone());
+        }
+
+        // Step 6. Let currentTargetIndex be 0.
+        let mut current_target_index = 0;
+
+        // Step 7. Let currentTargetHiddenSubtreeLevel be 0.
+        let mut current_target_hidden_subtree_level = 0;
+
+        // Step 8. Let index be path’s size − 1.
+        // Step 9. While index is greater than or equal to 0:
+        // NOTE: This is just iterating the path in reverse
+        for (index, element) in path.iter().enumerate().rev() {
+            // Step 9.1 If path[index]'s root-of-closed-tree is true, then increase currentTargetHiddenSubtreeLevel by 1.
+            if element.root_of_closed_tree {
+                current_target_hidden_subtree_level += 1;
+            }
+
+            // Step 9.2 If path[index]'s invocation target is currentTarget, then set currentTargetIndex to index and break.
+            if current_target
+                .as_ref()
+                .is_some_and(|target| target.as_traced() == element.invocation_target)
+            {
+                current_target_index = index;
+                break;
+            }
+
+            // Step 9.3 If path[index]'s slot-in-closed-tree is true, then decrease currentTargetHiddenSubtreeLevel by 1.
+            if element.slot_in_closed_tree {
+                current_target_hidden_subtree_level -= 1;
+            }
+
+            // Step 9.4 Decrease index by 1.
+        }
+
+        // Step 10. Let currentHiddenLevel and maxHiddenLevel be currentTargetHiddenSubtreeLevel.
+        let mut current_hidden_level = current_target_hidden_subtree_level;
+        let mut max_hidden_level = current_target_hidden_subtree_level;
+
+        // Step 11. Set index to currentTargetIndex − 1.
+        // Step 12. While index is greater than or equal to 0:
+        // NOTE: This is just iterating the path in reverse
+        for (index, element) in path.iter().enumerate().rev() {
+            // Step 12.1 If path[index]'s root-of-closed-tree is true, then increase currentHiddenLevel by 1.
+            if element.root_of_closed_tree {
+                current_hidden_level += 1;
+            }
+
+            // Step 12.2 If currentHiddenLevel is less than or equal to maxHiddenLevel,
+            // then prepend path[index]'s invocation target to composedPath.
+            if current_hidden_level <= max_hidden_level {
+                composed_path.insert(0, element.invocation_target.as_rooted());
+            }
+
+            // Step 12.3 If path[index]'s slot-in-closed-tree is true:
+            if element.slot_in_closed_tree {
+                // Step 12.3.1 Decrease currentHiddenLevel by 1.
+                current_hidden_level -= 1;
+
+                // Step 12.3.2 If currentHiddenLevel is less than maxHiddenLevel, then set maxHiddenLevel to currentHiddenLevel.
+                if current_hidden_level < max_hidden_level {
+                    max_hidden_level = current_hidden_level;
+                }
+            }
+
+            // Step 12.4 Decrease index by 1.
+        }
+
+        // Step 13. Set currentHiddenLevel and maxHiddenLevel to currentTargetHiddenSubtreeLevel.
+        current_hidden_level = current_target_hidden_subtree_level;
+        max_hidden_level = current_target_hidden_subtree_level;
+
+        // Step 14. Set index to currentTargetIndex + 1.
+        // Step 15. While index is less than path’s size:
+        // NOTE: This is just iterating the list and skipping the first current_target_index elements
+        for element in path.iter().skip(current_target_index) {
+            // Step 15.1 If path[index]'s slot-in-closed-tree is true, then increase currentHiddenLevel by 1.
+            if element.slot_in_closed_tree {
+                current_hidden_level += 1;
+            }
+
+            // Step 15.2 If currentHiddenLevel is less than or equal to maxHiddenLevel,
+            // then append path[index]'s invocation target to composedPath.
+            if current_hidden_level <= max_hidden_level {
+                composed_path.push(element.invocation_target.as_rooted());
+            }
+
+            // Step 15.3 If path[index]'s root-of-closed-tree is true:
+            if element.root_of_closed_tree {
+                // Step 15.3.1 Decrease currentHiddenLevel by 1.
+                current_hidden_level -= 1;
+
+                // Step 15.3.2 If currentHiddenLevel is less than maxHiddenLevel, then set maxHiddenLevel to currentHiddenLevel.
+                if current_hidden_level < max_hidden_level {
+                    max_hidden_level = current_hidden_level;
+                }
+            }
+
+            // Step 15.4 Increase index by 1.
+        }
+
+        // Step 16. Return composedPath.
+        composed_path
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-defaultprevented>
