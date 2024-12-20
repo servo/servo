@@ -216,6 +216,7 @@ impl IndependentFormattingContext {
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
             is_table,
+            true, /* establishes_containing_block */
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
         )
