@@ -2360,6 +2360,7 @@ impl Node {
                     None,
                     document.status_code(),
                     Default::default(),
+                    false,
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)

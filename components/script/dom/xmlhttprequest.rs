@@ -1534,6 +1534,7 @@ impl XMLHttpRequest {
             None,
             None,
             Default::default(),
+            false,
             can_gc,
         )
     }
