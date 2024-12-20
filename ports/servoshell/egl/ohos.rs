@@ -36,7 +36,6 @@ use xcomponent_sys::{
     OH_NativeXComponent_GetKeyEventCode, OH_NativeXComponent_KeyAction, OH_NativeXComponent_KeyCode,
 };
 
-use super::gl_glue;
 use super::host_trait::HostTrait;
 use super::servo_glue::ServoGlue;
 
@@ -240,7 +239,6 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
         let wakeup = Box::new(WakeupCallback::new(tx));
         let callbacks = Box::new(HostCallbacks::new());
 
-        let egl_init = gl_glue::init().expect("egl::init() failed");
         let xc = xc_wrapper;
         let window = window_wrapper;
         let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
@@ -248,15 +246,8 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
         } else {
             panic!("Servos GL thread received another event before it was initialized")
         };
-        let mut servo = simpleservo::init(
-            *init_opts,
-            window.0,
-            xc.0,
-            egl_init.gl_wrapper,
-            wakeup,
-            callbacks,
-        )
-        .expect("Servo initialization failed");
+        let mut servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
+            .expect("Servo initialization failed");
 
         info!("Surface created!");
         let native_vsync =

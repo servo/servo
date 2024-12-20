@@ -22,7 +22,7 @@ use servo::servo_config::{opts, pref};
 use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_traits::RenderingContext;
-use servo::{self, gl, Servo};
+use servo::{self, Servo};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::android::resources::ResourceReaderInstance;
@@ -56,7 +56,6 @@ pub enum SurfmanIntegration {
 /// In the future, this will be done in multiple steps.
 pub fn init(
     mut init_opts: InitOptions,
-    gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
@@ -77,10 +76,6 @@ pub fn init(
     let blank_url = ServoUrl::parse("about:blank").ok();
 
     let url = embedder_url.or(pref_url).or(blank_url).unwrap();
-
-    gl.clear_color(1.0, 1.0, 1.0, 1.0);
-    gl.clear(gl::COLOR_BUFFER_BIT);
-    gl.finish();
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
@@ -112,7 +107,6 @@ pub fn init(
         waker,
         #[cfg(feature = "webxr")]
         init_opts.xr_discovery,
-        gl.clone(),
     ));
 
     let servo = Servo::new(

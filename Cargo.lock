@@ -6594,7 +6594,6 @@ dependencies = [
  "euclid",
  "getopts",
  "gilrs",
- "gl_generator",
  "gleam",
  "glow",
  "headers",

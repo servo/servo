@@ -28,7 +28,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
-use servo::{gl, Servo, TopLevelBrowsingContextId};
+use servo::{Servo, TopLevelBrowsingContextId};
 
 use crate::egl::host_trait::HostTrait;
 
@@ -660,21 +660,17 @@ pub(super) struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
     #[cfg(feature = "webxr")]
     xr_discovery: Option<webxr::Discovery>,
-    #[allow(unused)]
-    gl: Rc<dyn gl::Gl>,
 }
 
 impl ServoEmbedderCallbacks {
     pub(super) fn new(
         waker: Box<dyn EventLoopWaker>,
         #[cfg(feature = "webxr")] xr_discovery: Option<webxr::Discovery>,
-        gl: Rc<dyn gl::Gl>,
     ) -> Self {
         Self {
             waker,
             #[cfg(feature = "webxr")]
             xr_discovery,
-            gl,
         }
     }
 }
