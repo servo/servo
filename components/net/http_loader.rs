@@ -51,8 +51,8 @@ use net_traits::request::{
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, FetchMetadata, NetworkError, RedirectEndValue,
-    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
+    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -1582,14 +1582,15 @@ async fn http_network_or_cache_fetch(
                 return response;
             };
 
-            http_request
-                .current_url_mut()
-                .set_username(&username)
-                .unwrap();
-            http_request
-                .current_url_mut()
-                .set_password(Some(&password))
-                .unwrap();
+            if let Err(err) = http_request.current_url_mut().set_username(&username) {
+                error!("error setting username for url: {:?}", err);
+                return response;
+            };
+
+            if let Err(err) = http_request.current_url_mut().set_password(Some(&password)) {
+                error!("error setting password for url: {:?}", err);
+                return response;
+            };
         }
 
         // Make sure this is set to None,

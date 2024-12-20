@@ -28,7 +28,7 @@ use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+use embedder_traits::{EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use futures::future::ready;
 use futures::StreamExt;
 use hyper::server::conn::Http;
@@ -123,26 +123,25 @@ fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, EmbedderReceiver) {
 
     let embedder_receiver = EmbedderReceiver { receiver };
     (embedder_proxy, embedder_receiver)
-    
 }
 
-fn receive_credential_prompt_msgs(mut embedder_receiver: EmbedderReceiver, username: Option<String>, password: Option<String>) -> std::thread::JoinHandle<()> {
+fn receive_credential_prompt_msgs(
+    mut embedder_receiver: EmbedderReceiver,
+    username: Option<String>,
+    password: Option<String>,
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
-        let msg = embedder_receiver.recv_embedder_msg();
-        match msg {
-            (_browser_context_id, embedder_msg) => match embedder_msg {
-                embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
-                    match prompt_definition {
-                        embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
-                            ipc_sender.send(embedder_traits::PromptCredentialsInput {
-                                username,
-                                password,
-                            }).unwrap();
-                        },
-                        _ => unreachable!(),
-                    }
-                },
-                _ => unreachable!(),
+        let (_browser_context_id, embedder_msg) = embedder_receiver.recv_embedder_msg();
+        match embedder_msg {
+            embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
+                match prompt_definition {
+                    embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
+                        ipc_sender
+                            .send(embedder_traits::PromptCredentialsInput { username, password })
+                            .unwrap();
+                    },
+                    _ => unreachable!(),
+                }
             },
             _ => unreachable!(),
         }
