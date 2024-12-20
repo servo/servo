@@ -51,7 +51,7 @@ use net_traits::request::{
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    user_info_percent_encode, CookieSource, FetchMetadata, NetworkError, RedirectEndValue,
+    CookieSource, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
@@ -1582,16 +1582,13 @@ async fn http_network_or_cache_fetch(
                 return response;
             };
 
-            let username = user_info_percent_encode(&username);
-            let password = Some(user_info_percent_encode(&password));
-
             http_request
                 .current_url_mut()
                 .set_username(&username)
                 .unwrap();
             http_request
                 .current_url_mut()
-                .set_password(password.as_deref())
+                .set_password(Some(&password))
                 .unwrap();
         }
 

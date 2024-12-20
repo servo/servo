@@ -28,7 +28,7 @@ use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
-use embedder_traits::{EmbedderProxy, EventLoopWaker};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use futures::future::ready;
 use futures::StreamExt;
 use hyper::server::conn::Http;
@@ -95,6 +95,58 @@ fn create_embedder_proxy() -> EmbedderProxy {
         sender: sender,
         event_loop_waker: event_loop_waker(),
     }
+}
+
+fn create_embedder_proxy_and_receiver() -> (EmbedderProxy, EmbedderReceiver) {
+    let (sender, receiver) = unbounded();
+    let event_loop_waker = || {
+        struct DummyEventLoopWaker {}
+        impl DummyEventLoopWaker {
+            fn new() -> DummyEventLoopWaker {
+                DummyEventLoopWaker {}
+            }
+        }
+        impl embedder_traits::EventLoopWaker for DummyEventLoopWaker {
+            fn wake(&self) {}
+            fn clone_box(&self) -> Box<dyn embedder_traits::EventLoopWaker> {
+                Box::new(DummyEventLoopWaker {})
+            }
+        }
+
+        Box::new(DummyEventLoopWaker::new())
+    };
+
+    let embedder_proxy = embedder_traits::EmbedderProxy {
+        sender: sender.clone(),
+        event_loop_waker: event_loop_waker(),
+    };
+
+    let embedder_receiver = EmbedderReceiver { receiver };
+    (embedder_proxy, embedder_receiver)
+    
+}
+
+fn receive_credential_prompt_msgs(mut embedder_receiver: EmbedderReceiver, username: Option<String>, password: Option<String>) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let msg = embedder_receiver.recv_embedder_msg();
+        match msg {
+            (_browser_context_id, embedder_msg) => match embedder_msg {
+                embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
+                    match prompt_definition {
+                        embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
+                            ipc_sender.send(embedder_traits::PromptCredentialsInput {
+                                username,
+                                password,
+                            }).unwrap();
+                        },
+                        _ => unreachable!(),
+                    }
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    })
 }
 
 fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {

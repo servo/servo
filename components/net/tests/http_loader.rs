@@ -48,7 +48,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio_test::block_on;
 use url::Url;
 
-use crate::{fetch, fetch_with_context, make_server, new_fetch_context};
+use crate::{create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_server, new_fetch_context, receive_credential_prompt_msgs};
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()
@@ -1490,7 +1490,7 @@ fn test_user_credentials_prompt_for_proxy_authentication() {
             if credentials == expected {
                 *response.status_mut() = StatusCode::OK;
             } else {
-                *response.status_mut() = StatusCode::BAD_REQUEST;
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
             }
         } else {
             *response.status_mut() = StatusCode::PROXY_AUTHENTICATION_REQUIRED;
@@ -1507,50 +1507,8 @@ fn test_user_credentials_prompt_for_proxy_authentication() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let (sender, receiver) = unbounded();
-    let event_loop_waker = || {
-        struct DummyEventLoopWaker {}
-        impl DummyEventLoopWaker {
-            fn new() -> DummyEventLoopWaker {
-                DummyEventLoopWaker {}
-            }
-        }
-        impl embedder_traits::EventLoopWaker for DummyEventLoopWaker {
-            fn wake(&self) {}
-            fn clone_box(&self) -> Box<dyn embedder_traits::EventLoopWaker> {
-                Box::new(DummyEventLoopWaker {})
-            }
-        }
-
-        Box::new(DummyEventLoopWaker::new())
-    };
-
-    let embedder_proxy = embedder_traits::EmbedderProxy {
-        sender: sender.clone(),
-        event_loop_waker: event_loop_waker(),
-    };
-
-    thread::spawn(move || {
-        let msg = receiver.recv().unwrap();
-        match msg {
-            (_browser_context_id, embedder_msg) => match embedder_msg {
-                embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
-                    match prompt_definition {
-                        embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
-                            ipc_sender.send(PromptCredentialsInput {
-                                username: Some("username".to_string()),
-                                password: Some("test".to_string()),
-                            }).unwrap();
-                        },
-                        _ => unreachable!(),
-                    }
-                },
-                _ => unreachable!(),
-            },
-
-            _ => unreachable!(),
-        }
-    });
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(embedder_receiver, Some("username".to_string()), Some("test".to_string()));
 
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
@@ -1593,50 +1551,8 @@ fn test_prompt_credentials_when_authenticating() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let (sender, receiver) = unbounded();
-    let event_loop_waker = || {
-        struct DummyEventLoopWaker {}
-        impl DummyEventLoopWaker {
-            fn new() -> DummyEventLoopWaker {
-                DummyEventLoopWaker {}
-            }
-        }
-        impl embedder_traits::EventLoopWaker for DummyEventLoopWaker {
-            fn wake(&self) {}
-            fn clone_box(&self) -> Box<dyn embedder_traits::EventLoopWaker> {
-                Box::new(DummyEventLoopWaker {})
-            }
-        }
-
-        Box::new(DummyEventLoopWaker::new())
-    };
-
-    let embedder_proxy = embedder_traits::EmbedderProxy {
-        sender: sender.clone(),
-        event_loop_waker: event_loop_waker(),
-    };
-
-    thread::spawn(move || {
-        let msg = receiver.recv().unwrap();
-        match msg {
-            (_browser_context_id, embedder_msg) => match embedder_msg {
-                embedder_traits::EmbedderMsg::Prompt(prompt_definition, _prompt_origin) => {
-                    match prompt_definition {
-                        embedder_traits::PromptDefinition::Credentials(ipc_sender) => {
-                            ipc_sender.send(PromptCredentialsInput {
-                                username: Some("username".to_string()),
-                                password: Some("test".to_string()),
-                            }).unwrap();
-                        },
-                        _ => unreachable!(),
-                    }
-                },
-                _ => unreachable!(),
-            },
-            _ => unreachable!(),
-        }
-    });
-
+    let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(embedder_receiver, Some("username".to_string()), Some("test".to_string()));
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
     let response = fetch_with_context(&mut request, &mut context);
@@ -1649,5 +1565,91 @@ fn test_prompt_credentials_when_authenticating() {
         .status
         .code()
         .is_success());
+
+}
+
+#[test]
+fn test_prompt_credentials_user_cancels_dialog() {
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        if let Some(credentials) = request.headers()
+            .typed_get::<Authorization<Basic>>() {
+            if credentials == expected {
+                *response.status_mut() = StatusCode::OK;
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        } else {
+            *response.status_mut() = StatusCode::UNAUTHORIZED;
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(embedder_receiver, None, None);
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    let _ = server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_client_error());
+
+}
+
+#[test]
+fn test_prompt_credentials_user_input_incorrect_credentials() {
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        if let Some(credentials) = request.headers()
+            .typed_get::<Authorization<Basic>>() {
+            if credentials == expected {
+                *response.status_mut() = StatusCode::OK;
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        } else {
+            *response.status_mut() = StatusCode::UNAUTHORIZED;
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(embedder_receiver, Some("test".to_string()), Some("test".to_string()));
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    let _ = server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_client_error());
 
 }
