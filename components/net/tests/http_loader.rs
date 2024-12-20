@@ -1483,7 +1483,7 @@ fn test_origin_serialization_compatability() {
 }
 
 #[test]
-fn test_user_credentials_prompt_for_proxy_authentication() {
+fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
         if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
@@ -1529,7 +1529,7 @@ fn test_user_credentials_prompt_for_proxy_authentication() {
 }
 
 #[test]
-fn test_prompt_credentials_when_authenticating() {
+fn test_prompt_credentials_when_client_receives_unauthorized_response() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
         if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
@@ -1574,7 +1574,7 @@ fn test_prompt_credentials_when_authenticating() {
 }
 
 #[test]
-fn test_prompt_credentials_user_cancels_dialog() {
+fn test_prompt_credentials_user_cancels_dialog_input() {
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         let expected = Authorization::basic("username", "test");
         if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
