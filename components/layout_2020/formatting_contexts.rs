@@ -204,11 +204,18 @@ impl IndependentFormattingContext {
         auto_minimum: &LogicalVec2<Au>,
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
+        let is_table = matches!(
+            self.contents,
+            IndependentFormattingContextContents::NonReplaced(
+                IndependentNonReplacedContents::Table(_)
+            )
+        );
         sizing::outer_inline(
             self.style(),
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
+            is_table,
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
         )
