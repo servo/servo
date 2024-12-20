@@ -754,7 +754,18 @@ impl LogicalVec2<Size<LengthPercentage>> {
         LogicalVec2 {
             inline: self
                 .inline
-                .maybe_map(|v| v.maybe_to_used_value(basis.inline))
+                .maybe_map(|v| {
+                    // Resolves child box inside parent with percentage width css style has larger width and will be
+                    // splited to multiply lines. It is a solution to avoid the problem of round and truncated method
+                    // on Au and CSSPercentage.
+                    if v.to_percentage().is_some() && basis.inline.is_some() {
+                        Some(Au::from_f32_px(
+                            v.to_pixel_length(basis.inline?).px().floor(),
+                        ))
+                    } else {
+                        v.maybe_to_used_value(basis.inline)
+                    }
+                })
                 .unwrap_or_default(),
             block: self
                 .block
