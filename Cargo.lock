@@ -3621,7 +3621,6 @@ checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown",
- "serde",
 ]
 
 [[package]]
@@ -4490,7 +4489,6 @@ dependencies = [
  "indexmap",
  "log",
  "rustc-hash 1.1.0",
- "serde",
  "spirv",
  "termcolor",
  "thiserror",
@@ -8324,7 +8322,6 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "profiling",
- "ron",
  "rustc-hash 1.1.0",
  "serde",
  "smallvec",
