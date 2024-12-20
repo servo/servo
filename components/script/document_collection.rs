@@ -55,8 +55,12 @@ impl DocumentCollection {
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<DomRoot<HTMLIFrameElement>> {
-        self.find_document(pipeline_id)
-            .and_then(|doc| doc.find_iframe(browsing_context_id))
+        self.find_document(pipeline_id).and_then(|document| {
+            document
+                .iframes()
+                .get(browsing_context_id)
+                .map(|iframe| iframe.element.as_rooted())
+        })
     }
 
     pub fn iter(&self) -> DocumentsIter<'_> {
@@ -83,9 +87,6 @@ impl DocumentCollection {
     ///
     /// [update-the-rendering]: https://html.spec.whatwg.org/multipage/#update-the-rendering
     pub(crate) fn documents_in_order(&self) -> Vec<PipelineId> {
-        // TODO: This is a fairly expensive operation, because iterating iframes requires walking
-        // the *entire* DOM for a document. Instead this should be cached and marked as dirty when
-        // the DOM of a document changes or documents are added or removed from our set.
         DocumentTree::new(self).documents_in_order()
     }
 }
@@ -140,7 +141,8 @@ impl DocumentTree {
         let mut tree = DocumentTree::default();
         for (id, document) in documents.iter() {
             let children: Vec<PipelineId> = document
-                .iter_iframes()
+                .iframes()
+                .iter()
                 .filter_map(|iframe| iframe.pipeline_id())
                 .filter(|iframe_pipeline_id| documents.find_document(*iframe_pipeline_id).is_some())
                 .collect();

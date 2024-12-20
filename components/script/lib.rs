@@ -55,6 +55,8 @@ mod layout_image;
 
 #[warn(deprecated)]
 pub mod document_collection;
+#[warn(deprecated)]
+pub mod iframe_collection;
 pub mod layout_dom;
 #[warn(deprecated)]
 mod mem;

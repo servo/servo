@@ -804,7 +804,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 );
                 let exited_window = exited_document.window();
                 exited_window.discard_browsing_context();
-                for exited_iframe in exited_document.iter_iframes() {
+                for exited_iframe in exited_document.iframes().iter() {
                     debug!("Discarding nested browsing context");
                     exited_iframe.destroy_nested_browsing_context();
                 }
