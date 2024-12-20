@@ -97,7 +97,7 @@ fn create_embedder_proxy() -> EmbedderProxy {
     }
 }
 
-fn create_http_state() -> HttpState {
+fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
     let override_manager = net::connector::CertificateErrorOverrideManager::new();
     HttpState {
         hsts_list: RwLock::new(net::hsts::HstsList::default()),
@@ -112,7 +112,7 @@ fn create_http_state() -> HttpState {
             override_manager.clone(),
         )),
         override_manager,
-        embedder_proxy: Mutex::new(create_embedder_proxy()),
+        embedder_proxy: Mutex::new(fc.unwrap_or_else(|| create_embedder_proxy())),
     }
 }
 
@@ -124,7 +124,7 @@ fn new_fetch_context(
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {
-        state: Arc::new(create_http_state()),
+        state: Arc::new(create_http_state(Some(sender.clone()))),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(

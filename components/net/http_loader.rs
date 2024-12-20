@@ -1578,7 +1578,7 @@ async fn http_network_or_cache_fetch(
             let Some(username) = credentials.username else {
                 return response;
             };
-            let Some(password ) = credentials.password else {
+            let Some(password) = credentials.password else {
                 return response;
             };
 
@@ -1637,12 +1637,11 @@ async fn http_network_or_cache_fetch(
             return response;
         };
 
-        // TODO(#33616): store the result as a proxy-authentication entry.
+        // store the credentials as a proxy-authentication entry.
         let entry = AuthCacheEntry {
             user_name,
             password,
         };
-
         {
             let mut auth_cache = context.state.auth_cache.write().unwrap();
             let key = http_request.current_url().origin().ascii_serialization();
