@@ -41,10 +41,10 @@ jobs:
       - name: Bootstrap dependencies
         run: |
           sudo apt update
-          python3 ./mach bootstrap
+          ./mach bootstrap
       # TODO: Do GitHub anotaions
       - name: Clippy
         run: |
-          python3 ./mach clippy --use-crown --locked -- -- --deny warnings
+          ./mach clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
+        run: ./mach test-tidy --no-progress --all

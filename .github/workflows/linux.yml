@@ -129,14 +129,13 @@ jobs:
         if: ${{ runner.environment != 'self-hosted' && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
-        with:
-          skip-python-setup: ${{ runner.environment == 'self-hosted' }}
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
           sudo apt update
-          python3 ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
@@ -146,10 +145,10 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --use-crown --locked --${{ inputs.profile }} --features "layout_2013"
+          ./mach build --use-crown --locked --${{ inputs.profile }} --features "layout_2013"
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}
+        run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
@@ -158,7 +157,7 @@ jobs:
         with:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
-          command: python ./mach test-unit --${{ inputs.profile }}
+          command: ./mach test-unit --${{ inputs.profile }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
@@ -166,7 +165,7 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Build mach package
-        run: python3 ./mach package --${{ inputs.profile }}
+        run: ./mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
@@ -175,7 +174,7 @@ jobs:
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          python3 ./mach upload-nightly linux \
+          ./mach upload-nightly linux \
             --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:

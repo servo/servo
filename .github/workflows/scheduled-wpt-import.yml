@@ -40,7 +40,7 @@ jobs:
       - name: Prep environment
         run: |
           sudo apt update
-          python3 ./mach bootstrap
+          ./mach bootstrap
       - name: Add upstream remote
         run: |
           git config --local user.email "ghbot+wpt-sync@servo.org"

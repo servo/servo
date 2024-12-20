@@ -115,16 +115,14 @@ jobs:
         run: |
           choco install wixtoolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - uses: actions/setup-python@v5
       - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
-        with:
-          skip-python-setup: ${{ runner.environment == 'self-hosted' }}
       - name: Bootstrap
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
-          python mach fetch
-          python mach bootstrap-gstreamer
+          .\mach fetch
+          .\mach bootstrap-gstreamer
       # For some reason WiX isn't currently on the GitHub runner path. This is a
       # temporary workaround until that is fixed.
       - name: Add WiX to Path
@@ -147,21 +145,21 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          python mach build --use-crown --locked --${{ inputs.profile }}
+          .\mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
         if: ${{ runner.environment != 'self-hosted' }}
         # GitHub-hosted runners check out the repo on D: drive.
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --${{ inputs.profile }}
+        run: .\mach smoketest --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
-          command: python mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
+          command: .\mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
@@ -169,7 +167,7 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
-        run: python mach package --${{ inputs.profile }}
+        run: .\mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
@@ -182,7 +180,7 @@ jobs:
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          python mach upload-nightly windows-msvc --secret-from-environment `
+          .\mach upload-nightly windows-msvc --secret-from-environment `
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}

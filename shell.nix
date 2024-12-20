@@ -89,7 +89,7 @@ stdenv.mkDerivation (androidEnvironment // {
     # that `uv` will just symlink to the one in nix store. Otherwise `uv` will
     # download a pre-built binary that won't work on nix.
     # FIXME: dbus python module needs to be installed into the virtual environment.
-    python312
+    python311
     uv
 
     # This pins gnumake to 4.3 since 4.4 breaks jobserver

@@ -58,7 +58,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          python3 ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
@@ -67,7 +67,7 @@ jobs:
         run: |
           mkdir -p wpt-filtered-logs/linux-${{ inputs.wpt-layout }}
           mkdir -p wpt-full-logs/linux-${{ inputs.wpt-layout }}
-          python3 ./mach test-wpt \
+          ./mach test-wpt \
             $WPT_LAYOUT_ARG \
             $WPT_ALWAYS_SUCCEED_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \

@@ -51,7 +51,7 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap --skip-lints
+        run: sudo apt update && ./mach bootstrap --skip-lints
       - name: Setup OpenHarmony SDK
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v0.1
@@ -83,7 +83,7 @@ jobs:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
           OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
         run: |
-          python3 ./mach build --locked --target ${{ matrix.target }} --${{ inputs.profile }}
+          ./mach build --locked --target ${{ matrix.target }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
       - name: Archive build timing
         uses: actions/upload-artifact@v4
@@ -94,7 +94,7 @@ jobs:
       - name: Upload nightly
         if: ${{ inputs.upload && contains(matrix.target, 'aarch64') }}
         run: |
-          python3 ./mach upload-nightly ohos \
+          ./mach upload-nightly ohos \
             --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:

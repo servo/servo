@@ -89,7 +89,7 @@ def _process_exec(args, cwd):
         sys.exit(1)
 
 
-def install_virtual_env_requirements(project_path: str, virtualenv_path: str):
+def install_virtual_env_requirements(project_path: str, marker_path: str):
     requirements_paths = [
         os.path.join(project_path, "python", "requirements.txt"),
         os.path.join(project_path, WPT_TOOLS_PATH, "requirements_tests.txt",),
@@ -102,7 +102,6 @@ def install_virtual_env_requirements(project_path: str, virtualenv_path: str):
             requirements_hasher.update(file.read())
 
     try:
-        marker_path = os.path.join(virtualenv_path, "requirements.sha256")
         with open(marker_path, 'r') as marker_file:
             marker_hash = marker_file.read()
     except FileNotFoundError:
@@ -123,15 +122,19 @@ def install_virtual_env_requirements(project_path: str, virtualenv_path: str):
 def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, ".venv")
 
+    with open(".python-version", "r") as python_version_file:
+        required_python_version = python_version_file.read().strip()
+        marker_path = os.path.join(virtualenv_path, f"requirements.{required_python_version}.sha256")
+
     if os.environ.get("VIRTUAL_ENV") != virtualenv_path:
-        if not os.path.exists(virtualenv_path):
+        if not os.path.exists(marker_path):
             print(" * Setting up virtual environment...")
             _process_exec(["uv", "venv"], cwd=topdir)
 
         script_dir = "Scripts" if _is_windows() else "bin"
         runpy.run_path(os.path.join(virtualenv_path, script_dir, 'activate_this.py'))
 
-    install_virtual_env_requirements(topdir, virtualenv_path)
+    install_virtual_env_requirements(topdir, marker_path)
 
     # Turn off warnings about deprecated syntax in our indirect dependencies.
     # TODO: Find a better approach for doing this.

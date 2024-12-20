@@ -57,7 +57,7 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap --skip-lints
+        run: sudo apt update && ./mach bootstrap --skip-lints
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -95,7 +95,7 @@ jobs:
           APK_SIGNING_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
-          python3 ./mach build --use-crown --locked --target ${{ matrix.target }} --${{ inputs.profile }}
+          ./mach build --use-crown --locked --target ${{ matrix.target }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134
@@ -110,7 +110,7 @@ jobs:
       - name: Upload nightly
         if: ${{ inputs.upload && contains(matrix.target, 'aarch64') }}
         run: |
-          python3 ./mach upload-nightly android \
+          ./mach upload-nightly android \
             --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
