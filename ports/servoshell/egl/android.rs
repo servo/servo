@@ -21,7 +21,6 @@ use simpleservo::{
     PromptResult, SERVO,
 };
 
-use super::gl_glue;
 use super::host_trait::HostTrait;
 use super::servo_glue::{Coordinates, ServoGlue};
 
@@ -142,9 +141,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    if let Err(err) = gl_glue::init()
-        .and_then(|egl_init| simpleservo::init(opts, egl_init.gl_wrapper, wakeup, callbacks))
-    {
+    if let Err(err) = simpleservo::init(opts, wakeup, callbacks) {
         throw(&mut env, err)
     };
 }

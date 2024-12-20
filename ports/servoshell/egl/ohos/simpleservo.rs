@@ -21,7 +21,7 @@ use servo::servo_config::opts;
 use servo::servo_config::opts::ArgumentParsingResult;
 use servo::servo_url::ServoUrl;
 use servo::webrender_traits::RenderingContext;
-use servo::{self, gl, Servo};
+use servo::{self, Servo};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::host_trait::HostTrait;
@@ -37,7 +37,6 @@ pub fn init(
     options: InitOpts,
     native_window: *mut c_void,
     xcomponent: *mut OH_NativeXComponent,
-    gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<ServoGlue, &'static str> {
@@ -92,10 +91,6 @@ pub fn init(
 
     crate::prefs::register_user_prefs(&opts_matches);
 
-    gl.clear_color(1.0, 1.0, 1.0, 1.0);
-    gl.clear(gl::COLOR_BUFFER_BIT);
-    gl.finish();
-
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
     let adapter = connection
@@ -139,7 +134,6 @@ pub fn init(
         waker,
         #[cfg(feature = "webxr")]
         None,
-        gl.clone(),
     ));
 
     let servo = Servo::new(
