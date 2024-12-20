@@ -124,7 +124,14 @@ jobs:
         run: |
           git switch --detach
           git reset --hard FETCH_HEAD
-
+      - name: Install LLVM and Clang
+        # Expliclity install Clang 14 on Ubuntu 20.04 used by the nightly job (#34713).
+        if: ${{ runner.environment != 'self-hosted' && inputs.upload }}
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: 14
+        # FIXME: It would be better to use the above step for regular Linux jobs
+        # and remove the following step, but currenty that is failing and needs investigation.
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ runner.environment != 'self-hosted' && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
