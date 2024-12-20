@@ -144,6 +144,8 @@ skip = [
     # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
     "regex-syntax",
 
+    # rust-content-security-policy uses newest base64.
+    "base64",
 
     # gilrs is on 0.10.0, but Servo is still on 0.9.4
     "core-foundation",
