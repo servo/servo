@@ -94,7 +94,6 @@ deny = [
 
 # List of crates to skip for the duplicate check:
 skip = [
-    "cfg_aliases",
     "bitflags",
     "cookie",
     "futures",
