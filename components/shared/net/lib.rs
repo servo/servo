@@ -945,31 +945,5 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }
 
-pub fn user_info_percent_encode<T: AsRef<[u8]>>(bytes: T) -> String {
-    // This encoding set is used for encoding user credentials for a http request
-    // https://url.spec.whatwg.org/#userinfo-percent-encode-set
-    const USER_INFO_PERCENT_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
-        .add(b' ')
-        .add(b'"')
-        .add(b'#')
-        .add(b'<')
-        .add(b'>')
-        .add(b'?')
-        .add(b'`')
-        .add(b'{')
-        .add(b'}')
-        .add(b'/')
-        .add(b';')
-        .add(b'=')
-        .add(b'@')
-        .add(b'[')
-        .add(b'\\')
-        .add(b']')
-        .add(b'^')
-        .add(b'|');
-
-    percent_encoding::percent_encode(bytes.as_ref(), USER_INFO_PERCENT_ENCODE_SET).to_string()
-}
-
 pub static PRIVILEGED_SECRET: LazyLock<u32> =
     LazyLock::new(|| servo_rand::ServoRng::default().next_u32());

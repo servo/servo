@@ -1490,7 +1490,7 @@ fn test_user_credentials_prompt_for_proxy_authentication() {
             if credentials == expected {
                 *response.status_mut() = StatusCode::OK;
             } else {
-                *response.status_mut() = StatusCode::BAD_REQUEST;
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
             }
         } else {
             *response.status_mut() = StatusCode::PROXY_AUTHENTICATION_REQUIRED;
@@ -1594,7 +1594,7 @@ fn test_prompt_credentials_user_cancels_dialog() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let (embedder_proxy, mut embedder_receiver) = create_embedder_proxy_and_receiver();
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(embedder_receiver, None, None);
     let mut context = new_fetch_context(None, Some(embedder_proxy), None);
 
