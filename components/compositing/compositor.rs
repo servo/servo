@@ -1807,7 +1807,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let webxr_running = self.webxr_main_thread.running();
         #[cfg(not(feature = "webxr"))]
         let webxr_running = false;
-        let animation_state = if pipeline_ids.is_empty() && webxr_running {
+        let animation_state = if pipeline_ids.is_empty() && !webxr_running {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
