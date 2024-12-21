@@ -40,23 +40,46 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
+/// <https://dom.spec.whatwg.org/#concept-event>
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-currenttarget>
     current_target: MutNullableDom<EventTarget>,
 
     /// <https://dom.spec.whatwg.org/#event-target>
     target: MutNullableDom<EventTarget>,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-type>
     #[no_trace]
     type_: DomRefCell<Atom>,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
     phase: Cell<EventPhase>,
+
+    /// <https://dom.spec.whatwg.org/#canceled-flag>
     canceled: Cell<EventDefault>,
+
+    /// <https://dom.spec.whatwg.org/#stop-propagation-flag>
     stop_propagation: Cell<bool>,
-    stop_immediate: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#stop-immediate-propagation-flag>
+    stop_immediate_propagation: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-cancelable>
     cancelable: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-bubbles>
     bubbles: Cell<bool>,
-    trusted: Cell<bool>,
-    dispatching: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
+    is_trusted: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#dispatch-flag>
+    dispatch: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#initialized-flag>
     initialized: Cell<bool>,
     #[no_trace]
     time_stamp: CrossProcessInstant,
@@ -101,11 +124,11 @@ impl Event {
             phase: Cell::new(EventPhase::None),
             canceled: Cell::new(EventDefault::Allowed),
             stop_propagation: Cell::new(false),
-            stop_immediate: Cell::new(false),
+            stop_immediate_propagation: Cell::new(false),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),
-            trusted: Cell::new(false),
-            dispatching: Cell::new(false),
+            is_trusted: Cell::new(false),
+            dispatch: Cell::new(false),
             initialized: Cell::new(false),
             time_stamp: CrossProcessInstant::now(),
             path: DomRefCell::default(),
@@ -152,7 +175,7 @@ impl Event {
     /// and <https://dom.spec.whatwg.org/#concept-event-initialize>
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
         // https://dom.spec.whatwg.org/#dom-event-initevent
-        if self.dispatching.get() {
+        if self.dispatch.get() {
             return;
         }
 
@@ -162,11 +185,11 @@ impl Event {
 
         // Step 2. Unset event’s stop propagation flag, stop immediate propagation flag, and canceled flag.
         self.stop_propagation.set(false);
-        self.stop_immediate.set(false);
+        self.stop_immediate_propagation.set(false);
         self.canceled.set(EventDefault::Allowed);
 
         // Step 3. Set event’s isTrusted attribute to false.
-        self.trusted.set(false);
+        self.is_trusted.set(false);
 
         // Step 4. Set event’s target to null.
         self.target.set(None);
@@ -241,7 +264,7 @@ impl Event {
         let mut target = DomRoot::from_ref(target);
 
         // Step 1. Set event’s dispatch flag.
-        self.dispatching.set(true);
+        self.dispatch.set(true);
 
         // Step 2. Let targetOverride be target, if legacy target override flag is not given, and target’s associated Document otherwise.
         let target_override_document; // upcasted EventTarget's lifetime depends on this
@@ -506,9 +529,9 @@ impl Event {
         self.path.borrow_mut().clear();
 
         // Step 9. Unset event’s dispatch flag, stop propagation flag, and stop immediate propagation flag.
-        self.dispatching.set(false);
+        self.dispatch.set(false);
         self.stop_propagation.set(false);
-        self.stop_immediate.set(false);
+        self.stop_immediate_propagation.set(false);
 
         // Step 10. If clearTargets is true:
         if clear_targets {
@@ -551,7 +574,7 @@ impl Event {
 
     #[inline]
     pub fn dispatching(&self) -> bool {
-        self.dispatching.get()
+        self.dispatch.get()
     }
 
     #[inline]
@@ -575,7 +598,7 @@ impl Event {
     }
 
     pub fn set_trusted(&self, trusted: bool) {
-        self.trusted.set(trusted);
+        self.is_trusted.set(trusted);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
@@ -775,7 +798,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-stopimmediatepropagation>
     fn StopImmediatePropagation(&self) {
-        self.stop_immediate.set(true);
+        self.stop_immediate_propagation.set(true);
         self.stop_propagation.set(true);
     }
 
@@ -827,7 +850,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
-        self.trusted.get()
+        self.is_trusted.get()
     }
 }
 
@@ -1003,7 +1026,7 @@ fn invoke(
     );
 
     // Step 9. If found is false and event’s isTrusted attribute is true:
-    if !found && event.trusted.get() {
+    if !found && event.is_trusted.get() {
         // Step 9.1 Let originalEventType be event’s type attribute value.
         let original_type = event.type_();
 
@@ -1117,7 +1140,7 @@ fn inner_invoke(
         }
 
         // Step 2.13: If event’s stop immediate propagation flag is set, then break.
-        if event.stop_immediate.get() {
+        if event.stop_immediate_propagation.get() {
             break;
         }
     }
