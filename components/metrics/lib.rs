@@ -322,17 +322,32 @@ impl PaintTimeMetrics {
 
         if let Some(pending_metric) = self.pending_metrics.borrow_mut().remove(&epoch) {
             let profiler_metadata = pending_metric.0;
-            set_metric(
-                self,
-                profiler_metadata.clone(),
-                ProgressiveWebMetricType::FirstPaint,
-                ProfilerCategory::TimeToFirstPaint,
-                &self.first_paint,
-                paint_time,
-                &self.url,
-            );
 
-            if pending_metric.1 {
+            if self.first_paint.get().is_none() {
+                // TODO(delan): exclude compositor-to-script IPC time. May require support for
+                // backdating events, unless we make the compositor aware of things like the page
+                // URL for each pipeline and whether the paint was contentful.
+                #[cfg(feature = "tracing")]
+                tracing::info!(name: "First Paint", servo_profiling = true, url = self.url.to_string());
+
+                set_metric(
+                    self,
+                    profiler_metadata.clone(),
+                    ProgressiveWebMetricType::FirstPaint,
+                    ProfilerCategory::TimeToFirstPaint,
+                    &self.first_paint,
+                    paint_time,
+                    &self.url,
+                );
+            }
+
+            if self.first_contentful_paint.get().is_none() && pending_metric.1 {
+                // TODO(delan): exclude compositor-to-script IPC time. May require support for
+                // backdating events, unless we make the compositor aware of things like the page
+                // URL for each pipeline and whether the paint was contentful.
+                #[cfg(feature = "tracing")]
+                tracing::info!(name: "First Contentful Paint", servo_profiling = true, url = self.url.to_string());
+
                 set_metric(
                     self,
                     profiler_metadata,
