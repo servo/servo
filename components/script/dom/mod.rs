@@ -351,6 +351,7 @@ pub mod htmldialogelement;
 pub mod htmldirectoryelement;
 pub mod htmldivelement;
 pub mod htmldlistelement;
+pub mod htmldocument;
 pub mod htmlelement;
 pub mod htmlembedelement;
 pub mod htmlfieldsetelement;
