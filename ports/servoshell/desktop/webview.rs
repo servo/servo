@@ -21,8 +21,8 @@ use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
     CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
-    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin,
-    PromptResult,
+    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptCredentialsInput,
+    PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
@@ -697,6 +697,12 @@ where
                             PromptDefinition::Input(_message, default, sender) => {
                                 sender.send(Some(default.to_owned()))
                             },
+                            PromptDefinition::Credentials(sender) => {
+                                sender.send(PromptCredentialsInput {
+                                    username: None,
+                                    password: None,
+                                })
+                            },
                         }
                     } else {
                         thread::Builder::new()
@@ -750,6 +756,12 @@ where
                                     }
                                     let result = tinyfiledialogs::input_box("", &message, &default);
                                     sender.send(result)
+                                },
+                                PromptDefinition::Credentials(sender) => {
+                                    // TODO: figure out how to make the message a localized string
+                                    let username = tinyfiledialogs::input_box("", "username", "");
+                                    let password = tinyfiledialogs::input_box("", "password", "");
+                                    sender.send(PromptCredentialsInput { username, password })
                                 },
                             })
                             .unwrap()
