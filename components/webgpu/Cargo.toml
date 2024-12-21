@@ -23,7 +23,7 @@ servo_config = { path = "../config" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-wgpu-core = { workspace = true, features = ["replay", "trace", "wgsl"] }
+wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }
 
 # We want the wgpu-core Metal backend on macOS and iOS.

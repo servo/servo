@@ -800,12 +800,6 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cfg_aliases"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
-
-[[package]]
-name = "cfg_aliases"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
@@ -3633,7 +3627,6 @@ checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown",
- "serde",
 ]
 
 [[package]]
@@ -4491,18 +4484,17 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 [[package]]
 name = "naga"
 version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=4da7c263ed075e5d1ac7ee5640712542830e6330#4da7c263ed075e5d1ac7ee5640712542830e6330"
+source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.6.0",
- "cfg_aliases 0.1.1",
+ "cfg_aliases",
  "codespan-reporting",
  "hexf-parse",
  "indexmap",
  "log",
  "rustc-hash 1.1.0",
- "serde",
  "spirv",
  "termcolor",
  "thiserror",
@@ -4701,7 +4693,7 @@ checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
 dependencies = [
  "bitflags 2.6.0",
  "cfg-if",
- "cfg_aliases 0.2.1",
+ "cfg_aliases",
  "libc",
 ]
 
@@ -7039,7 +7031,7 @@ version = "0.9.8"
 source = "git+https://github.com/servo/surfman?rev=c8d6b4b65aeab739ee7651602e29c8d58ceee123#c8d6b4b65aeab739ee7651602e29c8d58ceee123"
 dependencies = [
  "bitflags 2.6.0",
- "cfg_aliases 0.2.1",
+ "cfg_aliases",
  "cgl",
  "cocoa",
  "core-foundation 0.9.4",
@@ -8323,12 +8315,12 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=4da7c263ed075e5d1ac7ee5640712542830e6330#4da7c263ed075e5d1ac7ee5640712542830e6330"
+source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
 dependencies = [
  "arrayvec",
  "bit-vec",
  "bitflags 2.6.0",
- "cfg_aliases 0.1.1",
+ "cfg_aliases",
  "document-features",
  "indexmap",
  "log",
@@ -8336,7 +8328,6 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "profiling",
- "ron",
  "rustc-hash 1.1.0",
  "serde",
  "smallvec",
@@ -8348,7 +8339,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=4da7c263ed075e5d1ac7ee5640712542830e6330#4da7c263ed075e5d1ac7ee5640712542830e6330"
+source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -8357,7 +8348,7 @@ dependencies = [
  "bitflags 2.6.0",
  "block",
  "bytemuck",
- "cfg_aliases 0.1.1",
+ "cfg_aliases",
  "core-graphics-types",
  "glow",
  "glutin_wgl_sys",
@@ -8391,7 +8382,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=4da7c263ed075e5d1ac7ee5640712542830e6330#4da7c263ed075e5d1ac7ee5640712542830e6330"
+source = "git+https://github.com/gfx-rs/wgpu?rev=53f40794f275329a48efc7d1c637c91b8e51327d#53f40794f275329a48efc7d1c637c91b8e51327d"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",
@@ -8730,7 +8721,7 @@ dependencies = [
  "block2",
  "bytemuck",
  "calloop",
- "cfg_aliases 0.2.1",
+ "cfg_aliases",
  "concurrent-queue",
  "core-foundation 0.9.4",
  "core-graphics",

@@ -189,6 +189,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
                     .map(|f| self.device.validate_texture_format_required_features(&f))
                     .transpose()?,
                 dimension: descriptor.dimension.map(|dimension| dimension.convert()),
+                usage: Some(wgt::TextureUsages::from_bits_retain(descriptor.usage)),
                 range: wgt::ImageSubresourceRange {
                     aspect: match descriptor.aspect {
                         GPUTextureAspect::All => wgt::TextureAspect::All,
