@@ -797,11 +797,11 @@ impl EventTarget {
             }
         }
 
-        if let Some(shadow_root) = self.downcast::<ShadowRoot>() {
+        if self.downcast::<ShadowRoot>().is_some() {
             // FIXME: Handle event composed flag here
-            return Some(DomRoot::from_ref(
-                shadow_root.Host().upcast::<EventTarget>(),
-            ));
+            // We currently assume that events are never composed (so events may never
+            // cross a shadow boundary)
+            return None;
         }
 
         if let Some(node) = self.downcast::<Node>() {
