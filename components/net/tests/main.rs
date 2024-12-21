@@ -30,10 +30,11 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use futures::future::ready;
 use futures::StreamExt;
-use hyper::server::conn::Http;
-use hyper::server::Server as HyperServer;
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Empty, Full};
+use hyper::server::conn::http1;
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use hyper::{body::{Incoming, Bytes}, Request as HyperRequest, Response as HyperResponse};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -44,8 +45,9 @@ use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use net_traits::{FetchTaskTarget, ResourceFetchTiming, ResourceTimingType};
-use rustls::{self, Certificate, PrivateKey};
 use rustls_pemfile::{certs, pkcs8_private_keys};
+use rustls_pki_types::{CertificateDer, PrivateKeyDer};
+use rustls_pki_types::pem::PemObject;
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use tokio::net::{TcpListener, TcpStream};
@@ -159,7 +161,7 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
 
 pub(crate) struct Server {
     pub close_channel: tokio::sync::oneshot::Sender<()>,
-    pub certificates: Option<Vec<Certificate>>,
+    pub certificates: Option<Vec<CertificateDer<'static>>>,
 }
 
 impl Server {
@@ -170,7 +172,7 @@ impl Server {
 
 fn make_server<H>(handler: H) -> (Server, ServoUrl)
 where
-    H: Fn(HyperRequest<Body>, &mut HyperResponse<Body>) + Send + Sync + 'static,
+    H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>) + Send + Sync + 'static,
 {
     let handler = Arc::new(handler);
     let listener = StdTcpListener::bind("0.0.0.0:0").unwrap();
@@ -178,21 +180,21 @@ where
     let url = ServoUrl::parse(&url_string).unwrap();
     let (tx, rx) = tokio::sync::oneshot::channel::<()>();
     let server = async move {
-        HyperServer::from_tcp(listener)
-            .unwrap()
-            .serve(make_service_fn(move |_| {
-                let handler = handler.clone();
-                ready(Ok::<_, Infallible>(service_fn(
-                    move |req: HyperRequest<Body>| {
-                        let mut response = HyperResponse::new(Vec::<u8>::new().into());
-                        handler(req, &mut response);
-                        ready(Ok::<_, Infallible>(response))
-                    },
-                )))
-            }))
-            .with_graceful_shutdown(async move {
+        let http = http1::Builder::new();
+        let conn = http.serve_connection(listener, make_service_fn(move |_| {
+            let handler = handler.clone();
+            ready(Ok::<_, Infallible>(service_fn(
+                move |req: HyperRequest<Incoming>| {
+                    //let mut response = HyperResponse::new(Bytes::from(Vec::<u8>::new()).boxed());
+                    let mut response = HyperResponse::new(Empty::new().map_err(|_| unreachable!()).boxed());
+                    handler(req, &mut response);
+                    ready(Ok::<_, Infallible>(response))
+                },
+            )))
+        }))
+            /*.with_graceful_shutdown(async move {
                 rx.await.ok();
-            })
+            })*/
             .await
             .expect("Could not start server");
     };
@@ -209,30 +211,30 @@ where
 
 /// Given a path to a file containing PEM certificates, load and parse them into
 /// a vector of RusTLS [Certificate]s.
-fn load_certificates_from_pem(path: &PathBuf) -> std::io::Result<Vec<Certificate>> {
+fn load_certificates_from_pem(path: &PathBuf) -> std::io::Result<Vec<CertificateDer>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
-    let certs = certs(&mut reader)?;
-    Ok(certs.into_iter().map(Certificate).collect())
+    certs(&mut reader).collect::<Result<Vec<_>, _>>()
+    //Ok(certs.into_iter().map(CertificateDer::from_slice).collect())
 }
 
 /// Given a path to a file containing PEM keys, load and parse them into
 /// a vector of RusTLS [PrivateKey]s.
-fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKey, Box<dyn std::error::Error>> {
+fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKeyDer<'static>, Box<dyn std::error::Error>> {
     let file = File::open(&path)?;
     let mut reader = BufReader::new(file);
-    let mut keys = pkcs8_private_keys(&mut reader)?;
+    let mut keys = pkcs8_private_keys(&mut reader).collect::<Result<Vec<_>, _>>()?;
 
     match keys.len() {
         0 => Err(format!("No PKCS8-encoded private key found in {path:?}").into()),
-        1 => Ok(PrivateKey(keys.remove(0))),
+        1 => Ok(PrivateKeyDer::from_pem_slice(keys.remove(0).secret_pkcs8_der())?),
         _ => Err(format!("More than one PKCS8-encoded private key found in {path:?}").into()),
     }
 }
 
 fn make_ssl_server<H>(handler: H) -> (Server, ServoUrl)
 where
-    H: Fn(HyperRequest<Body>, &mut HyperResponse<Body>) + Send + Sync + 'static,
+    H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>) + Send + Sync + 'static,
 {
     let handler = Arc::new(handler);
     let listener = StdTcpListener::bind("[::0]:0").unwrap();
@@ -253,7 +255,7 @@ where
     let key = load_private_key_from_file(&key_path).expect("Invalid key");
 
     let config = rustls::ServerConfig::builder()
-        .with_safe_defaults()
+        //.with_safe_defaults()
         .with_no_client_auth()
         .with_single_cert(certificates.clone(), key)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
@@ -291,11 +293,11 @@ where
                 },
             };
 
-            let _ = Http::new()
+            let _ = http1::Builder::new()
                 .serve_connection(
                     stream,
-                    service_fn(move |req: HyperRequest<Body>| {
-                        let mut response = HyperResponse::new(Body::empty());
+                    service_fn(move |req: HyperRequest<Incoming>| {
+                        let mut response = HyperResponse::new(Empty::new().map_err(|_| unreachable!()).boxed());
                         handler(req, &mut response);
                         ready(Ok::<_, Infallible>(response))
                     }),
@@ -313,4 +315,8 @@ where
         },
         url,
     )
+}
+
+pub fn make_body(bytes: Vec<u8>) -> BoxBody<Bytes, hyper::Error> {
+    Full::new(Bytes::from(bytes)).map_err(|_| unreachable!()).boxed()
 }

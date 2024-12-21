@@ -27,7 +27,8 @@ use headers::{
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
 use http::{HeaderName, Method, StatusCode};
-use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
+use http_body_util::combinators::BoxBody;
+use hyper::{body::{Incoming, Bytes, Body}, Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net::cookie::ServoCookie;
@@ -47,7 +48,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio_test::block_on;
 use url::Url;
 
-use crate::{fetch, fetch_with_context, make_server, new_fetch_context};
+use crate::{fetch, fetch_with_context, make_server, new_fetch_context, make_body};
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()
@@ -117,7 +118,7 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
 fn test_check_default_headers_loaded_in_every_request() {
     let expected_headers = Arc::new(Mutex::new(None));
     let expected_headers_clone = expected_headers.clone();
-    let handler = move |request: HyperRequest<Body>, _: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, _: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request.headers().clone(),
             expected_headers_clone.lock().unwrap().take().unwrap()
@@ -218,7 +219,7 @@ fn test_check_default_headers_loaded_in_every_request() {
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0(
 ) {
-    let handler = move |request: HyperRequest<Body>, _: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, _: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request.headers().typed_get::<ContentLength>(),
             Some(ContentLength(0))
@@ -247,11 +248,11 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
 
 #[test]
 fn test_request_and_response_data_with_network_messages() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response
             .headers_mut()
             .typed_insert(Host::from("foo.bar".parse::<Authority>().unwrap()));
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -360,11 +361,11 @@ fn test_request_and_response_data_with_network_messages() {
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response
             .headers_mut()
             .typed_insert(Host::from("foo.bar".parse::<Authority>().unwrap()));
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -387,14 +388,14 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
 #[test]
 fn test_redirected_request_to_devtools() {
-    let post_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let post_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::GET);
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (post_server, post_url) = make_server(post_handler);
 
     let post_redirect_url = post_url.clone();
-    let pre_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let pre_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::POST);
         response.headers_mut().insert(
             header::LOCATION,
@@ -436,14 +437,14 @@ fn test_redirected_request_to_devtools() {
 
 #[test]
 fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
-    let post_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let post_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::GET);
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (post_server, post_url) = make_server(post_handler);
 
     let post_redirect_url = post_url.clone();
-    let pre_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let pre_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::POST);
         response.headers_mut().insert(
             header::LOCATION,
@@ -471,7 +472,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
 #[test]
 fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate(
 ) {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::CONTENT_ENCODING,
             HeaderValue::from_static("deflate"),
@@ -479,7 +480,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
         e.write(b"Yay!").unwrap();
         let encoded_content = e.finish().unwrap();
-        *response.body_mut() = encoded_content.into();
+        *response.body_mut() = make_body(encoded_content);
     };
     let (server, url) = make_server(handler);
 
@@ -505,14 +506,14 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
 #[test]
 fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_content_encoding_gzip() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response
             .headers_mut()
             .insert(header::CONTENT_ENCODING, HeaderValue::from_static("gzip"));
         let mut e = GzEncoder::new(Vec::new(), Compression::default());
         e.write(b"Yay!").unwrap();
         let encoded_content = e.finish().unwrap();
-        *response.body_mut() = encoded_content.into();
+        *response.body_mut() = make_body(encoded_content);
     };
     let (server, url) = make_server(handler);
 
@@ -538,17 +539,15 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
 #[test]
 fn test_load_doesnt_send_request_body_on_any_redirect() {
-    use hyper::body::HttpBody;
-
-    let post_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let post_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::GET);
         assert_eq!(request.size_hint().exact(), Some(0));
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (post_server, post_url) = make_server(post_handler);
 
     let post_redirect_url = post_url.clone();
-    let pre_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let pre_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.size_hint().exact(), Some(13));
         response.headers_mut().insert(
             header::LOCATION,
@@ -579,13 +578,13 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
 
 #[test]
 fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_are_present() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response
             .headers_mut()
             .typed_insert(StrictTransportSecurity::excluding_subdomains(
                 Duration::from_secs(31536000),
             ));
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -621,12 +620,12 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
 
 #[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::SET_COOKIE,
             HeaderValue::from_static("mozillaIs=theBest"),
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -663,12 +662,12 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request.headers().get(header::COOKIE).unwrap().as_bytes(),
             b"mozillaIs=theBest"
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -708,12 +707,12 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
 #[test]
 fn test_load_sends_cookie_if_nonhttp() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request.headers().get(header::COOKIE).unwrap().as_bytes(),
             b"mozillaIs=theBest"
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -754,12 +753,12 @@ fn test_load_sends_cookie_if_nonhttp() {
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::SET_COOKIE,
             HeaderValue::from_static("mozillaIs=theBest; HttpOnly"),
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -801,12 +800,12 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::SET_COOKIE,
             HeaderValue::from_static("mozillaIs=theBest; Secure"),
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -835,13 +834,13 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 #[test]
 fn test_load_sets_content_length_to_length_of_request_body() {
     let content = b"This is a request body";
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         let content_length = ContentLength(content.len() as u64);
         assert_eq!(
             request.headers().typed_get::<ContentLength>(),
             Some(content_length)
         );
-        *response.body_mut() = content.to_vec().into();
+        *response.body_mut() = make_body(content.to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -869,7 +868,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
 #[test]
 fn test_load_uses_explicit_accept_from_headers_in_load_data() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request
                 .headers()
@@ -879,7 +878,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
                 .unwrap(),
             "text/html"
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -907,7 +906,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request
                 .headers()
@@ -917,7 +916,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
                 .unwrap(),
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -942,7 +941,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 
 #[test]
 fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request
                 .headers()
@@ -952,7 +951,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
                 .unwrap(),
             "chunked"
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -980,7 +979,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(
             request
                 .headers()
@@ -990,7 +989,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                 .unwrap(),
             "gzip, deflate, br"
         );
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (server, url) = make_server(handler);
 
@@ -1017,7 +1016,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 fn test_load_errors_when_there_a_redirect_loop() {
     let url_b_for_a = Arc::new(Mutex::new(None::<ServoUrl>));
     let url_b_for_a_clone = url_b_for_a.clone();
-    let handler_a = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler_a = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::LOCATION,
             HeaderValue::from_str(
@@ -1035,7 +1034,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     let (server_a, url_a) = make_server(handler_a);
 
     let url_a_for_b = url_a.clone();
-    let handler_b = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler_b = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::LOCATION,
             HeaderValue::from_str(&url_a_for_b.to_string()).unwrap(),
@@ -1069,7 +1068,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
     let url_b_for_a = Arc::new(Mutex::new(None::<ServoUrl>));
     let url_b_for_a_clone = url_b_for_a.clone();
     let handled_a = AtomicBool::new(false);
-    let handler_a = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler_a = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         if !handled_a.swap(true, Ordering::SeqCst) {
             response.headers_mut().insert(
                 header::LOCATION,
@@ -1085,13 +1084,13 @@ fn test_load_succeeds_with_a_redirect_loop() {
             );
             *response.status_mut() = StatusCode::MOVED_PERMANENTLY;
         } else {
-            *response.body_mut() = b"Success".to_vec().into()
+            *response.body_mut() = make_body(b"Success".to_vec());
         }
     };
     let (server_a, url_a) = make_server(handler_a);
 
     let url_a_for_b = url_a.clone();
-    let handler_b = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler_b = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response.headers_mut().insert(
             header::LOCATION,
             HeaderValue::from_str(&url_a_for_b.to_string()).unwrap(),
@@ -1124,14 +1123,14 @@ fn test_load_succeeds_with_a_redirect_loop() {
 
 #[test]
 fn test_load_follows_a_redirect() {
-    let post_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let post_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::GET);
-        *response.body_mut() = b"Yay!".to_vec().into();
+        *response.body_mut() = make_body(b"Yay!".to_vec());
     };
     let (post_server, post_url) = make_server(post_handler);
 
     let post_redirect_url = post_url.clone();
-    let pre_handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let pre_handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         assert_eq!(request.method(), Method::GET);
         response.headers_mut().insert(
             header::LOCATION,
@@ -1165,7 +1164,7 @@ fn test_load_follows_a_redirect() {
 fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let shared_url_y = Arc::new(Mutex::new(None::<ServoUrl>));
     let shared_url_y_clone = shared_url_y.clone();
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         let path = request.uri().path();
         if path == "/com/" {
             assert_eq!(
@@ -1183,7 +1182,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
                 request.headers().get(header::COOKIE).unwrap().as_bytes(),
                 b"mozillaIs=theBest"
             );
-            *response.body_mut() = b"Yay!".to_vec().into();
+            *response.body_mut() = make_body(b"Yay!".to_vec());
         } else {
             panic!("unexpected path {:?}", path)
         }
@@ -1246,7 +1245,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
 #[test]
 fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
-    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         let path = request.uri().path();
         if path == "/initial/" {
             response.headers_mut().insert(
@@ -1264,7 +1263,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
                 request.headers().get(header::COOKIE).unwrap().as_bytes(),
                 b"mozillaIs=theBest"
             );
-            *response.body_mut() = b"Yay!".to_vec().into();
+            *response.body_mut() = make_body(b"Yay!".to_vec());
         } else {
             panic!("unexpected path {:?}", path)
         }
@@ -1295,7 +1294,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
 #[test]
 fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
-    let handler = move |request: HyperRequest<Body>, _response: &mut HyperResponse<Body>| {
+    let handler = move |request: HyperRequest<Incoming>, _response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         let expected = Authorization::basic("username", "test");
         assert_eq!(
             request.headers().typed_get::<Authorization<Basic>>(),
@@ -1342,7 +1341,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
 #[test]
 fn test_auth_ui_needs_www_auth() {
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         *response.status_mut() = StatusCode::UNAUTHORIZED;
     };
     let (server, url) = make_server(handler);
@@ -1404,11 +1403,11 @@ fn test_fetch_compressed_response_update_count() {
     ];
     const DATA_DECOMPRESSED_LEN: usize = 10500;
 
-    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+    let handler = move |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
         response
             .headers_mut()
             .insert(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
-        *response.body_mut() = DATA_BROTLI_COMPRESSED.to_vec().into();
+        *response.body_mut() = make_body(DATA_BROTLI_COMPRESSED.to_vec());
     };
     let (server, url) = make_server(handler);
 
