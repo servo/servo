@@ -285,28 +285,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-stream"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b5a71a6f37880a80d1d7f19efd781e4b5de42c88f0722cc13bcb6cc2cfe8476"
-dependencies = [
- "async-stream-impl",
- "futures-core",
- "pin-project-lite",
-]
-
-[[package]]
-name = "async-stream-impl"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7c24de15d275a1ecfd47a380fb4d5ec9bfe0933f309ed5e705b775596a3574d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "async-tungstenite"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -343,9 +321,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.11.1"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f47bb8cc16b669d267eeccf585aea077d0882f4777b1c1f740217885d6e6e5a3"
+checksum = "f409eb70b561706bf8abba8ca9c112729c481595893fd06a2dd9af8ed8441148"
 dependencies = [
  "aws-lc-sys",
  "paste",
@@ -354,9 +332,9 @@ dependencies = [
 
 [[package]]
 name = "aws-lc-sys"
-version = "0.23.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2101df3813227bbaaaa0b04cd61c534c7954b22bd68d399b440be937dc63ff7"
+checksum = "8478a5c29ead3f3be14aff8a202ad965cf7da6856860041bfca271becf8ba48b"
 dependencies = [
  "bindgen 0.69.5",
  "cc",
@@ -4254,7 +4232,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4845,7 +4823,6 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-stream",
- "tokio-test",
  "tokio-util",
  "tower-service",
  "tungstenite",
@@ -7684,19 +7661,6 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
-]
-
-[[package]]
-name = "tokio-test"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2468baabc3311435b55dd935f702f42cd1b8abb7e754fb7dfb16bd36aa88f9f7"
-dependencies = [
- "async-stream",
- "bytes",
- "futures-core",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]
