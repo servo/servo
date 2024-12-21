@@ -201,20 +201,30 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
         // Steps 1-2.
-        let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
+        let mut url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 
-        // Step 3.
+        // Step 3-4-5.
         match url_record.scheme() {
             "ws" | "wss" => {},
+            "http" => {
+                url_record
+                    .as_mut_url()
+                    .set_scheme("ws")
+                    .expect("Can't set scheme from http to ws");
+            },
+            "https" => {
+                url_record
+                    .as_mut_url()
+                    .set_scheme("wss")
+                    .expect("Can't set scheme from https to wss");
+            },
             _ => return Err(Error::Syntax),
         }
 
-        // Step 4.
         if url_record.fragment().is_some() {
             return Err(Error::Syntax);
         }
 
-        // Step 5.
         let protocols = protocols.map_or(vec![], |p| match p {
             StringOrStringSequence::String(string) => vec![string.into()],
             StringOrStringSequence::StringSequence(seq) => {
