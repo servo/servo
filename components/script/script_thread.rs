@@ -1614,6 +1614,9 @@ impl ScriptThread {
                 ScriptThreadEventCategory::FileRead => {
                     time_profile!(ProfilerCategory::ScriptFileRead, None, profiler_chan, f)
                 },
+                ScriptThreadEventCategory::FontLoading => {
+                    time_profile!(ProfilerCategory::ScriptFontLoading, None, profiler_chan, f)
+                },
                 ScriptThreadEventCategory::FormPlannedNavigation => time_profile!(
                     ProfilerCategory::ScriptPlannedNavigation,
                     None,

@@ -177,13 +177,13 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
-        stylesheet: DocumentStyleSheet,
+        stylesheet: Option<DocumentStyleSheet>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
             .descriptor
             .override_values_with_css_font_template_descriptors(css_font_template_descriptors);
-        alias_template.stylesheet = Some(stylesheet);
+        alias_template.stylesheet = stylesheet;
         Ok(alias_template)
     }
 

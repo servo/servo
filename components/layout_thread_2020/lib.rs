@@ -23,7 +23,7 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as 
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
-use fonts_traits::WebFontLoadFinishedCallback;
+use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use layout::context::LayoutContext;
@@ -602,7 +602,7 @@ impl LayoutThread {
             stylesheet,
             guard,
             self.stylist.device(),
-            Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
+            Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
         );
     }
 

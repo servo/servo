@@ -11,7 +11,7 @@ use std::sync::Arc;
 use app_units::Au;
 use base::id::WebViewId;
 use fnv::FnvHasher;
-use fonts_traits::WebFontLoadFinishedCallback;
+use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -21,7 +21,9 @@ use parking_lot::{Mutex, RwLock};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
-use style::font_face::{FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, UrlSource};
+use style::font_face::{
+    FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
+};
 use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
@@ -131,18 +133,6 @@ impl FontContext {
             FontIdentifier::Web(_) => self.font_data.read().get(identifier).cloned(),
             FontIdentifier::Local(_) => None,
         }
-    }
-
-    /// Handle the situation where a web font finishes loading, specifying if the load suceeded or failed.
-    fn handle_web_font_load_finished(
-        &self,
-        finished_callback: &WebFontLoadFinishedCallback,
-        succeeded: bool,
-    ) {
-        if succeeded {
-            self.invalidate_font_groups_after_web_font_load();
-        }
-        finished_callback(succeeded);
     }
 
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
@@ -355,17 +345,138 @@ impl FontContext {
     fn invalidate_font_groups_after_web_font_load(&self) {
         self.resolved_font_groups.write().clear();
     }
+
+    pub fn is_supported_web_font_source(source: &&Source) -> bool {
+        let url_source = match source {
+            Source::Url(ref url_source) => url_source,
+            Source::Local(_) => return true,
+        };
+        let format_hint = match url_source.format_hint {
+            Some(ref format_hint) => format_hint,
+            None => return true,
+        };
+
+        if matches!(
+            format_hint,
+            FontFaceSourceFormat::Keyword(
+                FontFaceSourceFormatKeyword::Truetype |
+                    FontFaceSourceFormatKeyword::Opentype |
+                    FontFaceSourceFormatKeyword::Woff |
+                    FontFaceSourceFormatKeyword::Woff2
+            )
+        ) {
+            return true;
+        }
+
+        if let FontFaceSourceFormat::String(string) = format_hint {
+            return string == "truetype" ||
+                string == "opentype" ||
+                string == "woff" ||
+                string == "woff2";
+        }
+
+        false
+    }
 }
 
-#[derive(Clone)]
 pub(crate) struct WebFontDownloadState {
-    webview_id: WebViewId,
-    pub(crate) css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
+    webview_id: Option<WebViewId>,
+    css_font_face_descriptors: CSSFontFaceDescriptors,
     remaining_sources: Vec<Source>,
-    finished_callback: WebFontLoadFinishedCallback,
     core_resource_thread: CoreResourceThread,
-    local_fonts: Arc<HashMap<Atom, Option<FontTemplateRef>>>,
-    pub(crate) stylesheet: DocumentStyleSheet,
+    local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
+    font_context: Arc<FontContext>,
+    initiator: WebFontLoadInitiator,
+}
+
+impl WebFontDownloadState {
+    fn new(
+        webview_id: Option<WebViewId>,
+        font_context: Arc<FontContext>,
+        css_font_face_descriptors: CSSFontFaceDescriptors,
+        initiator: WebFontLoadInitiator,
+        sources: Vec<Source>,
+        local_fonts: HashMap<Atom, Option<FontTemplateRef>>,
+    ) -> WebFontDownloadState {
+        match initiator {
+            WebFontLoadInitiator::Stylesheet(ref stylesheet, _) => {
+                font_context
+                    .web_fonts
+                    .write()
+                    .handle_web_font_load_started_for_stylesheet(stylesheet);
+            },
+            WebFontLoadInitiator::Script(_) => {
+                font_context
+                    .web_fonts
+                    .write()
+                    .handle_web_font_load_started_for_script();
+            },
+        };
+        let core_resource_thread = font_context.resource_threads.lock().clone();
+        WebFontDownloadState {
+            webview_id,
+            css_font_face_descriptors,
+            remaining_sources: sources,
+            core_resource_thread,
+            local_fonts,
+            font_context,
+            initiator,
+        }
+    }
+
+    fn handle_web_font_load_success(self, new_template: FontTemplate) {
+        let family_name = self.css_font_face_descriptors.family_name.clone();
+        match self.initiator {
+            WebFontLoadInitiator::Stylesheet(ref stylesheet, ref callback) => {
+                let not_cancelled = self
+                    .font_context
+                    .web_fonts
+                    .write()
+                    .handle_web_font_loaded_for_stylesheet(stylesheet, family_name, new_template);
+                self.font_context
+                    .invalidate_font_groups_after_web_font_load();
+                callback(not_cancelled);
+            },
+            WebFontLoadInitiator::Script(callback) => {
+                self.font_context
+                    .web_fonts
+                    .write()
+                    .handle_web_font_load_finished_for_script();
+                callback(family_name, Some(new_template));
+            },
+        }
+    }
+
+    fn handle_web_font_load_failure(self) {
+        let family_name = self.css_font_face_descriptors.family_name.clone();
+        match self.initiator {
+            WebFontLoadInitiator::Stylesheet(ref stylesheet, ref callback) => {
+                self.font_context
+                    .web_fonts
+                    .write()
+                    .handle_web_font_load_failed_for_stylesheet(stylesheet);
+                callback(false);
+            },
+            WebFontLoadInitiator::Script(callback) => {
+                self.font_context
+                    .web_fonts
+                    .write()
+                    .handle_web_font_load_finished_for_script();
+                callback(family_name, None);
+            },
+        }
+    }
+
+    fn font_load_cancelled(&self) -> bool {
+        match self.initiator {
+            WebFontLoadInitiator::Stylesheet(ref stylesheet, _) => self
+                .font_context
+                .web_fonts
+                .read()
+                .font_load_cancelled_for_stylesheet(stylesheet),
+            WebFontLoadInitiator::Script(_) => false,
+        }
+    }
 }
 
 pub trait FontContextWebFontMethods {
@@ -375,8 +486,20 @@ pub trait FontContextWebFontMethods {
         stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        finished_callback: WebFontLoadFinishedCallback,
+        finished_callback: StylesheetWebFontLoadFinishedCallback,
     ) -> usize;
+    fn load_web_font_for_script(
+        &self,
+        webview_id: Option<WebViewId>,
+        source_list: SourceList,
+        descriptors: CSSFontFaceDescriptors,
+        finished_callback: ScriptWebFontLoadFinishedCallback,
+    );
+    fn add_template_to_font_context(
+        &self,
+        family_name: LowercaseFontFamilyName,
+        font_template: FontTemplate,
+    );
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet);
     fn collect_unused_webrender_resources(&self, all: bool)
         -> (Vec<FontKey>, Vec<FontInstanceKey>);
@@ -389,7 +512,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        finished_callback: WebFontLoadFinishedCallback,
+        finished_callback: StylesheetWebFontLoadFinishedCallback,
     ) -> usize {
         let mut number_loading = 0;
         for rule in stylesheet.effective_rules(device, guard) {
@@ -402,57 +525,17 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                 continue;
             };
 
-            let sources: Vec<Source> = font_face
-                .sources()
-                .0
-                .iter()
-                .rev()
-                .filter(is_supported_web_font_source)
-                .cloned()
-                .collect();
-            if sources.is_empty() {
-                continue;
-            }
-
-            // Fetch all local fonts first, beacause if we try to fetch them later on during the process of
-            // loading the list of web font `src`s we may be running in the context of the router thread, which
-            // means we won't be able to seend IPC messages to the FontCacheThread.
-            //
-            // TODO: This is completely wrong. The specification says that `local()` font-family should match
-            // against full PostScript names, but this is matching against font family names. This works...
-            // sometimes.
-            let mut local_fonts = HashMap::new();
-            for source in sources.iter() {
-                if let Source::Local(family_name) = source {
-                    local_fonts
-                        .entry(family_name.name.clone())
-                        .or_insert_with(|| {
-                            let family = SingleFontFamily::FamilyName(FamilyName {
-                                name: family_name.name.clone(),
-                                syntax: FontFamilyNameSyntax::Quoted,
-                            });
-                            self.system_font_service_proxy
-                                .find_matching_font_templates(None, &family)
-                                .first()
-                                .cloned()
-                        });
-                }
-            }
+            let css_font_face_descriptors = rule.into();
+            let completion_handler =
+                WebFontLoadInitiator::Stylesheet(stylesheet.clone(), finished_callback.clone());
 
             number_loading += 1;
-            self.web_fonts
-                .write()
-                .handle_web_font_load_started_for_stylesheet(stylesheet);
-
-            self.process_next_web_font_source(WebFontDownloadState {
-                webview_id,
-                css_font_face_descriptors: Arc::new(rule.into()),
-                remaining_sources: sources,
-                finished_callback: finished_callback.clone(),
-                core_resource_thread: self.resource_threads.lock().clone(),
-                local_fonts: Arc::new(local_fonts),
-                stylesheet: stylesheet.clone(),
-            });
+            self.start_loading_one_web_font(
+                Some(webview_id),
+                font_face.sources(),
+                css_font_face_descriptors,
+                completion_handler,
+            );
         }
 
         number_loading
@@ -553,15 +636,84 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             removed_instance_keys.into_iter().collect(),
         )
     }
+
+    fn load_web_font_for_script(
+        &self,
+        webview_id: Option<WebViewId>,
+        sources: SourceList,
+        descriptors: CSSFontFaceDescriptors,
+        finished_callback: ScriptWebFontLoadFinishedCallback,
+    ) {
+        let completion_handler = WebFontLoadInitiator::Script(finished_callback);
+        self.start_loading_one_web_font(webview_id, &sources, descriptors, completion_handler);
+    }
+
+    fn add_template_to_font_context(
+        &self,
+        family_name: LowercaseFontFamilyName,
+        new_template: FontTemplate,
+    ) {
+        self.web_fonts
+            .write()
+            .add_new_template(family_name, new_template);
+        self.invalidate_font_groups_after_web_font_load();
+    }
 }
 
 impl FontContext {
+    fn start_loading_one_web_font(
+        self: &Arc<FontContext>,
+        webview_id: Option<WebViewId>,
+        source_list: &SourceList,
+        css_font_face_descriptors: CSSFontFaceDescriptors,
+        completion_handler: WebFontLoadInitiator,
+    ) {
+        let sources: Vec<Source> = source_list
+            .0
+            .iter()
+            .rev()
+            .filter(Self::is_supported_web_font_source)
+            .cloned()
+            .collect();
+
+        // Fetch all local fonts first, beacause if we try to fetch them later on during the process of
+        // loading the list of web font `src`s we may be running in the context of the router thread, which
+        // means we won't be able to seend IPC messages to the FontCacheThread.
+        //
+        // TODO: This is completely wrong. The specification says that `local()` font-family should match
+        // against full PostScript names, but this is matching against font family names. This works...
+        // sometimes.
+        let mut local_fonts = HashMap::new();
+        for source in sources.iter() {
+            if let Source::Local(family_name) = source {
+                local_fonts
+                    .entry(family_name.name.clone())
+                    .or_insert_with(|| {
+                        let family = SingleFontFamily::FamilyName(FamilyName {
+                            name: family_name.name.clone(),
+                            syntax: FontFamilyNameSyntax::Quoted,
+                        });
+                        self.system_font_service_proxy
+                            .find_matching_font_templates(None, &family)
+                            .first()
+                            .cloned()
+                    });
+            }
+        }
+
+        self.process_next_web_font_source(WebFontDownloadState::new(
+            webview_id,
+            self.clone(),
+            css_font_face_descriptors,
+            completion_handler,
+            sources,
+            local_fonts,
+        ));
+    }
+
     fn process_next_web_font_source(self: &Arc<FontContext>, mut state: WebFontDownloadState) {
         let Some(source) = state.remaining_sources.pop() else {
-            self.web_fonts
-                .write()
-                .handle_web_font_failed_to_load(&state);
-            self.handle_web_font_load_finished(&state.finished_callback, false);
+            state.handle_web_font_load_failure();
             return;
         };
 
@@ -581,17 +733,13 @@ impl FontContext {
                         let template = FontTemplate::new_for_local_web_font(
                             local_template.clone(),
                             &state.css_font_face_descriptors,
-                            state.stylesheet.clone(),
+                            state.initiator.stylesheet().cloned(),
                         )
                         .ok()?;
                         Some(template)
                     })
                 {
-                    let not_cancelled = self
-                        .web_fonts
-                        .write()
-                        .handle_web_font_loaded(&state, new_template);
-                    self.handle_web_font_load_finished(&state.finished_callback, not_cancelled);
+                    state.handle_web_font_load_success(new_template);
                 } else {
                     this.process_next_web_font_source(state);
                 }
@@ -600,12 +748,29 @@ impl FontContext {
     }
 }
 
+pub type ScriptWebFontLoadFinishedCallback =
+    Box<dyn FnOnce(LowercaseFontFamilyName, Option<FontTemplate>) + Send>;
+
+pub(crate) enum WebFontLoadInitiator {
+    Stylesheet(DocumentStyleSheet, StylesheetWebFontLoadFinishedCallback),
+    Script(ScriptWebFontLoadFinishedCallback),
+}
+
+impl WebFontLoadInitiator {
+    pub(crate) fn stylesheet(&self) -> Option<&DocumentStyleSheet> {
+        match self {
+            Self::Stylesheet(stylesheet, _) => Some(stylesheet),
+            Self::Script(_) => None,
+        }
+    }
+}
+
 struct RemoteWebFontDownloader {
-    font_context: Arc<FontContext>,
+    state: Option<WebFontDownloadState>,
     url: ServoArc<Url>,
     web_font_family_name: LowercaseFontFamilyName,
-    response_valid: Mutex<bool>,
-    response_data: Mutex<Vec<u8>>,
+    response_valid: bool,
+    response_data: Vec<u8>,
 }
 
 enum DownloaderResponseResult {
@@ -628,23 +793,21 @@ impl RemoteWebFontDownloader {
         };
 
         // FIXME: This shouldn't use NoReferrer, but the current documents url
-        let request = RequestBuilder::new(
-            Some(state.webview_id),
-            url.clone().into(),
-            Referrer::NoReferrer,
-        )
-        .destination(Destination::Font);
-
-        debug!("Loading @font-face {} from {}", web_font_family_name, url);
-        let downloader = Self {
-            font_context,
-            url,
-            web_font_family_name,
-            response_valid: Mutex::new(false),
-            response_data: Mutex::default(),
-        };
+        let request =
+            RequestBuilder::new(state.webview_id, url.clone().into(), Referrer::NoReferrer)
+                .destination(Destination::Font);
 
         let core_resource_thread_clone = state.core_resource_thread.clone();
+
+        debug!("Loading @font-face {} from {}", web_font_family_name, url);
+        let mut downloader = Self {
+            url,
+            web_font_family_name,
+            response_valid: false,
+            response_data: Vec::new(),
+            state: Some(state),
+        };
+
         fetch_async(
             &core_resource_thread_clone,
             request,
@@ -653,40 +816,42 @@ impl RemoteWebFontDownloader {
                 match downloader.handle_web_font_fetch_message(response_message) {
                     DownloaderResponseResult::InProcess => {},
                     DownloaderResponseResult::Finished => {
-                        if !downloader.process_downloaded_font_and_signal_completion(&state) {
-                            downloader
-                                .font_context
-                                .process_next_web_font_source(state.clone())
+                        if !downloader.process_downloaded_font_and_signal_completion() {
+                            font_context.process_next_web_font_source(downloader.take_state())
                         }
                     },
-                    DownloaderResponseResult::Failure => downloader
-                        .font_context
-                        .process_next_web_font_source(state.clone()),
+                    DownloaderResponseResult::Failure => {
+                        font_context.process_next_web_font_source(downloader.take_state())
+                    },
                 }
             }),
         )
     }
 
+    fn take_state(&mut self) -> WebFontDownloadState {
+        self.state
+            .take()
+            .expect("must be non-None until download either succeeds or fails")
+    }
+
     /// After a download finishes, try to process the downloaded data, returning true if
     /// the font is added successfully to the [`FontContext`] or false if it isn't.
-    fn process_downloaded_font_and_signal_completion(&self, state: &WebFontDownloadState) -> bool {
-        if self
-            .font_context
-            .web_fonts
-            .read()
-            .font_load_cancelled_for_stylesheet(&state.stylesheet)
-        {
-            self.font_context
-                .handle_web_font_load_finished(&state.finished_callback, false);
+    fn process_downloaded_font_and_signal_completion(&mut self) -> bool {
+        let state = self
+            .state
+            .as_ref()
+            .expect("must be non-None until processing is completed");
+        if state.font_load_cancelled() {
+            self.take_state().handle_web_font_load_failure();
             // Returning true here prevents trying to load the next font on the source list.
             return true;
         }
 
-        let font_data = std::mem::take(&mut *self.response_data.lock());
+        let font_data = std::mem::take(&mut self.response_data);
         trace!(
-            "@font-face {} data={:?}",
+            "Downloaded @font-face {} ({} bytes)",
             self.web_font_family_name,
-            font_data
+            font_data.len()
         );
 
         let font_data = match fontsan::process(&font_data) {
@@ -705,6 +870,8 @@ impl RemoteWebFontDownloader {
         let Ok(handle) = PlatformFont::new_from_data(identifier, &font_data, None) else {
             return false;
         };
+
+        let state = self.take_state();
         let mut descriptor = handle.descriptor();
         descriptor
             .override_values_with_css_font_template_descriptors(&state.css_font_face_descriptors);
@@ -712,20 +879,16 @@ impl RemoteWebFontDownloader {
         let new_template = FontTemplate::new(
             FontIdentifier::Web(url),
             descriptor,
-            Some(state.stylesheet.clone()),
+            state.initiator.stylesheet().cloned(),
         );
-        self.font_context
+
+        state
+            .font_context
             .font_data
             .write()
             .insert(new_template.identifier.clone(), font_data);
 
-        let not_cancelled = self
-            .font_context
-            .web_fonts
-            .write()
-            .handle_web_font_loaded(state, new_template);
-        self.font_context
-            .handle_web_font_load_finished(&state.finished_callback, not_cancelled);
+        state.handle_web_font_load_success(new_template);
 
         // If the load was canceled above, then we still want to return true from this function in
         // order to halt any attempt to load sources that come later on the source list.
@@ -733,7 +896,7 @@ impl RemoteWebFontDownloader {
     }
 
     fn handle_web_font_fetch_message(
-        &self,
+        &mut self,
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
@@ -746,7 +909,7 @@ impl RemoteWebFontDownloader {
                     self.web_font_family_name,
                     meta_result.is_ok()
                 );
-                *self.response_valid.lock() = meta_result.is_ok();
+                self.response_valid = meta_result.is_ok();
                 DownloaderResponseResult::InProcess
             },
             FetchResponseMsg::ProcessResponseChunk(_, new_bytes) => {
@@ -755,8 +918,8 @@ impl RemoteWebFontDownloader {
                     self.web_font_family_name,
                     new_bytes
                 );
-                if *self.response_valid.lock() {
-                    self.response_data.lock().extend(new_bytes)
+                if self.response_valid {
+                    self.response_data.extend(new_bytes)
                 }
                 DownloaderResponseResult::InProcess
             },
@@ -766,7 +929,7 @@ impl RemoteWebFontDownloader {
                     self.web_font_family_name,
                     response
                 );
-                if response.is_err() || !*self.response_valid.lock() {
+                if response.is_err() || !self.response_valid {
                     return DownloaderResponseResult::Failure;
                 }
                 DownloaderResponseResult::Finished
@@ -803,36 +966,4 @@ impl Hash for FontGroupCacheKey {
     {
         self.style.hash.hash(hasher)
     }
-}
-
-fn is_supported_web_font_source(source: &&Source) -> bool {
-    let url_source = match source {
-        Source::Url(ref url_source) => url_source,
-        Source::Local(_) => return true,
-    };
-    let format_hint = match url_source.format_hint {
-        Some(ref format_hint) => format_hint,
-        None => return true,
-    };
-
-    if matches!(
-        format_hint,
-        FontFaceSourceFormat::Keyword(
-            FontFaceSourceFormatKeyword::Truetype |
-                FontFaceSourceFormatKeyword::Opentype |
-                FontFaceSourceFormatKeyword::Woff |
-                FontFaceSourceFormatKeyword::Woff2
-        )
-    ) {
-        return true;
-    }
-
-    if let FontFaceSourceFormat::String(string) = format_hint {
-        return string == "truetype" ||
-            string == "opentype" ||
-            string == "woff" ||
-            string == "woff2";
-    }
-
-    false
 }

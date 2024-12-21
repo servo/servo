@@ -594,7 +594,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             last_event_id: String::new(),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
-        let listener = NetworkListener {
+        let mut listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.task_manager().networking_task_source().into(),
         };
