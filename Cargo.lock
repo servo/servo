@@ -6053,6 +6053,7 @@ dependencies = [
  "tempfile",
  "tendril",
  "time 0.3.36",
+ "timers",
  "tracing",
  "unicode-bidi",
  "unicode-segmentation",
@@ -7303,6 +7304,18 @@ name = "time-point"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06535c958d6abe68dc4b4ef9e6845f758fc42fe463d0093d0aca40254f03fb14"
+
+[[package]]
+name = "timers"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "crossbeam-channel",
+ "log",
+ "malloc_size_of_derive",
+ "serde",
+ "servo_malloc_size_of",
+]
 
 [[package]]
 name = "tiny-skia"

@@ -125,6 +125,7 @@ pub enum MixedMessage {
     ServiceWorker(ServiceWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(ServiceWorkerControlMsg),
+    Timer,
 }
 
 #[derive(Clone, JSTraceable)]
@@ -210,6 +211,10 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
 
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::Devtools(msg)
+    }
+
+    fn from_timer_msg() -> MixedMessage {
+        MixedMessage::Timer
     }
 
     fn control_receiver(&self) -> &Receiver<ServiceWorkerControlMsg> {
@@ -433,6 +438,7 @@ impl ServiceWorkerGlobalScope {
             MixedMessage::Control(ServiceWorkerControlMsg::Exit) => {
                 return false;
             },
+            MixedMessage::Timer => {},
         }
         true
     }
