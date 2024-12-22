@@ -40,6 +40,7 @@ jobs:
           path: ${{ inputs.profile }}-binary-macos
       - name: unPackage binary
         run: |
+          tar -tvf ${{ inputs.profile }}-binary-macos/target.tar.gz
           tar -xzf ${{ inputs.profile }}-binary-macos/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -51,7 +52,7 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: File size
         run: |
-          ./etc/ci/bencher.py filesize ${{ inputs.profile }}-binary-macos/servo-tech-demo.dmg macos-${{ inputs.profile }} --bmf-output size.json
+          ./etc/ci/bencher.py filesize target/${{ inputs.profile }}/servo macos-${{ inputs.profile }} --bmf-output size.json
       # set options
       - name: Set bencher opts for PRs (label try run)
         if: github.event_name == 'pull_request_target'
