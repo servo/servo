@@ -19,7 +19,7 @@ def size(args):
     print(size)
     with open(args.bmf_output, 'w', encoding='utf-8') as f:
         json.dump({
-            'servo': {
+            args.binary: {
                 'file-size': {
                     'value': float(size),
                 }

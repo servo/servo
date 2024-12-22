@@ -212,7 +212,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  'bencher': False,
+                                  'bencher': True,
                                   "wpt_args": ""
                               },
                               {
@@ -221,7 +221,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  'bencher': False,
+                                  'bencher': True,
                                   "wpt_args": ""
                               },
                               {
