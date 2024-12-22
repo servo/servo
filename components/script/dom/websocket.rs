@@ -200,21 +200,37 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
-        // Steps 1-2.
-        let url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
+        // Step 1. Let baseURL be this's relevant settings object's API base URL.
+        // Step 2. Let urlRecord be the result of applying the URL parser to url with baseURL.
+        // Step 3. If urlRecord is failure, then throw a "SyntaxError" DOMException.
+        let mut url_record = ServoUrl::parse(&url).or(Err(Error::Syntax))?;
 
-        // Step 3.
+        // Step 4. If urlRecord’s scheme is "http", then set urlRecord’s scheme to "ws".
+        // Step 5. Otherwise, if urlRecord’s scheme is "https", set urlRecord’s scheme to "wss".
+        // Step 6. If urlRecord’s scheme is not "ws" or "wss", then throw a "SyntaxError" DOMException.
         match url_record.scheme() {
+            "http" => {
+                url_record
+                    .as_mut_url()
+                    .set_scheme("ws")
+                    .expect("Can't set scheme from http to ws");
+            },
+            "https" => {
+                url_record
+                    .as_mut_url()
+                    .set_scheme("wss")
+                    .expect("Can't set scheme from https to wss");
+            },
             "ws" | "wss" => {},
             _ => return Err(Error::Syntax),
         }
 
-        // Step 4.
+        // Step 7. If urlRecord’s fragment is non-null, then throw a "SyntaxError" DOMException.
         if url_record.fragment().is_some() {
             return Err(Error::Syntax);
         }
 
-        // Step 5.
+        // Step 8. If protocols is a string, set protocols to a sequence consisting of just that string.
         let protocols = protocols.map_or(vec![], |p| match p {
             StringOrStringSequence::String(string) => vec![string.into()],
             StringOrStringSequence::StringSequence(seq) => {
@@ -222,7 +238,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             },
         });
 
-        // Step 6.
+        // Step 9. If any of the values in protocols occur more than once or otherwise fail to match the requirements
+        // for elements that comprise the value of `Sec-WebSocket-Protocol` fields as defined by The WebSocket protocol,
+        // then throw a "SyntaxError" DOMException.
         for (i, protocol) in protocols.iter().enumerate() {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
@@ -250,10 +268,10 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
         ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
+        // Step 12. Establish a WebSocket connection given urlRecord, protocols, and client.
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
-        // Step 8.
         let request = RequestBuilder::new(url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .mode(RequestMode::WebSocket { protocols });
@@ -300,7 +318,6 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             }),
         );
 
-        // Step 7.
         Ok(ws)
     }
 
