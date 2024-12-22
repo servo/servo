@@ -101,17 +101,11 @@ pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchContext) {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
-    context
-        .timing
-        .lock()
-        .unwrap()
-        .set_attribute(ResourceAttribute::FetchStart);
-    context
-        .timing
-        .lock()
-        .unwrap()
-        .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
-
+    {
+        let mut timing_guard = context.timing.lock().unwrap();
+        timing_guard.set_attribute(ResourceAttribute::FetchStart);
+        timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
+    }
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
 }
 
