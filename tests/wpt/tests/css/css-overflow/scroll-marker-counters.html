@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::scroll-marker counters</title>
+<link rel="match" href="scroll-marker-counters-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<style>
+  #scroller {
+    overflow: hidden;
+    scroll-marker-group: after;
+    counter-reset: item;
+    height: 100px;
+    width: 100px;
+  }
+
+  #scroller::scroll-marker-group {
+    border: 3px solid black;
+    display: flex;
+    height: 100px;
+    width: 300px;
+  }
+
+  .item {
+    height: 100px;
+    width: 100px;
+  }
+
+  .item::scroll-marker {
+    content: counter(item);
+    counter-increment: item;
+    background-color: green;
+    border-radius: 50%;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<div id="scroller">
+  <div class="item">1</div>
+  <div class="item">2</div>
+  <div class="item">3</div>
+</div>

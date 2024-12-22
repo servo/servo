@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Crash with negative @page margin when page margin boxes are defined.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/384959130">
+<style>
+  @page {
+    margin: -10px;
+
+    @bottom-right-corner {
+      content: "";
+      width: 30px;
+      height: 30px;
+      margin: 10px;
+    }
+
+    @right-middle {
+      content: "";
+    }
+  }
+</style>

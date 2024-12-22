@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Scroll marker group on fieldset</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="help" href="https://html.spec.whatwg.org/#anonymous-fieldset-content-box">
+<style>
+  #scroller {
+    overflow: hidden;
+    height: 100px;
+    padding: 0;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 200px;
+    background: gray;
+  }
+
+  #scroller>div::scroll-marker {
+    display: block;
+    width: 25px;
+    height: 50%;
+    content: "";
+    background: yellow;
+  }
+</style>
+<fieldset id="scroller">
+  <legend>Legend</legend>
+  <div style="height:100px;">first</div>
+  <div style="height:100px;">second</div>
+  <div style="height:100px;">third</div>
+  <div style="height:100px;">fourth</div>
+</fieldset>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  promise_test(async t => {
+    assert_equals(scroller.scrollTop, 0);
+    await new test_driver.Actions().pointerMove(60, 10).pointerDown().pointerUp().send();
+    assert_equals(scroller.scrollTop, 200);
+  }, "Click on third scroll marker");
+</script>

@@ -1,0 +1,83 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const worklet = await sharedStorage.createWorklet('resources/simple-module.js');
+
+  const ancestor_key = token();
+  const url0 = generateURL("/shared-storage/resources/frame0.html",
+                           [ancestor_key]);
+  const url1 = generateURL("/shared-storage/resources/frame1.html",
+                           [ancestor_key]);
+
+  // Invoke `selectURL()` to perform the following steps:
+  // 1. Acquires the lock.
+  // 2. Reads the current value at the given key.
+  // 3. Waits for 500ms.
+  // 4. Sets the shared storage value to the read value appended with the given letter.
+  // 5. Releases the lock.
+  //
+  // After 100ms, send a fetch() request. The response sends the
+  // `Shared-Storage-Write` header that:
+  // - Acquires the same named lock via the batch `options`
+  // - Executes two `append` methods, each appending the same letter.
+  //
+  // Expected behavior: After both of them finish, the value at the given key
+  // should contain the letter repeated three times.
+  //
+  // This demonstrates that:
+  // 1. The `withLock` option is effective, preventing the header batch update
+  //    interfering with the "get and set" operation. If the lock were not used,
+  //    the final value would likely be a single letter.
+  // 2. The header batch update correctly executes all `append` methods within
+  //    the batch.
+  //
+  // Note: This test remains valid even if the header batch update happens
+  // outside the critical section protected by the lock within the worklet. The
+  // test effectively demonstrates mutual exclusion as long as there's a
+  // reasonable chance for the header batch update to occur while the worklet is
+  // still running.
+  const select_url_result = await worklet.selectURL(
+      "get-wait-set-within-lock",
+      [{url: url0}, {url: url1}],
+      {data: {'key': 'key',
+              'lock_name': 'lock1',
+              'append_letter': 'a'},
+      resolveToConfig: true});
+
+  // Busy wait for 100ms.
+  const startWaitTime = Date.now();
+  while (Date.now() - startWaitTime < 100) {}
+
+  // After 100ms, send a fetch() request. The response sends the
+  // `Shared-Storage-Write` header that:
+  // - Acquires the same named lock via the batch `options`
+  // - Executes two `append` methods, each appending the same letter.
+  const rawUpdatesHeader = 'append;key=key;value=a, append;key=key;value=a, options;with_lock=lock1';
+  const updatesHeader = encodeURIComponent(rawUpdatesHeader);
+  const updatesUrl =
+    `/shared-storage/resources/shared-storage-write.py?write=${updatesHeader}`;
+
+  const response = await fetch(updatesUrl, {sharedStorageWritable: true});
+  const sharedStorageWritableHeader = await response.text();
+  assert_equals(sharedStorageWritableHeader, "?1");
+
+  attachFencedFrame(select_url_result, 'opaque-ads');
+  const result = await nextValueFromServer(ancestor_key);
+  assert_equals(result, "frame1_loaded");
+
+  await verifyKeyValueForOrigin('key', 'aaa', location.origin);
+
+  await deleteKeyForOrigin('key', location.origin);
+}, 'Test for batch withLock option in the Shared-Storage-Write response header');
+
+</script>
+</body>

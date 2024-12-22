@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Filter Effects Test: feImage referencing an data URL</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feImageElement">
+<link rel="match" href="reference/svg-feimage-ref.html">
+<p>The test passes if you see a black square and no red.</p>
+<svg width="500" height="500">
+  <defs>
+    <filter id="filter" x="0" y="0" width="1" height="1">
+      <feImage href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'>
+                                          <rect y='150' width='300' height='150'/>
+                                        </svg>"
+               preserveAspectRatio="none"/>
+    </filter>
+  </defs>
+  <rect width="300" height="151" fill="black"/>
+  <rect x="1" y="151" width="298" height="148" fill="red"/>
+  <rect width="300" height="300" fill="red" filter="url(#filter)"/>
+</svg>

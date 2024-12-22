@@ -67,6 +67,8 @@ if (is_harness_page) {
     });
     await load_event_in_popup;
 
+    t.add_cleanup(() => popup.close());
+
     // Pagehide is fired after capturing the outgoing state.
     popup.onpagehide = () => popup.resizeTo(popup_new_size, popup_new_size);
 

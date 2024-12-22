@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: scroll-marker-group dynamic change</title>
+<link rel="match" href="scroll-marker-group-005-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<style>
+  div.scroll-marker-group-before {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+
+  div.scroll-marker-group-after {
+    overflow: auto;
+    scroll-marker-group: after;
+  }
+
+  div::before {
+    background: red;
+    content: "";
+    border-radius: 50%;
+    display: flex;
+    height: 30px;
+    width: 30px;
+  }
+
+  div::after {
+    background: yellow;
+    content: "";
+    border-radius: 50%;
+    display: flex;
+    height: 30px;
+    width: 30px;
+  }
+
+  div::scroll-marker-group {
+    background: green;
+    border-radius: 50%;
+    display: flex;
+    height: 30px;
+    width: 30px;
+  }
+</style>
+<p>Test passes if there are <strong>three circles filled red, yellow, green</strong>.
+<div id="target"></div>
+<script>
+  document.documentElement.offsetTop;
+  target.className = "scroll-marker-group-before";
+  document.documentElement.offsetTop;
+  target.className = "scroll-marker-group-after";
+  document.documentElement.offsetTop;
+  target.className = "";
+  document.documentElement.offsetTop;
+  target.className = "scroll-marker-group-before";
+  target.className = "scroll-marker-group-after";
+</script>

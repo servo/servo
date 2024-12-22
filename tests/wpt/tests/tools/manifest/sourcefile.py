@@ -6,7 +6,7 @@ from fnmatch import fnmatch
 from io import BytesIO
 from typing import (Any, BinaryIO, Callable, Deque, Dict, Iterable, List,
                     Optional, Pattern, Set, Text, Tuple, TypedDict, Union, cast)
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urlparse, urljoin
 
 try:
     from xml.etree import cElementTree as ElementTree
@@ -723,7 +723,14 @@ class SourceFile:
         """List of ElementTree Elements corresponding to nodes representing a
         testdriver.js script"""
         assert self.root is not None
-        return self.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src='/resources/testdriver.js']")
+        # `xml.etree.ElementTree.findall` has a limited support of xPath, so
+        # explicit filter is required.
+        return [node for node in
+                self.root.findall(".//{http://www.w3.org/1999/xhtml}script")
+                if node.attrib.get('src',
+                                   "") == '/resources/testdriver.js' or
+                node.attrib.get('src', "").startswith(
+                    '/resources/testdriver.js?')]
 
     @cached_property
     def has_testdriver(self) -> Optional[bool]:
@@ -732,6 +739,46 @@ class SourceFile:
         if self.root is None:
             return None
         return bool(self.testdriver_nodes)
+
+    def ___get_testdriver_include_path(self) -> Optional[str]:
+        if self.script_metadata:
+            for (meta, content) in self.script_metadata:
+                if meta.strip() == 'script' and (
+                        content == '/resources/testdriver.js' or content.startswith(
+                        '/resources/testdriver.js?')):
+                    return content.strip()
+
+        if self.root is None:
+            return None
+
+        for node in self.testdriver_nodes:
+            if "src" in node.attrib:
+                return node.attrib.get("src")
+
+        return None
+
+    @cached_property
+    def testdriver_features(self) -> Optional[List[Text]]:
+        """
+        List of requested testdriver features.
+        """
+
+        testdriver_include_url = self.___get_testdriver_include_path()
+
+        if testdriver_include_url is None:
+            return None
+
+        # Parse the URL
+        parsed_url = urlparse(testdriver_include_url)
+        # Extract query parameters
+        query_params = parse_qs(parsed_url.query)
+        # Get the values for the 'feature' parameter
+        feature_values = query_params.get('feature', [])
+
+        if len(feature_values) > 0:
+            return feature_values
+
+        return None
 
     @cached_property
     def reftest_nodes(self) -> List[ElementTree.Element]:
@@ -986,6 +1033,7 @@ class SourceFile:
                     global_variant_url(self.rel_url, suffix) + variant,
                     timeout=self.timeout,
                     pac=self.pac,
+                    testdriver_features=self.testdriver_features,
                     jsshell=jsshell,
                     script_metadata=self.script_metadata
                 )
@@ -1004,6 +1052,7 @@ class SourceFile:
                     test_url + variant,
                     timeout=self.timeout,
                     pac=self.pac,
+                    testdriver_features=self.testdriver_features,
                     script_metadata=self.script_metadata
                 )
                 for variant in self.test_variants
@@ -1020,6 +1069,7 @@ class SourceFile:
                     test_url + variant,
                     timeout=self.timeout,
                     pac=self.pac,
+                    testdriver_features=self.testdriver_features,
                     script_metadata=self.script_metadata
                 )
                 for variant in self.test_variants
@@ -1047,6 +1097,7 @@ class SourceFile:
                     url,
                     timeout=self.timeout,
                     pac=self.pac,
+                    testdriver_features=self.testdriver_features,
                     testdriver=testdriver,
                     script_metadata=self.script_metadata
                 ))

@@ -6,38 +6,38 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
-const is_new_page = params.has('new');
 
-if (!is_new_page) {
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
+
+    assert_equals(event.viewTransition, null, "ViewTransition must not be triggered.");
+  });
+  break;
+case "old":
   onload = () => {
     const host = document.querySelector("#host");
     const shadow = host.attachShadow({ mode: "open" });
+    // Can't use the opt-in from shadow DOM on the new page since the opt-in must
+    // be effective by the time the <body> element is parsed and only elements in
+    // <body> can be a shadow root.
     const style = document.createElement("style");
     style.textContent = `@view-transition {
       navigation: auto;
     }`;
     shadow.appendChild(style);
     requestAnimationFrame(() => requestAnimationFrame(() => {
-        location.replace(location.href + '?new');
+        location.replace('?mode=new');
     }));
   };
-} else {
-  // Can't use the opt-in from shadow DOM on the new page since the opt-in must
-  // be effective by the time the <body> element is parsed and only elements in
-  // <body> can be a shadow root.
-  const style = document.createElement("style");
-  style.textContent = `@view-transition {
-    navigation: auto;
-  }`;
-  document.head.appendChild(style);
-  promise_test(() => {
-    return new Promise((resolve) => {
-        addEventListener('pagereveal', resolve);
-    }).then(event => {
-        assert_equals(event.viewTransition, null,
-            "ViewTransition must not be triggered.");
-    });
-  });
+case "new":
+  onpagereveal = e => window.opener.did_reveal(e);
+  break;
 }
 </script>
 <div id="host"></div>

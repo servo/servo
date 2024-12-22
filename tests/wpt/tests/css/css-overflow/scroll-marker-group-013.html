@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Scroll marker group on multicol fieldset</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="help" href="https://html.spec.whatwg.org/#anonymous-fieldset-content-box">
+<link rel="match" href="scroll-marker-group-013-ref.html">
+<style>
+  #scroller {
+    overflow: hidden;
+    columns: 2;
+    column-fill: auto;
+    padding: 0;
+    gap: 0;
+    width: 400px;
+    height: 100px;
+    scroll-marker-group: before;
+  }
+
+  #scroller::scroll-marker-group {
+    display: flex;
+    height: 200px;
+    background: gray;
+  }
+
+  #scroller>div::scroll-marker {
+    display: block;
+    width: 25px;
+    height: 50%;
+    content: "";
+    background: yellow;
+  }
+
+  fieldset {
+    border: 3px solid black;
+  }
+</style>
+<p>There should be a yellow square inside a gray box below, and below that, a
+  fieldset with a legend. The text "first" and "second" should be seen
+  inside.</p>
+<fieldset id="scroller">
+  <legend>Legend</legend>
+  <div style="break-before:column;">first</div>
+  <div style="break-before:column;">second</div>
+  <div style="break-before:column;">third</div>
+  <div style="break-before:column;">fourth</div>
+</fieldset>

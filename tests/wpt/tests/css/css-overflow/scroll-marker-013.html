@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>::scroll-marker in inline formatting context</title>
+<link rel="help" href="https://issues.chromium.org/issues/376834376">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  #container {
+    font: 20px/20px Ahem;
+    overflow: auto;
+    width: 300px;
+    height: 100px;
+    scroll-marker-group: before;
+    background: yellow;
+  }
+
+  #container::scroll-marker-group {
+    display: block;
+    height: 20px;
+    background: cyan;
+  }
+
+  #container>* {
+    height: 100px;
+  }
+
+  #container>*::scroll-marker {
+    content: "x";
+  }
+</style>
+<div id="container">
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div></div>
+</div>
+
+<script>
+  function sendClick(x) {
+    return new test_driver.Actions()
+      .pointerMove(x, 10)
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+
+  promise_test(async t => {
+    await sendClick(170);
+    assert_equals(container.scrollTop, 800);
+  }, "Scroll last item into view");
+  promise_test(async t => {
+    await sendClick(130);
+    assert_equals(container.scrollTop, 600);
+  }, "Scroll seventh item into view");
+</script>

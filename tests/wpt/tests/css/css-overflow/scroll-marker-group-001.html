@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker-group box creation</title>
+<link rel="match" href="scroll-marker-group-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<style>
+  div {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+
+  div::scroll-marker-group {
+    background: green;
+    display: flex;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<p>Test passes if there is a <strong>filled green rectangle</strong>.
+<div></div>

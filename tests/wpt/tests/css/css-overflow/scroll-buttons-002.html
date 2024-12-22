@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-button()s style invalidation</title>
+<link rel="match" href="scroll-buttons-001-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+  :root {
+    --scroll-buttons-background: red;
+  }
+
+  div::scroll-button(inline-start) {
+    content: "";
+    background: var(--scroll-buttons-background);
+    display: flex;
+    height: 50px;
+    width: 100px;
+    border: none;
+  }
+
+  div::scroll-button(down) {
+    content: "";
+    background: var(--scroll-buttons-background);
+    display: flex;
+    height: 50px;
+    width: 100px;
+    border: none;
+  }
+</style>
+<p>Test passes if there is a <strong>filled green rectangle</strong>.
+<div></div>
+<script>
+  document.documentElement.offsetTop;
+  document.documentElement.style.setProperty('--scroll-buttons-background', 'green');
+  document.documentElement.offsetTop;
+</script>

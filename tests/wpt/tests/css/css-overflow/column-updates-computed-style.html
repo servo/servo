@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: ::column updates computed style</title>
+<link rel="help" href="https://www.w3.org/TR/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.green-column::column { color: red; }
+.red-column::column { color: green; }
+</style>
+<div id="target"></div>
+<script>
+  test(() => {
+  target.classList.add("green-column");
+  assert_equals(getComputedStyle(target, "::column").color, "rgb(255, 0, 0)");
+  target.classList.remove("green-column");
+  target.classList.add("red-column");
+  assert_equals(getComputedStyle(target, "::column").color, "rgb(0, 128, 0)");
+  }, "::column updates computed style on its originating element");
+</script>

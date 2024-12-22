@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+
+<body>
+  <input id="input" type="text">
+</body>
+<script>
+  window.onfocus = function () {
+    document.getElementById("input").focus();
+    parent.postMessage("iframe focused", "*");
+  }
+</script>
