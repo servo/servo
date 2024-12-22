@@ -746,21 +746,17 @@ impl VirtualMethods for HTMLIFrameElement {
             s.post_connection_steps();
         }
 
-        let iframe = Trusted::new(self);
-        document_from_node(self).add_delayed_task(task!(IFrameDelayedInitialize: move || {
-            let this = iframe.root();
-            // https://html.spec.whatwg.org/multipage/#the-iframe-element
-            // "When an iframe element is inserted into a document that has
-            // a browsing context, the user agent must create a new
-            // browsing context, set the element's nested browsing context
-            // to the newly-created browsing context, and then process the
-            // iframe attributes for the "first time"."
-            if this.upcast::<Node>().is_connected_with_browsing_context() {
-                debug!("iframe bound to browsing context.");
-                this.create_nested_browsing_context(CanGc::note());
-                this.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
-            }
-        }));
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element
+        // "When an iframe element is inserted into a document that has
+        // a browsing context, the user agent must create a new
+        // browsing context, set the element's nested browsing context
+        // to the newly-created browsing context, and then process the
+        // iframe attributes for the "first time"."
+        if self.upcast::<Node>().is_connected_with_browsing_context() {
+            debug!("iframe bound to browsing context.");
+            self.create_nested_browsing_context(CanGc::note());
+            self.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
+        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
