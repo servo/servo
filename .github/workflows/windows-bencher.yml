@@ -35,7 +35,7 @@ jobs:
           path: release-binary-windows
       - name: unPackage binary
         run: |
-          tar -xzf release-binary-windows/target.tar.gz -C release-binary-windows/target
+          tar -xzf target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       # - name: Bootstrap dependencies
@@ -46,7 +46,7 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: File size
         run: |
-          ./etc/ci/bencher.py filesize release-binary-windows/target/release/servo --bmf-output size-windows.json
+          ./etc/ci/bencher.py filesize target/release/servo --bmf-output size.json
       # set options
       - name: Set bencher opts for PRs (label try run)
         if: github.event_name == 'pull_request_target'
@@ -76,6 +76,6 @@ jobs:
       - name: Send results
         continue-on-error: true
         run: |
-          bencher run --adapter json --file size-windows.json \
+          bencher run --adapter json --file size.json \
             --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed ubuntu-22.04 \
             $RUN_BENCHER_OPTIONS
