@@ -6,8 +6,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
-  const expectedUrl = location.href + '?new';
-
   const params = new URLSearchParams(location.search);
   // The page the popup navigates to.
   const is_new_page = params.has('new');
@@ -25,6 +23,7 @@
       onload = async () => {
         window.events = [];
         popup = window.open('?popup');
+        t.add_cleanup(() => popup.close());
       };
 
      const result = await new Promise(resolve => {

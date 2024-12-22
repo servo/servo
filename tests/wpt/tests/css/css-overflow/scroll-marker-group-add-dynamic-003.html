@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Re-attach ::scroll-marker-group after</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scrollable::scroll-marker-group {
+    display: block;
+    height: 50px;
+  }
+
+  #scrollable.extra::scroll-marker-group {
+    display: flex;
+  }
+
+  #scrollable>*::scroll-marker {
+    display: block;
+    width: 50px;
+    height: 50px;
+    content: "";
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width:100px; height:100px; background:red;">
+  <div id="scrollable" style="scroll-marker-group:after; height:50px; overflow:hidden; background:green;">
+    <div></div>
+    <div></div>
+  </div>
+</div>
+<script>
+  document.body.offsetTop;
+  scrollable.className = "extra";
+</script>

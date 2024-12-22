@@ -16,8 +16,10 @@
 // setup, and then have additional policies for the actual test cases.
 //
 // For the same reason we cannot use the otherwise preferred 'META: workers'
-// tag, since that test setup would be blocked as soon as trusted types
-// enforcement is enabled.
+// tag
+// (https://web-platform-tests.org/writing-tests/testharness.html#tests-for-other-or-multiple-globals-any-js),
+// since that test setup would be blocked as soon as trusted types enforcement
+// is enabled.
 const test_setup_policy = trustedTypes.createPolicy("hurrayanythinggoes", {
   createScriptURL: x => x});
 const test_url =

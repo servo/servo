@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>::column::scroll-marker on multicol fieldset</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #container {
+    overflow: hidden;
+    columns: 3;
+    column-fill: auto;
+    gap: 0;
+    height: 100px;
+    margin: 0;
+    border: 15px solid;
+    padding: 0;
+    scroll-marker-group: before;
+    background: yellow;
+  }
+  #container::scroll-marker-group {
+    display: flex;
+    justify-content: space-between;
+    height: 50px;
+    background: cyan;
+  }
+  #container::column::scroll-marker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    background: hotpink;
+    content: "*";
+  }
+</style>
+<div style="width:450px;">
+  <fieldset id="container">
+    <legend style="line-height:15px;">legend</legend>
+    <div style="height:500px;"></div>
+  </div>
+</div>
+<script>
+  function sendClick(x) {
+    return new test_driver.Actions()
+      .pointerMove(x, 10)
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+  promise_test(async t => {
+    await sendClick(110);
+    assert_equals(container.scrollLeft, 0);
+  }, "Scroll second column into view");
+  promise_test(async t => {
+    await sendClick(210);
+    assert_equals(container.scrollLeft, 0);
+  }, "Scroll third column into view");
+  promise_test(async t => {
+    await sendClick(310);
+    assert_equals(container.scrollLeft, 140);
+  }, "Scroll fourth column into view");
+  promise_test(async t => {
+    await sendClick(410);
+    assert_equals(container.scrollLeft, 280);
+  }, "Scroll fifth column into view");
+  promise_test(async t => {
+    await sendClick(310);
+    assert_equals(container.scrollLeft, 280);
+  }, "Scroll fourth column into view again");
+  promise_test(async t => {
+    await sendClick(210);
+    assert_equals(container.scrollLeft, 280);
+  }, "Scroll third column into view again");
+  promise_test(async t => {
+    await sendClick(110);
+    assert_equals(container.scrollLeft, 140);
+  }, "Scroll second column into view again");
+  promise_test(async t => {
+    await sendClick(10);
+    assert_equals(container.scrollLeft, 0);
+  }, "Scroll first column into view");
+</script>

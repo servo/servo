@@ -14,22 +14,27 @@
   }
 </style>
 <script>
-  const params = new URLSearchParams(location.search);
-  const is_initial_page = !params.has('new');
+const params = new URLSearchParams(location.search);
 
-  // This test navigates to itself with a changed query parameter. The test
-  // checks are performed on the navigated-to document.
-  if (is_initial_page) {
-    onload = () => {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        location.replace(location.href + '?new');
-      }));
-    };
-  } else {
-    promise_test(async () => {
-      const ev = await new Promise(
-        resolve => addEventListener('pagereveal', e => resolve(e)));
-      assert_equals(ev.viewTransition, null);
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
     });
-  }
+
+    assert_equals(event.viewTransition, null);
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal = e => window.opener.did_reveal(e);
+  break;
+}
 </script>

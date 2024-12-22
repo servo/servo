@@ -80,8 +80,8 @@ promise_test(async () => {
     'Clicking on an option element should update the <selectedcontent>.');
 
   selectedcontent.remove();
-  assert_equals(selectedcontent.innerHTML, '',
-    'Removing the <selectedcontent> from the <select> should make it clear its contents.');
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Removing the <selectedcontent> from the <select> should not make it clear its contents.');
   button.appendChild(selectedcontent);
   assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
     'Re-inserting the <selectedcontent> should make it update its contents.');
@@ -95,4 +95,79 @@ promise_test(async () => {
 
   // TODO(crbug.com/336844298): Add tests for mutation records during parsing
 }, 'The <selectedcontent> element should reflect the HTML contents of the selected <option>.');
+</script>
+
+<select id=select2>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=three>three</option>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('select2');
+  const button = select.querySelector('button');
+  const selectedcontent = select.querySelector('selectedcontent');
+  assert_equals(selectedcontent.textContent, 'one',
+    'selectedcontent should initially be one.');
+
+  const selectedcontent2 = document.createElement('selectedcontent');
+  button.appendChild(selectedcontent2);
+  select.value = 'two';
+  assert_equals(selectedcontent.textContent, 'two',
+    'First selectedcontent should be kept up to date.');
+  assert_equals(selectedcontent2.textContent, '',
+    'Second selectedcontent should not be kept up to date.');
+
+  button.insertBefore(selectedcontent2, selectedcontent);
+  select.value = 'one';
+  assert_equals(selectedcontent.textContent, '',
+    'Second selectedcontent in tree order should be cleared after another is inserted.');
+  assert_equals(selectedcontent2.textContent, 'one',
+    'First selectedcontent in tree order should be kept up to date.');
+
+  selectedcontent.textContent = 'two';
+  selectedcontent.remove();
+  assert_equals(selectedcontent.textContent, 'two',
+    'selectedcontent should not have its children modified after removal.');
+
+  select.value = 'three';
+  assert_equals(selectedcontent2.textContent, 'three',
+    'Remaining selectedcontent should be kept up to date.');
+  assert_equals(selectedcontent.textContent, 'two',
+    'Removed selectedcontent should not be kept up to date.');
+
+  button.insertBefore(selectedcontent, selectedcontent2);
+  assert_equals(selectedcontent.textContent, 'three',
+    'Inserted selectedcontent should be updated if it is the first in tree order.');
+  assert_equals(selectedcontent2.textContent, '',
+    'Second selectedcontent in tree order should be cleared when another is inserted.');
+
+  selectedcontent.remove();
+  assert_equals(selectedcontent2.textContent, 'three',
+    'Remaining selectedcontent should be updated when first in tree order is removed.');
+}, 'When there are multiple <selectedcontent> elements, only the one in tree order should be kept up to date.');
+
+promise_test(async () => {
+  const select = document.createElement('select');
+  select.innerHTML = '<option>one</option><option>two</option>';
+  const button = document.createElement('button');
+  select.appendChild(button);
+
+  const selectedcontent = document.createElement('selectedcontent');
+  button.appendChild(selectedcontent);
+  assert_equals(selectedcontent.textContent, '',
+    '<selectedcontent> should not be updated when appending to a disconnected select.');
+
+  select.value = 'two';
+  assert_equals(selectedcontent.textContent, '',
+    '<selectedcontent> should not be updated when changing value of a disconnected select.');
+
+  document.body.appendChild(select);
+  assert_equals(selectedcontent.textContent, 'two',
+    '<selectedcontent> should be updated when <select> is connected to the document.');
+}, '<seletedcontent> behavior in disconnected <select>.');
 </script>

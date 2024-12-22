@@ -21,26 +21,26 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-p", "--path", type=abs_path, help="Path to manifest file.")
     parser.add_argument(
-        "--src-root", type=abs_path, default=None, help="Path to root of sourcetree.")
+        "--src-root", type=abs_path, help="Path to root of sourcetree.")
     parser.add_argument(
         "--tests-root", type=abs_path, default=wpt_root, help="Path to root of tests.")
     parser.add_argument(
-        "--no-update", dest="update", action="store_false", default=True,
+        "--no-update", dest="update", action="store_false",
         help="Don't update manifest before continuing")
     parser.add_argument(
-        "-r", "--rebuild", action="store_true", default=False,
+        "-r", "--rebuild", action="store_true",
         help="Force a full rebuild of the manifest.")
     parser.add_argument(
-        "--url-base", action="store", default="/",
+        "--url-base", default="/",
         help="Base url to use as the mount point for tests in this manifest.")
     parser.add_argument(
-        "--cache-root", action="store", default=os.path.join(wpt_root, ".wptcache"),
+        "--cache-root", default=os.path.join(wpt_root, ".wptcache"),
         help="Path in which to store any caches (default <tests_root>/.wptcache/)")
     parser.add_argument(
-        "--json", action="store_true", default=False,
+        "--json", action="store_true",
         help="Output as JSON")
     parser.add_argument(
-        "test_ids", action="store", nargs="+",
+        "test_ids", nargs="+",
         help="Test ids for which to get paths")
     return parser
 

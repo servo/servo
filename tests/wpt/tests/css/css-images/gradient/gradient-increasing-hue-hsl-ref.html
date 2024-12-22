@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Gradient in HSL space</title>
+    <link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+    <style>
+        body {
+            background: #fff;
+        }
+
+        div {
+            width: 200px;
+            height: 100px;
+            margin: 10px;
+        }
+
+        div.a {
+            background-image: linear-gradient(to right in hsl increasing hue,
+                                              hsl(0deg, 100%, 50%),
+                                              hsl(10deg, 100%, 50%),
+                                              hsl(20deg, 100%, 50%),
+                                              hsl(30deg, 100%, 50%),
+                                              hsl(40deg, 100%, 50%));
+        }
+
+        div.b {
+            background-image: linear-gradient(to right in hsl increasing hue,
+                                              hsl(40deg, 100%, 50%),
+                                              hsl(120deg, 100%, 50%),
+                                              hsl(200deg, 100%, 50%),
+                                              hsl(280deg, 100%, 50%),
+                                              hsl(360deg, 100%, 50%));
+        }
+
+        div.c {
+            background-image: linear-gradient(to right in hsl increasing hue,
+                                              hsl(0deg, 100%, 50%),
+                                              hsl(90deg, 100%, 50%),
+                                              hsl(180deg, 100%, 50%),
+                                              hsl(270deg, 100%, 50%));
+        }
+
+        div.d {
+            background-image: linear-gradient(to right in hsl increasing hue,
+                                              hsl(270deg, 100%, 50%),
+                                              hsl(300deg, 100%, 50%),
+                                              hsl(330deg, 100%, 50%),
+                                              hsl(360deg, 100%, 50%));
+        }
+    </style>
+</head>
+
+<body>
+    <div class=a></div>
+    <div class=b></div>
+    <div class=c></div>
+    <div class=d></div>
+</body>
+</html>

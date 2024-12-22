@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>line-clamping perhaps shouldn't prevent abspos content from painting</title>
+<link rel="author" href="mailto:dholbert@mozilla.com" title="Daniel Holbert">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef--webkit-line-clamp">
+<link rel="help" href="https://bugzil.la/1934547">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11379">
+<style>
+.line-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  position: relative;
+  overflow: hidden;
+  height: 100px;
+  width: 100px;
+}
+.abspos {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100px;
+  width: 100px;
+  background: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+
+<div class="line-clamp">
+  FAIL<br>
+  FAIL<br>
+  FAIL<br>
+  <div class="abspos"></div>
+</div>

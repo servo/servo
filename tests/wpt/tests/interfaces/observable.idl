@@ -18,7 +18,7 @@ interface Subscriber {
   readonly attribute AbortSignal signal;
 };
 
-// SubscribeCallback is where the Observable "creator’s" code lives. It’s
+// SubscribeCallback is where the Observable "creator's" code lives. It's
 // called when subscribe() is called, to set up a new subscription.
 callback SubscribeCallback = undefined (Subscriber subscriber);
 callback ObservableSubscriptionCallback = undefined (any value);
@@ -63,7 +63,7 @@ interface Observable {
   constructor(SubscribeCallback callback);
   undefined subscribe(optional ObserverUnion observer = {}, optional SubscribeOptions options = {});
 
-  // Constructs a native Observable from value if it’s any of the following:
+  // Constructs a native Observable from value if it's any of the following:
   //   - Observable
   //   - AsyncIterable
   //   - Iterable

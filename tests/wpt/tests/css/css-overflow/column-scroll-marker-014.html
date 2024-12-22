@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Re-attach ::column::scroll-marker when it becomes :target-current</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#active-scroll-marker">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scroller {
+    overflow: hidden;
+    scroll-marker-group: after;
+    columns: 1;
+    gap: 0;
+    height: 100px;
+    width: 100px;
+    background: red;
+  }
+  #scroller::scroll-marker-group {
+    position: relative;
+    top: -200px;
+    display: block;
+    height: 300px;
+  }
+  #scroller::column::scroll-marker {
+    display: block;
+    height: 100px;
+    content: "";
+    width: 100px;
+  }
+  #scroller::column::scroll-marker:target-current {
+    display: flex;
+    background: green;
+  }
+  .item {
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>
+<script>
+  requestAnimationFrame(()=> {
+    requestAnimationFrame(()=> {
+      scroller.scrollTo(100, 0);
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  });
+</script>

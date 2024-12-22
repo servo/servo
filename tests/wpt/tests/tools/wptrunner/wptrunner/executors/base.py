@@ -34,7 +34,8 @@ def executor_kwargs(test_type, test_environment, run_info_data, subsuite, **kwar
                        "target_platform": run_info_data["os"]}
 
     if test_type in ("reftest", "print-reftest"):
-        executor_kwargs["screenshot_cache"] = test_environment.cache_manager.dict()
+        screenshot_cache = test_environment.screenshot_caches[test_type, subsuite.name]
+        executor_kwargs["screenshot_cache"] = screenshot_cache
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
 
     if test_type == "wdspec":
@@ -417,7 +418,7 @@ class RefTestImplementation:
         return self.executor.logger
 
     def get_hash(self, test, viewport_size, dpi, page_ranges):
-        key = (self.subsuite, test.url, viewport_size, dpi)
+        key = (test.url, viewport_size, dpi)
 
         if key not in self.screenshot_cache:
             success, data = self.get_screenshot_list(test, viewport_size, dpi, page_ranges)

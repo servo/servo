@@ -30,7 +30,7 @@ def get_parser():
     p = argparse.ArgumentParser()
     p.add_argument("--no-editor", action="store_true",
                    help="Don't try to open the test in an editor")
-    p.add_argument("-e", "--editor", action="store", help="Editor to use")
+    p.add_argument("-e", "--editor", help="Editor to use")
     p.add_argument("--long-timeout", action="store_true",
                    help="Test should be given a long timeout (typically 60s rather than 10s, but varies depending on environment)")
     p.add_argument("--overwrite", action="store_true",
@@ -42,9 +42,9 @@ def get_parser():
                    help="Create a mismatch reftest")
     p.add_argument("--wait", action="store_true",
                    help="Create a reftest that waits until takeScreenshot() is called")
-    p.add_argument("--tests-root", action="store", default=os.path.join(here, "..", ".."),
+    p.add_argument("--tests-root", default=os.path.join(here, "..", ".."),
                    help="Path to the root of the wpt directory")
-    p.add_argument("path", action="store", help="Path to the test file")
+    p.add_argument("path", help="Path to the test file")
     return p
 
 

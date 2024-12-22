@@ -51,7 +51,22 @@ promise_test(async t => {
     document.body.appendChild(scriptElement);
   }, script => script.invoker === "Window.fetch.then", t);
   assert_true(script.sourceURL.includes("promise-generates-loaf.js"));
+  assert_equals(script.sourceCharPosition, 0);
 }, "Source location should be extracted for promises");
+
+// This test verifies that script entries of type "promise-resolve" correctly return
+// the sourceCharPosition value. It ensures that the reported position matches the
+// expected starting character position in the source code.
+promise_test(async t => {
+  const scriptLocation = new URL("resources/promise-generates-loaf-start-pos.js", location.href);
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    const scriptElement = document.createElement("script");
+    scriptElement.src = scriptLocation;
+    document.body.appendChild(scriptElement);
+  }, script => script.invoker === "Window.fetch.then", t);
+  assert_true(script.sourceURL.includes("promise-generates-loaf-start-pos.js"));
+  assert_equals(script.sourceCharPosition, 64);
+}, "SourceCharPosition should be 64 for promises");
 
 </script>
 </body>

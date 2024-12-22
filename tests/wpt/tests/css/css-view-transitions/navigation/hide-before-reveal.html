@@ -8,37 +8,41 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-  const params = new URLSearchParams(location.search);
-  const is_initial_page = !params.has('new');
+const params = new URLSearchParams(location.search);
 
-  // This test navigates to itself with a changed query parameter. The test
-  // checks are performed on the navigated-to document.
-  if (is_initial_page) {
-    onload = () => {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        location.replace(location.href + '?new');
-      }));
-    };
-  } else {
-    promise_test(async t => {
-      const render_blocker = document.createElement("script");
-      render_blocker.blocking = "render";
-      render_blocker.src = "/loading/resources/dummy.js?pipe=trickle(d10)";
-      render_blocker.type = "module";
-      document.head.append(render_blocker);
-      const ev_promise = new Promise(
-        resolve => addEventListener('pagereveal', e => resolve(e)));
-      const wsc = window_state_context(t);
-      await wsc.minimize();
-      render_blocker.remove();
-      await wsc.restore();
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
 
-      const ev = await ev_promise;
+    assert_equals(event.viewTransition, null,
+      "Transition should have been skipped when document was minimized");
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  const render_blocker = document.createElement("script");
+  render_blocker.blocking = "render";
+  render_blocker.src = "/loading/resources/dummy.js?pipe=trickle(d10)";
+  render_blocker.type = "module";
+  document.head.append(render_blocker);
 
-      assert_equals(ev.viewTransition, null,
-        "Transition should have been skipped when document was minimized");
-    }, "Inbound cross-document view-transition should be skipped if document is hidden");
-  }
+  addEventListener('pagereveal', e => window.opener.did_reveal(e));
+
+  test_driver.minimize_window().then(rect => {
+    render_blocker.remove();
+    test_driver.set_window_rect(rect);
+  });
+  break;
+}
 </script>
 <style>
   @view-transition {

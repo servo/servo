@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/346876226">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    position: relative;
+    overflow: hidden;
+    font: 16px/16px Ahem;
+    columns: 4;
+    gap: 0;
+    column-fill: auto;
+    width: 100px;
+    height: 100px;
+    orphans: 1;
+    widows: 1;
+    background: red;
+  }
+  .filler {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 16px;
+    background: green;
+  }
+  grinch {
+    color: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="filler" style="left:0; top:16px;"></div>
+  <div class="filler" style="left:25px;"></div>
+  <div class="filler" style="left:50px;"></div>
+  <div class="filler" style="left:75px; bottom:16px;"></div>
+  <grinch>
+    <div>
+      <div style="float:right; width:9px; height:384px; background:green;"></div>
+    </div>
+    x xx
+  </grinch>
+</div>
