@@ -51,7 +51,7 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: File size
         run: |
-          ./etc/ci/bencher.py filesize target/${{ inputs.profile }}/servo windows-${{ inputs.profile }} --bmf-output size.json
+          ./etc/ci/bencher.py filesize target/${{ inputs.profile }}/msi/Servo.exe windows-${{ inputs.profile }} --bmf-output size.json
       # set options
       - name: Set bencher opts for PRs (label try run)
         if: github.event_name == 'pull_request_target'
