@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/10126">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This test is marked as optional because the specification does not mandate
+     which particular elements support pickers or not. Picker support for elements
+     varies across browsers and platforms. This test reflects picker support in
+     desktop chromium. -->
+
+<div class=supported>
+  <input type=date>
+  <input type=datetime-local>
+  <input type=week>
+  <input type=month>
+  <input type=time>
+  <input type=color>
+</div>
+
+<input type=text list=datalist>
+<datalist id=datalist>
+  <option>one</option>
+  <option>two</option>
+</datalist>
+
+<script>
+document.querySelectorAll('.supported > input').forEach(input => {
+  const inputType = input.getAttribute('type');
+  promise_test(async () => {
+    assert_false(input.matches(':open'),
+      'Should not match :open at the start of the test.');
+
+    await test_driver.bless();
+    input.showPicker();
+    assert_true(input.matches(':open'),
+      'Should match :open after opening the picker.');
+
+    await test_driver.bless();
+    input.blur();
+    assert_false(input.matches(':open'),
+      'Should not match :open after closing the picker.');
+  }, `CSS :open for <input type=${inputType}>`);
+});
+
+// TODO(crbug.com/383306186): Support :open for <input type=text list=datalist>
+promise_test(async () => {
+  const input = document.querySelector('input[list]');
+  await test_driver.click(input);
+  assert_false(input.matches(':open'),
+    ':open is not supported yet.');
+}, 'CSS :open for <input type=text list=datalist>');
+</script>

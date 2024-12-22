@@ -4,24 +4,11 @@
 <link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#supported-syntax-strings" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
 <script>
-test_count = 0;
 
-function assert_valid(syntax, initialValue) {
-    // No actual assertions, this just shouldn't throw
-    test(function() {
-        var name = '--syntax-test-' + (test_count++);
-        CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false});
-    }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is valid");
-}
-
-function assert_invalid(syntax, initialValue) {
-    test(function(){
-        var name = '--syntax-test-' + (test_count++);
-        assert_throws_dom("SyntaxError",
-            () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false}));
-    }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is invalid");
-}
+let assert_valid = test_initial_value_valid;
+let assert_invalid = test_initial_value_invalid;
 
 assert_valid("*", "a");
 assert_valid(" * ", "b");
@@ -47,10 +34,8 @@ assert_valid("<length>", "0");
 assert_valid("<length>", "10px /*:)*/");
 assert_valid("<length>", " calc(-2px)");
 assert_valid("<length>", "calc(2px*4 + 10px)");
-assert_valid("<length>", "calc(5px * 3px / 6px)");
 assert_valid("<length>", "7.1e-4cm");
 assert_valid("<length>", "calc(7in - 12px)");
-assert_valid("<length>", "calc(15px + (sign(100vh - 10px) * 5px))");
 assert_valid("<length>+", "2px 7px calc(8px)");
 assert_valid("<length>#", "2px, 7px, calc(8px)");
 assert_valid("<percentage>", "-9.3e3%");
@@ -63,25 +48,20 @@ assert_valid("<percentage> | <length>+", "calc(100vh - 10px) 30px");
 assert_valid("<number>", "-109");
 assert_valid("<number>", "2.3e4");
 assert_valid("<number>", "calc(1 / 2)");
-assert_valid("<number>", "calc(15 + (sign(100vh - 10px) * 5))");
 assert_valid("<integer>", "-109");
 assert_valid("<integer>", "19");
 assert_valid("<integer>", "calc(1)");
 assert_valid("<integer>", "calc(1 + 2)");
 assert_valid("<integer>", "calc(3.1415)");
 assert_valid("<integer>", "calc(3.1415 + 3.1415)");
-assert_valid("<integer>", "calc(15 + (sign(100vh - 10px) * 5))");
 
 assert_valid("<angle>", "10deg");
 assert_valid("<angle>", "20.5rad");
 assert_valid("<angle>", "calc(50grad + 3.14159rad)");
-assert_valid("<angle>", "calc(15deg + (sign(100vh - 10px) * 5deg))");
 assert_valid("<time>", "2s");
 assert_valid("<time>", "calc(2s - 9ms)");
-assert_valid("<time>", "calc(15s + (sign(100vh - 10px) * 5s))");
 assert_valid("<resolution>", "10dpi");
 assert_valid("<resolution>", "3dPpX");
-assert_valid("<resolution>", "calc(15dppx + (sign(100vh - 10px) * 5dpi))");
 assert_valid("<transform-function>", "translateX(2px)");
 assert_valid("<transform-function>|<integer>", "5");
 assert_valid("<transform-function>|<integer>", "scale(2)");

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<link rel="help" href="https://issues.chromium.org/issues/381362589">
+<style>
+  #anchor {
+    anchor-name: --a;
+  }
+  #target {
+    position: absolute;
+    top: anchor(top);
+    position-anchor: --a;
+  }
+</style>
+<div id="anchor"></div>
+<div id="target"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async t => {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => step_timeout(resolve));
+    let element = document.getElementById("anchor");
+    element.remove();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  }, "Remove anchor");
+</script>

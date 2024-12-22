@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <link rel=stylesheet href="resources/customizable-select-styles.css">
 
-<div class=customizable-select-button popovertarget=popover id=button>
+<div class="customizable-select-button active" popovertarget=popover id=button>
   <span class=customizable-select-selectedoption>option</span>
 </div>
 <div id=popover popover=auto anchor=button class=customizable-select-popover>
   <div class="customizable-select-option selected">option</div>
 </div>
-
-<style>
-.customizable-select-button {
-  background-color: color-mix(in lab, currentColor 30%, transparent);
-}
-</style>
 
 <script>
 document.getElementById('popover').showPopover();

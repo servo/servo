@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: scroll tracking for ::scroll-markers whose orignatin elements cannot be scroll-aligned </title>
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+</head>
+
+<body>
+  <style>
+    .wrapper {
+      display: grid;
+      justify-content: center;
+    }
+
+    .carousel {
+      width: 800px;
+      height: 200px;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      list-style-type: none;
+      scroll-behavior: smooth;
+      border: solid 2px grey;
+      padding-top: 10%;
+      text-align: center;
+      counter-set: markeridx -1;
+      columns: 2;
+
+      /* All odd-numbered children generate scroll-markers. For the test, we
+         need 2 more cxhildren to generate scroll-markers. This uses children 2
+         and 4.*/
+      & > :nth-child(odd)::scroll-marker,
+      & > :nth-child(2)::scroll-marker,
+      & > :nth-child(4)::scroll-marker {
+        counter-increment: markeridx;
+        align-content: center;
+        text-align: center;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        margin: 3px;
+        background-color: red;
+      }
+
+      /* This lines up the scroll-markers' numbers to match the way Chromium
+         lays out the scroll-markers which seems to be all
+         element::scroll-markers first/leftmost and then,
+         ::column-scroll-markers, despite the ::column::scroll-markers being
+         numbered first.  The numbers are not important for the test's
+         functionality. They only help investigating the browser's behavior.*/
+      & > :nth-child(1)::scroll-marker { content: "8"; }
+      & > :nth-child(3)::scroll-marker { content: "0"; }
+      & > :nth-child(2)::scroll-marker { content: "9"; }
+      & > :nth-child(4)::scroll-marker { content: "1"; }
+      & > :nth-child(5)::scroll-marker { content: "2"; }
+      & > :nth-child(7)::scroll-marker { content: "3"; }
+      & > :nth-child(9)::scroll-marker { content: "4"; }
+      & > :nth-child(11)::scroll-marker { content: "5"; }
+      & > :nth-child(13)::scroll-marker { content: "6"; }
+      /* In the test, item 14 (child 15) is the scrollIntoView target.
+         Its column (the right-most column) should be selected and corresponds to
+         the column. */
+      & > :nth-child(15)::scroll-marker {
+        content: "7";
+        background-color: green;
+      }
+
+      &>.item {
+        scroll-snap-align: none;
+        height: 80%;
+        width: 158px;
+        border: 1px solid;
+        place-content: center;
+        display: inline-block;
+      }
+
+      /* Make only item 16 (index 15) a snap target so we are scrolled all the
+      way to the right edge */
+      & > :nth-child(14){
+        scroll-snap-align: center;
+      }
+
+      scroll-marker-group: after;
+
+      &::scroll-marker-group {
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: solid 1px black;
+        border-radius: 30px;
+      }
+    }
+  </style>
+  <div class="wrapper" id="wrapper">
+    <div class="carousel" id="carousel">
+      <div class="item item0" tabindex=0>0</div>
+      <div class="item item1" tabindex=0>1</div>
+      <div class="item item2" tabindex=0>2</div>
+      <div class="item item3" tabindex=0>3</div>
+      <div class="item item4" tabindex=0>4</div>
+      <div class="item item5" tabindex=0>5</div>
+      <div class="item item6" tabindex=0>6</div>
+      <div class="item item7" tabindex=0>7</div>
+      <div class="item item8" tabindex=0>8</div>
+      <div class="item item9" tabindex=0>9</div>
+      <div class="item item10" tabindex=0>10</div>
+      <div class="item item11" tabindex=0>11</div>
+      <div class="item item12" tabindex=0>12</div>
+      <div class="item item13" tabindex=0>13</div>
+      <div class="item item14" tabindex=0>14</div>
+      <div class="item item15" tabindex=0>15</div>
+    </div>
+    <div id="buttons" style></div>
+  </div>
+</body>
+
+</html>

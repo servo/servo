@@ -1356,25 +1356,25 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--latency", type=int,
                         help="Artificial latency to add before sending http responses, in ms")
-    parser.add_argument("--config", action="store", dest="config_path",
+    parser.add_argument("--config", dest="config_path",
                         help="Path to external config file")
-    parser.add_argument("--doc_root", action="store", dest="doc_root",
-                        help="Path to document root. Overrides config.")
-    parser.add_argument("--ws_doc_root", action="store", dest="ws_doc_root",
+    parser.add_argument("--doc_root", help="Path to document root. Overrides config.")
+    parser.add_argument("--ws_doc_root",
                         help="Path to WebSockets document root. Overrides config.")
-    parser.add_argument("--ws_extra", action="append", dest="ws_extra", default=[],
+    parser.add_argument("--ws_extra", action="append", default=[],
                         help="Path to extra directory containing ws handlers. Overrides config.")
-    parser.add_argument("--inject-script", default=None,
+    parser.add_argument("--inject-script",
                         help="Path to script file to inject, useful for testing polyfills.")
-    parser.add_argument("--alias_file", action="store", dest="alias_file",
+    parser.add_argument("--alias_file",
                         help="File with entries for aliases/multiple doc roots. In form of `/ALIAS_NAME/, DOC_ROOT\\n`")
-    parser.add_argument("--h2", action="store_true", dest="h2", default=None,
+    parser.add_argument("--h2", action="store_true", default=None,
                         help=argparse.SUPPRESS)
     parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
                         help="Disable the HTTP/2.0 server")
     parser.add_argument("--webtransport-h3", action="store_true",
                         help="Enable WebTransport over HTTP/3 server")
-    parser.add_argument("--exit-after-start", action="store_true", help="Exit after starting servers")
+    parser.add_argument("--exit-after-start", action="store_true",
+                        help="Exit after starting servers")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.set_defaults(report=False)
     parser.set_defaults(is_wave=False)

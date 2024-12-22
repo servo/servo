@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: scroll markers inside out-of-flow</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .container {
+    scroll-marker-group: before;
+    overflow: hidden;
+  }
+
+  .container::scroll-marker-group {
+    display: flex;
+    height: 100px;
+  }
+
+  .marker::scroll-marker {
+    display: block;
+    width: 20px;
+    height: 100px;
+    content: "";
+    background: green;
+  }
+
+  .contain_abs {
+    position: relative;
+  }
+
+  .contain_all {
+    contain: layout;
+  }
+
+  .uncontained::scroll-marker {
+    z-index: 100;
+    content: "ERROR";
+    background: red;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="container">
+  <div class="marker"></div>
+  <div class="marker" class="contain_abs"></div>
+  <div style="position:absolute;">
+    <div class="uncontained marker"></div>
+  </div>
+  <div class="contain_all">
+    <div class="marker" style="position:fixed;"></div>
+  </div>
+  <div class="contain_abs">
+    <div class="marker"></div>
+    <div class="marker" style="position:absolute;"></div>
+    <div class="uncontained marker" style="position:fixed;"></div>
+  </div>
+</div>

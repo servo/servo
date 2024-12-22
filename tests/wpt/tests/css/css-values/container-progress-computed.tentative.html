@@ -57,28 +57,28 @@ let outerWidth = 322;
 let outerHeight = 228;
 
 // Identity tests
-test_math_used('container-progress(height from 0px to 1px)', innerHeight, {type:'number'});
-test_math_used('container-progress(width of my-container from 0px to 1px)', outerWidth, {type:'number'});
+test_math_used('container-progress(height, 0px, 1px)', innerHeight, {type:'number'});
+test_math_used('container-progress(width of my-container, 0px, 1px)', outerWidth, {type:'number'});
 
 // Nestings
-test_math_used('container-progress(height from container-progress(height from 0px to 1px) * 1px to container-progress(height from 0px to 1px) * 1px)', '0', {type:'number'});
-test_math_used('container-progress(height from container-progress(height from 0px to 1px) * 0.5px to container-progress(height from 0px to 1px) * 1px)', '1', {type:'number'});
-test_math_used('container-progress(height from container-progress(width of my-container from 0px to 1px) * 1px to container-progress(height of my-container-2 from 0px to 1px) * 1px)', (innerHeight - outerWidth) / (extraHeight - outerWidth), {type:'number'});
+test_math_used('container-progress(height, container-progress(height, 0px, 1px) * 1px, container-progress(height, 0px, 1px) * 1px)', '0', {type:'number'});
+test_math_used('container-progress(height, container-progress(height, 0px, 1px) * 0.5px, container-progress(height, 0px, 1px) * 1px)', '1', {type:'number'});
+test_math_used('container-progress(height, container-progress(width of my-container, 0px, 1px) * 1px, container-progress(height of my-container-2, 0px, 1px) * 1px)', (innerHeight - outerWidth) / (extraHeight - outerWidth), {type:'number'});
 
 // General calculations
-test_math_used('calc(container-progress(width from 0px to 50px) * 10px + 100px)', (innerWidth / 50 * 10 + 100) + 'px');
-test_math_used('calc(container-progress(height from 10px to sign(50px - 500em) * 10px))', (innerHeight - 10) / (-10 - 10), {type:'number'});
-test_math_used('calc(container-progress(width of my-container from 0px to 50px) * 10px + 100px)', (outerWidth / 50 * 10 + 100) + 'px');
-test_math_used('calc(container-progress(height of my-container from 10px to sign(50px - 500em) * 10px))', (outerHeight - 10) / (-10 - 10), {type:'number'});
+test_math_used('calc(container-progress(width, 0px, 50px) * 10px + 100px)', (innerWidth / 50 * 10 + 100) + 'px');
+test_math_used('calc(container-progress(height, 10px, sign(50px - 500em) * 10px))', (innerHeight - 10) / (-10 - 10), {type:'number'});
+test_math_used('calc(container-progress(width of my-container, 0px, 50px) * 10px + 100px)', (outerWidth / 50 * 10 + 100) + 'px');
+test_math_used('calc(container-progress(height of my-container, 10px, sign(50px - 500em) * 10px))', (outerHeight - 10) / (-10 - 10), {type:'number'});
 
 // Fallback
-test_math_used('container-progress(width of non-existing-container from 0px to 1px)', width, {type:'number', msg: 'container-progress() width fallback for non-existing container name'});
-test_math_used('container-progress(height of non-existing-container from 0px to 1px)', height, {type:'number', msg: 'container-progress() height fallback for non-existing container names'});
-test_math_used('container-progress(width of out-of-scope-container from 0px to 1px)', width, {type:'number', msg: 'container-progress() width fallback for out of scope container'});
-test_math_used('container-progress(height of out-of-scope-container from 0px to 1px)', height, {type:'number', msg: 'container-progress() height fallback for out of scope container'});
+test_math_used('container-progress(width of non-existing-container, 0px, 1px)', width, {type:'number', msg: 'container-progress() width fallback for non-existing container name'});
+test_math_used('container-progress(height of non-existing-container, 0px, 1px)', height, {type:'number', msg: 'container-progress() height fallback for non-existing container names'});
+test_math_used('container-progress(width of out-of-scope-container, 0px, 1px)', width, {type:'number', msg: 'container-progress() width fallback for out of scope container'});
+test_math_used('container-progress(height of out-of-scope-container, 0px, 1px)', height, {type:'number', msg: 'container-progress() height fallback for out of scope container'});
 
 // Type checking
-test_math_used('calc(container-progress(width from 0px to 1px) * 1px)', innerWidth + 'px');
-test_math_used('calc(container-progress(height of my-container from 0px to 1px) * 1s)', outerHeight + 's', {type:'time'});
-test_math_used('calc(container-progress(width of my-container-2 from 0px to 1px) * 1deg)', extraWidth + 'deg', {type:'angle', approx:0.001});
+test_math_used('calc(container-progress(width, 0px, 1px) * 1px)', innerWidth + 'px');
+test_math_used('calc(container-progress(height of my-container, 0px, 1px) * 1s)', outerHeight + 's', {type:'time'});
+test_math_used('calc(container-progress(width of my-container-2, 0px, 1px) * 1deg)', extraWidth + 'deg', {type:'angle', approx:0.001});
 </script>

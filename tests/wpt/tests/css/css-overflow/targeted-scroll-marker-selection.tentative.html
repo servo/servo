@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: scroll tracking for ::scroll-markers whose orignatin elements cannot be scroll-aligned </title>
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/css/css-transitions/support/helper.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+
+<body>
+  <style>
+    .wrapper {
+      display: grid;
+      justify-content: center;
+    }
+
+    .carousel {
+      display: grid;
+      grid-auto-flow: column;
+      width: 1600px;
+      height: 512px;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      list-style-type: none;
+      scroll-behavior: smooth;
+      border: solid 2px grey;
+      padding-top: 10%;
+      text-align: center;
+      counter-set: markeridx -1;
+
+        div>.item {
+          &>.itemchild {
+
+          }
+          scroll-snap-align: center;
+          height: 80%;
+          width: 318px;
+          border: 1px solid;
+          place-content: center;
+
+          &::scroll-marker {
+            content: counter(markeridx);
+            counter-increment: markeridx;
+            align-content: center;
+            text-align: center;
+            width: 35px;
+            height: 35px;
+            border: 3px solid gray;
+            border-radius: 50%;
+            margin: 3px;
+            background-color: red;
+          }
+
+          &::scroll-marker:target-current {
+            background-color: green;
+          }
+          &::scroll-marker:checked {
+            background-color: green;
+          }
+        }
+
+      scroll-marker-group: after;
+
+      &::scroll-marker-group {
+        height: 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: solid 1px black;
+        border-radius: 30px;
+      }
+    }
+  </style>
+  <div class="wrapper" id="wrapper">
+    <div class="carousel" id="carousel">
+      <div>
+        <div class="item" id="item0" tabindex=0>
+          <div class="itemchild" id="itemchild0">0</div>
+        </div>
+        <div class="itemsibling" id="itemsibling0"></div>
+      </div>
+      <div>
+        <div class="item" id="item1" tabindex=0>
+          <div class="itemchild" id="itemchild1">1</div>
+        </div>
+        <div class="itemsibling" id="itemsibling1"></div>
+      </div>
+      <div>
+        <div class="item" id="item2" tabindex=0>
+          <div class="itemchild" id="itemchild2">2</div>
+        </div>
+        <div class="itemsibling" id="itemsibling2"></div>
+      </div>
+      <div>
+        <div class="item" id="item3" tabindex=0>
+          <div class="itemchild" id="itemchild3">3</div>
+        </div>
+        <div class="itemsibling" id="itemsibling3"></div>
+      </div>
+      <div>
+        <div class="item" id="item4" tabindex=0>
+          <div class="itemchild" id="itemchild4">4</div>
+        </div>
+        <div class="itemsibling" id="itemsibling4"></div>
+      </div>
+      <div>
+        <div class="item" id="item5" tabindex=0>
+          <div class="itemchild" id="itemchild5">5</div>
+        </div>
+        <div class="itemsibling" id="itemsibling5"></div>
+      </div>
+      <div>
+        <div class="item" id="item6" tabindex=0>
+          <div class="itemchild" id="itemchild6">6</div>
+        </div>
+        <div class="itemsibling" id="itemsibling6"></div>
+      </div>
+      <div>
+        <div class="item" id="item7" tabindex=0>
+          <div class="itemchild" id="itemchild7">7</div>
+        </div>
+        <div class="itemsibling" id="itemsibling7"></div>
+      </div>
+      <div>
+        <div class="item" id="item8" tabindex=0>
+          <div class="itemchild" id="itemchild8">8</div>
+        </div>
+        <div class="itemsibling" id="itemsibling8"></div>
+      </div>
+      <div>
+        <div class="item" id="item9" tabindex=0>
+          <div class="itemchild" id="itemchild9">9</div>
+        </div>
+        <div class="itemsibling" id="itemsibling9"></div>
+      </div>
+      <div>
+        <div class="item" id="item10" tabindex=0>
+          <div class="itemchild" id="itemchild10">10</div>
+        </div>
+        <div class="itemsibling" id="itemsibling10"></div>
+      </div>
+      <div>
+        <div class="item" id="item11" tabindex=0>
+          <div class="itemchild" id="itemchild11">11</div>
+        </div>
+        <div class="itemsibling" id="itemsibling11"></div>
+      </div>
+      <div>
+        <div class="item" id="item12" tabindex=0>
+          <div class="itemchild" id="itemchild12">12</div>
+        </div>
+        <div class="itemsibling" id="itemsibling12"></div>
+      </div>
+      <div>
+        <div class="item" id="item13" tabindex=0>
+          <div class="itemchild" id="itemchild13">13</div>
+        </div>
+        <div class="itemsibling" id="itemsibling13"></div>
+      </div>
+      <div>
+        <div class="item" id="item14" tabindex=0>
+          <div class="itemchild" id="itemchild14">14</div>
+        </div>
+        <div class="itemsibling" id="itemsibling14"></div>
+      </div>
+      <div>
+        <div class="item" id="item15" tabindex=0>
+          <div class="itemchild" id="itemchild15">15</div>
+        </div>
+        <div class="itemsibling" id="itemsibling15"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+
+    const carousel = document.getElementById("carousel");
+    const items = document.querySelectorAll(".item");
+    const wrapper = document.getElementById("wrapper");
+
+    RED = "rgb(255, 0, 0)";
+    GREEN = "rgb(0, 128, 0)";
+
+    function verifySelectedMarker(selected_idx) {
+      for (let idx = 0; idx < items.length; idx++) {
+        const should_be_selected = idx == selected_idx
+        let expected_color = should_be_selected ? GREEN : RED;
+        const color =
+          getComputedStyle(items[idx], "::scroll-marker").backgroundColor;
+        assert_equals(color, expected_color,
+          `marker ${idx} should be ${should_be_selected ? "" : "un"}selected.`);
+      }
+    }
+
+    const max_scroll_offset = carousel.scrollWidth - carousel.clientWidth;
+    async function testTargetedHasActiveMarker(test, element, expected_idx) {
+      // Start from somewhere in the middle, ensuring that scrolling to the
+      // extremes generates scrollend events.
+      await waitForScrollReset(test, carousel, max_scroll_offset / 2);
+      const color =
+        getComputedStyle(items[expected_idx], "::scroll-marker").backgroundColor;
+      assert_not_equals(color, GREEN,
+        `Target item ${expected_idx} is not selected yet.`);
+      const scrollend_promise = waitForScrollendEventNoTimeout(carousel);
+      element.scrollIntoView({behavior: "smooth"});
+      await scrollend_promise;
+      verifySelectedMarker(expected_idx);
+    }
+
+    promise_test(async(t) => {
+      // Item 1 cannot be snap-aligned because there is not enough
+      // room for its scroll container to be aligned to its center.
+      const target_item = items[1];
+      await testTargetedHasActiveMarker(t, target_item, 1);
+    }, "scroll-marker of target (idx 1) of scrollIntoView is selected");
+
+    promise_test(async(t) => {
+      // Item 14 cannot be snap-aligned because there is not enough
+      // room for its scroll container to be aligned to its center.
+      const target_item = items[14];
+      await testTargetedHasActiveMarker(t, target_item, 14);
+    }, "scroll-marker of target (idx 14) of scrollIntoView is selected");
+
+    promise_test(async(t) => {
+      const item14 = items[14];
+      const target_item = item14.querySelector(".itemchild");
+      // Item 14 is the parent. We call scrollIntoView on its child.
+      await testTargetedHasActiveMarker(t, target_item, 14);
+    }, "scroll-marker of parent of target of scrollIntoView is selected");
+
+    promise_test(async(t) => {
+      const item14 = items[14];
+      const target_item = item14.nextElementSibling;
+      // Item 14 is before itemsibling14 in the DOM. We call scrollIntoView on
+      // itemsibling14.
+      await testTargetedHasActiveMarker(t, target_item, 14);
+    }, "scroll-marker of earlier sibling of target of scrollIntoView is selected");
+  </script>
+</body>
+
+</html>

@@ -3,13 +3,17 @@
 // (https://github.com/w3c/webref)
 // Source: HTML Sanitizer API (https://wicg.github.io/sanitizer-api/)
 
+enum SanitizerPresets { "default" };
 dictionary SetHTMLOptions {
-  (Sanitizer or SanitizerConfig) sanitizer = {};
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = "default";
+};
+dictionary SetHTMLUnsafeOptions {
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
 };
 
 [Exposed=(Window,Worker)]
 interface Sanitizer {
-  constructor(optional SanitizerConfig configuration = {});
+  constructor(optional (SanitizerConfig or SanitizerPresets) configuration = "default");
 
   // Query configuration:
   SanitizerConfig get();

@@ -37,7 +37,7 @@ def get_parser():
     parser = ArgumentParser()
     parser.add_argument("--list", action="store_true",
                         help="List suites that can be updated and the related script files")
-    parser.add_argument("--include", nargs="*", choices=scripts.keys(), default=None,
+    parser.add_argument("--include", nargs="*", choices=scripts.keys(),
                         help="Suites to update (default is to update everything)")
     return parser
 

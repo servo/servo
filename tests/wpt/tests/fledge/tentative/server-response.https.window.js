@@ -34,8 +34,10 @@ subsetTest(promise_test, async test => {
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   await joinInterestGroup(test, uuid, {ads: adsArray});
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -74,8 +76,10 @@ subsetTest(promise_test, async test => {
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   await joinInterestGroup(test, uuid, {ads: adsArray});
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -128,8 +132,10 @@ subsetTest(promise_test, async test => {
     biddingLogicURL: createBiddingScriptURL({allowComponentAuction: true})
   });
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+      coordinatorOrigin: await BA.configureCoordinator(),
+      seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -189,8 +195,10 @@ subsetTest(promise_test, async test => {
     biddingLogicURL: createBiddingScriptURL({allowComponentAuction: true})
   });
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -261,8 +269,10 @@ async function runFaultInjectTest(test, fault) {
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   await joinInterestGroup(test, uuid, {ads: adsArray});
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -315,8 +325,10 @@ subsetTest(promise_test, async test => {
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   await joinInterestGroup(test, uuid, {ads: adsArray});
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -357,8 +369,10 @@ subsetTest(promise_test, async test => {
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   await joinInterestGroup(test, uuid, {ads: adsArray});
 
-  const result =
-      await navigator.getInterestGroupAdAuctionData({seller: OTHER_ORIGIN1});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: OTHER_ORIGIN1
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -395,8 +409,10 @@ subsetTest(promise_test, async test => {
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   await joinInterestGroup(test, uuid, {ads: adsArray});
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -440,8 +456,10 @@ async function testWithMutatedServerResponse(
   }
   await joinInterestGroup(test, uuid, ig);
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -788,8 +806,10 @@ async function testHybridAuctionWithMutatedServerResponse(
   }
   await joinInterestGroup(test, uuid, interestGroup);
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 
@@ -1141,8 +1161,10 @@ async function kAnonTestWithMutatedServerResponse(
 
   await joinInterestGroup(test, uuid, ig);
 
-  const result = await navigator.getInterestGroupAdAuctionData(
-      {seller: window.location.origin});
+  const result = await navigator.getInterestGroupAdAuctionData({
+    coordinatorOrigin: await BA.configureCoordinator(),
+    seller: window.location.origin
+  });
   assert_true(result.requestId !== null);
   assert_true(result.request.length > 0);
 

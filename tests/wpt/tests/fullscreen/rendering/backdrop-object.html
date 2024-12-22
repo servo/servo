@@ -11,13 +11,14 @@ object::backdrop {
   background: blue;
 }
 </style>
-<object width="200" type="image/svg+xml" data="/images/100px-green-rect.svg"></object>
+<object width="200" type="image/svg+xml"></object>
+
 <script>
 const object = document.querySelector("object");
-Promise.all([
-    new Promise((resolve, reject) => document.addEventListener("fullscreenchange", resolve)),
-    new Promise((resolve, reject) => object.addEventListener("load", resolve))
-]).then(() => document.documentElement.classList.remove('reftest-wait'));
-
-test_driver.bless('fullscreen', () => object.requestFullscreen());
+test_driver.bless('fullscreen')
+  .then(() => {object.data="/images/100px-green-rect.svg";})
+  .then(() => new Promise((resolve) => object.addEventListener("load", resolve)))
+  .then(() => object.requestFullscreen())
+  .then(() => new Promise((resolve) => document.addEventListener("fullscreenchange", resolve)))
+  .then(() => document.documentElement.classList.remove('reftest-wait'));
 </script>

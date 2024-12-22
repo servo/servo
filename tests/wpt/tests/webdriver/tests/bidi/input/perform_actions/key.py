@@ -10,6 +10,8 @@ from . import get_shadow_root_from_test_page
 
 pytestmark = pytest.mark.asyncio
 
+CONTEXT_LOAD_EVENT = "browsingContext.load"
+
 
 async def test_invalid_browsing_context(bidi_session):
     actions = Actions()
@@ -20,18 +22,26 @@ async def test_invalid_browsing_context(bidi_session):
 
 
 async def test_key_down_closes_browsing_context(
-    bidi_session, configuration, new_tab, inline
+    bidi_session, configuration, new_tab, inline, subscribe_events,
+    wait_for_event
 ):
     url = inline("""
         <input onkeydown="window.close()">close</input>
         <script>document.querySelector("input").focus();</script>
         """)
 
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"],
-        url=url,
-        wait="complete",
+    # Opening a new context via `window.open` is required for script to be able
+    # to close it.
+    await subscribe_events(events=[CONTEXT_LOAD_EVENT])
+    on_load = wait_for_event(CONTEXT_LOAD_EVENT)
+
+    await bidi_session.script.evaluate(
+        expression=f"window.open('{url}')",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True
     )
+    # Wait for the new context to be created and get it.
+    new_context = await on_load
 
     actions = Actions()
     (
@@ -43,7 +53,7 @@ async def test_key_down_closes_browsing_context(
 
     with pytest.raises(NoSuchFrameException):
         await bidi_session.input.perform_actions(
-            actions=actions, context=new_tab["context"]
+            actions=actions, context=new_context["context"]
         )
 
 

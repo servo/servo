@@ -17,6 +17,8 @@ interface PerformanceElementTiming : PerformanceEntry {
     [Default] object toJSON();
 };
 
+PerformanceElementTiming includes PaintTimingMixin;
+
 partial interface Element {
     [CEReactions] attribute DOMString elementTiming;
 };

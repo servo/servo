@@ -37,7 +37,7 @@ promise_test(async () => {
   await new Promise(requestAnimationFrame);
   assert_equals(getComputedStyle(optionOne).color, 'rgb(0, 0, 0)',
     'Option color while hovering.');
-  assert_equals(getComputedStyle(optionOne).backgroundColor, 'lab(0 0 0 / 0.2)',
+  assert_equals(getComputedStyle(optionOne).backgroundColor, 'lab(0 0 0 / 0.1)',
     'Option background-color while hovering.');
 
   await (new test_driver.Actions()

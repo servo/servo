@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
-  <title>SVGGeometryElement.prototype.getTotalLength() query with 'pathLength'</title>
+  <title>SVGGeometryElement.prototype.getTotalLength()</title>
   <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#__svg__SVGGeometryElement__getTotalLength"/>
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
@@ -9,6 +9,65 @@ test(function() {
     path.setAttribute('d', 'M0,0L100,0L100,100');
     path.setAttribute('pathLength', '1000');
     assert_approx_equals(path.getTotalLength(), 200, 1e-5);
-}, document.title+', getTotalLength');
+}, document.title+', getTotalLength - path with pathLength');
+
+test(function() {
+    let rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('width', '100');
+    rect.setAttribute('height', '100');
+    assert_equals(rect.getTotalLength(), 400);
+
+    rect.setAttribute('width', '50');
+    rect.setAttribute('height', '50');
+    assert_equals(rect.getTotalLength(), 200);
+}, document.title+', getTotalLength - rect');
+
+test(function() {
+    let rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    document.documentElement.appendChild(rect);
+    try {
+      rect.setAttribute('width', '100');
+      rect.setAttribute('height', '100');
+      assert_equals(rect.getTotalLength(), 400);
+
+      rect.setAttribute('width', '50');
+      rect.setAttribute('height', '50');
+      assert_equals(rect.getTotalLength(), 200);
+    } finally {
+      document.documentElement.removeChild(rect);
+    }
+}, document.title+', getTotalLength - rect in document');
+
+test(function() {
+    let rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    document.documentElement.appendChild(rect);
+    try {
+      document.documentElement.setAttribute("height", "50");
+      rect.setAttribute('width', '50');
+      rect.setAttribute('height', '100%');
+      assert_equals(rect.getTotalLength(), 200);
+    } finally {
+      document.documentElement.removeAttribute("height");
+      document.documentElement.removeChild(rect);
+    }
+}, document.title+', getTotalLength - rect in document with percent units');
+
+test(function() {
+    let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    document.documentElement.appendChild(g);
+    g.style.display = "none";
+    let rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    g.appendChild(rect);
+    try {
+      rect.setAttribute('width', '100');
+      rect.setAttribute('height', '100');
+      assert_equals(rect.getTotalLength(), 400);
+      rect.setAttribute('width', '50');
+      rect.setAttribute('height', '50');
+      assert_equals(rect.getTotalLength(), 200);
+    } finally {
+      document.documentElement.removeChild(g);
+    }
+}, document.title+', getTotalLength - rect in document with display none');
   </script>
 </svg>

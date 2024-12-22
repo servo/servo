@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<link rel="match" href="uses-label-dynamic-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+</style>
+
+<select>
+  <option selected id="o">Wrong label (when the test is done)</option>
+  <option>Two</option>
+  <option>Three</option>
+</select>
+
+<script>
+
+document.documentElement.addEventListener("TestRendered", (ev) => {
+  let option = document.getElementById("o");
+  option.label = "Correct label";
+  test_driver.bless('show picker', () => {
+    option.parentNode.showPicker();
+    document.documentElement.classList.remove("reftest-wait");
+  });
+}, { once: true });
+
+</script>
