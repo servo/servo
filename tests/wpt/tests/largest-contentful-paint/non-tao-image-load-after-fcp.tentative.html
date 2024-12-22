@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Non-Tao Image Load and Render After FCP.
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/largest-contentful-paint-helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+  <script>
+    promise_test(async t => {
+      // Add text so that FCP is set and image rendering time would be larger than FCP.
+      add_text('Add to set FCP');
+
+      // wait for 1 animation frame so that FCP is set.
+      await raf();
+
+      const non_tao_image_url = get_host_info().OTHER_ORIGIN + '/images/blue.png';
+
+      await loadImage(non_tao_image_url);
+
+      lcp = await getLCPStartTime('blue.png');
+
+      fcp = getFCPStartTime();
+
+      checkLCPEntryForNonTaoImages({'lcp':lcp, 'fcp':fcp});
+    }, 'Non-Tao Image Load and Render After FCP.')
+  </script>
+</body>

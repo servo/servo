@@ -109,14 +109,12 @@ impl From<Au> for ContentSizes {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
     style: &ComputedValues,
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
     is_table: bool,
-    establishes_containing_block: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
     get_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
@@ -131,40 +129,28 @@ pub(crate) fn outer_inline(
         inline: pbm.padding_border_sums.inline + margin.inline_sum(),
     };
     let content_size = LazyCell::new(|| {
-        let constraint_space = if establishes_containing_block {
-            let available_block_size = containing_block
-                .size
-                .block
-                .non_auto()
-                .map(|v| Au::zero().max(v - pbm_sums.block));
-            let automatic_size = if content_box_sizes.block.preferred.is_initial() &&
-                auto_block_size_stretches_to_containing_block
-            {
-                depends_on_block_constraints = true;
-                Size::Stretch
-            } else {
-                Size::FitContent
-            };
-            ConstraintSpace::new(
-                content_box_sizes.block.resolve_extrinsic(
-                    automatic_size,
-                    auto_minimum.block,
-                    available_block_size,
-                ),
-                style.writing_mode,
-                get_preferred_aspect_ratio(&pbm.padding_border_sums),
-            )
+        let available_block_size = containing_block
+            .size
+            .block
+            .non_auto()
+            .map(|v| Au::zero().max(v - pbm_sums.block));
+        let automatic_size = if content_box_sizes.block.preferred.is_initial() &&
+            auto_block_size_stretches_to_containing_block
+        {
+            depends_on_block_constraints = true;
+            Size::Stretch
         } else {
-            // This assumes that there is no preferred aspect ratio, or that there is no
-            // block size constraint to be transferred so the ratio is irrelevant.
-            // We only get into here for anonymous blocks, for which the assumption holds.
-            ConstraintSpace::new(
-                containing_block.size.block.into(),
-                containing_block.writing_mode,
-                None,
-            )
+            Size::FitContent
         };
-        get_content_size(&constraint_space)
+        get_content_size(&ConstraintSpace::new(
+            content_box_sizes.block.resolve_extrinsic(
+                automatic_size,
+                auto_minimum.block,
+                available_block_size,
+            ),
+            style.writing_mode,
+            get_preferred_aspect_ratio(&pbm.padding_border_sums),
+        ))
     });
     let resolve_non_initial = |inline_size| {
         Some(match inline_size {

@@ -871,14 +871,6 @@ impl SizeConstraint {
     }
 }
 
-impl From<AuOrAuto> for SizeConstraint {
-    fn from(size: AuOrAuto) -> Self {
-        size.non_auto()
-            .map(SizeConstraint::Definite)
-            .unwrap_or_default()
-    }
-}
-
 #[derive(Clone, Default)]
 pub(crate) struct Sizes {
     /// <https://drafts.csswg.org/css-sizing-3/#preferred-size-properties>

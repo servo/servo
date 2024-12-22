@@ -3,26 +3,6 @@
     var idCounter = 0;
     let testharness_context = null;
 
-    const features = (() => {
-        function getFeatures(scriptSrc) {
-            try {
-                const url = new URL(scriptSrc);
-                return url.searchParams.getAll('feature');
-            } catch (e) {
-                return [];
-            }
-        }
-
-        return getFeatures(document?.currentScript?.src ?? '');
-    })();
-
-    function assertBidiIsEnabled(){
-        if (!features.includes('bidi')) {
-            throw new Error(
-                "`?feature=bidi` is missing when importing testdriver.js but the test is using WebDriver BiDi APIs");
-        }
-    }
-
     function getInViewCenterPoint(rect) {
         var left = Math.max(0, rect.left);
         var right = Math.min(window.innerWidth, rect.right);
@@ -135,7 +115,6 @@
                      * is successfully done.
                      */
                     subscribe: async function (params = {}) {
-                        assertBidiIsEnabled();
                         return window.test_driver_internal.bidi.log.entry_added.subscribe(params);
                     },
                     /**
@@ -148,7 +127,6 @@
                      * added event listener when called.
                      */
                     on: function (callback) {
-                        assertBidiIsEnabled();
                         return window.test_driver_internal.bidi.log.entry_added.on(callback);
                     },
                     /**
@@ -159,7 +137,6 @@
                      * with the event object when the event is emitted.
                      */
                     once: function () {
-                        assertBidiIsEnabled();
                         return new Promise(resolve => {
                             const remove_handler = window.test_driver_internal.bidi.log.entry_added.on(
                                 event => {
@@ -204,7 +181,6 @@
                  *                    the permission fails.
                  */
                 set_permission: function (params) {
-                    assertBidiIsEnabled();
                     return window.test_driver_internal.bidi.permissions.set_permission(
                         params);
                 }
@@ -274,8 +250,8 @@
             let wait_click = new Promise(resolve => button.addEventListener("click", resolve));
 
             return test_driver.click(button)
-                .then(() => wait_click)
-                .then(() => {
+                .then(wait_click)
+                .then(function() {
                     button.remove();
 
                     if (typeof action === "function") {

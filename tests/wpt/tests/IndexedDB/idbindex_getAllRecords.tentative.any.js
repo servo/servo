@@ -4,7 +4,6 @@
 // META: script=resources/support.js
 // META: script=resources/support-get-all.js
 // META: script=resources/support-promises.js
-// META: timeout=long
 
 'use_strict';
 

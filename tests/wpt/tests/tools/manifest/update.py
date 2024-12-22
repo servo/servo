@@ -58,26 +58,26 @@ def abs_path(path: str) -> str:
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-v", "--verbose", action="store_true",
+        "-v", "--verbose", dest="verbose", action="store_true", default=False,
         help="Turn on verbose logging")
     parser.add_argument(
         "-p", "--path", type=abs_path, help="Path to manifest file.")
     parser.add_argument(
         "--tests-root", type=abs_path, default=wpt_root, help="Path to root of tests.")
     parser.add_argument(
-        "-r", "--rebuild", action="store_true",
+        "-r", "--rebuild", action="store_true", default=False,
         help="Force a full rebuild of the manifest.")
     parser.add_argument(
-        "--url-base", default="/",
+        "--url-base", action="store", default="/",
         help="Base url to use as the mount point for tests in this manifest.")
     parser.add_argument(
-        "--no-download", dest="download", action="store_false",
+        "--no-download", dest="download", action="store_false", default=True,
         help="Never attempt to download the manifest.")
     parser.add_argument(
-        "--cache-root", default=os.path.join(wpt_root, ".wptcache"),
+        "--cache-root", action="store", default=os.path.join(wpt_root, ".wptcache"),
         help="Path in which to store any caches (default <tests_root>/.wptcache/)")
     parser.add_argument(
-        "--no-parallel", dest="parallel", action="store_false",
+        "--no-parallel", dest="parallel", action="store_false", default=True,
         help="Do not parallelize building the manifest")
     return parser
 

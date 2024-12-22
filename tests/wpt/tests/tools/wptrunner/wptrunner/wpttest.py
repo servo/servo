@@ -216,8 +216,7 @@ class Test(ABC):
     long_timeout = 60  # seconds
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
-          timeout=None, path=None, protocol="http", subdomain=False, pac=None,
-          testdriver_features=None):
+                 timeout=None, path=None, protocol="http", subdomain=False, pac=None):
         self.url_base = url_base
         self.tests_root = tests_root
         self.url = url
@@ -225,7 +224,6 @@ class Test(ABC):
         self._test_metadata = test_metadata
         self.timeout = timeout if timeout is not None else self.default_timeout
         self.path = path
-        self.testdriver_features = testdriver_features
         self.subdomain = subdomain
         self.environment = {"url_base": url_base,
                             "protocol": protocol,
@@ -484,10 +482,9 @@ class TestharnessTest(Test):
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
                  timeout=None, path=None, protocol="http", testdriver=False,
-                 jsshell=False, scripts=None, subdomain=False, pac=None,
-                 testdriver_features=None):
+                 jsshell=False, scripts=None, subdomain=False, pac=None):
         Test.__init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, timeout,
-                      path, protocol, subdomain, pac, testdriver_features)
+                      path, protocol, subdomain, pac)
 
         self.testdriver = testdriver
         self.jsshell = jsshell
@@ -497,7 +494,6 @@ class TestharnessTest(Test):
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
         pac = manifest_item.pac
-        testdriver_features = manifest_item.testdriver_features
         testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
         jsshell = manifest_item.jsshell if hasattr(manifest_item, "jsshell") else False
         script_metadata = manifest_item.script_metadata or []
@@ -510,7 +506,6 @@ class TestharnessTest(Test):
                    test_metadata,
                    timeout=timeout,
                    pac=pac,
-                   testdriver_features=testdriver_features,
                    path=os.path.join(manifest_file.tests_root, manifest_item.path),
                    protocol=server_protocol(manifest_item),
                    testdriver=testdriver,

@@ -194,13 +194,14 @@ def env_options():
 
 
 def get_bool_pref(default_prefs, extra_prefs, pref):
+    pref_value = False
+
     for key, value in extra_prefs + default_prefs:
         if pref == key:
-            if isinstance(value, str):
-                value = value.lower() in ('true', '1')
-            return bool(value)
+            pref_value = value.lower() in ('true', '1')
+            break
 
-    return False
+    return pref_value
 
 
 def run_info_extras(logger, default_prefs=None, **kwargs):
@@ -691,10 +692,6 @@ class ProfileCreator:
 
         return profile
 
-    @staticmethod
-    def default_prefs():
-        return {}
-
     def _load_prefs(self):
         prefs = Preferences()
 
@@ -718,9 +715,7 @@ class ProfileCreator:
                 self.logger.warning(f"Failed to find prefs file in {path}")
 
         # Add any custom preferences
-        all_prefs = self.default_prefs()
-        all_prefs.update(self.extra_prefs)
-        prefs.add(all_prefs, cast=True)
+        prefs.add(self.extra_prefs, cast=True)
 
         return prefs()
 
