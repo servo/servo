@@ -22,6 +22,10 @@ on:
         required: false
         type: boolean
         default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -41,6 +45,10 @@ on:
         required: false
         type: boolean
         default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
