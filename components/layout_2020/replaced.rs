@@ -608,7 +608,7 @@ fn try_to_parse_image_data_url(string: &str) -> Option<Url> {
     // repeated several places in Servo, but should be centralized somehow.
     if !matches!(
         mime_type.subtype.as_str(),
-        "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico"
+        "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico" | "jxl"
     ) {
         return None;
     }
