@@ -179,7 +179,7 @@ jobs:
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: win
+          name: ${{ inputs.profile }}-binary-windows
           # These files are available
           # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
           # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe

@@ -40,7 +40,7 @@ jobs:
           path: ${{ inputs.profile }}-binary-macos
       - name: unPackage binary
         run: |
-          tar -xzf target.tar.gz
+          tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       # - name: Bootstrap dependencies
