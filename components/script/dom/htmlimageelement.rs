@@ -69,8 +69,8 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::element::{
     cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
-    set_cross_origin_attribute, AttributeMutation, CustomElementCreationMode, Element,
-    ElementCreator, LayoutElementHelpers,
+    reflect_referrer_policy_attribute, set_cross_origin_attribute, AttributeMutation,
+    CustomElementCreationMode, Element, ElementCreator, LayoutElementHelpers,
 };
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -1691,11 +1691,9 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy>
     fn ReferrerPolicy(&self) -> DOMString {
-        let element = self.upcast::<Element>();
-        let current_policy_value = element.get_string_attribute(&local_name!("referrerpolicy"));
-        get_correct_referrerpolicy_from_raw_token(&current_policy_value)
+        reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
