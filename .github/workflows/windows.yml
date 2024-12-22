@@ -76,6 +76,10 @@ jobs:
       - runner-select
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     steps:
       - if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
         uses: actions/checkout@v4
@@ -168,6 +172,11 @@ jobs:
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
         run: .\mach package --${{ inputs.profile }}
+      - name: Generate mach package artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: win
+          subject-path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.exe
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:

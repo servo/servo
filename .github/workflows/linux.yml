@@ -103,6 +103,10 @@ jobs:
       - runner-select
     name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     steps:
       - uses: actions/checkout@v4
         if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
@@ -173,6 +177,11 @@ jobs:
           path: target/cargo-timings-*
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
+      - name: Generate mach package artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: 'linux'
+          subject-path: 'target/${{ inputs.profile }}/servo-tech-demo.tar.gz'
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
@@ -190,6 +199,11 @@ jobs:
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
         run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
+      - name: Generate package artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: '${{ inputs.profile }}-binary-linux'
+          subject-path: 'target.tar.gz'
       - name: Upload artifact for target
         uses: actions/upload-artifact@v4
         with:
