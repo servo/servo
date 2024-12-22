@@ -155,7 +155,10 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux", "linux-wpt", "linux-perf", "macos", "macos-perf", "windows", "windows-perf", "android", "ohos", "lint"])
+                words.extend(["linux", "linux-wpt", "linux-perf"])
+                words.extend(["macos", "macos-perf"])
+                words.extend(["windows", "windows-perf"])
+                words.extend(["android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
