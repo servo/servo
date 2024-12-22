@@ -1,6 +1,11 @@
 name: Linux WPT Tests
 on:
   workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
 
 permissions:
   checks: write
@@ -31,10 +36,10 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: release-binary-linux
-          path: release-binary-linux
+          name: ${{ inputs.profile }}-binary-linux
+          path: ${{ inputs.profile }}-binary-linux
       - name: unPackage binary
-        run: tar -xzf release-binary-linux/target.tar.gz
+        run: tar -xzf target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
@@ -44,7 +49,7 @@ jobs:
           python3 ./mach bootstrap --skip-lints
       - uses: bencherdev/bencher@main
       - name: File size
-        run: ./etc/ci/bencher.py filesize target/release/servo --bmf-output size.json
+        run: ./etc/ci/bencher.py filesize target/${{ inputs.profile }}/servo linux-${{ inputs.profile }} --bmf-output size.json
       - name: Speedometer
         run: |
             python3 ./mach test-speedometer -r --bmf-output speedometer.json

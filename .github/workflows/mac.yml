@@ -174,4 +174,6 @@ jobs:
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
     if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/macos-bencher.yml
+    with:
+      profile: ${{ inputs.profile }}
     secrets: inherit

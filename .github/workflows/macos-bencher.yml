@@ -1,6 +1,11 @@
 name: macOS Bencher
 on:
   workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
 
 permissions:
   checks: write
@@ -31,8 +36,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: release-binary-macos
-          path: release-binary-macos
+          name: ${{ inputs.profile }}-binary-macos
+          path: ${{ inputs.profile }}-binary-macos
       - name: unPackage binary
         run: |
           tar -xzf target.tar.gz
@@ -46,7 +51,7 @@ jobs:
       - uses: bencherdev/bencher@main
       - name: File size
         run: |
-          ./etc/ci/bencher.py filesize target/release/servo --bmf-output size.json
+          ./etc/ci/bencher.py filesize target/${{ inputs.profile }}/servo macos-${{ inputs.profile }} --bmf-output size.json
       # set options
       - name: Set bencher opts for PRs (label try run)
         if: github.event_name == 'pull_request_target'

@@ -46,6 +46,7 @@ parser = argparse.ArgumentParser("Helper commands for bencher")
 subparser = parser.add_subparsers()
 size_parser = subparser.add_parser("filesize", help="Returns BMF for filesize")
 size_parser.add_argument("binary", help="Servo binary file")
+size_parser.add_argument("variant", help="variant of the binary")
 size_parser.add_argument("--bmf-output", help="BMF JSON output file", default=None)
 size_parser.set_defaults(func=size)
 
