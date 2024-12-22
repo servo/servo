@@ -33,8 +33,9 @@ use futures::StreamExt;
 use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Empty, Full};
 use hyper::server::conn::http1;
-use hyper::service::{make_service_fn, service_fn};
+use hyper::service::service_fn;
 use hyper::{body::{Incoming, Bytes}, Request as HyperRequest, Response as HyperResponse};
+use hyper_util::rt::tokio::TokioIo;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -166,6 +167,7 @@ pub(crate) struct Server {
 
 impl Server {
     fn close(self) {
+println!("sending close signal");
         self.close_channel.send(()).expect("err closing server:");
     }
 }
@@ -174,48 +176,106 @@ fn make_server<H>(handler: H) -> (Server, ServoUrl)
 where
     H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>) + Send + Sync + 'static,
 {
+    let (a, b, _) = make_server_2(handler);
+    (a, b)
+}
+
+
+fn make_server_2<H>(handler: H) -> (Server, ServoUrl, tokio::task::JoinHandle<()>)
+where
+    H: Fn(HyperRequest<Incoming>, &mut HyperResponse<BoxBody<Bytes, hyper::Error>>) + Send + Sync + 'static,
+{
     let handler = Arc::new(handler);
     let listener = StdTcpListener::bind("0.0.0.0:0").unwrap();
+println!("about to block");
+    let listener = HANDLE
+        .lock()
+        .unwrap()
+        .block_on(async move { TcpListener::from_std(listener).unwrap() });
+println!("finished blocking");
     let url_string = format!("http://localhost:{}", listener.local_addr().unwrap().port());
     let url = ServoUrl::parse(&url_string).unwrap();
-    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+    //let graceful = hyper_util::server::graceful::GracefulShutdown::new();
+    //let mut listener = TcpListenerStream::new(listener);
+    let (tx, mut rx) = tokio::sync::oneshot::channel::<()>();
     let server = async move {
-        let http = http1::Builder::new();
-        let conn = http.serve_connection(listener, make_service_fn(move |_| {
+        loop {
+            println!("a");
+            let stream = tokio::select! {
+                stream = listener.accept() => stream.unwrap().0,
+                _val = &mut rx => {
+                    println!("got signal");
+                    //graceful.shutdown().await;
+                    break;
+                }
+            };
+
+            println!("b");
+
+            /*let stream = match stream {
+                Some(stream) => stream.expect("Could not accept stream: "),
+                _ => break,
+            };*/
+
             let handler = handler.clone();
-            ready(Ok::<_, Infallible>(service_fn(
-                move |req: HyperRequest<Incoming>| {
-                    //let mut response = HyperResponse::new(Bytes::from(Vec::<u8>::new()).boxed());
+
+            let stream = stream.into_std().unwrap();
+            stream
+                .set_read_timeout(Some(std::time::Duration::new(5, 0)))
+                .unwrap();
+            let stream = TcpStream::from_std(stream).unwrap();
+
+            println!("c");
+
+            let http = http1::Builder::new();
+            let conn = http.serve_connection(
+                TokioIo::new(stream),
+                service_fn(move |req: HyperRequest<Incoming>| {
+                    println!("d");
+
                     let mut response = HyperResponse::new(Empty::new().map_err(|_| unreachable!()).boxed());
                     handler(req, &mut response);
-                    ready(Ok::<_, Infallible>(response))
-                },
-            )))
-        }))
-            /*.with_graceful_shutdown(async move {
-                rx.await.ok();
-            })*/
-            .await
-            .expect("Could not start server");
-    };
 
-    HANDLE.lock().unwrap().spawn(server);
+                    println!("e");
+
+                    ready(Ok::<_, Infallible>(response))
+                })
+                    /*.with_graceful_shutdown(async move {
+                        rx.await.ok();
+                    })*/
+
+            );
+            //let conn = graceful.watch(conn);
+            println!("c'");
+
+            let _ = conn.await;
+
+            println!("c'''");
+        }
+    };
+            //.await
+            //.expect("Could not start server");
+    //};
+
+    println!("about to spawn");
+    let handle = HANDLE.lock().unwrap().spawn(server);
+    println!("spawned");
     (
         Server {
             close_channel: tx,
             certificates: None,
         },
         url,
+        handle,
     )
 }
 
 /// Given a path to a file containing PEM certificates, load and parse them into
 /// a vector of RusTLS [Certificate]s.
-fn load_certificates_from_pem(path: &PathBuf) -> std::io::Result<Vec<CertificateDer>> {
+fn load_certificates_from_pem(path: &PathBuf) -> std::io::Result<Vec<CertificateDer<'static>>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
     certs(&mut reader).collect::<Result<Vec<_>, _>>()
-    //Ok(certs.into_iter().map(CertificateDer::from_slice).collect())
 }
 
 /// Given a path to a file containing PEM keys, load and parse them into
@@ -227,7 +287,7 @@ fn load_private_key_from_file(path: &PathBuf) -> Result<PrivateKeyDer<'static>, 
 
     match keys.len() {
         0 => Err(format!("No PKCS8-encoded private key found in {path:?}").into()),
-        1 => Ok(PrivateKeyDer::from_pem_slice(keys.remove(0).secret_pkcs8_der())?),
+        1 => Ok(PrivateKeyDer::try_from(keys.remove(0))?),
         _ => Err(format!("More than one PKCS8-encoded private key found in {path:?}").into()),
     }
 }
@@ -295,7 +355,7 @@ where
 
             let _ = http1::Builder::new()
                 .serve_connection(
-                    stream,
+                    TokioIo::new(stream),
                     service_fn(move |req: HyperRequest<Incoming>| {
                         let mut response = HyperResponse::new(Empty::new().map_err(|_| unreachable!()).boxed());
                         handler(req, &mut response);
