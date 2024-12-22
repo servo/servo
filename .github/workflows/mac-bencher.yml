@@ -38,9 +38,9 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-macos
           path: ${{ inputs.profile }}-binary-macos
-      # - name: unPackage binary
-      #   run: |
-      #     tar -xzf ${{ inputs.profile }}-binary-macos/target.tar.gz
+      - name: unPackage binary
+        run: |
+          tar -xzf ${{ inputs.profile }}-binary-macos/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       # - name: Bootstrap dependencies
