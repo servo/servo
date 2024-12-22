@@ -2946,7 +2946,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
     fn CloneNode(&self, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        if deep && self.is::<ShadowRoot>() {
+        if self.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
         }
         Ok(Node::clone(
