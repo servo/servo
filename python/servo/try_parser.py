@@ -93,8 +93,12 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Linux perf", Workflow.LINUX, bencher=True)
     elif s in ["mac", "macos"]:
         return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
+    elif s in ["macos-perf"]:
+        return JobConfig("MacOS", Workflow.MACOS, bencher=True)
     elif s in ["win", "windows"]:
         return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
+    elif s in ["windows-perf"]:
+        return JobConfig("Windows", Workflow.WINDOWS, bencher=True)
     elif s in ["wpt-2013", "linux-wpt-2013"]:
         return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2013)
     elif s in ["wpt-2020", "linux-wpt-2020", "wpt", "linux-wpt"]:
@@ -151,7 +155,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux", "linux-wpt", "linux-perf", "macos", "windows", "android", "ohos", "lint"])
+                words.extend(["linux", "linux-wpt", "linux-perf", "macos", "macos-perf", "windows", "windows-perf", "android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
