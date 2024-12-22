@@ -32,6 +32,8 @@ interface HTMLAnchorElement : HTMLElement {
   [CEReactions, Pure]
            attribute DOMString text;
 
+  [CEReactions] attribute DOMString referrerPolicy;
+
   // also has obsolete members
 };
 HTMLAnchorElement includes HTMLHyperlinkElementUtils;

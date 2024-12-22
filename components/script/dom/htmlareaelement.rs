@@ -22,7 +22,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{reflect_referrer_policy_attribute, AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
@@ -362,6 +362,14 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
             )
         })
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy>
+    fn ReferrerPolicy(&self) -> DOMString {
+        reflect_referrer_policy_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 }
 
 impl Activatable for HTMLAreaElement {
