@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::{env, panic, process};
 
 use getopts::Options;
-use log::error;
+use log::{error, warn};
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::config::set_pref;
 use servo::servo_config::pref;
@@ -108,8 +108,10 @@ pub fn main() {
 
     // Implements window methods, used by compositor.
     let window = if opts::get().headless {
-        // GL video rendering is not supported on headless windows.
-        set_pref!(media.glvideo.enabled, false);
+        if pref!(media.glvideo.enabled) {
+            warn!("GL video rendering is not supported on headless windows.");
+            set_pref!(media.glvideo.enabled, false);
+        }
         headless_window::Window::new(opts::get().initial_window_size, device_pixel_ratio_override)
     } else {
         Rc::new(headed_window::Window::new(
