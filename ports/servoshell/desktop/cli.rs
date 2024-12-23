@@ -107,6 +107,8 @@ pub fn main() {
         .expect("Failed to create events loop");
 
     // Implements window methods, used by compositor.
+    // FIXME: We keep the window until application exits. Otherwise, it will cause
+    // simthay-clipboard thread segfault on Wayland.
     let window = if opts::get().headless {
         if pref!(media.glvideo.enabled) {
             warn!("GL video rendering is not supported on headless windows.");
