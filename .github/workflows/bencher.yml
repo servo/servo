@@ -2,6 +2,10 @@ name: Bencher
 on:
   workflow_call:
     inputs:
+      target:
+        required: false
+        default: "linux"
+        type: string
       profile:
         required: false
         default: "release"
@@ -51,42 +55,43 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.profile }}-binary-${{ matrix.target }}
-          path: ${{ inputs.profile }}-binary-${{ matrix.target }}
+          name: ${{ inputs.profile }}-binary-${{ inputs.target }}
+          path: ${{ inputs.profile }}-binary-${{ inputs.target }}
       # Linux and macOS uploads compressed binary
       - name: unPackage binary (Linux or macOS)
-        if: ${{ matrix.target == 'linux' || matrix.target == 'macos' }}
-        run: tar -xzf ${{ inputs.profile }}-binary-${{ matrix.target }}/target.tar.gz
+        if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
+        run: tar -xzf ${{ inputs.profile }}-binary-${{ inputs.target }}/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
+        if: ${{ inputs.speedometer == true || inputs.dromaeo == true }}
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
           python3 ./mach bootstrap --skip-lints
       - uses: bencherdev/bencher@main
       - name: File location (Linux or macOS)
-        if: ${{ matrix.target == 'linux' || matrix.target == 'macos' }}
+        if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
         run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo" >> $GITHUB_ENV
       - name: File location (Windows)
-        if: ${{ matrix.target == 'windows' }}
+        if: ${{ inputs.target == 'windows' }}
         run: echo "SERVO_BINARY_PATH=${{ inputs.profile }}-binary-windows/Servo.exe" >> $GITHUB_ENV
       - name: File location (Android)
-        if: ${{ contains(matrix.target, 'android') }}
+        if: ${{ contains(inputs.target, 'android') }}
         run: echo "SERVO_BINARY_PATH=${{ inputs.profile }}-binary-android/servoapp.apk" >> $GITHUB_ENV
       # - name: Check if signed (Open Harmony)
-      #   if: ${{ contains(matrix.target, 'ohos') }}
+      #   if: ${{ contains(inputs.target, 'ohos') }}
       #   run: 
       # - name: File location (Open Harmony, signed)
-      #   if: ${{ contains(matrix.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG != '' }}
+      #   if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG != '' }}
       #   run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-signed.hap" >> $GITHUB_ENV
       # - name: File location (Open Harmony, unsigned)
-      #   if: ${{ contains(matrix.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG == '' }}
+      #   if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG == '' }}
       #   run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-unsigned.hap" >> $GITHUB_ENV
       - name: File size
         if: ${{ inputs.file-size == true }}
         run: |
-            ./etc/ci/bencher.py filesize ${{ env.SERVO_BINARY_PATH }} ${{ matrix.target }}-${{ inputs.profile }} --bmf-output size.json
+            ./etc/ci/bencher.py filesize ${{ env.SERVO_BINARY_PATH }} ${{ inputs.target }}-${{ inputs.profile }} --bmf-output size.json
             echo "SERVO_FILE_SIZE_RESULT=size.json" >> $GITHUB_ENV
       - name: Speedometer
         if: ${{ inputs.speedometer == true }}

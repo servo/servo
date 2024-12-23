@@ -175,11 +175,9 @@ jobs:
     if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
+      target: 'macos'
       profile: ${{ inputs.profile }}
       file-size: true
       speedometer: false
       dromaeo: false
-    strategy:
-      matrix:
-        target: ['macos']
     secrets: inherit
