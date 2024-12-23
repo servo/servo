@@ -1653,7 +1653,7 @@ async fn http_network_or_cache_fetch(
         // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
         response = http_network_or_cache_fetch(
             http_request,
-            true, /* authentication flag */
+            false, /* authentication flag */
             cors_flag,
             done_chan,
             context,
