@@ -152,9 +152,12 @@ jobs:
     needs: ["build"]
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
     if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
-    uses: ./.github/workflows/android-bencher.yml
+    uses: ./.github/workflows/bencher.yml
     with:
       profile: ${{ inputs.profile }}
+      file-size: true
+      speedometer: false
+      dromaeo: false
     strategy:
       matrix:
         target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']

@@ -224,7 +224,13 @@ jobs:
     needs: ["build"]
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
     if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
-    uses: ./.github/workflows/linux-bencher.yml
+    uses: ./.github/workflows/bencher.yml
     with:
       profile: ${{ inputs.profile }}
+      file-size: true
+      speedometer: true
+      dromaeo: true
+    strategy:
+      matrix:
+        target: ['linux']
     secrets: inherit
