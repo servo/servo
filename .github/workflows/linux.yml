@@ -75,6 +75,7 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
+  MOZJS_ATTESTATION: force
 
 jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,

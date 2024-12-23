@@ -51,6 +51,7 @@ env:
   # https://github.com/KyleMayes/clang-sys/issues/150
   LIBCLANG_PATH: C:\Program Files\LLVM\bin
   RUSTUP_WINDOWS_PATH_ADD_BIN: 1
+  MOZJS_ATTESTATION: force
 
 jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,

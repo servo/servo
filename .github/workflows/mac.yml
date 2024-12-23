@@ -53,6 +53,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
+  MOZJS_ATTESTATION: force
 
 jobs:
   build:
