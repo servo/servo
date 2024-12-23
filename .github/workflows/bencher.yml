@@ -53,9 +53,9 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
           path: ${{ inputs.profile }}-binary-${{ inputs.target }}
-      # 
+      # Linux and macOS uploads compressed binary
       - name: unPackage binary (Linux or macOS)
-        if: ${{ inputs.target == "linux" || inputs.target == "macos" }}
+        if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
         run: tar -xzf ${{ inputs.profile }}-binary-${{ inputs.target }}/target.tar.gz
       - name: Setup Python
         uses: ./.github/actions/setup-python
@@ -66,22 +66,22 @@ jobs:
           python3 ./mach bootstrap --skip-lints
       - uses: bencherdev/bencher@main
       - name: File location (Linux or macOS)
-        if: ${{ inputs.target == "linux" || inputs.target == "macos" }}
+        if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
         run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo" >> $GITHUB_ENV
       - name: File location (Windows)
-        if: ${{ inputs.target == "windows" }}
+        if: ${{ inputs.target == 'windows' }}
         run: echo "SERVO_BINARY_PATH=${{ inputs.profile }}-binary-windows/Servo.exe" >> $GITHUB_ENV
       - name: File location (Android)
-        if: ${{ contains(inputs.target, "android") }}
+        if: ${{ contains(inputs.target, 'android') }}
         run: echo "SERVO_BINARY_PATH=${{ inputs.profile }}-binary-android/servoapp.apk" >> $GITHUB_ENV
       # - name: Check if signed (Open Harmony)
-      #   if: ${{ contains(inputs.target, "ohos") }}
+      #   if: ${{ contains(inputs.target, 'ohos') }}
       #   run: 
       # - name: File location (Open Harmony, signed)
-      #   if: ${{ contains(inputs.target, "ohos") && env.env.SERVO_OHOS_SIGNING_CONFIG != '' }}
+      #   if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG != '' }}
       #   run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-signed.hap" >> $GITHUB_ENV
       # - name: File location (Open Harmony, unsigned)
-      #   if: ${{ contains(inputs.target, "ohos") && env.env.SERVO_OHOS_SIGNING_CONFIG == '' }}
+      #   if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG == '' }}
       #   run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-unsigned.hap" >> $GITHUB_ENV
       - name: File size
         if: ${{ inputs.file-size == true }}
