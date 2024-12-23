@@ -69,6 +69,7 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
+      bencher: ${{ inputs.bencher }}
 
   ohos:
     if: ${{ inputs.workflow == 'ohos' }}
@@ -76,3 +77,4 @@ jobs:
     uses: ./.github/workflows/ohos.yml
     with:
       profile: ${{ inputs.profile }}
+      bencher: ${{ inputs.bencher }}
