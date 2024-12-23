@@ -1563,7 +1563,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    let _ = server.close();
+    server.close();
 
     assert!(response
         .internal_response
@@ -1604,7 +1604,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    let _ = server.close();
+    server.close();
 
     assert!(response
         .internal_response
@@ -1623,9 +1623,11 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
                 *response.status_mut() = StatusCode::OK;
             } else {
                 *response.status_mut() = StatusCode::UNAUTHORIZED;
+                response.headers_mut().append(http::header::WWW_AUTHENTICATE, HeaderValue::from_str(r#"Basic realm="Demo Realm""#).unwrap());
             }
         } else {
             *response.status_mut() = StatusCode::UNAUTHORIZED;
+            response.headers_mut().append(http::header::WWW_AUTHENTICATE, HeaderValue::from_str(r#"Basic realm="Demo Realm""#).unwrap());
         }
     };
     let (server, url) = make_server(handler);
@@ -1649,7 +1651,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    let _ = server.close();
+    server.close();
 
     assert!(response
         .internal_response
