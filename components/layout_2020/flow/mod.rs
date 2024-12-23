@@ -886,7 +886,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                         layout_context,
                         child_boxes,
                         &mut block_start_margin,
-                        containing_block,
+                        &containing_block_for_children,
                     );
                 }
             }
