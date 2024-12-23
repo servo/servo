@@ -261,16 +261,6 @@ pub(crate) trait ComputedValuesExt {
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_max_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_max_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Au>>;
     fn content_max_box_size_for_max_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
@@ -468,27 +458,6 @@ impl ComputedValuesExt for ComputedValues {
                 |value| Au::zero().max(value - pbm.padding_border_sums.block),
             ),
         }
-    }
-
-    fn content_max_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let max_box_size = self
-            .max_box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-
-        self.content_max_box_size_for_max_size(max_box_size, pbm)
-    }
-
-    fn content_max_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Au>> {
-        self.content_max_box_size(containing_block, pbm)
-            .map(Size::to_numeric)
     }
 
     fn content_max_box_size_for_max_size(
