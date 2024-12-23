@@ -179,6 +179,7 @@ jobs:
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
       - name: Generate mach package artifact attestation
+        if: ${{ inputs.upload }}
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: 'linux'
@@ -200,11 +201,6 @@ jobs:
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
         run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
-      - name: Generate package artifact attestation
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-name: '${{ inputs.profile }}-binary-linux'
-          subject-path: 'target.tar.gz'
       - name: Upload artifact for target
         uses: actions/upload-artifact@v4
         with:
