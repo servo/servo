@@ -62,6 +62,7 @@ use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
 
+use super::customelementregistry::is_valid_custom_element_name;
 use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
@@ -511,35 +512,24 @@ impl Element {
         clonable: bool,
     ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1.
+        // If element’s namespace is not the HTML namespace,
+        // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
             return Err(Error::NotSupported);
         }
 
         // Step 2.
-        match self.local_name() {
-            &local_name!("article") |
-            &local_name!("aside") |
-            &local_name!("blockquote") |
-            &local_name!("body") |
-            &local_name!("div") |
-            &local_name!("footer") |
-            &local_name!("h1") |
-            &local_name!("h2") |
-            &local_name!("h3") |
-            &local_name!("h4") |
-            &local_name!("h5") |
-            &local_name!("h6") |
-            &local_name!("header") |
-            &local_name!("main") |
-            &local_name!("nav") |
-            &local_name!("p") |
-            &local_name!("section") |
-            &local_name!("span") => {},
-            &local_name!("video") | &local_name!("audio")
-                if is_ua_widget == IsUserAgentWidget::Yes => {},
-            _ => return Err(Error::NotSupported),
-        };
+        // If element’s local name is not a valid shadow host name,
+        // then throw a "NotSupportedError" DOMException.
+        if !is_valid_shadow_host_name(self.local_name()) {
+            match self.local_name() {
+                &local_name!("video") | &local_name!("audio")
+                    if is_ua_widget == IsUserAgentWidget::Yes => {},
+                _ => return Err(Error::NotSupported),
+            }
+        }
 
+        // TODO: Update the following steps to align with the newer spec.
         // Step 3.
         if self.is_shadow_host() {
             return Err(Error::InvalidState);
@@ -612,6 +602,40 @@ impl Element {
             Some(node) => node.is::<Document>(),
         }
     }
+}
+
+/// <https://dom.spec.whatwg.org/#valid-shadow-host-name>
+#[inline]
+pub fn is_valid_shadow_host_name(name: &LocalName) -> bool {
+    // > A valid shadow host name is:
+    // > - a valid custom element name
+    if is_valid_custom_element_name(name) {
+        return true;
+    }
+
+    // > - "article", "aside", "blockquote", "body", "div", "footer", "h1", "h2", "h3",
+    // >   "h4", "h5", "h6", "header", "main", "nav", "p", "section", or "span"
+    matches!(
+        name,
+        &local_name!("article") |
+            &local_name!("aside") |
+            &local_name!("blockquote") |
+            &local_name!("body") |
+            &local_name!("div") |
+            &local_name!("footer") |
+            &local_name!("h1") |
+            &local_name!("h2") |
+            &local_name!("h3") |
+            &local_name!("h4") |
+            &local_name!("h5") |
+            &local_name!("h6") |
+            &local_name!("header") |
+            &local_name!("main") |
+            &local_name!("nav") |
+            &local_name!("p") |
+            &local_name!("section") |
+            &local_name!("span")
+    )
 }
 
 #[inline]
