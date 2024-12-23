@@ -37,6 +37,7 @@ use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
+use super::fetch_params::FetchParams;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
@@ -98,7 +99,7 @@ impl CancellationListener {
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchContext) {
+pub async fn fetch(fetch_params: &mut FetchParams, target: Target<'_>, context: &FetchContext) {
     // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
     // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
     {
@@ -106,18 +107,19 @@ pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchCon
         timing_guard.set_attribute(ResourceAttribute::FetchStart);
         timing_guard.set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
     }
-    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
+    fetch_with_cors_cache(fetch_params, &mut CorsCache::default(), target, context).await;
 }
 
 /// Continuation of fetch from step 9.
 ///
 /// <https://fetch.spec.whatwg.org#concept-fetch>
 pub async fn fetch_with_cors_cache(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     target: Target<'_>,
     context: &FetchContext,
 ) {
+    let request = &mut fetch_params.request;
     // Step 9: If request’s window is "client", then set request’s window to request’s client, if
     // request’s client’s global object is a Window object; otherwise "no-window".
     if request.window == Window::Client {
@@ -170,7 +172,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 17: Run main fetch given fetchParams.
-    main_fetch(request, cache, false, target, &mut None, context).await;
+    main_fetch(fetch_params, cache, false, target, &mut None, context).await;
 
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
@@ -207,7 +209,7 @@ pub fn should_request_be_blocked_by_csp(
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 pub async fn main_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     recursive_flag: bool,
     target: Target<'_>,
@@ -218,16 +220,16 @@ pub async fn main_fetch(
     let mut response = None;
 
     // Servo internal: return a crash error when a crash error page is needed
-    if let Some(ref details) = request.crash {
+    if let Some(ref details) = fetch_params.request.crash {
         response = Some(Response::network_error(NetworkError::Crash(
             details.clone(),
         )));
     }
 
     // Step 2.
-    if request.local_urls_only &&
+    if fetch_params.request.local_urls_only &&
         !matches!(
-            request.current_url().scheme(),
+            fetch_params.request.current_url().scheme(),
             "about" | "blob" | "data" | "filesystem"
         )
     {
@@ -241,13 +243,15 @@ pub async fn main_fetch(
 
     // The request should have a valid policy_container associated with it.
     // TODO: This should not be `Client` here
-    let policy_container = match &request.policy_container {
+    let policy_container = match &fetch_params.request.policy_container {
         RequestPolicyContainer::Client => PolicyContainer::default(),
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
 
     // Step 2.4.
-    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
+    if should_request_be_blocked_by_csp(&fetch_params.request, &policy_container) ==
+        csp::CheckResult::Blocked
+    {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),
@@ -261,7 +265,7 @@ pub async fn main_fetch(
     // TODO: handle upgrade to a potentially secure URL.
 
     // Step 5.
-    if should_be_blocked_due_to_bad_port(&request.current_url()) {
+    if should_be_blocked_due_to_bad_port(&fetch_params.request.current_url()) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Request attempted on bad port".into(),
         )));
@@ -271,22 +275,24 @@ pub async fn main_fetch(
 
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
     // to request’s policy container’s referrer policy.
-    if request.referrer_policy == ReferrerPolicy::EmptyString {
-        request.referrer_policy = policy_container.get_referrer_policy();
+    if fetch_params.request.referrer_policy == ReferrerPolicy::EmptyString {
+        fetch_params.request.referrer_policy = policy_container.get_referrer_policy();
     }
 
-    let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
+    let referrer_url = match mem::replace(&mut fetch_params.request.referrer, Referrer::NoReferrer)
+    {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
-            request.headers.remove(header::REFERER);
+            fetch_params.request.headers.remove(header::REFERER);
             determine_requests_referrer(
-                request.referrer_policy,
+                fetch_params.request.referrer_policy,
                 referrer_source,
-                request.current_url(),
+                fetch_params.request.current_url(),
             )
         },
     };
-    request.referrer = referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
+    fetch_params.request.referrer =
+        referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
 
     // Step 9.
     // TODO: handle FTP URLs.
@@ -297,20 +303,20 @@ pub async fn main_fetch(
         .hsts_list
         .read()
         .unwrap()
-        .apply_hsts_rules(request.current_url_mut());
+        .apply_hsts_rules(fetch_params.request.current_url_mut());
 
     // Step 11.
     // Not applicable: see fetch_async.
 
     // Step 12.
 
-    let current_url = request.current_url();
+    let current_url = fetch_params.request.current_url();
     let current_scheme = current_url.scheme();
 
     let mut response = match response {
         Some(res) => res,
         None => {
-            let same_origin = if let Origin::Origin(ref origin) = request.origin {
+            let same_origin = if let Origin::Origin(ref origin) = fetch_params.request.origin {
                 *origin == current_url.origin()
             } else {
                 false
@@ -318,49 +324,56 @@ pub async fn main_fetch(
 
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"
-            if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
+            if (same_origin && fetch_params.request.response_tainting == ResponseTainting::Basic) ||
                 // request's current URL's scheme is "data"
                 current_scheme == "data" ||
                 // request's mode is "navigate" or "websocket"
                 matches!(
-                    request.mode,
+                    fetch_params.request.mode,
                     RequestMode::Navigate | RequestMode::WebSocket { .. }
                 )
             {
                 // Substep 1. Set request’s response tainting to "basic".
-                request.response_tainting = ResponseTainting::Basic;
+                fetch_params.request.response_tainting = ResponseTainting::Basic;
 
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
-                scheme_fetch(request, cache, target, done_chan, context).await
-            } else if request.mode == RequestMode::SameOrigin {
+                scheme_fetch(fetch_params, cache, target, done_chan, context).await
+            } else if fetch_params.request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
-            } else if request.mode == RequestMode::NoCors {
+            } else if fetch_params.request.mode == RequestMode::NoCors {
                 // Substep 1. If request’s redirect mode is not "follow", then return a network error.
-                if request.redirect_mode != RedirectMode::Follow {
+                if fetch_params.request.redirect_mode != RedirectMode::Follow {
                     Response::network_error(NetworkError::Internal(
                         "NoCors requests must follow redirects".into(),
                     ))
                 } else {
                     // Substep 2. Set request’s response tainting to "opaque".
-                    request.response_tainting = ResponseTainting::Opaque;
+                    fetch_params.request.response_tainting = ResponseTainting::Opaque;
 
                     // Substep 3. Return the result of running scheme fetch given fetchParams.
-                    scheme_fetch(request, cache, target, done_chan, context).await
+                    scheme_fetch(fetch_params, cache, target, done_chan, context).await
                 }
             } else if !matches!(current_scheme, "http" | "https") {
                 Response::network_error(NetworkError::Internal("Non-http scheme".into()))
-            } else if request.use_cors_preflight ||
-                (request.unsafe_request &&
-                    (!is_cors_safelisted_method(&request.method) ||
-                        request.headers.iter().any(|(name, value)| {
+            } else if fetch_params.request.use_cors_preflight ||
+                (fetch_params.request.unsafe_request &&
+                    (!is_cors_safelisted_method(&fetch_params.request.method) ||
+                        fetch_params.request.headers.iter().any(|(name, value)| {
                             !is_cors_safelisted_request_header(&name, &value)
                         })))
             {
                 // Substep 1.
-                request.response_tainting = ResponseTainting::CorsTainting;
+                fetch_params.request.response_tainting = ResponseTainting::CorsTainting;
                 // Substep 2.
                 let response = http_fetch(
-                    request, cache, true, true, false, target, done_chan, context,
+                    fetch_params,
+                    cache,
+                    true,
+                    true,
+                    false,
+                    target,
+                    done_chan,
+                    context,
                 )
                 .await;
                 // Substep 3.
@@ -371,10 +384,17 @@ pub async fn main_fetch(
                 response
             } else {
                 // Substep 1.
-                request.response_tainting = ResponseTainting::CorsTainting;
+                fetch_params.request.response_tainting = ResponseTainting::CorsTainting;
                 // Substep 2.
                 http_fetch(
-                    request, cache, true, false, false, target, done_chan, context,
+                    fetch_params,
+                    cache,
+                    true,
+                    false,
+                    false,
+                    target,
+                    done_chan,
+                    context,
                 )
                 .await
             }
@@ -389,7 +409,7 @@ pub async fn main_fetch(
     // Step 14.
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
         // Substep 1.
-        if request.response_tainting == ResponseTainting::CorsTainting {
+        if fetch_params.request.response_tainting == ResponseTainting::CorsTainting {
             // Subsubstep 1.
             let header_names: Option<Vec<HeaderName>> = response
                 .headers
@@ -398,7 +418,7 @@ pub async fn main_fetch(
             match header_names {
                 // Subsubstep 2.
                 Some(ref list)
-                    if request.credentials_mode != CredentialsMode::Include &&
+                    if fetch_params.request.credentials_mode != CredentialsMode::Include &&
                         list.iter().any(|header| header == "*") =>
                 {
                     response.cors_exposed_header_name_list = response
@@ -417,7 +437,7 @@ pub async fn main_fetch(
         }
 
         // Substep 2.
-        let response_type = match request.response_tainting {
+        let response_type = match fetch_params.request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
             ResponseTainting::Opaque => ResponseType::Opaque,
@@ -431,9 +451,15 @@ pub async fn main_fetch(
         // Tests for steps 17 and 18, before step 15 for borrowing concerns.
         let response_is_network_error = response.is_network_error();
         let should_replace_with_nosniff_error = !response_is_network_error &&
-            should_be_blocked_due_to_nosniff(request.destination, &response.headers);
+            should_be_blocked_due_to_nosniff(
+                fetch_params.request.destination,
+                &response.headers,
+            );
         let should_replace_with_mime_type_error = !response_is_network_error &&
-            should_be_blocked_due_to_mime_type(request.destination, &response.headers);
+            should_be_blocked_due_to_mime_type(
+                fetch_params.request.destination,
+                &response.headers,
+            );
 
         // Step 15.
         let mut network_error_response = response
@@ -448,7 +474,9 @@ pub async fn main_fetch(
 
         // Step 16.
         if internal_response.url_list.is_empty() {
-            internal_response.url_list.clone_from(&request.url_list)
+            internal_response
+                .url_list
+                .clone_from(&fetch_params.request.url_list)
         }
 
         // Step 17.
@@ -475,7 +503,7 @@ pub async fn main_fetch(
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error &&
             (is_null_body_status(&internal_response.status) ||
-                matches!(request.method, Method::HEAD | Method::CONNECT))
+                matches!(fetch_params.request.method, Method::HEAD | Method::CONNECT))
         {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
@@ -495,62 +523,63 @@ pub async fn main_fetch(
 
     // Step 19.
     let mut response_loaded = false;
-    let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
-        // Step 19.1.
-        wait_for_response(request, &mut response, target, done_chan).await;
-        response_loaded = true;
+    let mut response =
+        if !response.is_network_error() && !fetch_params.request.integrity_metadata.is_empty() {
+            // Step 19.1.
+            wait_for_response(&fetch_params.request, &mut response, target, done_chan).await;
+            response_loaded = true;
 
-        // Step 19.2.
-        let integrity_metadata = &request.integrity_metadata;
-        if response.termination_reason.is_none() &&
-            !is_response_integrity_valid(integrity_metadata, &response)
-        {
-            Response::network_error(NetworkError::Internal(
-                "Subresource integrity validation failed".into(),
-            ))
+            // Step 19.2.
+            let integrity_metadata = &fetch_params.request.integrity_metadata;
+            if response.termination_reason.is_none() &&
+                !is_response_integrity_valid(integrity_metadata, &response)
+            {
+                Response::network_error(NetworkError::Internal(
+                    "Subresource integrity validation failed".into(),
+                ))
+            } else {
+                response
+            }
         } else {
             response
-        }
-    } else {
-        response
-    };
+        };
 
     // Step 20.
-    if request.synchronous {
+    if fetch_params.request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
-        target.process_response(request, &response);
+        target.process_response(&fetch_params.request, &response);
         if !response_loaded {
-            wait_for_response(request, &mut response, target, done_chan).await;
+            wait_for_response(&fetch_params.request, &mut response, target, done_chan).await;
         }
         // overloaded similarly to process_response
-        target.process_response_eof(request, &response);
+        target.process_response_eof(&fetch_params.request, &response);
         return response;
     }
 
     // Step 21.
-    if request.body.is_some() && matches!(current_scheme, "http" | "https") {
+    if fetch_params.request.body.is_some() && matches!(current_scheme, "http" | "https") {
         // XXXManishearth: We actually should be calling process_request
         // in http_network_fetch. However, we can't yet follow the request
         // upload progress, so I'm keeping it here for now and pretending
         // the body got sent in one chunk
-        target.process_request_body(request);
-        target.process_request_eof(request);
+        target.process_request_body(&fetch_params.request);
+        target.process_request_eof(&fetch_params.request);
     }
 
     // Step 22.
-    target.process_response(request, &response);
+    target.process_response(&fetch_params.request, &response);
 
     // Step 23.
     if !response_loaded {
-        wait_for_response(request, &mut response, target, done_chan).await;
+        wait_for_response(&fetch_params.request, &mut response, target, done_chan).await;
     }
 
     // Step 24.
-    target.process_response_eof(request, &response);
+    target.process_response_eof(&fetch_params.request, &response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
-        http_cache.update_awaiting_consumers(request, &response);
+        http_cache.update_awaiting_consumers(&fetch_params.request, &response);
     }
 
     // Steps 25-27.
@@ -681,12 +710,13 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
 
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 async fn scheme_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
+    let request = &mut fetch_params.request;
     let url = request.current_url();
 
     let scheme = url.scheme();
@@ -702,7 +732,14 @@ async fn scheme_fetch(
 
         "http" | "https" => {
             http_fetch(
-                request, cache, false, false, false, target, done_chan, context,
+                fetch_params,
+                cache,
+                false,
+                false,
+                false,
+                target,
+                done_chan,
+                context,
             )
             .await
         },

@@ -21,6 +21,7 @@ fn assert_parse(
     charset: Option<&str>,
     data: Option<&[u8]>,
 ) {
+    use net::fetch::fetch_params::FetchParams;
     use net_traits::request::RequestBuilder;
 
     let url = ServoUrl::parse(url).unwrap();
@@ -29,7 +30,8 @@ fn assert_parse(
         .pipeline_id(None)
         .build();
 
-    let response = fetch(&mut request, None);
+    let mut fetch_params = FetchParams::new(request);
+    let response = fetch(&mut fetch_params, None);
 
     match data {
         Some(data) => {

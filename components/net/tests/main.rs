@@ -39,6 +39,7 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use hyper_util::rt::tokio::TokioIo;
 use net::connector::{create_http_client, create_tls_config};
 use net::fetch::cors_cache::CorsCache;
+use net::fetch::fetch_params::FetchParams;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::protocols::ProtocolRegistry;
@@ -201,7 +202,7 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+fn fetch(request: &mut FetchParams, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     fetch_with_context(request, &mut new_fetch_context(dc, None, None))
 }
 
