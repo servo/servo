@@ -38,6 +38,15 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-ohos
           path: ${{ inputs.profile }}-binary-ohos
+      - name: "Setup HAP signing config"
+        env:
+          SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
+        if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
+        run: |
+          cd ~
+          echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
+          unzip servo-ohos-material.zip
+          echo "SERVO_OHOS_SIGNING_CONFIG=${PWD}/servo-ohos-material/signing-configs.json" >> $GITHUB_ENV
       - name: Download signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
         uses: actions/download-artifact@v4
