@@ -16,7 +16,6 @@ mod pipeline;
 mod sandboxing;
 mod serviceworker;
 mod session_history;
-mod timer_scheduler;
 mod webview;
 
 pub use crate::constellation::{Constellation, InitialConstellationState};

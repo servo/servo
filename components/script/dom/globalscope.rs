@@ -57,10 +57,10 @@ use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
-    PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
-    TimerSchedulerMsg, TimerSource,
+    PortMessageTask, ScriptMsg, ScriptToConstellationChan,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use timers::{BoxedTimerCallback, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu::{DeviceLostReason, WebGPUDevice};
@@ -134,7 +134,7 @@ use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFe
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort, ThreadSafeJSContext,
 };
-use crate::script_thread::{MainThreadScriptChan, ScriptThread};
+use crate::script_thread::{with_script_thread, MainThreadScriptChan, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -258,10 +258,6 @@ pub struct GlobalScope {
     #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
 
-    #[ignore_malloc_size_of = "channels are hard"]
-    #[no_trace]
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
-
     /// <https://html.spec.whatwg.org/multipage/#in-error-reporting-mode>
     in_error_reporting_mode: Cell<bool>,
 
@@ -272,10 +268,7 @@ pub struct GlobalScope {
 
     /// The mechanism by which time-outs and intervals are scheduled.
     /// <https://html.spec.whatwg.org/multipage/#timers>
-    timers: OneshotTimers,
-
-    /// Have timers been initialized?
-    init_timers: Cell<bool>,
+    timers: OnceCell<OneshotTimers>,
 
     /// The origin of the globalscope
     #[no_trace]
@@ -401,7 +394,8 @@ struct BroadcastListener {
 }
 
 /// A wrapper between timer events coming in over IPC, and the event-loop.
-struct TimerListener {
+#[derive(Clone)]
+pub(crate) struct TimerListener {
     canceller: TaskCanceller,
     task_source: TimerTaskSource,
     context: Trusted<GlobalScope>,
@@ -542,7 +536,7 @@ impl BroadcastListener {
 }
 
 impl TimerListener {
-    /// Handle a timer-event coming-in over IPC,
+    /// Handle a timer-event coming from the [`timers::TimerScheduler`]
     /// by queuing the appropriate task on the relevant event-loop.
     fn handle(&self, event: TimerEvent) {
         let context = self.context.clone();
@@ -566,6 +560,10 @@ impl TimerListener {
             }),
             &self.canceller,
         );
+    }
+
+    pub fn into_callback(self) -> BoxedTimerCallback {
+        Box::new(move |timer_event| self.handle(timer_event))
     }
 }
 
@@ -783,7 +781,6 @@ impl GlobalScope {
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_chan: ScriptToConstellationChan,
-        scheduler_chan: IpcSender<TimerSchedulerMsg>,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
@@ -811,11 +808,9 @@ impl GlobalScope {
             mem_profiler_chan,
             time_profiler_chan,
             script_to_constellation_chan,
-            scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
             resource_threads,
-            timers: OneshotTimers::new(scheduler_chan),
-            init_timers: Default::default(),
+            timers: OnceCell::default(),
             origin,
             creation_url,
             permission_state_invocation_results: Default::default(),
@@ -861,34 +856,21 @@ impl GlobalScope {
         false
     }
 
-    /// Setup the IPC-to-event-loop glue for timers to schedule themselves.
-    fn setup_timers(&self) {
-        if self.init_timers.get() {
-            return;
-        }
-        self.init_timers.set(true);
-
-        let (timer_ipc_chan, timer_ipc_port) = ipc::channel().unwrap();
-        self.timers.setup_scheduling(timer_ipc_chan);
-
-        // Setup route from IPC to task-queue for the timer-task-source.
-        let context = Trusted::new(self);
-        let (task_source, canceller) = (
-            self.timer_task_source(),
-            self.task_canceller(TaskSourceName::Timer),
-        );
-        let timer_listener = TimerListener {
-            context,
-            task_source,
-            canceller,
-        };
-        ROUTER.add_typed_route(
-            timer_ipc_port,
-            Box::new(move |message| {
-                let event = message.unwrap();
-                timer_listener.handle(event);
-            }),
-        );
+    fn timers(&self) -> &OneshotTimers {
+        self.timers.get_or_init(|| {
+            let (task_source, canceller) = (
+                self.timer_task_source(),
+                self.task_canceller(TaskSourceName::Timer),
+            );
+            OneshotTimers::new(
+                self,
+                TimerListener {
+                    context: Trusted::new(self),
+                    task_source,
+                    canceller,
+                },
+            )
+        })
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
@@ -2377,10 +2359,6 @@ impl GlobalScope {
         self.script_to_constellation_chan().send(msg).unwrap();
     }
 
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerSchedulerMsg> {
-        &self.scheduler_chan
-    }
-
     /// Get the `PipelineId` for this global scope.
     pub fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
@@ -2407,6 +2385,16 @@ impl GlobalScope {
             return worker.image_cache();
         }
         unreachable!();
+    }
+
+    /// Schedule a [`TimerEventRequest`] on this [`GlobalScope`]'s [`timers::TimerScheduler`].
+    /// Every Worker has its own scheduler, which handles events in the Worker event loop,
+    /// but `Window`s use a shared scheduler associated with their [`ScriptThread`].
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
+        match self.downcast::<WorkerGlobalScope>() {
+            Some(worker_global) => worker_global.timer_scheduler().schedule_timer(request),
+            _ => with_script_thread(|script_thread| script_thread.schedule_timer(request)),
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
@@ -2789,13 +2777,12 @@ impl GlobalScope {
         callback: OneshotTimerCallback,
         duration: Duration,
     ) -> OneshotTimerHandle {
-        self.setup_timers();
-        self.timers
+        self.timers()
             .schedule_callback(callback, duration, self.timer_source())
     }
 
     pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers.unschedule_callback(handle);
+        self.timers().unschedule_callback(handle);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
@@ -2806,8 +2793,7 @@ impl GlobalScope {
         timeout: Duration,
         is_interval: IsInterval,
     ) -> i32 {
-        self.setup_timers();
-        self.timers.set_timeout_or_interval(
+        self.timers().set_timeout_or_interval(
             self,
             callback,
             arguments,
@@ -2818,7 +2804,7 @@ impl GlobalScope {
     }
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
-        self.timers.clear_timeout_or_interval(self, handle);
+        self.timers().clear_timeout_or_interval(self, handle);
     }
 
     pub fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
@@ -2925,23 +2911,23 @@ impl GlobalScope {
     }
 
     pub fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
-        self.timers.fire_timer(handle, self, can_gc);
+        self.timers().fire_timer(handle, self, can_gc);
     }
 
     pub fn resume(&self) {
-        self.timers.resume();
+        self.timers().resume();
     }
 
     pub fn suspend(&self) {
-        self.timers.suspend();
+        self.timers().suspend();
     }
 
     pub fn slow_down_timers(&self) {
-        self.timers.slow_down();
+        self.timers().slow_down();
     }
 
     pub fn speed_up_timers(&self) {
-        self.timers.speed_up();
+        self.timers().speed_up();
     }
 
     fn timer_source(&self) -> TimerSource {

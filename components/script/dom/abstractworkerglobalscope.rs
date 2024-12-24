@@ -94,6 +94,7 @@ pub trait WorkerEventLoopMethods {
     fn from_control_msg(msg: Self::ControlMsg) -> Self::Event;
     fn from_worker_msg(msg: Self::WorkerMsg) -> Self::Event;
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> Self::Event;
+    fn from_timer_msg() -> Self::Event;
     fn control_receiver(&self) -> &Receiver<Self::ControlMsg>;
 }
 
@@ -110,19 +111,25 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         + DomObject,
 {
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
-    let devtools_receiver = scope.devtools_receiver();
     let task_queue = worker_scope.task_queue();
+
+    let never = crossbeam_channel::never();
+    let devtools_receiver = scope.devtools_receiver().unwrap_or(&never);
+
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => T::from_control_msg(msg.unwrap()),
         recv(task_queue.select()) -> msg => {
             task_queue.take_tasks(msg.unwrap());
             T::from_worker_msg(task_queue.recv().unwrap())
         },
-        recv(devtools_receiver.unwrap_or(&crossbeam_channel::never())) -> msg =>
-            T::from_devtools_msg(msg.unwrap()),
+        recv(devtools_receiver) -> msg => T::from_devtools_msg(msg.unwrap()),
+        recv(scope.timer_scheduler().wait_channel()) -> _ => T::from_timer_msg(),
     };
-    let mut sequential = vec![];
-    sequential.push(event);
+
+    scope.timer_scheduler().dispatch_completed_timers();
+
+    let mut sequential = vec![event];
+
     // https://html.spec.whatwg.org/multipage/#worker-event-loop
     // Once the WorkerGlobalScope's closing flag is set to true,
     // the event loop's task queues must discard any further tasks
@@ -132,14 +139,14 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.take_tasks_and_recv() {
-            Err(_) => match devtools_receiver.map(|port| port.try_recv()) {
-                None => {},
-                Some(Err(_)) => break,
-                Some(Ok(ev)) => sequential.push(T::from_devtools_msg(ev)),
+            Err(_) => match devtools_receiver.try_recv() {
+                Ok(message) => sequential.push(T::from_devtools_msg(message)),
+                Err(_) => break,
             },
             Ok(ev) => sequential.push(T::from_worker_msg(ev)),
         }
     }
+
     // Step 3
     for event in sequential {
         let _realm = enter_realm(worker_scope);

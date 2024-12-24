@@ -35,7 +35,7 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
     AnimationState, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
     InitialScriptState, LayoutMsg, LoadData, NewLayoutInfo, SWManagerMsg,
-    ScriptToConstellationChan, TimerSchedulerMsg, WindowSizeData,
+    ScriptToConstellationChan, WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
@@ -138,9 +138,6 @@ pub struct InitialPipelineState {
 
     /// A fatory for creating layouts to be used by the ScriptThread.
     pub layout_factory: Arc<dyn LayoutFactory>,
-
-    /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     /// A channel to the compositor.
     pub compositor_proxy: CompositorProxy,
@@ -270,7 +267,6 @@ impl Pipeline {
                         .background_hang_monitor_to_constellation_chan
                         .clone(),
                     bhm_control_port: None,
-                    scheduler_chan: state.scheduler_chan,
                     devtools_ipc_sender: script_to_devtools_ipc_sender,
                     bluetooth_thread: state.bluetooth_thread,
                     swmanager_thread: state.swmanager_thread,
@@ -478,7 +474,6 @@ pub struct UnprivilegedPipelineContent {
     background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
@@ -528,7 +523,6 @@ impl UnprivilegedPipelineContent {
                 script_to_constellation_chan: self.script_to_constellation_chan.clone(),
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
                 layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
-                scheduler_chan: self.scheduler_chan,
                 bluetooth_thread: self.bluetooth_thread,
                 resource_threads: self.resource_threads,
                 image_cache: image_cache.clone(),

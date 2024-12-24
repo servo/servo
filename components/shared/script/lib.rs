@@ -18,7 +18,6 @@ use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::Arc;
-use std::time::Duration;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
@@ -598,38 +597,6 @@ impl From<&CompositorEvent> for CompositorEventVariant {
     }
 }
 
-/// Requests a TimerEvent-Message be sent after the given duration.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerEventRequest(
-    pub IpcSender<TimerEvent>,
-    pub TimerSource,
-    pub TimerEventId,
-    pub Duration,
-);
-
-/// The message used to send a request to the timer scheduler.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerSchedulerMsg(pub TimerEventRequest);
-
-/// Notifies the script thread to fire due timers.
-/// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
-/// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TimerEvent(pub TimerSource, pub TimerEventId);
-
-/// Describes the thread that requested the TimerEvent.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub enum TimerSource {
-    /// The event was requested from a window (ScriptThread).
-    FromWindow(PipelineId),
-    /// The event was requested from a worker (DedicatedGlobalWorkerScope).
-    FromWorker,
-}
-
-/// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub struct TimerEventId(pub u32);
-
 /// Data needed to construct a script thread.
 ///
 /// NB: *DO NOT* add any Senders or Receivers here! pcwalton will have to rewrite your code if you
@@ -658,8 +625,6 @@ pub struct InitialScriptState {
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A sender layout to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    /// A channel to schedule timer events.
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
@@ -863,8 +828,6 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     /// Messages to send to constellation
     pub script_to_constellation_chan: ScriptToConstellationChan,
-    /// Message to send to the scheduler
-    pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
     /// The worker id
     pub worker_id: WorkerId,
     /// The pipeline id

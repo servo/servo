@@ -85,14 +85,15 @@ use script_traits::{
     EventResult, InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin,
     MediaSessionActionType, MouseButton, MouseEventType, NavigationHistoryBehavior, NewLayoutInfo,
     Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
-    StructuredSerializedData, Theme, TimerSchedulerMsg, TouchEventType, TouchId,
-    UntrustedNodeAddress, UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
+    StructuredSerializedData, Theme, TouchEventType, TouchId, UntrustedNodeAddress,
+    UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
+use timers::{TimerEventRequest, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPUDevice, WebGPUMsg};
@@ -274,7 +275,6 @@ impl InProgressLoad {
 }
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
 enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
@@ -282,6 +282,7 @@ enum MixedMessage {
     FromImageCache((PipelineId, PendingImageResponse)),
     #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
+    TimerFired,
 }
 
 /// Messages used to control the script event loop.
@@ -490,6 +491,11 @@ pub struct ScriptThread {
     /// events in the event queue.
     chan: MainThreadScriptChan,
 
+    /// A [`TimerScheduler`] used to schedule timers for this [`ScriptThread`]. Timers are handled
+    /// in the [`ScriptThread`] event loop.
+    #[no_trace]
+    timer_scheduler: RefCell<TimerScheduler>,
+
     dom_manipulation_task_sender: Box<dyn ScriptChan>,
 
     gamepad_task_sender: Box<dyn ScriptChan>,
@@ -572,9 +578,6 @@ pub struct ScriptThread {
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
     closed_pipelines: DomRefCell<HashSet<PipelineId>>,
-
-    #[no_trace]
-    scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
     #[no_trace]
     content_process_shutdown_chan: Sender<()>,
@@ -881,6 +884,11 @@ impl ScriptThread {
         })
     }
 
+    /// Schedule a [`TimerEventRequest`] on this [`ScriptThread`]'s [`TimerScheduler`].
+    pub(crate) fn schedule_timer(&self, request: TimerEventRequest) {
+        self.timer_scheduler.borrow_mut().schedule_timer(request);
+    }
+
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub fn await_stable_state(task: Microtask) {
         with_script_thread(|script_thread| {
@@ -1052,7 +1060,6 @@ impl ScriptThread {
                         time_profiler_chan: script_thread.time_profiler_chan.clone(),
                         devtools_chan: script_thread.devtools_chan.clone(),
                         to_constellation_sender: script_thread.script_sender.clone(),
-                        scheduler_chan: script_thread.scheduler_chan.clone(),
                         image_cache: script_thread.image_cache.clone(),
                         is_headless: script_thread.headless,
                         user_agent: script_thread.user_agent.clone(),
@@ -1208,6 +1215,7 @@ impl ScriptThread {
             closing,
 
             chan: MainThreadScriptChan(chan.clone()),
+            timer_scheduler: Default::default(),
             dom_manipulation_task_sender: boxed_script_sender.clone(),
             gamepad_task_sender: boxed_script_sender.clone(),
             media_element_task_sender: chan.clone(),
@@ -1237,8 +1245,6 @@ impl ScriptThread {
             js_runtime: Rc::new(runtime),
             topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
-
-            scheduler_chan: state.scheduler_chan,
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
@@ -1683,10 +1689,6 @@ impl ScriptThread {
 
     /// Handle incoming messages from other tasks and the task queue.
     fn handle_msgs(&self, can_gc: CanGc) -> bool {
-        #[cfg(feature = "webgpu")]
-        use self::MixedMessage::FromWebGPUServer;
-        use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache, FromScript};
-
         // Proritize rendering tasks and others, and gather all other events as `sequential`.
         let mut sequential = vec![];
 
@@ -1702,12 +1704,13 @@ impl ScriptThread {
                     .task_queue
                     .recv()
                     .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
-                FromScript(event)
+                MixedMessage::FromScript(event)
             },
-            recv(self.control_port) -> msg => FromConstellation(msg.unwrap()),
+            recv(self.control_port) -> msg => MixedMessage::FromConstellation(msg.unwrap()),
             recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
-                => FromDevtools(msg.unwrap()),
-            recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
+                => MixedMessage::FromDevtools(msg.unwrap()),
+            recv(self.image_cache_port) -> msg => MixedMessage::FromImageCache(msg.unwrap()),
+            recv(self.timer_scheduler.borrow().wait_channel()) -> _ => MixedMessage::TimerFired,
             recv({
                 #[cfg(feature = "webgpu")]
                 {
@@ -1720,7 +1723,7 @@ impl ScriptThread {
             }) -> msg => {
                 #[cfg(feature = "webgpu")]
                 {
-                    FromWebGPUServer(msg.unwrap())
+                    MixedMessage::FromWebGPUServer(msg.unwrap())
                 }
                 #[cfg(not(feature = "webgpu"))]
                 {
@@ -1733,6 +1736,11 @@ impl ScriptThread {
         loop {
             debug!("Handling event: {event:?}");
 
+            // Dispatch any completed timers, so that their tasks can be run below.
+            self.timer_scheduler
+                .borrow_mut()
+                .dispatch_completed_timers();
+
             let pipeline_id = self.message_to_pipeline(&event);
             let _realm = pipeline_id.map(|id| {
                 let global = self.documents.borrow().find_global(id);
@@ -1744,7 +1752,9 @@ impl ScriptThread {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                FromConstellation(ConstellationControlMsg::AttachLayout(new_layout_info)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(
+                    new_layout_info,
+                )) => {
                     let pipeline_id = new_layout_info.new_pipeline_id;
                     self.profile_event(
                         ScriptThreadEventCategory::AttachLayout,
@@ -1780,14 +1790,19 @@ impl ScriptThread {
                         },
                     )
                 },
-                FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::Resize(
+                    id,
+                    size,
+                    size_type,
+                )) => {
                     self.handle_resize_message(id, size, size_type);
                 },
-                FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
-                    .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
+                MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
+                    self.profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
                         self.handle_viewport(id, rect);
-                    }),
-                FromConstellation(ConstellationControlMsg::TickAllAnimations(
+                    })
+                },
+                MixedMessage::FromConstellation(ConstellationControlMsg::TickAllAnimations(
                     pipeline_id,
                     tick_type,
                 )) => {
@@ -1801,10 +1816,10 @@ impl ScriptThread {
                         )
                     }
                 },
-                FromConstellation(ConstellationControlMsg::SendEvent(id, event)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::SendEvent(id, event)) => {
                     self.handle_event(id, event)
                 },
-                FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+                MixedMessage::FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
                     _,
                     _,
                     _,
@@ -1814,14 +1829,15 @@ impl ScriptThread {
                     // message handling, we run those steps only once at the end of each call of
                     // this function.
                 },
-                FromScript(MainThreadScriptMsg::Inactive) => {
+                MixedMessage::FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
                     // Continue without adding it to "sequential".
                 },
-                FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
-                    .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
+                MixedMessage::FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => {
+                    self.profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
                         self.handle_exit_fullscreen(id, can_gc);
-                    }),
+                    })
+                },
                 _ => {
                     sequential.push(event);
                 },
@@ -1838,19 +1854,19 @@ impl ScriptThread {
                             Err(_) => match &*self.webgpu_port.borrow() {
                                 Some(p) => match p.try_recv() {
                                     Err(_) => break,
-                                    Ok(ev) => event = FromWebGPUServer(ev),
+                                    Ok(ev) => event = MixedMessage::FromWebGPUServer(ev),
                                 },
                                 None => break,
                             },
-                            Ok(ev) => event = FromImageCache(ev),
+                            Ok(ev) => event = MixedMessage::FromImageCache(ev),
                             #[cfg(not(feature = "webgpu"))]
                             Err(_) => break,
                         },
-                        Ok(ev) => event = FromDevtools(ev),
+                        Ok(ev) => event = MixedMessage::FromDevtools(ev),
                     },
-                    Ok(ev) => event = FromScript(ev),
+                    Ok(ev) => event = MixedMessage::FromScript(ev),
                 },
-                Ok(ev) => event = FromConstellation(ev),
+                Ok(ev) => event = MixedMessage::FromConstellation(ev),
             }
         }
 
@@ -1869,11 +1885,11 @@ impl ScriptThread {
             if self.closing.load(Ordering::SeqCst) {
                 // If we've received the closed signal from the BHM, only handle exit messages.
                 match msg {
-                    FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
                         self.handle_exit_script_thread_msg(can_gc);
                         return false;
                     },
-                    FromConstellation(ConstellationControlMsg::ExitPipeline(
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(
                         pipeline_id,
                         discard_browsing_context,
                     )) => {
@@ -1890,20 +1906,25 @@ impl ScriptThread {
 
             let exiting = self.profile_event(category, pipeline_id, move || {
                 match msg {
-                    FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
                         self.handle_exit_script_thread_msg(can_gc);
                         return true;
                     },
-                    FromConstellation(inner_msg) => {
+                    MixedMessage::FromConstellation(inner_msg) => {
                         self.handle_msg_from_constellation(inner_msg, can_gc)
                     },
-                    FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                    FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg, can_gc),
-                    FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+                    MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    MixedMessage::FromDevtools(inner_msg) => {
+                        self.handle_msg_from_devtools(inner_msg, can_gc)
+                    },
+                    MixedMessage::FromImageCache(inner_msg) => {
+                        self.handle_msg_from_image_cache(inner_msg)
+                    },
                     #[cfg(feature = "webgpu")]
-                    FromWebGPUServer(inner_msg) => {
+                    MixedMessage::FromWebGPUServer(inner_msg) => {
                         self.handle_msg_from_webgpu_server(inner_msg, can_gc)
                     },
+                    MixedMessage::TimerFired => {},
                 }
 
                 false
@@ -1955,6 +1976,7 @@ impl ScriptThread {
             },
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(_) => ScriptThreadEventCategory::WebGPUMsg,
+            MixedMessage::TimerFired => ScriptThreadEventCategory::TimerEvent,
         }
     }
 
@@ -2047,7 +2069,6 @@ impl ScriptThread {
                 SetScrollStates(id, ..) => Some(id),
                 SetEpochPaintTime(id, ..) => Some(id),
             },
-            MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
                     pipeline_id
@@ -2059,6 +2080,7 @@ impl ScriptThread {
                 MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
+            MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
         }
@@ -3653,7 +3675,6 @@ impl ScriptThread {
             self.devtools_chan.clone(),
             script_to_constellation_chan,
             self.control_chan.clone(),
-            self.scheduler_chan.clone(),
             incomplete.pipeline_id,
             incomplete.parent_info,
             incomplete.window_size,
