@@ -27,7 +27,7 @@ atomic_refcell = "0.1.13"
 background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
 base = { path = "components/shared/base" }
-base64 = "0.21.7"
+base64 = "0.22.1"
 bincode = "1"
 bitflags = "2.6"
 bluetooth_traits = { path = "components/shared/bluetooth" }
