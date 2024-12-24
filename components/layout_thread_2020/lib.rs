@@ -1181,6 +1181,11 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         )?,
         parse_ua_stylesheet(
             shared_lock,
+            "quotes.css",
+            &resources::read_bytes(Resource::QuotesCSS),
+        )?,
+        parse_ua_stylesheet(
+            shared_lock,
             "servo.css",
             &resources::read_bytes(Resource::ServoCSS),
         )?,
