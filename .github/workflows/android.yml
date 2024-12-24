@@ -159,7 +159,7 @@ jobs:
     with:
       target: android-${{ matrix.target }}
       profile: ${{ inputs.profile }}
-      binary-path: ${{ inputs.profile }}-binary-${{ inputs.target }}/servoapp.apk
+      binary-path: ${{ inputs.profile }}-binary-android-${{ inputs.target }}/servoapp.apk
       file-size: true
       speedometer: false
       dromaeo: false
