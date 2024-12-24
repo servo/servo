@@ -61,15 +61,6 @@ jobs:
       - name: unPackage binary (Linux or macOS)
         if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
         run: tar -xzf ${{ inputs.profile }}-binary-${{ inputs.target }}/target.tar.gz
-      - name: Setup Python
-        uses: ./.github/actions/setup-python
-      - name: Bootstrap dependencies
-        if: ${{ inputs.speedometer == true || inputs.dromaeo == true }}
-        run: |
-          sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          python3 ./mach bootstrap --skip-lints
-      - uses: bencherdev/bencher@main
       - name: File location (Linux or macOS)
         if: ${{ inputs.target == 'linux' || inputs.target == 'macos' }}
         run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo" >> $GITHUB_ENV
@@ -87,6 +78,15 @@ jobs:
         continue-on-error: true
         if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG == '' }}
         run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-unsigned.hap" >> $GITHUB_ENV
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+      - name: Bootstrap dependencies
+        if: ${{ inputs.speedometer == true || inputs.dromaeo == true }}
+        run: |
+          sudo apt update
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
+          python3 ./mach bootstrap --skip-lints
+      - uses: bencherdev/bencher@main
       - name: File size
         if: ${{ inputs.file-size == true }}
         run: |
