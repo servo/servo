@@ -224,3 +224,8 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+[patch."https://github.com/servo/mozjs"]
+#mozjs = { path = "../mozjs/mozjs" }
+#mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git = "https://github.com/jdm/mozjs", branch = "optional-runtime-cx" }
+mozjs_sys = { git = "https://github.com/jdm/mozjs", branch = "optional-runtime-cx" }
