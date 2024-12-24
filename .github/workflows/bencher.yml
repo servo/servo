@@ -12,7 +12,7 @@ on:
         type: string
       binary-path:
         required: false
-        default: "release"
+        default: ""
         type: string
       file-size:
         required: false
@@ -38,7 +38,7 @@ env:
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
 
 jobs:
-  linux-bencher:
+  bencher:
     name: Bencher
     # keep this in sync with testbed
     runs-on: ubuntu-22.04
