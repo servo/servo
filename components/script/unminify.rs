@@ -42,6 +42,7 @@ pub fn create_temp_files() -> Option<(NamedTempFile, File)> {
 pub enum BeautifyFileType {
     Css,
     Js,
+    Html,
 }
 
 pub fn execute_js_beautify(input: &Path, output: File, file_type: BeautifyFileType) -> bool {
@@ -50,6 +51,9 @@ pub fn execute_js_beautify(input: &Path, output: File, file_type: BeautifyFileTy
         BeautifyFileType::Js => (),
         BeautifyFileType::Css => {
             cmd.arg("--type").arg("css");
+        },
+        BeautifyFileType::Html => {
+            cmd.arg("--type").arg("html").arg("--file").arg(input);
         },
     }
     match cmd.arg(input).stdout(output).status() {

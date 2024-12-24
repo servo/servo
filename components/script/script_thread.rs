@@ -639,6 +639,9 @@ pub struct ScriptThread {
     /// Unminify Css.
     unminify_css: bool,
 
+    /// Unminify Html.
+    unminify_html: bool,
+
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded
@@ -1276,6 +1279,7 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
+            unminify_html: opts.unminify_html,
 
             userscripts_path: opts.userscripts.clone(),
             headless: opts.headless,
@@ -3691,6 +3695,7 @@ impl ScriptThread {
             self.prepare_for_screenshot,
             self.unminify_js,
             self.unminify_css,
+            self.unminify_html,
             self.local_script_source.clone(),
             self.userscripts_path.clone(),
             self.headless,
@@ -4018,7 +4023,7 @@ impl ScriptThread {
             .origin(incomplete.origin.immutable().clone())
             .crash(load_data.crash);
 
-        let context = ParserContext::new(id, load_data.url);
+        let context = ParserContext::new(id, load_data.url, "unminified-html".to_string());
         self.incomplete_parser_contexts
             .0
             .borrow_mut()
@@ -4095,7 +4100,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::new(id, url.clone(), "unminified-html".to_string());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
@@ -4128,7 +4133,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:srcdoc").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::new(id, url.clone(), "unminified-html".to_string());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
