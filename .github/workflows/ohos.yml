@@ -81,7 +81,6 @@ jobs:
           echo "@ohos:registry=https://repo.harmonyos.com/npm/" > .npmrc
           npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
           echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
-          echo "signed=true" >> "$GITHUB_OUTPUT"
       - name: "Setup HAP signing config"
         id: signing-config
         env:
@@ -92,6 +91,7 @@ jobs:
           echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
           unzip servo-ohos-material.zip
           echo "SERVO_OHOS_SIGNING_CONFIG=${PWD}/servo-ohos-material/signing-configs.json" >> $GITHUB_ENV
+          echo "signed=true" >> "$GITHUB_OUTPUT"
       - name: Build (arch ${{ matrix.target }} profile ${{ inputs.profile }})
         env:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}

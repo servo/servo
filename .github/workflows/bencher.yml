@@ -78,17 +78,17 @@ jobs:
         if: ${{ inputs.file-size == true }}
         run: |
             ./etc/ci/bencher.py filesize ${{ inputs.binary-path }} ${{ inputs.target }}-${{ inputs.profile }} --bmf-output size.json
-            echo "SERVO_FILE_SIZE_RESULT=size.json" >> $GITHUB_ENV
+            echo "SERVO_FILE_SIZE_RESULT=size.json" >> "$GITHUB_ENV"
       - name: Speedometer
         if: ${{ inputs.speedometer == true }}
         run: |
             python3 ./mach test-speedometer -r --bmf-output speedometer.json
-            echo "SERVO_SPEEDOMETER_RESULT=speedometer.json" >> $GITHUB_ENV
+            echo "SERVO_SPEEDOMETER_RESULT=speedometer.json" >> "$GITHUB_ENV"
       - name: Dromaeo
         if: ${{ inputs.dromaeo == true }}
         run: |
             python3 ./mach test-dromaeo -r dom --bmf-output dromaeo.json
-            echo "SERVO_DROMAEO_RESULT=dromaeo.json" >> $GITHUB_ENV
+            echo "SERVO_DROMAEO_RESULT=dromaeo.json" >> "$GITHUB_ENV"
       # set options
       - name: Set bencher opts for PRs (label try run)
         if: github.event_name == 'pull_request_target'
