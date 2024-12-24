@@ -11,10 +11,10 @@ use std::time::Instant;
 use std::{env, fs};
 
 use gleam::gl;
-use log::{info, trace};
+use log::{error, info, trace};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::config::{opts, set_pref};
+use servo::config::opts;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
 use servo::url::ServoUrl;
@@ -31,7 +31,6 @@ use winit::window::WindowId;
 use super::events_loop::{EventLoopGuard, EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
-use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
 use crate::desktop::events_loop::with_current_event_loop;
 use crate::desktop::tracing::trace_winit_event;
@@ -71,28 +70,10 @@ enum PumpResult {
 impl App {
     pub fn new(
         events_loop: &EventsLoop,
-        no_native_titlebar: bool,
-        device_pixel_ratio_override: Option<f32>,
+        window: Rc<dyn WindowPortsMethods>,
         user_agent: Option<String>,
         url: Option<String>,
     ) -> Self {
-        // Implements window methods, used by compositor.
-        let window = if opts::get().headless {
-            // GL video rendering is not supported on headless windows.
-            set_pref!(media.glvideo.enabled, false);
-            headless_window::Window::new(
-                opts::get().initial_window_size,
-                device_pixel_ratio_override,
-            )
-        } else {
-            Rc::new(headed_window::Window::new(
-                opts::get().initial_window_size,
-                events_loop.as_winit(),
-                no_native_titlebar,
-                device_pixel_ratio_override,
-            ))
-        };
-
         // Handle browser state.
         let webviews = WebViewManager::new(window.clone());
         let initial_url = get_default_url(url.as_deref(), env::current_dir().unwrap(), |path| {
@@ -304,6 +285,12 @@ impl App {
         match self.handle_events() {
             PumpResult::Shutdown => {
                 event_loop.exit();
+                if let Err(e) = window
+                    .rendering_context()
+                    .unbind_native_surface_from_context()
+                {
+                    error!("Failed to unbind native surface: {e:?}");
+                }
                 self.servo.take().unwrap().deinit();
                 if let Some(mut minibrowser) = self.minibrowser() {
                     minibrowser.context.destroy();
