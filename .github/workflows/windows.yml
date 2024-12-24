@@ -171,7 +171,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-windows
+          name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
@@ -197,7 +197,7 @@ jobs:
   bencher:
     needs: ["build"]
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
       target: 'windows'

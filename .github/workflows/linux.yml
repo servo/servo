@@ -168,7 +168,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-linux
+          name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Build mach package
@@ -223,13 +223,14 @@ jobs:
   bencher:
     needs: ["build"]
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
       target: 'linux'
       profile: ${{ inputs.profile }}
       binary-path: target/${{ inputs.profile }}/servo
       file-size: true
-      speedometer: true
-      dromaeo: true
+      # We only evaluate speedometer and dromaeo score in release
+      speedometer: ${{ inputs.profile == 'release' }}
+      dromaeo: ${{ inputs.profile == 'release' }}
     secrets: inherit

@@ -91,14 +91,20 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Linux", Workflow.LINUX, unit_tests=True)
     elif s in ["perf", "linux-perf", "bencher"]:
         return JobConfig("Linux perf", Workflow.LINUX, bencher=True)
+    elif s == "linux-prod-perf":
+        return JobConfig("Linux prod perf", Workflow.LINUX, bencher=True, profile="production")
     elif s in ["mac", "macos"]:
         return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
     elif s == "macos-perf":
         return JobConfig("MacOS", Workflow.MACOS, bencher=True)
+    elif s == "macos-prod-perf":
+        return JobConfig("MacOS", Workflow.MACOS, bencher=True, profile="production")
     elif s in ["win", "windows"]:
         return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
     elif s == "windows-perf":
         return JobConfig("Windows", Workflow.WINDOWS, bencher=True)
+    elif s == "windows-prod-perf":
+        return JobConfig("Windows", Workflow.WINDOWS, bencher=True, profile="production")
     elif s in ["wpt-2013", "linux-wpt-2013"]:
         return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2013)
     elif s in ["wpt-2020", "linux-wpt-2020", "wpt", "linux-wpt"]:
@@ -113,10 +119,14 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Android", Workflow.ANDROID)
     elif s == "android-perf":
         return JobConfig("Android", Workflow.ANDROID, bencher=True)
+    elif s == "android-prod-perf":
+        return JobConfig("Android", Workflow.ANDROID, bencher=True, profile="production")
     elif s in ["ohos", "openharmony"]:
         return JobConfig("OpenHarmony", Workflow.OHOS)
     elif s == "ohos-perf":
         return JobConfig("OpenHarmony", Workflow.OHOS, bencher=True)
+    elif s == "ohos-prod-perf":
+        return JobConfig("OpenHarmony", Workflow.OHOS, bencher=True, profile="production")
     elif s == "webgpu":
         return JobConfig("WebGPU CTS", Workflow.LINUX,
                          wpt_layout=Layout.layout2020,  # reftests are mode for new layout
@@ -159,11 +169,11 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux", "linux-wpt", "linux-perf"])
-                words.extend(["macos", "macos-perf"])
-                words.extend(["windows", "windows-perf"])
+                words.extend(["linux", "linux-wpt", "linux-perf", "linux-prod-perf"])
+                words.extend(["macos", "macos-perf", "macos-prod-perf"])
+                words.extend(["windows", "windows-perf", "windows-prod-perf"])
                 words.extend(["android", "android-perf"])
-                words.extend(["ohos", "ohos-perf"])
+                words.extend(["ohos", "ohos-perf", "ohos-prod-perf"])
                 words.extend(["lint"])
                 continue  # skip over keyword
 
@@ -220,8 +230,35 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
+                                  "name": "Linux prod perf",
+                                  "workflow": "linux",
+                                  "wpt_layout": "none",
+                                  "profile": "production",
+                                  "unit_tests": False,
+                                  'bencher': True,
+                                  "wpt_args": ""
+                              },
+                              {
                                   "name": "MacOS",
                                   "workflow": "macos",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": True,
+                                  'bencher': True,
+                                  "wpt_args": ""
+                              },
+                              {
+                                  "name": "MacOS",
+                                  "workflow": "macos",
+                                  "wpt_layout": "none",
+                                  "profile": "production",
+                                  "unit_tests": False,
+                                  'bencher': True,
+                                  "wpt_args": ""
+                              },
+                              {
+                                  "name": "Windows",
+                                  "workflow": "windows",
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
@@ -232,8 +269,8 @@ class TestParser(unittest.TestCase):
                                   "name": "Windows",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
-                                  "profile": "release",
-                                  "unit_tests": True,
+                                  "profile": "production",
+                                  "unit_tests": False,
                                   'bencher': True,
                                   "wpt_args": ""
                               },
@@ -251,6 +288,15 @@ class TestParser(unittest.TestCase):
                                   "workflow": "ohos",
                                   "wpt_layout": "none",
                                   "profile": "release",
+                                  "unit_tests": False,
+                                  'bencher': True,
+                                  "wpt_args": ""
+                              },
+                              {
+                                  "name": "OpenHarmony",
+                                  "workflow": "ohos",
+                                  "wpt_layout": "none",
+                                  "profile": "production",
                                   "unit_tests": False,
                                   'bencher': True,
                                   "wpt_args": ""

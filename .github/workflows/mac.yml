@@ -121,7 +121,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-macos
+          name: cargo-timings-macos-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload artifact for mach package
@@ -172,7 +172,7 @@ jobs:
   bencher:
     needs: ["build"]
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
       target: 'macos'

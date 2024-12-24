@@ -114,7 +114,7 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-android-${{ matrix.target }}
+          name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload nightly
@@ -149,12 +149,14 @@ jobs:
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
 
   bencher:
+    # Add name to allow matrix target to show in the name
+    name: Bencher
     needs: ["build"]
     strategy:
       matrix:
         target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
       target: android-${{ matrix.target }}
