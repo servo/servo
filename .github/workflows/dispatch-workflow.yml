@@ -75,6 +75,7 @@ jobs:
     if: ${{ inputs.workflow == 'ohos' }}
     name: OpenHarmony
     uses: ./.github/workflows/ohos.yml
+    secrets: inherit
     with:
       profile: ${{ inputs.profile }}
       bencher: ${{ inputs.bencher }}
