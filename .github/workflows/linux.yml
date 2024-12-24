@@ -228,6 +228,7 @@ jobs:
     with:
       target: 'linux'
       profile: ${{ inputs.profile }}
+      binary-path: target/${{ inputs.profile }}/servo
       file-size: true
       speedometer: true
       dromaeo: true

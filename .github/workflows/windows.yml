@@ -202,6 +202,7 @@ jobs:
     with:
       target: 'windows'
       profile: ${{ inputs.profile }}
+      binary-path: ${{ inputs.profile }}-binary-windows/Servo.exe
       file-size: true
       speedometer: false
       dromaeo: false

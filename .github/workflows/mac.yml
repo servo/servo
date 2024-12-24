@@ -177,6 +177,7 @@ jobs:
     with:
       target: 'macos'
       profile: ${{ inputs.profile }}
+      binary-path: target/${{ inputs.profile }}/servo
       file-size: true
       speedometer: false
       dromaeo: false
