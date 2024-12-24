@@ -134,8 +134,6 @@ jobs:
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
 
   bencher-signed:
-    # Add name to allow matrix target to show in the name
-    name: Bencher (signed)
     needs: ["build"]
     strategy:
       matrix:
@@ -152,8 +150,6 @@ jobs:
       dromaeo: false
     secrets: inherit
   bencher-unsigned:
-    # Add name to allow matrix target to show in the name
-    name: Bencher (unsigned)
     needs: ["build"]
     strategy:
       matrix:
@@ -166,6 +162,7 @@ jobs:
       profile: ${{ inputs.profile }}
       binary-path: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}/servoshell-default-unsigned.hap
       file-size: true
+      stripped-file-size: false
       speedometer: false
       dromaeo: false
     secrets: inherit

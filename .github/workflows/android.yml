@@ -149,8 +149,6 @@ jobs:
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
 
   bencher:
-    # Add name to allow matrix target to show in the name
-    name: Bencher
     needs: ["build"]
     strategy:
       matrix:
@@ -163,6 +161,7 @@ jobs:
       profile: ${{ inputs.profile }}
       binary-path: ${{ inputs.profile }}-binary-android-${{ matrix.target }}/servoapp.apk
       file-size: true
+      stripped-file-size: false
       speedometer: false
       dromaeo: false
     secrets: inherit

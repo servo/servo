@@ -18,6 +18,10 @@ on:
         required: false
         default: false
         type: boolean
+      stripped-file-size:
+        required: false
+        default: false
+        type: boolean
       speedometer:
         required: false
         default: false
@@ -81,15 +85,15 @@ jobs:
             echo "SERVO_FILE_SIZE_RESULT=size.json" >> "$GITHUB_ENV"
       # We'll additionally strip and measure the size of the binary when using in production profile
       - name: Install LLVM
-        if: ${{ inputs.file-size == true && inputs.profile == 'production' }}
+        if: ${{ inputs.stripped-file-size == 'true' }}
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "10.0"
+          version: "12.0"
       - name: Install llvm-strip dependency
-        if: ${{ inputs.file-size == true && inputs.profile == 'production' }}
+        if: ${{ inputs.stripped-file-size == 'true' }}
         run: sudo apt install libncurses5
       - name: File size (llvm stripped)
-        if: ${{ inputs.file-size == true && inputs.profile == 'production' }}
+        if: ${{ inputs.stripped-file-size == 'true' }}
         run: |
             llvm-strip ${{ inputs.binary-path }}
             ./etc/ci/bencher.py filesize ${{ inputs.binary-path }} ${{ inputs.target }}-${{ inputs.profile }} --bmf-output size-stripped.json

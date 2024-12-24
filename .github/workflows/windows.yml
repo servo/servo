@@ -204,6 +204,7 @@ jobs:
       profile: ${{ inputs.profile }}
       binary-path: ${{ inputs.profile }}-binary-windows/Servo.exe
       file-size: true
+      stripped-file-size: ${{ inputs.profile == 'production' }}
       speedometer: false
       dromaeo: false
     secrets: inherit

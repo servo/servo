@@ -179,6 +179,7 @@ jobs:
       profile: ${{ inputs.profile }}
       binary-path: target/${{ inputs.profile }}/servo
       file-size: true
+      stripped-file-size: ${{ inputs.profile == 'production' }}
       speedometer: false
       dromaeo: false
     secrets: inherit
