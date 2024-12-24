@@ -157,7 +157,7 @@ jobs:
     if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
     uses: ./.github/workflows/bencher.yml
     with:
-      target: ${{ matrix.target }}
+      target: android-${{ matrix.target }}
       profile: ${{ inputs.profile }}
       file-size: true
       speedometer: false

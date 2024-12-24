@@ -79,15 +79,14 @@ jobs:
       - name: File location (Android)
         if: ${{ contains(inputs.target, 'android') }}
         run: echo "SERVO_BINARY_PATH=${{ inputs.profile }}-binary-android/servoapp.apk" >> $GITHUB_ENV
-      # - name: Check if signed (Open Harmony)
-      #   if: ${{ contains(inputs.target, 'ohos') }}
-      #   run: 
-      # - name: File location (Open Harmony, signed)
-      #   if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG != '' }}
-      #   run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-signed.hap" >> $GITHUB_ENV
-      # - name: File location (Open Harmony, unsigned)
-      #   if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG == '' }}
-      #   run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-unsigned.hap" >> $GITHUB_ENV
+      - name: File location (Open Harmony, signed)
+        continue-on-error: true
+        if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG != '' }}
+        run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-signed.hap" >> $GITHUB_ENV
+      - name: File location (Open Harmony, unsigned)
+        continue-on-error: true
+        if: ${{ contains(inputs.target, 'ohos') && env.SERVO_OHOS_SIGNING_CONFIG == '' }}
+        run: echo "SERVO_BINARY_PATH=target/${{ inputs.profile }}/servo/servoshell-default-unsigned.hap" >> $GITHUB_ENV
       - name: File size
         if: ${{ inputs.file-size == true }}
         run: |
