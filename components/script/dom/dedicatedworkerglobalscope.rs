@@ -418,7 +418,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_url,
                     devtools_mpsc_port,
                     runtime,
-                    parent_sender.clone(),
+                    parent_sender.as_boxed(),
                     own_sender,
                     receiver,
                     closing,

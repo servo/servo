@@ -18,6 +18,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
+use background_hang_monitor_api::ScriptHangAnnotation;
 use base::id::PipelineId;
 use content_security_policy::{CheckResult, PolicyDisposition};
 use js::conversions::jsstr_to_string;
@@ -50,6 +51,7 @@ use js::rust::{
 use malloc_size_of::MallocSizeOfOps;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
+use profile_traits::time::ProfilerCategory;
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
@@ -126,8 +128,8 @@ pub trait ScriptChan: JSTraceable {
     /// Send a message to the associated event loop.
     #[allow(clippy::result_unit_err)]
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
-    /// Clone this handle.
-    fn clone(&self) -> Box<dyn ScriptChan + Send>;
+    /// Return a cloned version of this sender in a [`Box`].
+    fn as_boxed(&self) -> Box<dyn ScriptChan + Send>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -160,6 +162,92 @@ pub enum ScriptThreadEventCategory {
     PerformanceTimelineTask,
     #[cfg(feature = "webgpu")]
     WebGPUMsg,
+}
+
+impl From<ScriptThreadEventCategory> for ProfilerCategory {
+    fn from(category: ScriptThreadEventCategory) -> Self {
+        match category {
+            ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
+            ScriptThreadEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
+            ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
+            ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
+            ScriptThreadEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
+            ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
+            ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
+            ScriptThreadEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
+            ScriptThreadEventCategory::FormPlannedNavigation => {
+                ProfilerCategory::ScriptPlannedNavigation
+            },
+            ScriptThreadEventCategory::HistoryEvent => ProfilerCategory::ScriptHistoryEvent,
+            ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
+            ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
+            ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+            ScriptThreadEventCategory::PerformanceTimelineTask => {
+                ProfilerCategory::ScriptPerformanceEvent
+            },
+            ScriptThreadEventCategory::PortMessage => ProfilerCategory::ScriptPortMessage,
+            ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
+            ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
+            ScriptThreadEventCategory::ServiceWorkerEvent => {
+                ProfilerCategory::ScriptServiceWorkerEvent
+            },
+            ScriptThreadEventCategory::SetScrollState => ProfilerCategory::ScriptSetScrollState,
+            ScriptThreadEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
+            ScriptThreadEventCategory::StylesheetLoad => ProfilerCategory::ScriptStylesheetLoad,
+            ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
+            ScriptThreadEventCategory::UpdateReplacedElement => {
+                ProfilerCategory::ScriptUpdateReplacedElement
+            },
+            ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
+            ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
+            ScriptThreadEventCategory::WorkletEvent => ProfilerCategory::ScriptWorkletEvent,
+            #[cfg(feature = "webgpu")]
+            ScriptThreadEventCategory::WebGPUMsg => ProfilerCategory::ScriptWebGPUMsg,
+        }
+    }
+}
+
+impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
+    fn from(category: ScriptThreadEventCategory) -> Self {
+        match category {
+            ScriptThreadEventCategory::AttachLayout => ScriptHangAnnotation::AttachLayout,
+            ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
+            ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
+            ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
+            ScriptThreadEventCategory::DomEvent => ScriptHangAnnotation::DomEvent,
+            ScriptThreadEventCategory::FileRead => ScriptHangAnnotation::FileRead,
+            ScriptThreadEventCategory::FormPlannedNavigation => {
+                ScriptHangAnnotation::FormPlannedNavigation
+            },
+            ScriptThreadEventCategory::HistoryEvent => ScriptHangAnnotation::HistoryEvent,
+            ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
+            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
+            ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
+            ScriptThreadEventCategory::Resize => ScriptHangAnnotation::Resize,
+            ScriptThreadEventCategory::ScriptEvent => ScriptHangAnnotation::ScriptEvent,
+            ScriptThreadEventCategory::SetScrollState => ScriptHangAnnotation::SetScrollState,
+            ScriptThreadEventCategory::SetViewport => ScriptHangAnnotation::SetViewport,
+            ScriptThreadEventCategory::StylesheetLoad => ScriptHangAnnotation::StylesheetLoad,
+            ScriptThreadEventCategory::TimerEvent => ScriptHangAnnotation::TimerEvent,
+            ScriptThreadEventCategory::UpdateReplacedElement => {
+                ScriptHangAnnotation::UpdateReplacedElement
+            },
+            ScriptThreadEventCategory::WebSocketEvent => ScriptHangAnnotation::WebSocketEvent,
+            ScriptThreadEventCategory::WorkerEvent => ScriptHangAnnotation::WorkerEvent,
+            ScriptThreadEventCategory::WorkletEvent => ScriptHangAnnotation::WorkletEvent,
+            ScriptThreadEventCategory::ServiceWorkerEvent => {
+                ScriptHangAnnotation::ServiceWorkerEvent
+            },
+            ScriptThreadEventCategory::EnterFullscreen => ScriptHangAnnotation::EnterFullscreen,
+            ScriptThreadEventCategory::ExitFullscreen => ScriptHangAnnotation::ExitFullscreen,
+            ScriptThreadEventCategory::PerformanceTimelineTask => {
+                ScriptHangAnnotation::PerformanceTimelineTask
+            },
+            ScriptThreadEventCategory::PortMessage => ScriptHangAnnotation::PortMessage,
+            #[cfg(feature = "webgpu")]
+            ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
+        }
+    }
 }
 
 /// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM

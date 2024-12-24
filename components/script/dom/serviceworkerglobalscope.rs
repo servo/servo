@@ -143,7 +143,7 @@ impl ScriptChan for ServiceWorkerChan {
             .map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn as_boxed(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(ServiceWorkerChan {
             sender: self.sender.clone(),
         })

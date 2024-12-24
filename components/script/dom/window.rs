@@ -145,15 +145,15 @@ use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
+use crate::messaging::{
+    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, SendableMainThreadScriptChan,
+};
 use crate::microtask::MicrotaskQueue;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
-use crate::script_thread::{
-    ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
-    SendableMainThreadScriptChan,
-};
+use crate::script_thread::ScriptThread;
 use crate::task_manager::TaskManager;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
@@ -453,7 +453,7 @@ impl Window {
         self.js_runtime.borrow()
     }
 
-    pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
+    pub(crate) fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
         &self.script_chan.0
     }
 
@@ -2683,7 +2683,7 @@ impl Window {
 impl Window {
     #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
         task_manager: TaskManager,

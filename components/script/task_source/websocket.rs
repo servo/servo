@@ -16,7 +16,7 @@ pub struct WebsocketTaskSource(
 
 impl Clone for WebsocketTaskSource {
     fn clone(&self) -> WebsocketTaskSource {
-        WebsocketTaskSource(self.0.clone(), self.1)
+        WebsocketTaskSource(self.0.as_boxed(), self.1)
     }
 }
 

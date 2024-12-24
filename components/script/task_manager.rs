@@ -6,7 +6,10 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+use base::id::PipelineId;
+
 use crate::dom::bindings::cell::DomRefCell;
+use crate::messaging::MainThreadScriptChan;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -24,15 +27,20 @@ use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
 
 macro_rules! task_source_functions {
-    ($self:ident,$with_canceller:ident,$task_source:ident,$task_source_type:ident,$task_source_name:ident) => {
-        pub fn $with_canceller(&$self) -> ($task_source_type, TaskCanceller) {
+    ($self:ident, $task_source:ident, $task_source_type:ident, $task_source_name:ident) => {
+        pub(crate) fn $task_source(&$self) -> $task_source_type {
+            $self.$task_source.clone()
+        }
+    };
+    ($self:ident, $with_canceller:ident, $task_source:ident, $task_source_type:ident, $task_source_name:ident) => {
+        pub(crate) fn $with_canceller(&$self) -> ($task_source_type, TaskCanceller) {
             ($self.$task_source.clone(), $self.task_canceller(TaskSourceName::$task_source_name))
         }
 
-        pub fn $task_source(&$self) -> $task_source_type {
+        pub(crate) fn $task_source(&$self) -> $task_source_type {
             $self.$task_source.clone()
         }
-    }
+    };
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -69,35 +77,27 @@ pub struct TaskManager {
 
 impl TaskManager {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        dom_manipulation_task_source: DOMManipulationTaskSource,
-        file_reading_task_source: FileReadingTaskSource,
-        gamepad_task_source: GamepadTaskSource,
-        history_traversal_task_source: HistoryTraversalTaskSource,
-        media_element_task_source: MediaElementTaskSource,
-        networking_task_source: NetworkingTaskSource,
-        performance_timeline_task_source: PerformanceTimelineTaskSource,
-        port_message_queue: PortMessageQueue,
-        user_interaction_task_source: UserInteractionTaskSource,
-        remote_event_task_source: RemoteEventTaskSource,
-        rendering_task_source: RenderingTaskSource,
-        timer_task_source: TimerTaskSource,
-        websocket_task_source: WebsocketTaskSource,
-    ) -> Self {
+    pub(crate) fn new(sender: Box<MainThreadScriptChan>, pipeline_id: PipelineId) -> Self {
         TaskManager {
-            dom_manipulation_task_source,
-            file_reading_task_source,
-            gamepad_task_source,
-            history_traversal_task_source,
-            media_element_task_source,
-            networking_task_source,
-            performance_timeline_task_source,
-            port_message_queue,
-            user_interaction_task_source,
-            remote_event_task_source,
-            rendering_task_source,
-            timer_task_source,
-            websocket_task_source,
+            dom_manipulation_task_source: DOMManipulationTaskSource(sender.clone(), pipeline_id),
+            file_reading_task_source: FileReadingTaskSource(sender.clone(), pipeline_id),
+            gamepad_task_source: GamepadTaskSource(sender.clone(), pipeline_id),
+            history_traversal_task_source: HistoryTraversalTaskSource(
+                sender.0.clone(),
+                pipeline_id,
+            ),
+            media_element_task_source: MediaElementTaskSource(sender.0.clone(), pipeline_id),
+            networking_task_source: NetworkingTaskSource(sender.clone(), pipeline_id),
+            performance_timeline_task_source: PerformanceTimelineTaskSource(
+                sender.clone(),
+                pipeline_id,
+            ),
+            port_message_queue: PortMessageQueue(sender.clone(), pipeline_id),
+            user_interaction_task_source: UserInteractionTaskSource(sender.0.clone(), pipeline_id),
+            remote_event_task_source: RemoteEventTaskSource(sender.clone(), pipeline_id),
+            rendering_task_source: RenderingTaskSource(sender.clone(), pipeline_id),
+            timer_task_source: TimerTaskSource(sender.clone(), pipeline_id),
+            websocket_task_source: WebsocketTaskSource(sender.clone(), pipeline_id),
             task_cancellers: Default::default(),
         }
     }
@@ -110,13 +110,7 @@ impl TaskManager {
         DOMManipulation
     );
 
-    task_source_functions!(
-        self,
-        gamepad_task_source_with_canceller,
-        gamepad_task_source,
-        GamepadTaskSource,
-        Gamepad
-    );
+    task_source_functions!(self, gamepad_task_source, GamepadTaskSource, Gamepad);
 
     task_source_functions!(
         self,
@@ -128,7 +122,6 @@ impl TaskManager {
 
     task_source_functions!(
         self,
-        user_interaction_task_source_with_canceller,
         user_interaction_task_source,
         UserInteractionTaskSource,
         UserInteraction
@@ -144,7 +137,6 @@ impl TaskManager {
 
     task_source_functions!(
         self,
-        file_reading_task_source_with_canceller,
         file_reading_task_source,
         FileReadingTaskSource,
         FileReading
@@ -152,59 +144,25 @@ impl TaskManager {
 
     task_source_functions!(
         self,
-        history_traversal_task_source_with_canceller,
-        history_traversal_task_source,
-        HistoryTraversalTaskSource,
-        HistoryTraversal
-    );
-
-    task_source_functions!(
-        self,
-        performance_timeline_task_source_with_canceller,
         performance_timeline_task_source,
         PerformanceTimelineTaskSource,
         PerformanceTimeline
     );
 
-    task_source_functions!(
-        self,
-        port_message_queue_with_canceller,
-        port_message_queue,
-        PortMessageQueue,
-        PortMessage
-    );
+    task_source_functions!(self, port_message_queue, PortMessageQueue, PortMessage);
 
     task_source_functions!(
         self,
-        remote_event_task_source_with_canceller,
         remote_event_task_source,
         RemoteEventTaskSource,
         RemoteEvent
     );
 
-    task_source_functions!(
-        self,
-        rendering_task_source_with_canceller,
-        rendering_task_source,
-        RenderingTaskSource,
-        Rendering
-    );
+    task_source_functions!(self, rendering_task_source, RenderingTaskSource, Rendering);
 
-    task_source_functions!(
-        self,
-        timer_task_source_with_canceller,
-        timer_task_source,
-        TimerTaskSource,
-        Timer
-    );
+    task_source_functions!(self, timer_task_source, TimerTaskSource, Timer);
 
-    task_source_functions!(
-        self,
-        websocket_task_source_with_canceller,
-        websocket_task_source,
-        WebsocketTaskSource,
-        Websocket
-    );
+    task_source_functions!(self, websocket_task_source, WebsocketTaskSource, Websocket);
 
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
         let mut flags = self.task_cancellers.borrow_mut();

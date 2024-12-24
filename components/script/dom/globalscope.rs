@@ -127,6 +127,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::messaging::MainThreadScriptChan;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
@@ -134,7 +135,7 @@ use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFe
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort, ThreadSafeJSContext,
 };
-use crate::script_thread::{with_script_thread, MainThreadScriptChan, ScriptThread};
+use crate::script_thread::{with_script_thread, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -2581,7 +2582,9 @@ impl GlobalScope {
     /// `ScriptChan` to send messages to the event loop of this global scope.
     pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
         if let Some(window) = self.downcast::<Window>() {
-            return MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
+            return Box::new(
+                MainThreadScriptChan(window.main_thread_script_chan().clone()).clone(),
+            );
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.script_chan();
