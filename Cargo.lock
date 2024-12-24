@@ -7646,9 +7646,9 @@ checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
 name = "typeface"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1fdbc53aae2bf36c48f1bc36d73a62b84091b6535b08e4e15bca876ce5e8050"
+checksum = "191ea6762cbcd705fbed8f58573fd6c654453ff3da60adb293d9f255bc92af8e"
 
 [[package]]
 name = "typenum"
