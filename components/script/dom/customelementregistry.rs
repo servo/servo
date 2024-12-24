@@ -1318,7 +1318,8 @@ fn is_potential_custom_element_char(c: char) -> bool {
         ('\u{37F}'..='\u{1FFF}').contains(&c) ||
         ('\u{200C}'..='\u{200D}').contains(&c) ||
         ('\u{203F}'..='\u{2040}').contains(&c) ||
-        ('\u{2070}'..='\u{2FEF}').contains(&c) ||
+        ('\u{2070}'..='\u{218F}').contains(&c) ||
+        ('\u{2C00}'..='\u{2FEF}').contains(&c) ||
         ('\u{3001}'..='\u{D7FF}').contains(&c) ||
         ('\u{F900}'..='\u{FDCF}').contains(&c) ||
         ('\u{FDF0}'..='\u{FFFD}').contains(&c) ||
