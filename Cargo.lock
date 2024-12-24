@@ -429,7 +429,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "regex",
@@ -957,7 +957,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1862,7 +1862,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4447,7 +4447,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#29d28f615e5ec6b082317fed939818368e32d7cf"
+source = "git+https://github.com/sagudev/mozjs?branch=SMupdec2024#37bd1599a1a4f09e0185a7f90e508d813431f971"
 dependencies = [
  "bindgen",
  "cc",
@@ -4459,8 +4459,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.128.3-9"
-source = "git+https://github.com/servo/mozjs#29d28f615e5ec6b082317fed939818368e32d7cf"
+version = "0.128.6-0"
+source = "git+https://github.com/sagudev/mozjs?branch=SMupdec2024#37bd1599a1a4f09e0185a7f90e508d813431f971"
 dependencies = [
  "bindgen",
  "cc",
@@ -5889,7 +5889,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -7153,7 +7153,7 @@ dependencies = [
  "fastrand",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8411,7 +8411,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
