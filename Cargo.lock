@@ -4594,7 +4594,7 @@ dependencies = [
  "async-recursion",
  "async-tungstenite",
  "base",
- "base64 0.21.7",
+ "base64 0.22.1",
  "bytes",
  "chrono",
  "content-security-policy",
@@ -5970,7 +5970,7 @@ dependencies = [
  "background_hang_monitor_api",
  "backtrace",
  "base",
- "base64 0.21.7",
+ "base64 0.22.1",
  "bincode",
  "bitflags 2.6.0",
  "bluetooth_traits",
@@ -8151,7 +8151,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "base",
- "base64 0.21.7",
+ "base64 0.22.1",
  "compositing_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
