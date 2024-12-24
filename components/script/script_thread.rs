@@ -3737,6 +3737,8 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
+        let is_initial_about_blank = final_url.as_str() == "about:blank";
+
         let document = Document::new(
             &window,
             HasBrowsingContext::Yes,
@@ -3751,6 +3753,7 @@ impl ScriptThread {
             referrer,
             Some(metadata.status.raw_code()),
             incomplete.canceller,
+            is_initial_about_blank,
             can_gc,
         );
 

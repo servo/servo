@@ -497,6 +497,8 @@ pub struct Document {
     visibility_state: Cell<DocumentVisibilityState>,
     /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
     status_code: Option<u16>,
+    /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
+    is_initial_about_blank: Cell<bool>,
 }
 
 #[allow(non_snake_case)]
@@ -3218,6 +3220,7 @@ impl Document {
         referrer: Option<String>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        is_initial_about_blank: bool,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3245,6 +3248,7 @@ impl Document {
             .unwrap_or(UTF_8);
 
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
+
         Document {
             node: Node::new_document_node(),
             document_or_shadow_root: DocumentOrShadowRoot::new(window),
@@ -3365,6 +3369,7 @@ impl Document {
             fonts: Default::default(),
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
+            is_initial_about_blank: Cell::new(is_initial_about_blank),
         }
     }
 
@@ -3479,6 +3484,7 @@ impl Document {
         referrer: Option<String>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        is_initial_about_blank: bool,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3496,6 +3502,7 @@ impl Document {
             referrer,
             status_code,
             canceller,
+            is_initial_about_blank,
             can_gc,
         )
     }
@@ -3516,6 +3523,7 @@ impl Document {
         referrer: Option<String>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        is_initial_about_blank: bool,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3533,6 +3541,7 @@ impl Document {
                 referrer,
                 status_code,
                 canceller,
+                is_initial_about_blank,
             )),
             window,
             proto,
@@ -3656,6 +3665,7 @@ impl Document {
                     None,
                     None,
                     Default::default(),
+                    false,
                     can_gc,
                 );
                 new_doc
@@ -4177,6 +4187,11 @@ impl Document {
         self.upcast::<EventTarget>()
             .fire_bubbling_event(atom!("visibilitychange"), can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
+    pub fn is_initial_about_blank(&self) -> bool {
+        self.is_initial_about_blank.get()
+    }
 }
 
 impl ProfilerMetadataFactory for Document {
@@ -4214,6 +4229,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             None,
             Default::default(),
+            false,
             can_gc,
         ))
     }
@@ -5272,9 +5288,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
         // Step 4
-        // This check is same-origin not same-origin-domain.
-        // https://github.com/whatwg/html/issues/2282
-        // https://github.com/whatwg/html/pull/2288
         if !self.origin.same_origin(&entry_responsible_document.origin) {
             return Err(Error::Security);
         }
@@ -5332,23 +5345,36 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // WPT selection/Document-open.html wants us to not clear it
         // as of Feb 1 2020
 
-        // Step 12
+        // Step 12. If document is fully active, then:
         if self.is_fully_active() {
+            // Step 12.1. Let newURL be a copy of entryDocument's URL.
             let mut new_url = entry_responsible_document.url();
+
+            // Step 12.2. If entryDocument is not document, then set newURL's fragment to null.
             if entry_responsible_document != DomRoot::from_ref(self) {
                 new_url.set_fragment(None);
             }
+
+            // Step 12.3. Run the URL and history update steps with document and newURL.
             // TODO: https://github.com/servo/servo/issues/21939
             self.set_url(new_url);
         }
 
-        // Step 13
+        // Step 13. Set document's is initial about:blank to false.
+        self.is_initial_about_blank.set(false);
+
+        // Step 14. If document's iframe load in progress flag is set, then set document's mute
+        // iframe load flag.
         // TODO: https://github.com/servo/servo/issues/21938
 
-        // Step 14
+        // Step 15: Set document to no-quirks mode.
         self.set_quirks_mode(QuirksMode::NoQuirks);
 
-        // Step 15
+        // Step 16. Create a new HTML parser and associate it with document. This is a
+        // script-created parser (meaning that it can be closed by the document.open() and
+        // document.close() methods, and that the tokenizer will wait for an explicit call to
+        // document.close() before emitting an end-of-file token). The encoding confidence is
+        // irrelevant.
         let resource_threads = self
             .window
             .upcast::<GlobalScope>()
@@ -5358,13 +5384,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             DocumentLoader::new_with_threads(resource_threads, Some(self.url()));
         ServoParser::parse_html_script_input(self, self.url());
 
-        // Step 16
+        // Step 17. Set the insertion point to point at just before the end of the input stream
+        // (which at this point will be empty).
+        // Handled when creating the parser in step 16
+
+        // Step 18. Update the current document readiness of document to "loading".
         self.ready_state.set(DocumentReadyState::Loading);
 
-        // Step 17
-        // Handled when creating the parser in step 15
-
-        // Step 18
+        // Step 19. Return document.
         Ok(DomRoot::from_ref(self))
     }
 
