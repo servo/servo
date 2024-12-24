@@ -44,6 +44,8 @@ jobs:
     strategy:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
+    outputs:
+      signed: $${{ steps.signing-config.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
@@ -79,7 +81,9 @@ jobs:
           echo "@ohos:registry=https://repo.harmonyos.com/npm/" > .npmrc
           npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
           echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
+          echo "signed=true" >> "$GITHUB_OUTPUT"
       - name: "Setup HAP signing config"
+        id: signing-config
         env:
           SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
         if: ${{ inputs.upload || env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
@@ -134,9 +138,8 @@ jobs:
     strategy:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
-    secrets: inherit
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }} && (inputs.upload || secrets.SERVO_OHOS_SIGNING_MATERIAL != '') }}
+    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }} && needs.build.outputs.signed == true }}
     uses: ./.github/workflows/bencher.yml
     with:
       target: ohos-${{ matrix.target }}
@@ -145,14 +148,14 @@ jobs:
       file-size: true
       speedometer: false
       dromaeo: false
+    secrets: inherit
   bencher-unsigned:
     needs: ["build"]
     strategy:
       matrix:
         target: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
-    secrets: inherit
     # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' && !inputs.upload && secrets.SERVO_OHOS_SIGNING_MATERIAL == '' }}
+    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' && needs.build.outputs.signed != true }}
     uses: ./.github/workflows/bencher.yml
     with:
       target: ohos-${{ matrix.target }}
@@ -161,3 +164,4 @@ jobs:
       file-size: true
       speedometer: false
       dromaeo: false
+    secrets: inherit
