@@ -78,9 +78,9 @@ impl Drop for Promise {
         unsafe {
             let object = self.permanent_js_root.get().to_object();
             assert!(!object.is_null());
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+            if let Some(cx) = Runtime::get() {
+                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
+            }
         }
     }
 }

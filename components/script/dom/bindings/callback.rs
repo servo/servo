@@ -93,8 +93,9 @@ impl Drop for CallbackObject {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
-            let cx = Runtime::get();
-            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+            if let Some(cx) = Runtime::get() {
+                RemoveRawValueRoot(cx.as_ptr(), self.permanent_js_root.get_unsafe());
+            }
         }
     }
 }
