@@ -252,6 +252,7 @@ pub mod channelmergernode;
 pub mod channelsplitternode;
 pub mod characterdata;
 pub mod client;
+pub mod clipboardevent;
 pub mod closeevent;
 pub mod comment;
 pub mod compositionevent;
