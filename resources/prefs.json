@@ -103,6 +103,7 @@
   "js.werror.enabled": false,
   "layout.animations.test.enabled": false,
   "layout.columns.enabled": false,
+  "layout.css.quotes.enabled": true,
   "layout.css.transition-behavior.enabled": true,
   "layout.flexbox.enabled": true,
   "layout.grid.enabled": false,
