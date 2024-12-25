@@ -1196,6 +1196,9 @@ impl VirtualMethods for HTMLScriptElement {
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
             let script = Trusted::new(self);
+            // This method can be invoked while there are script/layout blockers present
+            // as DOM mutations have not yet settled. We use a delayed task to avoid
+            // running any scripts until the DOM tree is safe for interactions.
             document_from_node(self).add_delayed_task(task!(ScriptPrepare: move || {
                 let this = script.root();
                 this.prepare(CanGc::note());
