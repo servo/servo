@@ -1563,7 +1563,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    let _ = server.close();
+    server.close();
 
     assert!(response
         .internal_response
@@ -1604,7 +1604,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    let _ = server.close();
+    server.close();
 
     assert!(response
         .internal_response
@@ -1649,7 +1649,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    let _ = server.close();
+    server.close();
 
     assert!(response
         .internal_response
