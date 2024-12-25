@@ -2139,7 +2139,7 @@ impl Node {
             //           in shadow-including tree order, append inclusiveDescendant to staticNodeList.
             static_node_list.extend(
                 node.traverse_preorder(ShadowIncluding::Yes)
-                    .map(|n| Trusted::new(&*n))
+                    .map(|n| Trusted::new(&*n)),
             );
         }
 
