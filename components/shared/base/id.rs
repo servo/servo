@@ -282,6 +282,8 @@ thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrow
     Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
+/// An alias to ID of top level browsing context. A web view is usually what people would treat as
+/// a normal web page.
 pub type WebViewId = TopLevelBrowsingContextId;
 
 size_of_test!(TopLevelBrowsingContextId, 8);

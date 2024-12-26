@@ -12,6 +12,7 @@ use std::{env, fs};
 
 use gleam::gl;
 use log::{error, info, trace};
+use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
 use servo::config::opts;
@@ -182,17 +183,16 @@ impl App {
         } else {
             CompositeTarget::Window
         };
-        let servo_data = Servo::new(
+        let mut servo = Servo::new(
             embedder,
             window.clone(),
             self.user_agent.clone(),
             composite_target,
         );
-        let mut servo = servo_data.servo;
 
         servo.handle_events(vec![EmbedderEvent::NewWebView(
             self.initial_url.to_owned(),
-            servo_data.browser_id,
+            WebViewId::new(),
         )]);
         servo.setup_logging();
 
