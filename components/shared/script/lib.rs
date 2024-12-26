@@ -616,33 +616,33 @@ pub struct InitialScriptState {
     /// Loading into a Secure Context
     pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
-    pub control_chan: IpcSender<ConstellationControlMsg>,
+    pub constellation_sender: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
-    pub control_port: IpcReceiver<ConstellationControlMsg>,
+    pub constellation_receiver: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub script_to_constellation_chan: ScriptToConstellationChan,
+    pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// A sender layout to communicate to the constellation.
-    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
+    pub layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
+    pub bluetooth_sender: IpcSender<BluetoothRequest>,
     /// The image cache for this script thread.
     pub image_cache: Arc<dyn ImageCache>,
     /// A channel to the time profiler thread.
-    pub time_profiler_chan: profile_traits::time::ProfilerChan,
+    pub time_profiler_sender: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
-    pub mem_profiler_chan: mem::ProfilerChan,
+    pub memory_profiler_sender: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.
-    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
     pub window_size: WindowSizeData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
-    pub content_process_shutdown_chan: Sender<()>,
+    pub content_process_shutdown_sender: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
     /// The XR device registry

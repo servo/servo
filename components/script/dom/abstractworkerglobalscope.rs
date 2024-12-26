@@ -35,7 +35,7 @@ impl ScriptChan for SendableWorkerScriptChan {
         self.sender.send(msg).map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn as_boxed(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
@@ -62,7 +62,7 @@ impl ScriptChan for WorkerThreadWorkerChan {
         self.sender.send(msg).map_err(|_| ())
     }
 
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
+    fn as_boxed(&self) -> Box<dyn ScriptChan + Send> {
         Box::new(WorkerThreadWorkerChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),

@@ -5,13 +5,13 @@
 use base::id::PipelineId;
 use crossbeam_channel::Sender;
 
+use crate::messaging::MainThreadScriptMsg;
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use crate::script_thread::MainThreadScriptMsg;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[derive(Clone, JSTraceable)]
-pub struct HistoryTraversalTaskSource(
+pub(crate) struct HistoryTraversalTaskSource(
     #[no_trace] pub Sender<MainThreadScriptMsg>,
     #[no_trace] pub PipelineId,
 );

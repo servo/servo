@@ -61,6 +61,9 @@ pub mod layout_dom;
 #[warn(deprecated)]
 mod mem;
 #[warn(deprecated)]
+#[allow(unsafe_code)]
+pub mod messaging;
+#[warn(deprecated)]
 mod microtask;
 #[warn(deprecated)]
 mod network_listener;

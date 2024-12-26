@@ -22,7 +22,7 @@ pub struct DOMManipulationTaskSource(pub Box<dyn ScriptChan + Send>, #[no_trace]
 
 impl Clone for DOMManipulationTaskSource {
     fn clone(&self) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.0.clone(), self.1)
+        DOMManipulationTaskSource(self.0.as_boxed(), self.1)
     }
 }
 

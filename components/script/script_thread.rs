@@ -31,17 +31,16 @@ use std::time::{Duration, Instant, SystemTime};
 
 use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
-    MonitoredComponentType, ScriptHangAnnotation,
+    MonitoredComponentType,
 };
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
 use base::Epoch;
-use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use crossbeam_channel::{select, unbounded, Receiver, Sender};
+use crossbeam_channel::unbounded;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
@@ -52,7 +51,7 @@ use fonts::SystemFontServiceProxy;
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{
@@ -73,8 +72,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
-use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
-use profile_traits::time::{self as profile_time, ProfilerCategory};
+use profile_traits::mem::ReportsChan;
 use profile_traits::time_profile;
 use script_layout_interface::{
     node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
@@ -82,9 +80,9 @@ use script_layout_interface::{
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin,
-    MediaSessionActionType, MouseButton, MouseEventType, NavigationHistoryBehavior, NewLayoutInfo,
-    Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
+    EventResult, InitialScriptState, JsEvalResult, LoadData, LoadOrigin, MediaSessionActionType,
+    MouseButton, MouseEventType, NavigationHistoryBehavior, NewLayoutInfo, Painter,
+    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
     StructuredSerializedData, Theme, TouchEventType, TouchId, UntrustedNodeAddress,
     UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
@@ -134,42 +132,29 @@ use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
-use crate::dom::serviceworker::TrustedServiceWorkerAddress;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
-use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
+use crate::messaging::{
+    MainThreadScriptChan, MainThreadScriptMsg, MixedMessage, ScriptThreadReceivers,
+    ScriptThreadSenders,
+};
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
-    ThreadSafeJSContext,
+    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
 };
 use crate::task_manager::TaskManager;
-use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::file_reading::FileReadingTaskSource;
-use crate::task_source::gamepad::GamepadTaskSource;
-use crate::task_source::history_traversal::HistoryTraversalTaskSource;
-use crate::task_source::media_element::MediaElementTaskSource;
+use crate::task_queue::TaskQueue;
 use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
-use crate::task_source::port_message::PortMessageQueue;
-use crate::task_source::remote_event::RemoteEventTaskSource;
-use crate::task_source::rendering::RenderingTaskSource;
-use crate::task_source::timer::TimerTaskSource;
-use crate::task_source::user_interaction::UserInteractionTaskSource;
-use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::{devtools, webdriver_handlers};
-
-pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
@@ -274,175 +259,6 @@ impl InProgressLoad {
     }
 }
 
-#[derive(Debug)]
-enum MixedMessage {
-    FromConstellation(ConstellationControlMsg),
-    FromScript(MainThreadScriptMsg),
-    FromDevtools(DevtoolScriptControlMsg),
-    FromImageCache((PipelineId, PendingImageResponse)),
-    #[cfg(feature = "webgpu")]
-    FromWebGPUServer(WebGPUMsg),
-    TimerFired,
-}
-
-/// Messages used to control the script event loop.
-#[derive(Debug)]
-pub enum MainThreadScriptMsg {
-    /// Common variants associated with the script messages
-    Common(CommonScriptMsg),
-    /// Notifies the script thread that a new worklet has been loaded, and thus the page should be
-    /// reflowed.
-    WorkletLoaded(PipelineId),
-    /// Notifies the script thread that a new paint worklet has been registered.
-    RegisterPaintWorklet {
-        pipeline_id: PipelineId,
-        name: Atom,
-        properties: Vec<Atom>,
-        painter: Box<dyn Painter>,
-    },
-    /// A task related to a not fully-active document has been throttled.
-    Inactive,
-    /// Wake-up call from the task queue.
-    WakeUp,
-}
-
-impl QueuedTaskConversion for MainThreadScriptMsg {
-    fn task_source_name(&self) -> Option<&TaskSourceName> {
-        let script_msg = match self {
-            MainThreadScriptMsg::Common(script_msg) => script_msg,
-            _ => return None,
-        };
-        match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
-                Some(task_source)
-            },
-            _ => None,
-        }
-    }
-
-    fn pipeline_id(&self) -> Option<PipelineId> {
-        let script_msg = match self {
-            MainThreadScriptMsg::Common(script_msg) => script_msg,
-            _ => return None,
-        };
-        match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => *pipeline_id,
-            _ => None,
-        }
-    }
-
-    fn into_queued_task(self) -> Option<QueuedTask> {
-        let script_msg = match self {
-            MainThreadScriptMsg::Common(script_msg) => script_msg,
-            _ => return None,
-        };
-        let (category, boxed, pipeline_id, task_source) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) => {
-                (category, boxed, pipeline_id, task_source)
-            },
-            _ => return None,
-        };
-        Some((None, category, boxed, pipeline_id, task_source))
-    }
-
-    fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
-        MainThreadScriptMsg::Common(script_msg)
-    }
-
-    fn inactive_msg() -> Self {
-        MainThreadScriptMsg::Inactive
-    }
-
-    fn wake_up_msg() -> Self {
-        MainThreadScriptMsg::WakeUp
-    }
-
-    fn is_wake_up(&self) -> bool {
-        matches!(self, MainThreadScriptMsg::WakeUp)
-    }
-}
-
-impl OpaqueSender<CommonScriptMsg> for Box<dyn ScriptChan + Send> {
-    fn send(&self, msg: CommonScriptMsg) {
-        ScriptChan::send(&**self, msg).unwrap();
-    }
-}
-
-impl ScriptPort for Receiver<CommonScriptMsg> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map_err(|_| ())
-    }
-}
-
-impl ScriptPort for Receiver<MainThreadScriptMsg> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv() {
-            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(_) => panic!("unexpected main thread event message!"),
-            Err(_) => Err(()),
-        }
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedWorkerAddress, CommonScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).map_err(|_| ())
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv().map(|(_, msg)| msg) {
-            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(_) => panic!("unexpected main thread event message!"),
-            Err(_) => Err(()),
-        }
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        self.recv().map(|(_, msg)| msg).map_err(|_| ())
-    }
-}
-
-/// Encapsulates internal communication of shared messages within the script thread.
-#[derive(JSTraceable)]
-pub struct SendableMainThreadScriptChan(#[no_trace] pub Sender<CommonScriptMsg>);
-
-impl ScriptChan for SendableMainThreadScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0.send(msg).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(SendableMainThreadScriptChan((self.0).clone()))
-    }
-}
-
-/// Encapsulates internal communication of main thread messages within the script thread.
-#[derive(JSTraceable)]
-pub struct MainThreadScriptChan(#[no_trace] pub Sender<MainThreadScriptMsg>);
-
-impl ScriptChan for MainThreadScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.0
-            .send(MainThreadScriptMsg::Common(msg))
-            .map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(MainThreadScriptChan((self.0).clone()))
-    }
-}
-
-impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
-    fn send(&self, msg: CommonScriptMsg) {
-        self.send(MainThreadScriptMsg::Common(msg)).unwrap()
-    }
-}
 // We borrow the incomplete parser contexts mutably during parsing,
 // which is fine except that parsing can trigger evaluation,
 // which can trigger GC, and so we can end up tracing the script
@@ -470,13 +286,19 @@ pub struct ScriptThread {
     /// Image cache for this script thread.
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
+
+    /// A [`ScriptThreadReceivers`] holding all of the incoming [`Receiver`]s for messages
+    /// to this [`ScriptThread`].
+    receivers: ScriptThreadReceivers,
+
+    /// A [`ScriptThreadMessaging`] that holds all data necessary to communicate to and
+    /// from the [`ScriptThread`].
+    senders: ScriptThreadSenders,
+
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
     #[no_trace]
     resource_threads: ResourceThreads,
-    /// A handle to the bluetooth thread.
-    #[no_trace]
-    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,
@@ -487,87 +309,14 @@ pub struct ScriptThread {
     /// A flag set to `true` by the BHM on exit, and checked from within the interrupt handler.
     closing: Arc<AtomicBool>,
 
-    /// A channel to hand out to script thread-based entities that need to be able to enqueue
-    /// events in the event queue.
-    chan: MainThreadScriptChan,
-
     /// A [`TimerScheduler`] used to schedule timers for this [`ScriptThread`]. Timers are handled
     /// in the [`ScriptThread`] event loop.
     #[no_trace]
     timer_scheduler: RefCell<TimerScheduler>,
 
-    dom_manipulation_task_sender: Box<dyn ScriptChan>,
-
-    gamepad_task_sender: Box<dyn ScriptChan>,
-
-    #[no_trace]
-    media_element_task_sender: Sender<MainThreadScriptMsg>,
-
-    #[no_trace]
-    user_interaction_task_sender: Sender<MainThreadScriptMsg>,
-
-    networking_task_sender: Box<dyn ScriptChan>,
-
-    #[no_trace]
-    history_traversal_task_sender: Sender<MainThreadScriptMsg>,
-
-    file_reading_task_sender: Box<dyn ScriptChan>,
-
-    performance_timeline_task_sender: Box<dyn ScriptChan>,
-
-    port_message_sender: Box<dyn ScriptChan>,
-
-    timer_task_sender: Box<dyn ScriptChan>,
-
-    remote_event_task_sender: Box<dyn ScriptChan>,
-
-    rendering_task_sender: Box<dyn ScriptChan>,
-
-    /// A channel to hand out to threads that need to respond to a message from the script thread.
-    #[no_trace]
-    control_chan: IpcSender<ConstellationControlMsg>,
-
-    /// The port on which the constellation and layout can communicate with the
-    /// script thread.
-    #[no_trace]
-    control_port: Receiver<ConstellationControlMsg>,
-
-    /// For communicating load url messages to the constellation
-    #[no_trace]
-    script_sender: IpcSender<(PipelineId, ScriptMsg)>,
-
-    /// A sender for layout to communicate to the constellation.
-    #[no_trace]
-    layout_to_constellation_chan: IpcSender<LayoutMsg>,
-
     /// A proxy to the `SystemFontService` to use for accessing system font lists.
     #[no_trace]
     system_font_service: Arc<SystemFontServiceProxy>,
-
-    /// The port on which we receive messages from the image cache
-    #[no_trace]
-    image_cache_port: Receiver<ImageCacheMsg>,
-
-    /// The channel on which the image cache can send messages to ourself.
-    #[no_trace]
-    image_cache_channel: Sender<ImageCacheMsg>,
-    /// For providing contact with the time profiler.
-    #[no_trace]
-    time_profiler_chan: profile_time::ProfilerChan,
-
-    /// For providing contact with the memory profiler.
-    #[no_trace]
-    mem_profiler_chan: profile_mem::ProfilerChan,
-
-    /// For providing instructions to an optional devtools server.
-    #[no_trace]
-    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    /// For receiving commands from an optional devtools server. Will be ignored if
-    /// no such server exists.
-    #[no_trace]
-    devtools_port: Receiver<DevtoolScriptControlMsg>,
-    #[no_trace]
-    devtools_sender: IpcSender<DevtoolScriptControlMsg>,
 
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
@@ -578,9 +327,6 @@ pub struct ScriptThread {
     /// List of pipelines that have been owned and closed by this script thread.
     #[no_trace]
     closed_pipelines: DomRefCell<HashSet<PipelineId>>,
-
-    #[no_trace]
-    content_process_shutdown_chan: Sender<()>,
 
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     microtask_queue: Rc<MicrotaskQueue>,
@@ -669,11 +415,6 @@ pub struct ScriptThread {
     #[cfg(feature = "webgpu")]
     gpu_id_hub: Arc<IdentityHub>,
 
-    /// Receiver to receive commands from optional WebGPU server.
-    #[no_trace]
-    #[cfg(feature = "webgpu")]
-    webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
-
     // Secure context
     inherited_secure_context: Option<bool>,
 
@@ -740,7 +481,6 @@ impl ScriptThreadFactory for ScriptThread {
         load_data: LoadData,
         user_agent: Cow<'static, str>,
     ) {
-        let (script_chan, script_port) = unbounded();
         thread::Builder::new()
             .name(format!("Script{:?}", state.id))
             .spawn(move || {
@@ -755,17 +495,11 @@ impl ScriptThreadFactory for ScriptThread {
                 let parent_info = state.parent_info;
                 let opener = state.opener;
                 let secure = load_data.inherited_secure_context;
-                let mem_profiler_chan = state.mem_profiler_chan.clone();
+                let memory_profiler_sender = state.memory_profiler_sender.clone();
                 let window_size = state.window_size;
 
-                let script_thread = ScriptThread::new(
-                    state,
-                    script_port,
-                    script_chan.clone(),
-                    layout_factory,
-                    system_font_service,
-                    user_agent,
-                );
+                let script_thread =
+                    ScriptThread::new(state, layout_factory, system_font_service, user_agent);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -788,13 +522,16 @@ impl ScriptThreadFactory for ScriptThread {
                 script_thread.pre_page_load(new_load, load_data);
 
                 let reporter_name = format!("script-reporter-{:?}", id);
-                mem_profiler_chan.run_with_memory_reporting(
+                memory_profiler_sender.run_with_memory_reporting(
                     || {
                         script_thread.start(CanGc::note());
-                        let _ = script_thread.content_process_shutdown_chan.send(());
+                        let _ = script_thread
+                            .senders
+                            .content_process_shutdown_sender
+                            .send(());
                     },
                     reporter_name,
-                    script_chan,
+                    script_thread.senders.self_sender.0.clone(),
                     CommonScriptMsg::CollectReports,
                 );
 
@@ -936,7 +673,10 @@ impl ScriptThread {
                 };
                 let global = window.upcast::<GlobalScope>();
                 let trusted_global = Trusted::new(global);
-                let sender = script_thread.script_sender.clone();
+                let sender = script_thread
+                    .senders
+                    .pipeline_to_constellation_sender
+                    .clone();
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
@@ -954,7 +694,7 @@ impl ScriptThread {
                     .queue(task, global.upcast())
                     .expect("Enqueing navigate js task on the DOM manipulation task source failed");
             } else {
-                if let Some(ref sender) = script_thread.devtools_chan {
+                if let Some(ref sender) = script_thread.senders.devtools_server_sender {
                     let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
                         browsing_context,
                         NavigationState::Start(load_data.url.clone()),
@@ -962,7 +702,8 @@ impl ScriptThread {
                 }
 
                 script_thread
-                    .script_sender
+                    .senders
+                    .pipeline_to_constellation_sender
                     .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
                     .expect("Sending a LoadUrl message to the constellation failed");
             }
@@ -1054,12 +795,15 @@ impl ScriptThread {
                 .borrow_mut()
                 .get_or_insert_with(|| {
                     let init = WorkletGlobalScopeInit {
-                        to_script_thread_sender: script_thread.chan.0.clone(),
+                        to_script_thread_sender: script_thread.senders.self_sender.0.clone(),
                         resource_threads: script_thread.resource_threads.clone(),
-                        mem_profiler_chan: script_thread.mem_profiler_chan.clone(),
-                        time_profiler_chan: script_thread.time_profiler_chan.clone(),
-                        devtools_chan: script_thread.devtools_chan.clone(),
-                        to_constellation_sender: script_thread.script_sender.clone(),
+                        mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
+                        time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
+                        devtools_chan: script_thread.senders.devtools_server_sender.clone(),
+                        to_constellation_sender: script_thread
+                            .senders
+                            .pipeline_to_constellation_sender
+                            .clone(),
                         image_cache: script_thread.image_cache.clone(),
                         is_headless: script_thread.headless,
                         user_agent: script_thread.user_agent.clone(),
@@ -1145,10 +889,8 @@ impl ScriptThread {
     }
 
     /// Creates a new script thread.
-    pub fn new(
+    pub(crate) fn new(
         state: InitialScriptState,
-        port: Receiver<MainThreadScriptMsg>,
-        chan: Sender<MainThreadScriptMsg>,
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         user_agent: Cow<'static, str>,
@@ -1157,10 +899,10 @@ impl ScriptThread {
         let prepare_for_screenshot =
             opts.output_file.is_some() || opts.exit_after_load || opts.webdriver_port.is_some();
 
-        let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
-
+        let (self_sender, self_receiver) = unbounded();
+        let self_sender = MainThreadScriptChan(self_sender.clone());
         let runtime = Runtime::new(Some(NetworkingTaskSource(
-            boxed_script_sender.clone(),
+            Box::new(self_sender.clone()),
             state.id,
         )));
         let cx = runtime.cx();
@@ -1170,14 +912,20 @@ impl ScriptThread {
             JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
+        // Ask the router to proxy IPC messages from the control port to us.
+        let constellation_receiver =
+            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.constellation_receiver);
+
         // Ask the router to proxy IPC messages from the devtools to us.
+        let devtools_server_sender = state.devtools_server_sender;
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
-        let devtools_port =
-            ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_devtools_receiver);
+        let devtools_server_receiver = devtools_server_sender
+            .as_ref()
+            .map(|_| ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_devtools_receiver))
+            .unwrap_or_else(crossbeam_channel::never);
 
-        let (image_cache_channel, image_cache_port) = unbounded();
-
-        let task_queue = TaskQueue::new(port, chan.clone());
+        let (image_cache_sender, image_cache_receiver) = unbounded();
+        let task_queue = TaskQueue::new(self_receiver, self_sender.0.clone());
 
         let closing = Arc::new(AtomicBool::new(false));
         let background_hang_monitor_exit_signal = BHMExitSignal {
@@ -1192,8 +940,28 @@ impl ScriptThread {
             Some(Box::new(background_hang_monitor_exit_signal)),
         );
 
-        // Ask the router to proxy IPC messages from the control port to us.
-        let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
+        let receivers = ScriptThreadReceivers {
+            constellation_receiver,
+            image_cache_receiver,
+            devtools_server_receiver,
+            // Initialized to `never` until WebGPU is initialized.
+            #[cfg(feature = "webgpu")]
+            webgpu_receiver: RefCell::new(crossbeam_channel::never()),
+        };
+
+        let senders = ScriptThreadSenders {
+            self_sender,
+            bluetooth_sender: state.bluetooth_sender,
+            constellation_sender: state.constellation_sender,
+            pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
+            layout_to_constellation_ipc_sender: state.layout_to_constellation_ipc_sender,
+            image_cache_sender,
+            time_profiler_sender: state.time_profiler_sender,
+            memory_profiler_sender: state.memory_profiler_sender,
+            devtools_server_sender,
+            devtools_client_to_script_thread_sender: ipc_devtools_sender,
+            content_process_shutdown_sender: state.content_process_shutdown_sender,
+        };
 
         ScriptThread {
             documents: DomRefCell::new(DocumentCollection::default()),
@@ -1201,94 +969,45 @@ impl ScriptThread {
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
-
+            senders,
+            receivers,
             image_cache: state.image_cache.clone(),
-            image_cache_channel,
-            image_cache_port,
-
             resource_threads: state.resource_threads,
-            bluetooth_thread: state.bluetooth_thread,
-
             task_queue,
-
             background_hang_monitor,
             closing,
-
-            chan: MainThreadScriptChan(chan.clone()),
             timer_scheduler: Default::default(),
-            dom_manipulation_task_sender: boxed_script_sender.clone(),
-            gamepad_task_sender: boxed_script_sender.clone(),
-            media_element_task_sender: chan.clone(),
-            user_interaction_task_sender: chan.clone(),
-            networking_task_sender: boxed_script_sender.clone(),
-            port_message_sender: boxed_script_sender.clone(),
-            file_reading_task_sender: boxed_script_sender.clone(),
-            performance_timeline_task_sender: boxed_script_sender.clone(),
-            timer_task_sender: boxed_script_sender.clone(),
-            remote_event_task_sender: boxed_script_sender.clone(),
-            rendering_task_sender: boxed_script_sender.clone(),
-
-            history_traversal_task_sender: chan.clone(),
-
-            control_chan: state.control_chan,
-            control_port,
-            script_sender: state.script_to_constellation_chan.sender.clone(),
-            time_profiler_chan: state.time_profiler_chan.clone(),
-            mem_profiler_chan: state.mem_profiler_chan,
-
-            devtools_chan: state.devtools_chan,
-            devtools_port,
-            devtools_sender: ipc_devtools_sender,
-
             microtask_queue: runtime.microtask_queue.clone(),
-
             js_runtime: Rc::new(runtime),
             topmost_mouse_over_target: MutNullableDom::new(Default::default()),
             closed_pipelines: DomRefCell::new(HashSet::new()),
-
-            content_process_shutdown_chan: state.content_process_shutdown_chan,
-
             mutation_observer_microtask_queued: Default::default(),
-
             mutation_observers: Default::default(),
-
-            layout_to_constellation_chan: state.layout_to_constellation_chan,
             system_font_service,
-
             webgl_chan: state.webgl_chan,
             #[cfg(feature = "webxr")]
             webxr_registry: state.webxr_registry,
-
             worklet_thread_pool: Default::default(),
-
             docs_with_no_blocking_loads: Default::default(),
-
             custom_element_reaction_stack: CustomElementReactionStack::new(),
-
             webrender_document: state.webrender_document,
             compositor_api: state.compositor_api,
-
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
             relayout_event: opts.debug.relayout_event,
-
             prepare_for_screenshot,
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-
             userscripts_path: opts.userscripts.clone(),
             headless: opts.headless,
             replace_surrogates: opts.debug.replace_surrogates,
             user_agent,
             player_context: state.player_context,
-
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
             #[cfg(feature = "webgpu")]
             gpu_id_hub: Arc::new(IdentityHub::default()),
-            #[cfg(feature = "webgpu")]
-            webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
         }
@@ -1467,7 +1186,10 @@ impl ScriptThread {
                                 EventResult::DefaultPrevented
                             };
                             let message = ScriptMsg::TouchEventProcessed(result);
-                            self.script_sender.send((pipeline_id, message)).unwrap();
+                            self.senders
+                                .pipeline_to_constellation_sender
+                                .send((pipeline_id, message))
+                                .unwrap();
                         },
                         _ => {
                             // TODO: Calling preventDefault on a touchup event should prevent clicks.
@@ -1697,40 +1419,9 @@ impl ScriptThread {
 
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
-        let mut event = select! {
-            recv(self.task_queue.select()) -> msg => {
-                self.task_queue.take_tasks(msg.unwrap());
-                let event = self
-                    .task_queue
-                    .recv()
-                    .expect("Spurious wake-up of the event-loop, task-queue has no tasks available");
-                MixedMessage::FromScript(event)
-            },
-            recv(self.control_port) -> msg => MixedMessage::FromConstellation(msg.unwrap()),
-            recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
-                => MixedMessage::FromDevtools(msg.unwrap()),
-            recv(self.image_cache_port) -> msg => MixedMessage::FromImageCache(msg.unwrap()),
-            recv(self.timer_scheduler.borrow().wait_channel()) -> _ => MixedMessage::TimerFired,
-            recv({
-                #[cfg(feature = "webgpu")]
-                {
-                    self.webgpu_port.borrow().as_ref().unwrap_or(&crossbeam_channel::never())
-                }
-                #[cfg(not(feature = "webgpu"))]
-                {
-                    &crossbeam_channel::never::<()>()
-                }
-            }) -> msg => {
-                #[cfg(feature = "webgpu")]
-                {
-                    MixedMessage::FromWebGPUServer(msg.unwrap())
-                }
-                #[cfg(not(feature = "webgpu"))]
-                {
-                    unreachable!("This should never be hit when webgpu is disabled");
-                }
-            },
-        };
+        let mut event = self
+            .receivers
+            .recv(&self.task_queue, &self.timer_scheduler.borrow());
 
         let mut compositor_requested_update_the_rendering = false;
         loop {
@@ -1741,8 +1432,7 @@ impl ScriptThread {
                 .borrow_mut()
                 .dispatch_completed_timers();
 
-            let pipeline_id = self.message_to_pipeline(&event);
-            let _realm = pipeline_id.map(|id| {
+            let _realm = event.pipeline_id().map(|id| {
                 let global = self.documents.borrow().find_global(id);
                 global.map(|global| enter_realm(&*global))
             });
@@ -1846,27 +1536,9 @@ impl ScriptThread {
             // If any of our input sources has an event pending, we'll perform another iteration
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
-            match self.control_port.try_recv() {
-                Err(_) => match self.task_queue.take_tasks_and_recv() {
-                    Err(_) => match self.devtools_port.try_recv() {
-                        Err(_) => match self.image_cache_port.try_recv() {
-                            #[cfg(feature = "webgpu")]
-                            Err(_) => match &*self.webgpu_port.borrow() {
-                                Some(p) => match p.try_recv() {
-                                    Err(_) => break,
-                                    Ok(ev) => event = MixedMessage::FromWebGPUServer(ev),
-                                },
-                                None => break,
-                            },
-                            Ok(ev) => event = MixedMessage::FromImageCache(ev),
-                            #[cfg(not(feature = "webgpu"))]
-                            Err(_) => break,
-                        },
-                        Ok(ev) => event = MixedMessage::FromDevtools(ev),
-                    },
-                    Ok(ev) => event = MixedMessage::FromScript(ev),
-                },
-                Ok(ev) => event = MixedMessage::FromConstellation(ev),
+            match self.receivers.try_recv(&self.task_queue) {
+                Some(new_event) => event = new_event,
+                None => break,
             }
         }
 
@@ -1875,8 +1547,7 @@ impl ScriptThread {
         for msg in sequential {
             debug!("Processing event {:?}.", msg);
             let category = self.categorize_msg(&msg);
-            let pipeline_id = self.message_to_pipeline(&msg);
-
+            let pipeline_id = msg.pipeline_id();
             let _realm = pipeline_id.and_then(|id| {
                 let global = self.documents.borrow().find_global(id);
                 global.map(|global| enter_realm(&*global))
@@ -1980,112 +1651,6 @@ impl ScriptThread {
         }
     }
 
-    fn notify_activity_to_hang_monitor(&self, category: &ScriptThreadEventCategory) {
-        let hang_annotation = match category {
-            ScriptThreadEventCategory::AttachLayout => ScriptHangAnnotation::AttachLayout,
-            ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
-            ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
-            ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
-            ScriptThreadEventCategory::DomEvent => ScriptHangAnnotation::DomEvent,
-            ScriptThreadEventCategory::FileRead => ScriptHangAnnotation::FileRead,
-            ScriptThreadEventCategory::FormPlannedNavigation => {
-                ScriptHangAnnotation::FormPlannedNavigation
-            },
-            ScriptThreadEventCategory::HistoryEvent => ScriptHangAnnotation::HistoryEvent,
-            ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
-            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
-            ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
-            ScriptThreadEventCategory::Resize => ScriptHangAnnotation::Resize,
-            ScriptThreadEventCategory::ScriptEvent => ScriptHangAnnotation::ScriptEvent,
-            ScriptThreadEventCategory::SetScrollState => ScriptHangAnnotation::SetScrollState,
-            ScriptThreadEventCategory::SetViewport => ScriptHangAnnotation::SetViewport,
-            ScriptThreadEventCategory::StylesheetLoad => ScriptHangAnnotation::StylesheetLoad,
-            ScriptThreadEventCategory::TimerEvent => ScriptHangAnnotation::TimerEvent,
-            ScriptThreadEventCategory::UpdateReplacedElement => {
-                ScriptHangAnnotation::UpdateReplacedElement
-            },
-            ScriptThreadEventCategory::WebSocketEvent => ScriptHangAnnotation::WebSocketEvent,
-            ScriptThreadEventCategory::WorkerEvent => ScriptHangAnnotation::WorkerEvent,
-            ScriptThreadEventCategory::WorkletEvent => ScriptHangAnnotation::WorkletEvent,
-            ScriptThreadEventCategory::ServiceWorkerEvent => {
-                ScriptHangAnnotation::ServiceWorkerEvent
-            },
-            ScriptThreadEventCategory::EnterFullscreen => ScriptHangAnnotation::EnterFullscreen,
-            ScriptThreadEventCategory::ExitFullscreen => ScriptHangAnnotation::ExitFullscreen,
-            ScriptThreadEventCategory::PerformanceTimelineTask => {
-                ScriptHangAnnotation::PerformanceTimelineTask
-            },
-            ScriptThreadEventCategory::PortMessage => ScriptHangAnnotation::PortMessage,
-            #[cfg(feature = "webgpu")]
-            ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
-        };
-        self.background_hang_monitor
-            .notify_activity(HangAnnotation::Script(hang_annotation));
-    }
-
-    fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {
-        use script_traits::ConstellationControlMsg::*;
-        match *msg {
-            MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
-                StopDelayingLoadEventsMode(id) => Some(id),
-                NavigationResponse(id, _) => Some(id),
-                AttachLayout(ref new_layout_info) => new_layout_info
-                    .parent_info
-                    .or(Some(new_layout_info.new_pipeline_id)),
-                Resize(id, ..) => Some(id),
-                ThemeChange(id, ..) => Some(id),
-                ResizeInactive(id, ..) => Some(id),
-                UnloadDocument(id) => Some(id),
-                ExitPipeline(id, ..) => Some(id),
-                ExitScriptThread => None,
-                SendEvent(id, ..) => Some(id),
-                Viewport(id, ..) => Some(id),
-                GetTitle(id) => Some(id),
-                SetDocumentActivity(id, ..) => Some(id),
-                SetThrottled(id, ..) => Some(id),
-                SetThrottledInContainingIframe(id, ..) => Some(id),
-                NavigateIframe(id, ..) => Some(id),
-                PostMessage { target: id, .. } => Some(id),
-                UpdatePipelineId(_, _, _, id, _) => Some(id),
-                UpdateHistoryState(id, ..) => Some(id),
-                RemoveHistoryStates(id, ..) => Some(id),
-                FocusIFrame(id, ..) => Some(id),
-                WebDriverScriptCommand(id, ..) => Some(id),
-                TickAllAnimations(id, ..) => Some(id),
-                WebFontLoaded(id, ..) => Some(id),
-                DispatchIFrameLoadEvent {
-                    target: _,
-                    parent: id,
-                    child: _,
-                } => Some(id),
-                DispatchStorageEvent(id, ..) => Some(id),
-                ReportCSSError(id, ..) => Some(id),
-                Reload(id, ..) => Some(id),
-                PaintMetric(id, ..) => Some(id),
-                ExitFullScreen(id, ..) => Some(id),
-                MediaSessionAction(..) => None,
-                #[cfg(feature = "webgpu")]
-                SetWebGPUPort(..) => None,
-                SetScrollStates(id, ..) => Some(id),
-                SetEpochPaintTime(id, ..) => Some(id),
-            },
-            MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
-                MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
-                    pipeline_id
-                },
-                MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
-                MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
-                MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
-                MainThreadScriptMsg::Inactive => None,
-                MainThreadScriptMsg::WakeUp => None,
-            },
-            MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
-            MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
-            #[cfg(feature = "webgpu")]
-            MixedMessage::FromWebGPUServer(..) => None,
-        }
-    }
-
     fn profile_event<F, R>(
         &self,
         category: ScriptThreadEventCategory,
@@ -2095,130 +1660,16 @@ impl ScriptThread {
     where
         F: FnOnce() -> R,
     {
-        self.notify_activity_to_hang_monitor(&category);
+        self.background_hang_monitor
+            .notify_activity(HangAnnotation::Script(category.into()));
         let start = Instant::now();
         let value = if self.profile_script_events {
-            let profiler_chan = self.time_profiler_chan.clone();
-            match category {
-                ScriptThreadEventCategory::AttachLayout => {
-                    time_profile!(ProfilerCategory::ScriptAttachLayout, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::ConstellationMsg => time_profile!(
-                    ProfilerCategory::ScriptConstellationMsg,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::DevtoolsMsg => {
-                    time_profile!(ProfilerCategory::ScriptDevtoolsMsg, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::DocumentEvent => time_profile!(
-                    ProfilerCategory::ScriptDocumentEvent,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::DomEvent => {
-                    time_profile!(ProfilerCategory::ScriptDomEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::FileRead => {
-                    time_profile!(ProfilerCategory::ScriptFileRead, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::FormPlannedNavigation => time_profile!(
-                    ProfilerCategory::ScriptPlannedNavigation,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::HistoryEvent => {
-                    time_profile!(ProfilerCategory::ScriptHistoryEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::ImageCacheMsg => time_profile!(
-                    ProfilerCategory::ScriptImageCacheMsg,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::InputEvent => {
-                    time_profile!(ProfilerCategory::ScriptInputEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::NetworkEvent => {
-                    time_profile!(ProfilerCategory::ScriptNetworkEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::PortMessage => {
-                    time_profile!(ProfilerCategory::ScriptPortMessage, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::Resize => {
-                    time_profile!(ProfilerCategory::ScriptResize, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::ScriptEvent => {
-                    time_profile!(ProfilerCategory::ScriptEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::SetScrollState => time_profile!(
-                    ProfilerCategory::ScriptSetScrollState,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::UpdateReplacedElement => time_profile!(
-                    ProfilerCategory::ScriptUpdateReplacedElement,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::StylesheetLoad => time_profile!(
-                    ProfilerCategory::ScriptStylesheetLoad,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::SetViewport => {
-                    time_profile!(ProfilerCategory::ScriptSetViewport, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::TimerEvent => {
-                    time_profile!(ProfilerCategory::ScriptTimerEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::WebSocketEvent => time_profile!(
-                    ProfilerCategory::ScriptWebSocketEvent,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::WorkerEvent => {
-                    time_profile!(ProfilerCategory::ScriptWorkerEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::WorkletEvent => {
-                    time_profile!(ProfilerCategory::ScriptWorkletEvent, None, profiler_chan, f)
-                },
-                ScriptThreadEventCategory::ServiceWorkerEvent => time_profile!(
-                    ProfilerCategory::ScriptServiceWorkerEvent,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::EnterFullscreen => time_profile!(
-                    ProfilerCategory::ScriptEnterFullscreen,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::ExitFullscreen => time_profile!(
-                    ProfilerCategory::ScriptExitFullscreen,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                ScriptThreadEventCategory::PerformanceTimelineTask => time_profile!(
-                    ProfilerCategory::ScriptPerformanceEvent,
-                    None,
-                    profiler_chan,
-                    f
-                ),
-                #[cfg(feature = "webgpu")]
-                ScriptThreadEventCategory::WebGPUMsg => {
-                    time_profile!(ProfilerCategory::ScriptWebGPUMsg, None, profiler_chan, f)
-                },
-            }
+            time_profile!(
+                category.into(),
+                None,
+                self.senders.time_profiler_sender.clone(),
+                f
+            )
         } else {
             f()
         };
@@ -2371,12 +1822,8 @@ impl ScriptThread {
             },
             #[cfg(feature = "webgpu")]
             ConstellationControlMsg::SetWebGPUPort(port) => {
-                if self.webgpu_port.borrow().is_some() {
-                    warn!("WebGPU port already exists for this content process");
-                } else {
-                    let p = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
-                    *self.webgpu_port.borrow_mut() = Some(p);
-                }
+                *self.receivers.webgpu_receiver.borrow_mut() =
+                    ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
@@ -2470,7 +1917,9 @@ impl ScriptThread {
             WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.free_texture_view_id(id),
             WebGPUMsg::FreeComputePass(id) => self.gpu_id_hub.free_compute_pass_id(id),
             WebGPUMsg::FreeRenderPass(id) => self.gpu_id_hub.free_render_pass_id(id),
-            WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
+            WebGPUMsg::Exit => {
+                *self.receivers.webgpu_receiver.borrow_mut() = crossbeam_channel::never()
+            },
             WebGPUMsg::DeviceLost {
                 pipeline_id,
                 device,
@@ -2961,7 +2410,8 @@ impl ScriptThread {
     fn handle_set_throttled_msg(&self, id: PipelineId, throttled: bool) {
         // Separate message sent since parent script thread could be different (Iframe of different
         // domain)
-        self.script_sender
+        self.senders
+            .pipeline_to_constellation_sender
             .send((id, ScriptMsg::SetThrottledComplete(throttled)))
             .unwrap();
 
@@ -3194,7 +2644,8 @@ impl ScriptThread {
                             window_proxy.stop_delaying_load_events_mode();
                         }
                     }
-                    self.script_sender
+                    self.senders
+                        .pipeline_to_constellation_sender
                         .send((*id, ScriptMsg::AbortLoadUrl))
                         .unwrap();
                     return None;
@@ -3208,70 +2659,6 @@ impl ScriptThread {
                 None
             },
         }
-    }
-
-    pub fn dom_manipulation_task_source(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn gamepad_task_source(&self, pipeline_id: PipelineId) -> GamepadTaskSource {
-        GamepadTaskSource(self.gamepad_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {
-        MediaElementTaskSource(self.media_element_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn performance_timeline_task_source(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.performance_timeline_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn history_traversal_task_source(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> HistoryTraversalTaskSource {
-        HistoryTraversalTaskSource(self.history_traversal_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn user_interaction_task_source(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> UserInteractionTaskSource {
-        UserInteractionTaskSource(self.user_interaction_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn networking_task_source(&self, pipeline_id: PipelineId) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.networking_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn port_message_queue(&self, pipeline_id: PipelineId) -> PortMessageQueue {
-        PortMessageQueue(self.port_message_sender.clone(), pipeline_id)
-    }
-
-    pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn remote_event_task_source(&self, pipeline_id: PipelineId) -> RemoteEventTaskSource {
-        RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
-    }
-
-    fn rendering_task_source(&self, pipeline_id: PipelineId) -> RenderingTaskSource {
-        RenderingTaskSource(self.rendering_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn timer_task_source(&self, pipeline_id: PipelineId) -> TimerTaskSource {
-        TimerTaskSource(self.timer_task_sender.clone(), pipeline_id)
-    }
-
-    pub fn websocket_task_source(&self, pipeline_id: PipelineId) -> WebsocketTaskSource {
-        WebsocketTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
     /// Handles a request for the window title.
@@ -3313,7 +2700,8 @@ impl ScriptThread {
             document.window().layout_mut().exit_now();
 
             debug!("{id}: Sending PipelineExited message to constellation");
-            self.script_sender
+            self.senders
+                .pipeline_to_constellation_sender
                 .send((id, ScriptMsg::PipelineExited))
                 .ok();
 
@@ -3454,7 +2842,8 @@ impl ScriptThread {
     ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
-        self.script_sender
+        self.senders
+            .pipeline_to_constellation_sender
             .send((pipeline_id, msg))
             .expect("Failed to send to constellation.");
         result_receiver
@@ -3469,7 +2858,8 @@ impl ScriptThread {
     ) -> Option<TopLevelBrowsingContextId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
-        self.script_sender
+        self.senders
+            .pipeline_to_constellation_sender
             .send((sender_pipeline, msg))
             .expect("Failed to send to constellation.");
         result_receiver
@@ -3593,7 +2983,8 @@ impl ScriptThread {
     ) -> DomRoot<ServoParser> {
         let final_url = metadata.final_url.clone();
         {
-            self.script_sender
+            self.senders
+                .pipeline_to_constellation_sender
                 .send((
                     incomplete.pipeline_id,
                     ScriptMsg::SetFinalUrl(final_url.clone()),
@@ -3605,8 +2996,6 @@ impl ScriptThread {
             incomplete.url, incomplete.pipeline_id
         );
 
-        let MainThreadScriptChan(ref sender) = self.chan;
-
         let origin = if final_url.as_str() == "about:blank" || final_url.as_str() == "about:srcdoc"
         {
             incomplete.origin.clone()
@@ -3615,32 +3004,19 @@ impl ScriptThread {
         };
 
         let script_to_constellation_chan = ScriptToConstellationChan {
-            sender: self.script_sender.clone(),
+            sender: self.senders.pipeline_to_constellation_sender.clone(),
             pipeline_id: incomplete.pipeline_id,
         };
 
         let task_manager = TaskManager::new(
-            self.dom_manipulation_task_source(incomplete.pipeline_id),
-            self.file_reading_task_source(incomplete.pipeline_id),
-            self.gamepad_task_source(incomplete.pipeline_id),
-            self.history_traversal_task_source(incomplete.pipeline_id),
-            self.media_element_task_source(incomplete.pipeline_id),
-            self.networking_task_source(incomplete.pipeline_id),
-            self.performance_timeline_task_source(incomplete.pipeline_id)
-                .clone(),
-            self.port_message_queue(incomplete.pipeline_id),
-            self.user_interaction_task_source(incomplete.pipeline_id),
-            self.remote_event_task_source(incomplete.pipeline_id),
-            self.rendering_task_source(incomplete.pipeline_id),
-            self.timer_task_source(incomplete.pipeline_id),
-            self.websocket_task_source(incomplete.pipeline_id),
+            Box::new(self.senders.self_sender.clone()),
+            incomplete.pipeline_id,
         );
-
         let paint_time_metrics = PaintTimeMetrics::new(
             incomplete.pipeline_id,
-            self.time_profiler_chan.clone(),
-            self.layout_to_constellation_chan.clone(),
-            self.control_chan.clone(),
+            self.senders.time_profiler_sender.clone(),
+            self.senders.layout_to_constellation_ipc_sender.clone(),
+            self.senders.constellation_sender.clone(),
             final_url.clone(),
             incomplete.navigation_start,
         );
@@ -3649,12 +3025,12 @@ impl ScriptThread {
             id: incomplete.pipeline_id,
             url: final_url.clone(),
             is_iframe: incomplete.parent_info.is_some(),
-            constellation_chan: self.layout_to_constellation_chan.clone(),
-            script_chan: self.control_chan.clone(),
+            constellation_chan: self.senders.layout_to_constellation_ipc_sender.clone(),
+            script_chan: self.senders.constellation_sender.clone(),
             image_cache: self.image_cache.clone(),
             system_font_service: self.system_font_service.clone(),
             resource_threads: self.resource_threads.clone(),
-            time_profiler_chan: self.time_profiler_chan.clone(),
+            time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
             paint_time_metrics,
             window_size: incomplete.window_size,
@@ -3663,18 +3039,18 @@ impl ScriptThread {
         // Create the window and document objects.
         let window = Window::new(
             self.js_runtime.clone(),
-            MainThreadScriptChan(sender.clone()),
+            self.senders.self_sender.clone(),
             task_manager,
             self.layout_factory.create(layout_config),
-            self.image_cache_channel.clone(),
+            self.senders.image_cache_sender.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),
-            self.bluetooth_thread.clone(),
-            self.mem_profiler_chan.clone(),
-            self.time_profiler_chan.clone(),
-            self.devtools_chan.clone(),
+            self.senders.bluetooth_sender.clone(),
+            self.senders.memory_profiler_sender.clone(),
+            self.senders.time_profiler_sender.clone(),
+            self.senders.devtools_server_sender.clone(),
             script_to_constellation_chan,
-            self.control_chan.clone(),
+            self.senders.constellation_sender.clone(),
             incomplete.pipeline_id,
             incomplete.parent_info,
             incomplete.window_size,
@@ -3807,7 +3183,8 @@ impl ScriptThread {
             );
         }
 
-        self.script_sender
+        self.senders
+            .pipeline_to_constellation_sender
             .send((incomplete.pipeline_id, ScriptMsg::ActivateDocument))
             .unwrap();
 
@@ -3848,14 +3225,14 @@ impl ScriptThread {
         url: ServoUrl,
         (bc, p, w): (BrowsingContextId, PipelineId, Option<WorkerId>),
     ) {
-        if let Some(ref chan) = self.devtools_chan {
+        if let Some(ref chan) = self.senders.devtools_server_sender {
             let page_info = DevtoolsPageInfo {
                 title: String::from(title),
                 url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                 (bc, p, w),
-                self.devtools_sender.clone(),
+                self.senders.devtools_client_to_script_thread_sender.clone(),
                 page_info.clone(),
             ))
             .unwrap();
@@ -4026,7 +3403,8 @@ impl ScriptThread {
 
         let cancel_chan = incomplete.canceller.initialize();
 
-        self.script_sender
+        self.senders
+            .pipeline_to_constellation_sender
             .send((
                 id,
                 ScriptMsg::InitiateNavigateRequest(req_init, cancel_chan),
@@ -4153,7 +3531,7 @@ impl ScriptThread {
         column: u32,
         msg: String,
     ) {
-        let sender = match self.devtools_chan {
+        let sender = match self.senders.devtools_server_sender {
             Some(ref sender) => sender,
             None => return,
         };
