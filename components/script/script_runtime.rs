@@ -621,7 +621,9 @@ impl Runtime {
                 &*(closure as *mut NetworkingTaskSource);
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
-                runnable.run(RustRuntime::get(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
+                if let Some(cx) = RustRuntime::get() {
+                    runnable.run(cx.as_ptr(), Dispatchable_MaybeShuttingDown::NotShuttingDown);
+                }
             });
 
             networking_task_src.queue_unconditionally(task).is_ok()
@@ -801,6 +803,8 @@ impl Runtime {
 impl Drop for Runtime {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
+        self.microtask_queue.clear();
+
         unsafe {
             DeleteJobQueue(self.job_queue);
         }

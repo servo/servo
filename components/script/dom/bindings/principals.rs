@@ -70,7 +70,9 @@ impl Clone for ServoJSPrincipals {
 impl Drop for ServoJSPrincipals {
     #[inline]
     fn drop(&mut self) {
-        unsafe { JS_DropPrincipals(Runtime::get(), self.as_raw()) };
+        if let Some(cx) = Runtime::get() {
+            unsafe { JS_DropPrincipals(cx.as_ptr(), self.as_raw()) };
+        }
     }
 }
 

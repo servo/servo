@@ -2253,7 +2253,10 @@ impl GlobalScope {
 
     #[allow(unsafe_code)]
     pub fn get_cx() -> SafeJSContext {
-        unsafe { SafeJSContext::from_ptr(Runtime::get()) }
+        let cx = Runtime::get()
+            .expect("Can't obtain context after runtime shutdown")
+            .as_ptr();
+        unsafe { SafeJSContext::from_ptr(cx) }
     }
 
     pub fn crypto(&self) -> DomRoot<Crypto> {
@@ -3058,14 +3061,13 @@ impl GlobalScope {
     /// ["current"]: https://html.spec.whatwg.org/multipage/#current
     #[allow(unsafe_code)]
     pub fn current() -> Option<DomRoot<Self>> {
+        let cx = Runtime::get()?;
         unsafe {
-            let cx = Runtime::get();
-            assert!(!cx.is_null());
-            let global = CurrentGlobalOrNull(cx);
+            let global = CurrentGlobalOrNull(cx.as_ptr());
             if global.is_null() {
                 None
             } else {
-                Some(global_scope_from_global(global, cx))
+                Some(global_scope_from_global(global, cx.as_ptr()))
             }
         }
     }
