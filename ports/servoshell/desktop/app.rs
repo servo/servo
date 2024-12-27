@@ -32,6 +32,7 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
 use super::events_loop::{self, EventLoopGuard, EventsLoop, WakerEvent};
+use super::headed_window;
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
@@ -53,6 +54,8 @@ pub struct App {
     initial_url: ServoUrl,
     t_start: Instant,
     t: Instant,
+    do_not_use_native_titlebar: bool,
+    pub(crate) device_pixel_ratio_override: Option<f32>,
 }
 
 enum Present {
@@ -74,12 +77,12 @@ enum PumpResult {
 impl App {
     pub fn new(
         events_loop: &EventsLoop,
-        window: Rc<dyn WindowPortsMethods>,
         user_agent: Option<String>,
         url: Option<String>,
+        do_not_use_native_titlebar: bool,
+        device_pixel_ratio_override: Option<f32>,
     ) -> Self {
         // Handle browser state.
-        let webviews = WebViewManager::new(window.clone());
         let initial_url = get_default_url(url.as_deref(), env::current_dir().unwrap(), |path| {
             fs::metadata(path).is_ok()
         });
@@ -107,7 +110,7 @@ impl App {
         let mut app = App {
             rendering_context,
             event_queue: vec![],
-            webviews: Some(webviews),
+            webviews: None,
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
@@ -117,49 +120,56 @@ impl App {
             initial_url: initial_url.clone(),
             t_start: t,
             t,
+            do_not_use_native_titlebar,
+            device_pixel_ratio_override,
         };
 
+        app
+    }
+
+    /// Initialize Application once event loop start running.
+    pub fn init(
+        &mut self,
+        event_loop: Option<&ActiveEventLoop>,
+        window: Rc<dyn WindowPortsMethods>,
+    ) {
+        self.webviews = Some(WebViewManager::new(window.clone()));
         if window.winit_window().is_some() {
             // Make sure the gl context is made current.
-            let webrender_gl = match app.rendering_context.connection().gl_api() {
+            let webrender_gl = match self.rendering_context.connection().gl_api() {
                 GLApi::GL => unsafe {
-                    gl::GlFns::load_with(|s| app.rendering_context.get_proc_address(s))
+                    gl::GlFns::load_with(|s| self.rendering_context.get_proc_address(s))
                 },
                 GLApi::GLES => unsafe {
-                    gl::GlesFns::load_with(|s| app.rendering_context.get_proc_address(s))
+                    gl::GlesFns::load_with(|s| self.rendering_context.get_proc_address(s))
                 },
             };
-            app.rendering_context.make_gl_context_current().unwrap();
+            self.rendering_context.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
-            app.minibrowser = Some(
+            self.minibrowser = Some(
                 Minibrowser::new(
-                    &app.rendering_context,
-                    events_loop.as_winit(),
-                    initial_url.clone(),
+                    &self.rendering_context,
+                    event_loop.unwrap(),
+                    self.initial_url.clone(),
                 )
                 .into(),
             );
         }
 
-        if let Some(ref mut minibrowser) = app.minibrowser {
+        if let Some(ref mut minibrowser) = self.minibrowser {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
             minibrowser.update(
                 window.winit_window().unwrap(),
-                &mut app.webviews.as_mut().unwrap(),
+                &mut self.webviews.as_mut().unwrap(),
                 None,
                 "init",
             );
             window.set_toolbar_height(minibrowser.toolbar_height);
         }
 
-        app.windows.insert(window.id(), window);
+        self.windows.insert(window.id(), window);
 
-        app
-    }
-
-    /// Initialize Application once event loop start running.
-    pub fn init(&mut self) {
         self.suspended.set(false);
         self.event_queue.push(EmbedderEvent::Idle);
         let (_, window) = self.windows.iter().next().unwrap();
@@ -422,7 +432,13 @@ impl App {
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let _guard = EventLoopGuard::new(event_loop);
-        self.init();
+        let window = Rc::new(headed_window::Window::new(
+            opts::get().initial_window_size,
+            event_loop,
+            self.do_not_use_native_titlebar,
+            self.device_pixel_ratio_override,
+        ));
+        self.init(Some(event_loop), window);
     }
 
     fn window_event(

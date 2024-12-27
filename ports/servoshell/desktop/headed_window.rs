@@ -25,11 +25,11 @@ use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
+use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
-use super::events_loop::WakerEvent;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::keyboard_event_from_winit;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
@@ -59,7 +59,7 @@ pub struct Window {
 impl Window {
     pub fn new(
         window_size: Size2D<u32, DeviceIndependentPixel>,
-        event_loop: &winit::event_loop::EventLoop<WakerEvent>,
+        event_loop: &ActiveEventLoop,
         no_native_titlebar: bool,
         device_pixel_ratio_override: Option<f32>,
     ) -> Window {

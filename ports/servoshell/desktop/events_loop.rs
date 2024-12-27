@@ -9,6 +9,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
 use log::warn;
+use servo::config::{opts, pref, set_pref};
 use servo::embedder_traits::EventLoopWaker;
 use winit::error::EventLoopError;
 use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
@@ -16,6 +17,7 @@ use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 use super::app::App;
+use super::headless_window;
 
 /// Another process or thread has kicked the OS event loop with EventLoopWaker.
 #[derive(Debug)]
@@ -97,7 +99,16 @@ impl EventsLoop {
             },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
-                app.init();
+                if pref!(media.glvideo.enabled) {
+                    warn!("GL video rendering is not supported on headless windows.");
+                    set_pref!(media.glvideo.enabled, false);
+                }
+                let window = headless_window::Window::new(
+                    opts::get().initial_window_size,
+                    app.device_pixel_ratio_override,
+                );
+
+                app.init(None, window);
                 loop {
                     self.sleep(flag, condvar);
                     if app.handle_events_with_headless() {
