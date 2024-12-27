@@ -47,8 +47,14 @@ impl Window {
         let surface_type = SurfaceType::Generic {
             size: size.to_untyped().to_i32(),
         };
-        let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
+        let rendering_context = RenderingContext::create(&connection, &adapter, true)
             .expect("Failed to create WR surfman");
+        let surface = rendering_context
+            .create_surface(surface_type)
+            .expect("Failed to create surface");
+        rendering_context
+            .bind_surface(surface)
+            .expect("Failed to bind surface");
 
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);

@@ -12,6 +12,7 @@ use std::{env, fs};
 
 use gleam::gl;
 use log::{error, info, trace};
+use raw_window_handle::{HasDisplayHandle, HasRawDisplayHandle};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
@@ -19,8 +20,9 @@ use servo::config::opts;
 use servo::embedder_traits::EventLoopWaker;
 use servo::servo_config::pref;
 use servo::url::ServoUrl;
+use servo::webrender_traits::RenderingContext;
 use servo::Servo;
-use surfman::GLApi;
+use surfman::{Connection, Context, Device, GLApi, SurfaceType};
 use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -29,7 +31,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
-use super::events_loop::{EventLoopGuard, EventsLoop, WakerEvent};
+use super::events_loop::{self, EventLoopGuard, EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
@@ -40,6 +42,7 @@ use crate::parser::get_default_url;
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
+    rendering_context: RenderingContext,
     webviews: RefCell<WebViewManager<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
@@ -81,7 +84,28 @@ impl App {
             fs::metadata(path).is_ok()
         });
         let t = Instant::now();
+        let rendering_context = if opts::get().headless {
+            let connection = Connection::new().expect("Failed to create connection");
+            let adapter = connection
+                .create_software_adapter()
+                .expect("Failed to create adapter");
+            RenderingContext::create(&connection, &adapter, true)
+                .expect("Failed to create WR surfman")
+        } else {
+            let display_handle = events_loop
+                .as_winit()
+                .display_handle()
+                .expect("could not get display handle from window");
+            let connection = Connection::from_display_handle(display_handle)
+                .expect("Failed to create connection");
+            let adapter = connection
+                .create_adapter()
+                .expect("Failed to create adapter");
+            RenderingContext::create(&connection, &adapter, false)
+                .expect("Failed to create WR surfman")
+        };
         let mut app = App {
+            rendering_context,
             event_queue: RefCell::new(vec![]),
             webviews: RefCell::new(webviews),
             servo: None,
@@ -97,21 +121,20 @@ impl App {
 
         if window.winit_window().is_some() {
             // Make sure the gl context is made current.
-            let rendering_context = window.rendering_context();
-            let webrender_gl = match rendering_context.connection().gl_api() {
+            let webrender_gl = match app.rendering_context.connection().gl_api() {
                 GLApi::GL => unsafe {
-                    gl::GlFns::load_with(|s| rendering_context.get_proc_address(s))
+                    gl::GlFns::load_with(|s| app.rendering_context.get_proc_address(s))
                 },
                 GLApi::GLES => unsafe {
-                    gl::GlesFns::load_with(|s| rendering_context.get_proc_address(s))
+                    gl::GlesFns::load_with(|s| app.rendering_context.get_proc_address(s))
                 },
             };
-            rendering_context.make_gl_context_current().unwrap();
+            app.rendering_context.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
             app.minibrowser = Some(
                 Minibrowser::new(
-                    &rendering_context,
+                    &app.rendering_context,
                     events_loop.as_winit(),
                     initial_url.clone(),
                 )

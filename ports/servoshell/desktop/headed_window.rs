@@ -124,8 +124,14 @@ impl Window {
             .expect("Failed to create native widget");
 
         let surface_type = SurfaceType::Widget { native_widget };
-        let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
+        let rendering_context = RenderingContext::create(&connection, &adapter, false)
             .expect("Failed to create WR surfman");
+        let surface = rendering_context
+            .create_surface(surface_type)
+            .expect("Failed to create surface");
+        rendering_context
+            .bind_surface(surface)
+            .expect("Failed to bind surface");
 
         debug!("Created window {:?}", winit_window.id());
         Window {

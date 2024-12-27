@@ -43,12 +43,12 @@ impl RenderingContext {
     pub fn create(
         connection: &Connection,
         adapter: &Adapter,
-        surface_type: SurfaceType<NativeWidget>,
+        headless: bool,
     ) -> Result<Self, Error> {
         let mut device = connection.create_device(adapter)?;
-        let flags = ContextAttributeFlags::ALPHA |
-            ContextAttributeFlags::DEPTH |
-            ContextAttributeFlags::STENCIL;
+        let flags = ContextAttributeFlags::ALPHA
+            | ContextAttributeFlags::DEPTH
+            | ContextAttributeFlags::STENCIL;
         let version = match connection.gl_api() {
             GLApi::GLES => GLVersion { major: 3, minor: 0 },
             GLApi::GL => GLVersion { major: 3, minor: 2 },
@@ -57,20 +57,6 @@ impl RenderingContext {
         let context_descriptor = device.create_context_descriptor(&context_attributes)?;
         let mut context = device.create_context(&context_descriptor, None)?;
         let surface_access = SurfaceAccess::GPUOnly;
-        let headless = match surface_type {
-            SurfaceType::Widget { .. } => false,
-            SurfaceType::Generic { .. } => true,
-        };
-        let surface = device.create_surface(&context, surface_access, surface_type)?;
-        device
-            .bind_surface_to_context(&mut context, surface)
-            .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(&mut context, &mut surface);
-                err
-            })?;
-
-        device.make_context_current(&context)?;
-
         let swap_chain = if headless {
             Some(SwapChain::create_attached(
                 &mut device,
@@ -98,6 +84,20 @@ impl RenderingContext {
         let context = &self.0.context.borrow();
         let surface_access = SurfaceAccess::GPUOnly;
         device.create_surface(context, surface_access, surface_type)
+    }
+
+    pub fn bind_surface(&self, surface: Surface) -> Result<(), Error> {
+        let device = &self.0.device.borrow();
+        let mut context = &mut self.0.context.borrow_mut();
+        device
+            .bind_surface_to_context(&mut context, surface)
+            .map_err(|(err, mut surface)| {
+                let _ = device.destroy_surface(&mut context, &mut surface);
+                err
+            })?;
+
+        device.make_context_current(&context)?;
+        Ok(())
     }
 
     pub fn destroy_surface(&self, mut surface: Surface) -> Result<(), Error> {
