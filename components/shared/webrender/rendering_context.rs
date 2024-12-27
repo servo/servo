@@ -88,15 +88,15 @@ impl RenderingContext {
 
     pub fn bind_surface(&self, surface: Surface) -> Result<(), Error> {
         let device = &self.0.device.borrow();
-        let mut context = &mut self.0.context.borrow_mut();
+        let context = &mut self.0.context.borrow_mut();
         device
-            .bind_surface_to_context(&mut context, surface)
+            .bind_surface_to_context(context, surface)
             .map_err(|(err, mut surface)| {
-                let _ = device.destroy_surface(&mut context, &mut surface);
+                let _ = device.destroy_surface(context, &mut surface);
                 err
             })?;
 
-        device.make_context_current(&context)?;
+        device.make_context_current(context)?;
         Ok(())
     }
 

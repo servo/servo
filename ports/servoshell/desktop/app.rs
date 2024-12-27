@@ -53,7 +53,7 @@ pub struct App {
     t_start: Instant,
     t: Instant,
     do_not_use_native_titlebar: bool,
-    pub(crate) device_pixel_ratio_override: Option<f32>,
+    device_pixel_ratio_override: Option<f32>,
 }
 
 enum Present {
@@ -145,21 +145,18 @@ impl App {
         // Create window's context
         self.webviews = Some(WebViewManager::new(window.clone()));
         if window.winit_window().is_some() {
-            self.minibrowser = Some(
-                Minibrowser::new(
-                    &rendering_context,
-                    event_loop.unwrap(),
-                    self.initial_url.clone(),
-                )
-                .into(),
-            );
+            self.minibrowser = Some(Minibrowser::new(
+                &rendering_context,
+                event_loop.unwrap(),
+                self.initial_url.clone(),
+            ));
         }
 
         if let Some(ref mut minibrowser) = self.minibrowser {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
             minibrowser.update(
                 window.winit_window().unwrap(),
-                &mut self.webviews.as_mut().unwrap(),
+                self.webviews.as_mut().unwrap(),
                 None,
                 "init",
             );
