@@ -10,8 +10,7 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use gleam::gl;
-use log::{error, info, trace};
+use log::{info, trace};
 use raw_window_handle::HasDisplayHandle;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
@@ -22,7 +21,7 @@ use servo::servo_config::pref;
 use servo::url::ServoUrl;
 use servo::webrender_traits::RenderingContext;
 use servo::Servo;
-use surfman::{Connection, Context, Device, GLApi, SurfaceType};
+use surfman::Connection;
 use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -31,10 +30,10 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
-use super::events_loop::{self, EventLoopGuard, EventsLoop, WakerEvent};
-use super::headed_window;
+use super::events_loop::{EventLoopGuard, EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
+use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
 use crate::desktop::events_loop::with_current_event_loop;
 use crate::desktop::tracing::trace_winit_event;
@@ -43,7 +42,6 @@ use crate::parser::get_default_url;
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
-    rendering_context: RenderingContext,
     webviews: Option<WebViewManager<dyn WindowPortsMethods>>,
     event_queue: Vec<EmbedderEvent>,
     suspended: Cell<bool>,
@@ -87,28 +85,7 @@ impl App {
             fs::metadata(path).is_ok()
         });
         let t = Instant::now();
-        let rendering_context = if opts::get().headless {
-            let connection = Connection::new().expect("Failed to create connection");
-            let adapter = connection
-                .create_software_adapter()
-                .expect("Failed to create adapter");
-            RenderingContext::create(&connection, &adapter, true)
-                .expect("Failed to create WR surfman")
-        } else {
-            let display_handle = events_loop
-                .as_winit()
-                .display_handle()
-                .expect("could not get display handle from window");
-            let connection = Connection::from_display_handle(display_handle)
-                .expect("Failed to create connection");
-            let adapter = connection
-                .create_adapter()
-                .expect("Failed to create adapter");
-            RenderingContext::create(&connection, &adapter, false)
-                .expect("Failed to create WR surfman")
-        };
-        let mut app = App {
-            rendering_context,
+        App {
             event_queue: vec![],
             webviews: None,
             servo: None,
@@ -122,34 +99,55 @@ impl App {
             t,
             do_not_use_native_titlebar,
             device_pixel_ratio_override,
-        };
-
-        app
+        }
     }
 
     /// Initialize Application once event loop start running.
-    pub fn init(
-        &mut self,
-        event_loop: Option<&ActiveEventLoop>,
-        window: Rc<dyn WindowPortsMethods>,
-    ) {
+    pub fn init(&mut self, event_loop: Option<&ActiveEventLoop>) {
+        // Create rendering context
+        let rendering_context = if opts::get().headless {
+            let connection = Connection::new().expect("Failed to create connection");
+            let adapter = connection
+                .create_software_adapter()
+                .expect("Failed to create adapter");
+            RenderingContext::create(&connection, &adapter, true)
+                .expect("Failed to create WR surfman")
+        } else {
+            let display_handle = event_loop
+                .unwrap()
+                .display_handle()
+                .expect("could not get display handle from window");
+            let connection = Connection::from_display_handle(display_handle)
+                .expect("Failed to create connection");
+            let adapter = connection
+                .create_adapter()
+                .expect("Failed to create adapter");
+            RenderingContext::create(&connection, &adapter, false)
+                .expect("Failed to create WR surfman")
+        };
+
+        let window = if opts::get().headless {
+            headless_window::Window::new(
+                &rendering_context,
+                opts::get().initial_window_size,
+                self.device_pixel_ratio_override,
+            )
+        } else {
+            Rc::new(headed_window::Window::new(
+                &rendering_context,
+                opts::get().initial_window_size,
+                event_loop.unwrap(),
+                self.do_not_use_native_titlebar,
+                self.device_pixel_ratio_override,
+            ))
+        };
+
+        // Create window's context
         self.webviews = Some(WebViewManager::new(window.clone()));
         if window.winit_window().is_some() {
-            // Make sure the gl context is made current.
-            let webrender_gl = match self.rendering_context.connection().gl_api() {
-                GLApi::GL => unsafe {
-                    gl::GlFns::load_with(|s| self.rendering_context.get_proc_address(s))
-                },
-                GLApi::GLES => unsafe {
-                    gl::GlesFns::load_with(|s| self.rendering_context.get_proc_address(s))
-                },
-            };
-            self.rendering_context.make_gl_context_current().unwrap();
-            debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
-
             self.minibrowser = Some(
                 Minibrowser::new(
-                    &self.rendering_context,
+                    &rendering_context,
                     event_loop.unwrap(),
                     self.initial_url.clone(),
                 )
@@ -173,7 +171,6 @@ impl App {
         self.suspended.set(false);
         self.event_queue.push(EmbedderEvent::Idle);
         let (_, window) = self.windows.iter().next().unwrap();
-        let surfman = window.rendering_context();
 
         let openxr_discovery = if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
             #[cfg(target_os = "windows")]
@@ -196,9 +193,9 @@ impl App {
                     .expect("An event loop should always be active in headed mode")
             });
             Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
-                surfman.connection(),
-                surfman.adapter(),
-                surfman.context_attributes(),
+                rendering_context.connection(),
+                rendering_context.adapter(),
+                rendering_context.context_attributes(),
                 factory,
             )))
         } else {
@@ -217,6 +214,7 @@ impl App {
             CompositeTarget::Window
         };
         let mut servo = Servo::new(
+            rendering_context,
             embedder,
             window.clone(),
             self.user_agent.clone(),
@@ -318,12 +316,6 @@ impl App {
         match self.handle_events() {
             PumpResult::Shutdown => {
                 event_loop.exit();
-                if let Err(e) = window
-                    .rendering_context()
-                    .unbind_native_surface_from_context()
-                {
-                    error!("Failed to unbind native surface: {e:?}");
-                }
                 self.servo.take().unwrap().deinit();
                 if let Some(ref mut minibrowser) = self.minibrowser {
                     minibrowser.context.destroy();
@@ -432,13 +424,7 @@ impl App {
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let _guard = EventLoopGuard::new(event_loop);
-        let window = Rc::new(headed_window::Window::new(
-            opts::get().initial_window_size,
-            event_loop,
-            self.do_not_use_native_titlebar,
-            self.device_pixel_ratio_override,
-        ));
-        self.init(Some(event_loop), window);
+        self.init(Some(event_loop));
     }
 
     fn window_event(

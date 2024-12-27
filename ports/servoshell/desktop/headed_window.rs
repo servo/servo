@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use raw_window_handle::HasWindowHandle;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
 };
@@ -22,7 +22,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
-use surfman::{Connection, Context, Device, SurfaceType};
+use surfman::{Context, Device, SurfaceType};
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
 use winit::event_loop::ActiveEventLoop;
@@ -36,7 +36,6 @@ use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Window {
     winit_window: winit::window::Window,
-    rendering_context: RenderingContext,
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
@@ -58,6 +57,7 @@ pub struct Window {
 
 impl Window {
     pub fn new(
+        rendering_context: &RenderingContext,
         window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &ActiveEventLoop,
         no_native_titlebar: bool,
@@ -103,20 +103,13 @@ impl Window {
         let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() / screen_scale).to_u32();
 
         // Initialize surfman
-        let display_handle = winit_window
-            .display_handle()
-            .expect("could not get display handle from window");
-        let connection =
-            Connection::from_display_handle(display_handle).expect("Failed to create connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
         let window_handle = winit_window
             .window_handle()
             .expect("could not get window handle from window");
 
         let inner_size = winit_window.inner_size();
-        let native_widget = connection
+        let native_widget = rendering_context
+            .connection()
             .create_native_widget_from_window_handle(
                 window_handle,
                 winit_size_to_euclid_size(inner_size).to_i32().to_untyped(),
@@ -124,19 +117,18 @@ impl Window {
             .expect("Failed to create native widget");
 
         let surface_type = SurfaceType::Widget { native_widget };
-        let rendering_context = RenderingContext::create(&connection, &adapter, false)
-            .expect("Failed to create WR surfman");
         let surface = rendering_context
             .create_surface(surface_type)
             .expect("Failed to create surface");
         rendering_context
             .bind_surface(surface)
             .expect("Failed to bind surface");
+        // Make sure the gl context is made current.
+        rendering_context.make_gl_context_current().unwrap();
 
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
-            rendering_context,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D::zero()),
@@ -484,9 +476,6 @@ impl WindowPortsMethods for Window {
             },
             winit::event::WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
-                    self.rendering_context
-                        .resize(Size2D::new(new_size.width, new_size.height).to_i32())
-                        .expect("Failed to resize");
                     self.inner_size.set(new_size);
                     self.event_queue
                         .borrow_mut()
@@ -570,10 +559,6 @@ impl WindowMethods for Window {
 
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
-    }
-
-    fn rendering_context(&self) -> RenderingContext {
-        self.rendering_context.clone()
     }
 }
 

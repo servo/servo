@@ -233,6 +233,7 @@ where
     )]
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
+        rendering_context: RenderingContext,
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
         user_agent: Option<String>,
@@ -271,9 +272,6 @@ where
                 .map(Into::into)
                 .unwrap_or(default_user_agent_string_for(DEFAULT_USER_AGENT).into()),
         };
-
-        // Initialize surfman
-        let rendering_context = window.rendering_context();
 
         // Get GL bindings
         let webrender_gl = match rendering_context.connection().gl_api() {
@@ -375,8 +373,8 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
-                        !opts.debug.disable_subpixel_text_antialiasing,
+                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled)
+                        && !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
                     upload_method,
