@@ -17,7 +17,8 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, EmbedderProxy, EventLoopWaker, MediaSessionEvent,
-    PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
+    PermissionPrompt, PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin,
+    PromptResult,
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
@@ -511,6 +512,9 @@ impl ServoGlue {
                         },
                         PromptDefinition::Input(message, default, sender) => {
                             sender.send(cb.prompt_input(message, default, trusted))
+                        },
+                        PromptDefinition::Credentials(_) => {
+                            warn!("implement credentials prompt for open harmony OS");
                         },
                     };
                     if let Err(e) = res {
