@@ -56,9 +56,9 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
-    ConstellationControlMsg, DocumentState, LoadData, NavigationHistoryBehavior, ScriptMsg,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme, WindowSizeData,
-    WindowSizeType,
+    ConstellationControlMsg, DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    ScriptMsg, ScriptToConstellationChan, ScrollState, StructuredSerializedData, Theme,
+    WindowSizeData, WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -2336,13 +2336,18 @@ impl Window {
         can_gc: CanGc,
     ) {
         let doc = self.Document();
+
+        // Step 3. Let initiatorOriginSnapshot be sourceDocument's origin.
+        let initiator_origin_snapshot = &load_data.load_origin;
+
         // TODO: Important re security. See https://github.com/servo/servo/issues/23373
-        // Step 3: check that the source browsing-context is "allowed to navigate" this window.
+        // Step 5. check that the source browsing-context is "allowed to navigate" this window.
         if !force_reload &&
             load_data.url.as_url()[..Position::AfterQuery] ==
                 doc.url().as_url()[..Position::AfterQuery]
         {
             // Step 6
+            // TODO: Fragment handling appears to have moved to step 13
             if let Some(fragment) = load_data.url.fragment() {
                 self.send_to_constellation(ScriptMsg::NavigatedToFragment(
                     load_data.url.clone(),
@@ -2399,13 +2404,38 @@ impl Window {
                 // then put it in the delaying load events mode.
                 window_proxy.start_delaying_load_events_mode();
             }
-            // TODO: step 11, navigationType.
-            // Step 12, 13
+
+            // Step 11. If historyHandling is "auto", then:
+            let resolved_history_handling = if history_handling == NavigationHistoryBehavior::Auto {
+                // Step 11.1. If url equals navigable's active document's URL, and
+                // initiatorOriginSnapshot is same origin with targetNavigable's active document's
+                // origin, then set historyHandling to "replace".
+                // Note: `targetNavigable` is not actually defined in the spec, "active document" is
+                // assumed to be the correct reference based on WPT results
+                if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
+                    if load_data.url == doc.url() && initiator_origin.same_origin(doc.origin()) {
+                        NavigationHistoryBehavior::Replace
+                    } else {
+                        NavigationHistoryBehavior::Push
+                    }
+                } else {
+                    // Step 11.2. Otherwise, set historyHandling to "push".
+                    NavigationHistoryBehavior::Push
+                }
+            // Step 12. If the navigation must be a replace given url and navigable's active
+            // document, then set historyHandling to "replace".
+            } else if load_data.url.scheme() == "javascript" || doc.is_initial_about_blank() {
+                NavigationHistoryBehavior::Replace
+            } else {
+                NavigationHistoryBehavior::Push
+            };
+
+            // Step 13
             ScriptThread::navigate(
                 window_proxy.browsing_context_id(),
                 pipeline_id,
                 load_data,
-                history_handling,
+                resolved_history_handling,
             );
         };
     }

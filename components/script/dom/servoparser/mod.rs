@@ -216,6 +216,7 @@ impl ServoParser {
             None,
             None,
             Default::default(),
+            false,
             can_gc,
         );
 
