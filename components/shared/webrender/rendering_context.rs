@@ -46,9 +46,9 @@ impl RenderingContext {
         headless: bool,
     ) -> Result<Self, Error> {
         let mut device = connection.create_device(adapter)?;
-        let flags = ContextAttributeFlags::ALPHA
-            | ContextAttributeFlags::DEPTH
-            | ContextAttributeFlags::STENCIL;
+        let flags = ContextAttributeFlags::ALPHA |
+            ContextAttributeFlags::DEPTH |
+            ContextAttributeFlags::STENCIL;
         let version = match connection.gl_api() {
             GLApi::GLES => GLVersion { major: 3, minor: 0 },
             GLApi::GL => GLVersion { major: 3, minor: 2 },

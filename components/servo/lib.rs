@@ -373,8 +373,8 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled)
-                        && !opts.debug.disable_subpixel_text_antialiasing,
+                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
+                        !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
                     upload_method,

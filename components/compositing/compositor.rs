@@ -1340,7 +1340,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         if self.embedder_coordinates.viewport != old_coords.viewport {
             let mut transaction = Transaction::new();
-            transaction.set_document_view(self.embedder_coordinates.get_viewport());
+            let size = self.embedder_coordinates.get_viewport();
+            transaction.set_document_view(size);
+            if let Err(e) = self.rendering_context.resize(size.size().to_untyped()) {
+                warn!("Failed to resize surface: {e:?}");
+            }
             self.webrender_api
                 .send_transaction(self.webrender_document, transaction);
         }
