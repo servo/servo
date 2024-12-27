@@ -4,7 +4,7 @@
 
 //! Application entry point, runs the event loop.
 
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Instant;
@@ -12,7 +12,7 @@ use std::{env, fs};
 
 use gleam::gl;
 use log::{error, info, trace};
-use raw_window_handle::{HasDisplayHandle, HasRawDisplayHandle};
+use raw_window_handle::HasDisplayHandle;
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
@@ -43,11 +43,11 @@ use crate::parser::get_default_url;
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
     rendering_context: RenderingContext,
-    webviews: RefCell<WebViewManager<dyn WindowPortsMethods>>,
-    event_queue: RefCell<Vec<EmbedderEvent>>,
+    webviews: Option<WebViewManager<dyn WindowPortsMethods>>,
+    event_queue: Vec<EmbedderEvent>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
-    minibrowser: Option<RefCell<Minibrowser>>,
+    minibrowser: Option<Minibrowser>,
     user_agent: Option<String>,
     waker: Box<dyn EventLoopWaker>,
     initial_url: ServoUrl,
@@ -106,8 +106,8 @@ impl App {
         };
         let mut app = App {
             rendering_context,
-            event_queue: RefCell::new(vec![]),
-            webviews: RefCell::new(webviews),
+            event_queue: vec![],
+            webviews: Some(webviews),
             servo: None,
             suspended: Cell::new(false),
             windows: HashMap::new(),
@@ -142,11 +142,11 @@ impl App {
             );
         }
 
-        if let Some(mut minibrowser) = app.minibrowser() {
+        if let Some(ref mut minibrowser) = app.minibrowser {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
             minibrowser.update(
                 window.winit_window().unwrap(),
-                &mut app.webviews.borrow_mut(),
+                &mut app.webviews.as_mut().unwrap(),
                 None,
                 "init",
             );
@@ -161,7 +161,7 @@ impl App {
     /// Initialize Application once event loop start running.
     pub fn init(&mut self) {
         self.suspended.set(false);
-        self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
+        self.event_queue.push(EmbedderEvent::Idle);
         let (_, window) = self.windows.iter().next().unwrap();
         let surfman = window.rendering_context();
 
@@ -226,8 +226,8 @@ impl App {
         self.windows.iter().any(|(_, window)| window.is_animating())
     }
 
-    fn get_events(&self) -> Vec<EmbedderEvent> {
-        std::mem::take(&mut *self.event_queue.borrow_mut())
+    fn get_events(&mut self) -> Vec<EmbedderEvent> {
+        std::mem::take(&mut self.event_queue)
     }
 
     /// Pumps events and messages between the embedder and Servo, where embedder events flow
@@ -238,10 +238,10 @@ impl App {
     /// receive and collect embedder messages from the various Servo components, then take them out
     /// of the Servo interface so that the WebViewManager can handle them.
     fn handle_events(&mut self) -> PumpResult {
-        let mut webviews = self.webviews.borrow_mut();
+        let mut embedder_events = self.get_events();
+        let webviews = self.webviews.as_mut().unwrap();
 
         // Take any outstanding embedder events from the App and its Windows.
-        let mut embedder_events = self.get_events();
         for window in self.windows.values() {
             embedder_events.extend(window.get_events());
         }
@@ -315,14 +315,14 @@ impl App {
                     error!("Failed to unbind native surface: {e:?}");
                 }
                 self.servo.take().unwrap().deinit();
-                if let Some(mut minibrowser) = self.minibrowser() {
+                if let Some(ref mut minibrowser) = self.minibrowser {
                     minibrowser.context.destroy();
                 }
             },
             PumpResult::Continue { update, present } => {
                 if update {
-                    if let Some(mut minibrowser) = self.minibrowser() {
-                        let webviews = &mut self.webviews.borrow_mut();
+                    if let Some(ref mut minibrowser) = self.minibrowser {
+                        let webviews = self.webviews.as_mut().unwrap();
                         if minibrowser.update_webview_data(webviews) {
                             // Update the minibrowser immediately. While we could update by requesting a
                             // redraw, doing so would delay the location update by two frames.
@@ -343,10 +343,10 @@ impl App {
                         // If we had resized any of the viewports in response to this, we would need to
                         // call Servo::repaint_synchronously. At the moment we don’t, so there won’t be
                         // any paint scheduled, and calling it would hang the compositor forever.
-                        if let Some(mut minibrowser) = self.minibrowser() {
+                        if let Some(ref mut minibrowser) = self.minibrowser {
                             minibrowser.update(
                                 window.winit_window().unwrap(),
-                                &mut self.webviews.borrow_mut(),
+                                self.webviews.as_mut().unwrap(),
                                 self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                 "PumpResult::Present::Immediate",
                             );
@@ -387,14 +387,14 @@ impl App {
         if self.servo.is_none() {
             return false;
         }
-        self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
+        self.event_queue.push(EmbedderEvent::Idle);
 
         let mut exit = false;
         match self.handle_events() {
             PumpResult::Shutdown => {
                 exit = true;
                 self.servo.take().unwrap().deinit();
-                if let Some(mut minibrowser) = self.minibrowser() {
+                if let Some(ref mut minibrowser) = self.minibrowser {
                     minibrowser.context.destroy();
                 }
             },
@@ -416,10 +416,6 @@ impl App {
             },
         }
         exit
-    }
-
-    fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
-        self.minibrowser.as_ref().map(|x| x.borrow_mut())
     }
 }
 
@@ -460,10 +456,10 @@ impl ApplicationHandler<WakerEvent> for App {
 
             // WARNING: do not defer painting or presenting to some later tick of the event
             // loop or servoshell may become unresponsive! (servo#30312)
-            if let Some(mut minibrowser) = self.minibrowser() {
+            if let Some(ref mut minibrowser) = self.minibrowser {
                 minibrowser.update(
                     window.winit_window().unwrap(),
-                    &mut self.webviews.borrow_mut(),
+                    self.webviews.as_mut().unwrap(),
                     self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                     "RedrawRequested",
                 );
@@ -475,7 +471,7 @@ impl ApplicationHandler<WakerEvent> for App {
 
         // Handle the event
         let mut consumed = false;
-        if let Some(mut minibrowser) = self.minibrowser() {
+        if let Some(ref mut minibrowser) = self.minibrowser {
             match event {
                 WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                     // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
@@ -505,7 +501,7 @@ impl ApplicationHandler<WakerEvent> for App {
                     if let WindowEvent::Resized(_) = event {
                         minibrowser.update(
                             window.winit_window().unwrap(),
-                            &mut self.webviews.borrow_mut(),
+                            self.webviews.as_mut().unwrap(),
                             self.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                             "Sync WebView size with Window Resize event",
                         );
@@ -524,7 +520,7 @@ impl ApplicationHandler<WakerEvent> for App {
         }
         if !consumed {
             if event == winit::event::WindowEvent::RedrawRequested {
-                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
+                self.event_queue.push(EmbedderEvent::Idle);
             }
 
             window.queue_embedder_events_for_winit_event(event);
@@ -540,9 +536,9 @@ impl ApplicationHandler<WakerEvent> for App {
         }
 
         // Consume and handle any events from the Minibrowser.
-        if let Some(minibrowser) = self.minibrowser() {
-            let webviews = &mut self.webviews.borrow_mut();
-            let app_event_queue = &mut self.event_queue.borrow_mut();
+        if let Some(ref minibrowser) = self.minibrowser {
+            let webviews = &mut self.webviews.as_mut().unwrap();
+            let app_event_queue = &mut self.event_queue;
             minibrowser.queue_embedder_events_for_minibrowser_events(webviews, app_event_queue);
         }
 
@@ -564,7 +560,7 @@ impl ApplicationHandler<WakerEvent> for App {
         if self.servo.is_none() {
             return;
         }
-        self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
+        self.event_queue.push(EmbedderEvent::Idle);
 
         let Some(window) = self.windows.values().next() else {
             return;
@@ -581,9 +577,9 @@ impl ApplicationHandler<WakerEvent> for App {
         }
 
         // Consume and handle any events from the Minibrowser.
-        if let Some(minibrowser) = self.minibrowser() {
-            let webviews = &mut self.webviews.borrow_mut();
-            let app_event_queue = &mut self.event_queue.borrow_mut();
+        if let Some(ref minibrowser) = self.minibrowser {
+            let webviews = &mut self.webviews.as_mut().unwrap();
+            let app_event_queue = &mut self.event_queue;
             minibrowser.queue_embedder_events_for_minibrowser_events(webviews, app_event_queue);
         }
 
