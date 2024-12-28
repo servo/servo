@@ -17,8 +17,7 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, EmbedderProxy, EventLoopWaker, MediaSessionEvent,
-    PermissionPrompt, PermissionRequest, PromptCredentialsInput, PromptDefinition, PromptOrigin,
-    PromptResult,
+    PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
