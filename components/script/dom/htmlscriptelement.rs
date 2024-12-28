@@ -34,6 +34,7 @@ use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
 use uuid::Uuid;
 
 use crate::document_loader::LoadType;
+use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
@@ -70,6 +71,7 @@ use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::unminify::{unminify_js, ScriptSource};
+use crate::HasParent;
 
 impl ScriptSource for ScriptOrigin {
     fn unminified_dir(&self) -> Option<String> {
@@ -953,7 +955,13 @@ impl HTMLScriptElement {
         let old_script = document.GetCurrentScript();
 
         match script.type_ {
-            ScriptType::Classic => document.set_current_script(Some(self)),
+            ScriptType::Classic => {
+                if self.as_parent().as_parent().as_parent().is_in_shadow_tree() {
+                    document.set_current_script(None)
+                } else {
+                    document.set_current_script(Some(self))
+                }
+            },
             ScriptType::Module => document.set_current_script(None),
         }
 
