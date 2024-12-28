@@ -107,7 +107,6 @@ use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::HasParent;
 
 //
 // The basic Node structure
