@@ -512,6 +512,10 @@ impl ServoGlue {
                         PromptDefinition::Input(message, default, sender) => {
                             sender.send(cb.prompt_input(message, default, trusted))
                         },
+                        PromptDefinition::Credentials(_) => {
+                            warn!("implement credentials prompt for OpenHarmony OS and Android");
+                            Ok(())
+                        },
                     };
                     if let Err(e) = res {
                         let reason = format!("Failed to send Prompt response: {}", e);

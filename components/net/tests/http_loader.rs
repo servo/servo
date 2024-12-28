@@ -6,7 +6,6 @@
 
 use std::collections::HashMap;
 use std::io::Write;
-use std::str;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
@@ -47,7 +46,10 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio_test::block_on;
 use url::Url;
 
-use crate::{fetch, fetch_with_context, make_server, new_fetch_context};
+use crate::{
+    create_embedder_proxy_and_receiver, fetch, fetch_with_context, make_server, new_fetch_context,
+    receive_credential_prompt_msgs,
+};
 
 fn mock_origin() -> ImmutableOrigin {
     ServoUrl::parse("http://servo.org").unwrap().origin()
@@ -1478,4 +1480,181 @@ fn test_origin_serialization_compatability() {
     ensure_serialiations_match("http://example.com:1234");
 
     ensure_serialiations_match("data:,dataurltexta");
+}
+
+#[test]
+fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
+            if credentials == expected {
+                *response.status_mut() = StatusCode::OK;
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        } else {
+            *response.status_mut() = StatusCode::PROXY_AUTHENTICATION_REQUIRED;
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some("username".to_string()),
+        Some("test".to_string()),
+    );
+
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    let _ = server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_success());
+}
+
+#[test]
+fn test_prompt_credentials_when_client_receives_unauthorized_response() {
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
+            if credentials == expected {
+                *response.status_mut() = StatusCode::OK;
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        } else {
+            *response.status_mut() = StatusCode::UNAUTHORIZED;
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some("username".to_string()),
+        Some("test".to_string()),
+    );
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_success());
+}
+
+#[test]
+fn test_prompt_credentials_user_cancels_dialog_input() {
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
+            if credentials == expected {
+                *response.status_mut() = StatusCode::OK;
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        } else {
+            *response.status_mut() = StatusCode::UNAUTHORIZED;
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(embedder_receiver, None, None);
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_client_error());
+}
+
+#[test]
+fn test_prompt_credentials_user_input_incorrect_credentials() {
+    let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        let expected = Authorization::basic("username", "test");
+        if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
+            if credentials == expected {
+                *response.status_mut() = StatusCode::OK;
+            } else {
+                *response.status_mut() = StatusCode::UNAUTHORIZED;
+            }
+        } else {
+            *response.status_mut() = StatusCode::UNAUTHORIZED;
+        }
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some("test".to_string()),
+        Some("test".to_string()),
+    );
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    server.close();
+
+    assert!(response
+        .internal_response
+        .unwrap()
+        .status
+        .code()
+        .is_client_error());
 }
