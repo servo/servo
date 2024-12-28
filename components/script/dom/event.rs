@@ -81,6 +81,8 @@ pub struct Event {
 
     /// <https://dom.spec.whatwg.org/#initialized-flag>
     initialized: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#dom-event-timestamp>
     #[no_trace]
     time_stamp: CrossProcessInstant,
 
@@ -715,7 +717,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         // Step 11. Set index to currentTargetIndex − 1.
         // Step 12. While index is greater than or equal to 0:
         // NOTE: This is just iterating the path in reverse
-        for element in path.iter().rev() {
+        for element in path.iter().take(current_target_index).rev() {
             // Step 12.1 If path[index]'s root-of-closed-tree is true, then increase currentHiddenLevel by 1.
             if element.root_of_closed_tree {
                 current_hidden_level += 1;
