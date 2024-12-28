@@ -107,6 +107,7 @@ use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+use crate::HasParent;
 
 //
 // The basic Node structure
@@ -319,7 +320,8 @@ impl Node {
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
             // Out-of-document elements never have the descendants flag set.
             node.set_flag(
-                NodeFlags::IS_IN_DOC |
+                NodeFlags::IS_IN_SHADOW_TREE |
+                    NodeFlags::IS_IN_DOC |
                     NodeFlags::IS_CONNECTED |
                     NodeFlags::HAS_DIRTY_DESCENDANTS |
                     NodeFlags::HAS_SNAPSHOT |
