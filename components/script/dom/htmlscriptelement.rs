@@ -949,7 +949,7 @@ impl HTMLScriptElement {
 
         match script.type_ {
             ScriptType::Classic => {
-                if self.as_parent().as_parent().as_parent().is_in_shadow_tree() {
+                if self.upcast::<Node>().is_in_shadow_tree() {
                     document.set_current_script(None)
                 } else {
                     document.set_current_script(Some(self))
