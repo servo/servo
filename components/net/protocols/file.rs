@@ -58,7 +58,9 @@ impl ProtocolHandler for FileProtocolHander {
 
                 let range_header = request.headers.typed_get::<Range>();
                 let is_range_request = range_header.is_some();
-                let Ok(range) = get_range_request_bounds(range_header).get_final(file_size) else {
+                let Ok(range) = get_range_request_bounds(range_header, file_size.unwrap_or(0))
+                    .get_final(file_size)
+                else {
                     range_not_satisfiable_error(&mut response);
                     return Box::pin(ready(response));
                 };
