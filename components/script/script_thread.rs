@@ -241,6 +241,10 @@ impl InProgressLoad {
         inherited_secure_context: Option<bool>,
     ) -> InProgressLoad {
         let navigation_start = CrossProcessInstant::now();
+
+        #[cfg(feature = "tracing")]
+        tracing::info!(name: "Navigation start", servo_profiling = true, url = url.to_string());
+
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id,
