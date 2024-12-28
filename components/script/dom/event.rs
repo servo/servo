@@ -211,6 +211,7 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-path-append>
+    #[allow(crown::unrooted_must_root)]
     pub fn append_to_path(
         &self,
         invocation_target: &EventTarget,
