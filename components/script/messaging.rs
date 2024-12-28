@@ -318,12 +318,13 @@ pub(crate) struct ScriptThreadReceivers {
     #[no_trace]
     pub image_cache_receiver: Receiver<ImageCacheMsg>,
 
-    /// For receiving commands from an optional devtools server. Will be ignored if
-    /// no such server exists.
+    /// For receiving commands from an optional devtools server. Will be ignored if no such server
+    /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].
     #[no_trace]
     pub devtools_server_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    /// Receiver to receive commands from optional WebGPU server.
+    /// Receiver to receive commands from optional WebGPU server. When there is no active
+    /// WebGPU context, this will be [`crossbeam_channel::never()`].
     #[no_trace]
     #[cfg(feature = "webgpu")]
     pub webgpu_receiver: RefCell<Receiver<WebGPUMsg>>,

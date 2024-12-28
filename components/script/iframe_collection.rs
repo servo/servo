@@ -109,7 +109,7 @@ impl IFrameCollection {
     }
 
     /// Update the recorded iframe sizes of the contents of layout. Return a
-    /// [`Vec<IFrameSizeMsg`] containing the messages to send to the `Constellation`. A
+    /// [`Vec<IFrameSizeMsg>`] containing the messages to send to the `Constellation`. A
     /// message is only sent when the size actually changes.
     pub(crate) fn handle_new_iframe_sizes_after_layout(
         &mut self,

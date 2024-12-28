@@ -36,7 +36,7 @@ pub fn str_to_num(s: &str) -> f64 {
     s.trim().parse().unwrap_or(f64::NAN)
 }
 
-/// Helper for PartialEq<Value> implementations
+/// Helper for `PartialEq<Value>` implementations
 fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
     nodes
         .iter()
@@ -44,7 +44,7 @@ fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
         .collect()
 }
 
-/// Helper for PartialEq<Value> implementations
+/// Helper for `PartialEq<Value>` implementations
 fn num_vals(nodes: &[DomRoot<Node>]) -> Vec<f64> {
     nodes
         .iter()
