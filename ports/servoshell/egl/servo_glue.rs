@@ -515,6 +515,7 @@ impl ServoGlue {
                         },
                         PromptDefinition::Credentials(_) => {
                             warn!("implement credentials prompt for OpenHarmony OS and Android");
+                            Ok(())
                         },
                     };
                     if let Err(e) = res {
