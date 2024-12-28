@@ -110,19 +110,36 @@ impl Event {
         event
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-event-initevent>
+    /// and <https://dom.spec.whatwg.org/#concept-event-initialize>
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
+        // https://dom.spec.whatwg.org/#dom-event-initevent
         if self.dispatching.get() {
             return;
         }
 
+        // https://dom.spec.whatwg.org/#concept-event-initialize
+        // Step 1. Set event’s initialized flag.
         self.initialized.set(true);
+
+        // Step 2. Unset event’s stop propagation flag, stop immediate propagation flag, and canceled flag.
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
         self.canceled.set(EventDefault::Allowed);
+
+        // Step 3. Set event’s isTrusted attribute to false.
         self.trusted.set(false);
+
+        // Step 4. Set event’s target to null.
         self.target.set(None);
+
+        // Step 5. Set event’s type attribute to type.
         *self.type_.borrow_mut() = type_;
+
+        // Step 6. Set event’s bubbles attribute to bubbles.
         self.bubbles.set(bubbles);
+
+        // Step 7. Set event’s cancelable attribute to cancelable.
         self.cancelable.set(cancelable);
     }
 
