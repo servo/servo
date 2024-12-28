@@ -15,21 +15,26 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMethods, ShadowRootMode,
+};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlinputelement::InputActivationState;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::node::Node;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -39,6 +44,8 @@ use crate::task::TaskOnce;
 pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableDom<EventTarget>,
+
+    /// <https://dom.spec.whatwg.org/#event-target>
     target: MutNullableDom<EventTarget>,
     #[no_trace]
     type_: DomRefCell<Atom>,
@@ -53,6 +60,35 @@ pub struct Event {
     initialized: Cell<bool>,
     #[no_trace]
     time_stamp: CrossProcessInstant,
+
+    /// <https://dom.spec.whatwg.org/#event-path>
+    path: DomRefCell<Vec<EventPathSegment>>,
+
+    /// <https://dom.spec.whatwg.org/#event-relatedtarget>
+    related_target: MutNullableDom<EventTarget>,
+}
+
+/// An element on an [event path](https://dom.spec.whatwg.org/#event-path)
+#[derive(JSTraceable, MallocSizeOf)]
+#[crown::unrooted_must_root_lint::must_root]
+pub struct EventPathSegment {
+    /// <https://dom.spec.whatwg.org/#event-path-invocation-target>
+    invocation_target: Dom<EventTarget>,
+
+    /// <https://dom.spec.whatwg.org/#event-path-invocation-target-in-shadow-tree>
+    invocation_target_in_shadow_tree: bool,
+
+    /// <https://dom.spec.whatwg.org/#event-path-shadow-adjusted-target>
+    shadow_adjusted_target: Option<Dom<EventTarget>>,
+
+    /// <https://dom.spec.whatwg.org/#event-path-relatedtarget>
+    related_target: Option<Dom<EventTarget>>,
+
+    /// <https://dom.spec.whatwg.org/#event-path-root-of-closed-tree>
+    root_of_closed_tree: bool,
+
+    /// <https://dom.spec.whatwg.org/#event-path-slot-in-closed-tree>
+    slot_in_closed_tree: bool,
 }
 
 impl Event {
@@ -72,6 +108,8 @@ impl Event {
             dispatching: Cell::new(false),
             initialized: Cell::new(false),
             time_stamp: CrossProcessInstant::now(),
+            path: DomRefCell::default(),
+            related_target: Default::default(),
         }
     }
 
@@ -147,41 +185,49 @@ impl Event {
         self.target.set(target_);
     }
 
-    /// <https://dom.spec.whatwg.org/#event-path>
-    // TODO: shadow roots put special flags in the path,
-    // and it will stop just being a list of bare EventTargets
-    fn construct_event_path(&self, target: &EventTarget) -> Vec<DomRoot<EventTarget>> {
-        let mut event_path = vec![];
-        if let Some(target_node) = target.downcast::<Node>() {
-            // ShadowIncluding::Yes might be closer to right than ::No,
-            // but still wrong since things about the path change when crossing
-            // shadow attachments; getting it right needs to change
-            // more than just that.
-            for ancestor in target_node.inclusive_ancestors(ShadowIncluding::No) {
-                event_path.push(DomRoot::from_ref(ancestor.upcast::<EventTarget>()));
-            }
-            // Most event-target-to-parent relationships are node parent
-            // relationships, but the document-to-global one is not,
-            // so that's handled separately here.
-            // (an EventTarget.get_parent_event_target could save
-            // some redundancy, especially when shadow DOM relationships
-            // also need to be respected)
-            let top_most_ancestor_or_target = event_path
-                .last()
-                .cloned()
-                .unwrap_or(DomRoot::from_ref(target));
-            if let Some(document) = DomRoot::downcast::<Document>(top_most_ancestor_or_target) {
-                if self.type_() != atom!("load") && document.browsing_context().is_some() {
-                    event_path.push(DomRoot::from_ref(document.window().upcast()));
-                }
-            }
-        } else {
-            // a non-node EventTarget, likely a global.
-            // No parent to propagate up to, but we still
-            // need it on the path.
-            event_path.push(DomRoot::from_ref(target));
+    /// <https://dom.spec.whatwg.org/#concept-event-path-append>
+    pub fn append_to_path(
+        &self,
+        invocation_target: &EventTarget,
+        shadow_adjusted_target: Option<&EventTarget>,
+        related_target: Option<&EventTarget>,
+        slot_in_closed_tree: bool,
+    ) {
+        // Step 1. Let invocationTargetInShadowTree be false.
+        let mut invocation_target_in_shadow_tree = false;
+
+        // Step 2. If invocationTarget is a node and its root is a shadow root, then set invocationTargetInShadowTree to true.
+        if invocation_target
+            .downcast::<Node>()
+            .is_some_and(Node::is_in_shadow_tree)
+        {
+            invocation_target_in_shadow_tree = true;
         }
-        event_path
+
+        // Step 3. Let root-of-closed-tree be false.
+        let mut root_of_closed_tree = false;
+
+        // Step 4. If invocationTarget is a shadow root whose mode is "closed", then set root-of-closed-tree to true.
+        if invocation_target
+            .downcast::<ShadowRoot>()
+            .is_some_and(|shadow_root| shadow_root.Mode() == ShadowRootMode::Closed)
+        {
+            root_of_closed_tree = true;
+        }
+
+        // Step 5. Append a new struct to event’s path whose invocation target is invocationTarget,
+        // invocation-target-in-shadow-tree is invocationTargetInShadowTree, shadow-adjusted target is shadowAdjustedTarget,
+        // relatedTarget is relatedTarget, touch target list is touchTargets, root-of-closed-tree is root-of-closed-tree,
+        // and slot-in-closed-tree is slot-in-closed-tree.
+        let event_path_segment = EventPathSegment {
+            invocation_target: Dom::from_ref(invocation_target),
+            shadow_adjusted_target: shadow_adjusted_target.map(Dom::from_ref),
+            related_target: related_target.map(Dom::from_ref),
+            invocation_target_in_shadow_tree,
+            root_of_closed_tree,
+            slot_in_closed_tree,
+        };
+        self.path.borrow_mut().push(event_path_segment);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-event-dispatch>
@@ -192,132 +238,245 @@ impl Event {
         can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
     ) -> EventStatus {
-        // Step 1.
+        let mut target = DomRoot::from_ref(target);
+
+        // Step 1. Set event’s dispatch flag.
         self.dispatching.set(true);
 
-        // Step 2.
+        // Step 2. Let targetOverride be target, if legacy target override flag is not given, and target’s associated Document otherwise.
         let target_override_document; // upcasted EventTarget's lifetime depends on this
         let target_override = if legacy_target_override {
             target_override_document = target
                 .downcast::<Window>()
                 .expect("legacy_target_override must be true only when target is a Window")
                 .Document();
-            target_override_document.upcast::<EventTarget>()
+            DomRoot::from_ref(target_override_document.upcast::<EventTarget>())
         } else {
-            target
+            target.clone()
         };
 
-        // Step 3 - since step 5 always happens, we can wait until 5.5
+        // Step 3. Let activationTarget be null.
+        let mut activation_target = None;
 
-        // Step 4 TODO: "retargeting" concept depends on shadow DOM
+        // Step 4. Let relatedTarget be the result of retargeting event’s relatedTarget against target.
+        let related_target = self
+            .related_target
+            .get()
+            .map(|related_target| related_target.retarget(&target));
 
-        // Step 5, outer if-statement, is always true until step 4 is implemented
-        // Steps 5.1-5.2 TODO: touch target lists don't exist yet
+        // Step 5. If target is not relatedTarget or target is event’s relatedTarget:
+        // Variables declared by the spec inside Step 5 but used later:
+        // TODO: https://github.com/whatwg/dom/issues/1344
+        let mut clear_targets = false;
+        let mut pre_activation_result: Option<InputActivationState> = None;
+        if related_target.as_ref() != Some(&target) ||
+            self.related_target.get().as_ref() == Some(&target)
+        {
+            // TODO Step 5.1 Let touchTargets be a new list.
+            // TODO Step 5.2 For each touchTarget of event’s touch target list, append the result of retargeting
+            // touchTarget against target to touchTargets.
 
-        // Steps 5.3 and most of 5.9
-        // A change in whatwg/dom#240 specifies that
-        // the event path belongs to the event itself, rather than being
-        // a local variable of the dispatch algorithm, but this is mostly
-        // related to shadow DOM requirements that aren't otherwise
-        // implemented right now. The path also needs to contain
-        // various flags instead of just bare event targets.
-        let path = self.construct_event_path(target);
-        rooted_vec!(let event_path <- path.into_iter());
+            // Step 5.3 Append to an event path with event, target, targetOverride, relatedTarget, touchTargets, and false.
+            self.append_to_path(
+                &target,
+                Some(target_override.upcast::<EventTarget>()),
+                related_target.as_deref(),
+                false,
+            );
 
-        // Step 5.4
-        let is_activation_event = self.is::<MouseEvent>() && self.type_() == atom!("click");
+            // Step 5.4 Let isActivationEvent be true, if event is a MouseEvent object and event’s type attribute is "click"; otherwise false.
+            let is_activation_event = self.is::<MouseEvent>() && self.type_() == atom!("click");
 
-        // Step 5.5
-        let mut activation_target = if is_activation_event {
-            target
-                .downcast::<Element>()
-                .and_then(|e| e.as_maybe_activatable())
-        } else {
-            // Step 3
-            None
-        };
-
-        // Steps 5-6 - 5.7 are shadow DOM slot things
-
-        // Step 5.9.8.1, not covered in construct_event_path
-        // This what makes sure that clicking on e.g. an <img> inside
-        // an <a> will cause activation of the activatable ancestor.
-        if is_activation_event && activation_target.is_none() && self.bubbles.get() {
-            for object in event_path.iter() {
-                if let Some(activatable_ancestor) = object
-                    .downcast::<Element>()
-                    .and_then(|e| e.as_maybe_activatable())
-                {
-                    activation_target = Some(activatable_ancestor);
-                    // once activation_target isn't null, we stop
-                    // looking at ancestors for it.
-                    break;
+            // Step 5.5 If isActivationEvent is true and target has activation behavior, then set activationTarget to target.
+            if is_activation_event {
+                if let Some(element) = target.downcast::<Element>() {
+                    if element.as_maybe_activatable().is_some() {
+                        activation_target = Some(DomRoot::from_ref(element));
+                    }
                 }
             }
-        }
 
-        // Steps 5.10-5.11 are shadow DOM
+            // TODO Step 5.6 Let slottable be target, if target is a slottable and is assigned, and null otherwise.
+            // Step 5.7 Let slot-in-closed-tree be false
+            let slot_in_closed_tree = false;
 
-        // Not specified in dispatch spec overtly; this is because
-        // the legacy canceled activation behavior of a checkbox
-        // or radio button needs to know what happened in the
-        // corresponding pre-activation behavior.
-        let mut pre_activation_result: Option<InputActivationState> = None;
+            // Step 5.8 Let parent be the result of invoking target’s get the parent with event.
+            let mut parent_or_none = target.get_the_parent(self);
+            let mut done = false;
 
-        // Step 5.12
-        if is_activation_event {
-            if let Some(maybe_checkbox) = activation_target {
-                pre_activation_result = maybe_checkbox.legacy_pre_activation_behavior();
+            // Step 5.9 While parent is non-null:
+            while let Some(parent) = parent_or_none.clone() {
+                // TODO: Step 5.9.1 If slottable is non-null:
+                // TODO: Step 5.9.2 If parent is a slottable and is assigned, then set slottable to parent.
+
+                // Step 5.9.3 Let relatedTarget be the result of retargeting event’s relatedTarget against parent.
+                let related_target = self
+                    .related_target
+                    .get()
+                    .map(|related_target| related_target.retarget(&target));
+
+                // TODO: Step 5.9.4 Let touchTargets be a new list.
+                // Step 5.9.5 For each touchTarget of event’s touch target list, append the result of retargeting
+                // touchTarget against parent to touchTargets.
+
+                // Step 5.9.6 If parent is a Window object, or parent is a node and target’s root is a
+                // shadow-including inclusive ancestor of parent:
+                let root_is_shadow_inclusive_ancestor =
+                    parent.downcast::<Node>().is_some_and(|parent| {
+                        target.downcast::<Node>().is_some_and(|target| {
+                            target
+                                .GetRootNode(&GetRootNodeOptions::empty())
+                                .is_shadow_including_inclusive_ancestor_of(parent)
+                        })
+                    });
+                if parent.is::<Window>() || root_is_shadow_inclusive_ancestor {
+                    // Step 5.9.6.1 If isActivationEvent is true, event’s bubbles attribute is true, activationTarget is null,
+                    // and parent has activation behavior, then set activationTarget to parent.
+                    if is_activation_event && activation_target.is_none() && self.bubbles.get() {
+                        if let Some(element) = parent.downcast::<Element>() {
+                            if element.as_maybe_activatable().is_some() {
+                                activation_target = Some(DomRoot::from_ref(element));
+                            }
+                        }
+                    }
+
+                    // Step 5.9.6.2 Append to an event path with event, parent, null, relatedTarget, touchTargets, and slot-in-closed-tree.
+                    self.append_to_path(
+                        &parent,
+                        None,
+                        related_target.as_deref(),
+                        slot_in_closed_tree,
+                    );
+                }
+                // Step 5.9.7 Otherwise, if parent is relatedTarget, then set parent to null.
+                else if Some(&parent) == related_target.as_ref() {
+                    // NOTE: This causes some lifetime shenanigans. Instead of making things complicated,
+                    // we just remember to treat parent as null later
+                    done = true;
+                }
+                // Step 5.9.8 Otherwise:
+                else {
+                    // Step 5.9.8.1 Set target to parent.
+                    target = parent.clone();
+
+                    // Step 5.9.8.2 If isActivationEvent is true, activationTarget is null, and target has activation behavior,
+                    // then set activationTarget to target.
+                    if is_activation_event && activation_target.is_none() {
+                        if let Some(element) = parent.downcast::<Element>() {
+                            if element.as_maybe_activatable().is_some() {
+                                activation_target = Some(DomRoot::from_ref(element));
+                            }
+                        }
+                    }
+
+                    // Step 5.9.8.3 Append to an event path with event, parent, target, relatedTarget, touchTargets, and slot-in-closed-tree.
+                    self.append_to_path(
+                        &parent,
+                        Some(&target),
+                        related_target.as_deref(),
+                        slot_in_closed_tree,
+                    );
+                }
+
+                // Step 5.9.9 If parent is non-null, then set parent to the result of invoking parent’s get the parent with event
+                if !done {
+                    parent_or_none = parent.get_the_parent(self);
+                }
+
+                // TODO Step 5.9.10 Set slot-in-closed-tree to false.
             }
-        }
 
-        let timeline_window = DomRoot::downcast::<Window>(target.global())
-            .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
-
-        // Step 5.13
-        for object in event_path.iter().rev() {
-            if &**object == target {
-                self.phase.set(EventPhase::AtTarget);
-            } else {
-                self.phase.set(EventPhase::Capturing);
-            }
-
-            // setting self.target is step 1 of invoke,
-            // but done here because our event_path isn't a member of self
-            // (without shadow DOM, target_override is always the
-            // target to set to)
-            self.target.set(Some(target_override));
-            invoke(
-                timeline_window.as_deref(),
-                object,
-                self,
-                Some(ListenerPhase::Capturing),
-                can_gc,
-            );
-        }
-
-        // Step 5.14
-        for object in event_path.iter() {
-            let at_target = &**object == target;
-            if at_target || self.bubbles.get() {
-                self.phase.set(if at_target {
-                    EventPhase::AtTarget
-                } else {
-                    EventPhase::Bubbling
+            // Step 5.10 Let clearTargetsStruct be the last struct in event’s path whose shadow-adjusted target is non-null.
+            // Step 5.11 Let clearTargets be true if clearTargetsStruct’s shadow-adjusted target, clearTargetsStruct’s relatedTarget,
+            // or an EventTarget object in clearTargetsStruct’s touch target list is a node and its root is a shadow root; otherwise false.
+            // TODO: Handle touch target list
+            clear_targets = self
+                .path
+                .borrow()
+                .iter()
+                .rev()
+                .find(|segment| segment.shadow_adjusted_target.is_none())
+                // This is "clearTargetsStruct"
+                .is_some_and(|clear_targets| {
+                    clear_targets
+                        .shadow_adjusted_target
+                        .as_ref()
+                        .and_then(|target| target.downcast::<Node>())
+                        .is_some_and(Node::is_in_shadow_tree) ||
+                        clear_targets
+                            .related_target
+                            .as_ref()
+                            .and_then(|target| target.downcast::<Node>())
+                            .is_some_and(Node::is_in_shadow_tree)
                 });
 
-                self.target.set(Some(target_override));
+            // Step 5.12 If activationTarget is non-null and activationTarget has legacy-pre-activation behavior,
+            // then run activationTarget’s legacy-pre-activation behavior.
+            if let Some(activation_target) = activation_target.as_ref() {
+                // Not specified in dispatch spec overtly; this is because
+                // the legacy canceled activation behavior of a checkbox
+                // or radio button needs to know what happened in the
+                // corresponding pre-activation behavior.
+                pre_activation_result = activation_target
+                    .as_maybe_activatable()
+                    .and_then(|activatable| activatable.legacy_pre_activation_behavior());
+            }
+
+            let timeline_window = DomRoot::downcast::<Window>(target.global())
+                .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
+
+            // Step 5.13 For each struct in event’s path, in reverse order:
+            for (index, segment) in self.path.borrow().iter().enumerate().rev() {
+                // Step 5.13.1 If struct’s shadow-adjusted target is non-null, then set event’s eventPhase attribute to AT_TARGET.
+                if segment.shadow_adjusted_target.is_some() {
+                    self.phase.set(EventPhase::AtTarget);
+                }
+                // Step 5.13.2 Otherwise, set event’s eventPhase attribute to CAPTURING_PHASE.
+                else {
+                    self.phase.set(EventPhase::Capturing);
+                }
+
+                // Step 5.13.3 Invoke with struct, event, "capturing", and legacyOutputDidListenersThrowFlag if given.
                 invoke(
-                    timeline_window.as_deref(),
-                    object,
+                    segment,
+                    index,
                     self,
-                    Some(ListenerPhase::Bubbling),
+                    ListenerPhase::Capturing,
+                    timeline_window.as_deref(),
+                    can_gc,
+                )
+            }
+
+            // Step 5.14 For each struct in event’s path:
+            for (index, segment) in self.path.borrow().iter().enumerate() {
+                //  Step 5.14.1 If struct’s shadow-adjusted target is non-null, then set event’s eventPhase attribute to AT_TARGET.
+                if segment.shadow_adjusted_target.is_some() {
+                    self.phase.set(EventPhase::AtTarget);
+                }
+                // Step 5.14.2 Otherwise:
+                else {
+                    // Step 5.14.2.1 If event’s bubbles attribute is false, then continue.
+                    if !self.bubbles.get() {
+                        continue;
+                    }
+
+                    // Step 5.14.2.2 Set event’s eventPhase attribute to BUBBLING_PHASE.
+                    self.phase.set(EventPhase::Bubbling);
+                }
+
+                // Step 5.14.3 Invoke with struct, event, "bubbling", and legacyOutputDidListenersThrowFlag if given.
+                invoke(
+                    segment,
+                    index,
+                    self,
+                    ListenerPhase::Bubbling,
+                    timeline_window.as_deref(),
                     can_gc,
                 );
             }
         }
 
-        // Step 6
+        // Step 6. Set event’s eventPhase attribute to NONE.
         self.phase.set(EventPhase::None);
 
         // FIXME: The UIEvents spec still expects firing an event
@@ -340,27 +499,45 @@ impl Event {
             }
         }
 
-        // Step 7
+        // Step 7. Set event’s currentTarget attribute to null.
         self.current_target.set(None);
 
-        // Step 8 TODO: if path were in the event struct, we'd clear it now
+        // Step 8. Set event’s path to the empty list.
+        self.path.borrow_mut().clear();
 
-        // Step 9
+        // Step 9. Unset event’s dispatch flag, stop propagation flag, and stop immediate propagation flag.
         self.dispatching.set(false);
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
 
-        // Step 10 TODO: condition is always false until there's shadow DOM
+        // Step 10. If clearTargets is true:
+        if clear_targets {
+            // Step 10.1 Set event’s target to null.
+            self.target.set(None);
 
-        // Step 11
+            // Step 10.2 Set event’s relatedTarget to null.
+            self.related_target.set(None);
+
+            // TODO Step 10.3 Set event’s touch target list to the empty list.
+        }
+
+        // Step 11. If activationTarget is non-null:
         if let Some(activation_target) = activation_target {
-            if self.DefaultPrevented() {
-                activation_target.legacy_canceled_activation_behavior(pre_activation_result);
-            } else {
-                activation_target.activation_behavior(self, target, can_gc);
+            // NOTE: The activation target may have been disabled by an event handler
+            if let Some(activatable) = activation_target.as_maybe_activatable() {
+                // Step 11.1 If event’s canceled flag is unset, then run activationTarget’s activation behavior with event.
+                if !self.DefaultPrevented() {
+                    activatable.activation_behavior(self, &target, can_gc);
+                }
+                // Step 11.2 Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
+                // activationTarget’s legacy-canceled-activation behavior.
+                else {
+                    activatable.legacy_canceled_activation_behavior(pre_activation_result);
+                }
             }
         }
 
+        // Step 12 Return false if event’s canceled flag is set; otherwise true.
         self.status()
     }
 
@@ -472,9 +649,9 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
         // Step 5. Append currentTarget to composedPath.
         // TODO: https://github.com/whatwg/dom/issues/1343
-        if let Some(current_target) = &current_target {
-            composed_path.push(current_target.clone());
-        }
+        composed_path.push(current_target.clone().expect(
+            "Since the event's path is not empty it is being dispatched and must have a current target",
+        ));
 
         // Step 6. Let currentTargetIndex be 0.
         let mut current_target_index = 0;
@@ -515,7 +692,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         // Step 11. Set index to currentTargetIndex − 1.
         // Step 12. While index is greater than or equal to 0:
         // NOTE: This is just iterating the path in reverse
-        for (index, element) in path.iter().enumerate().rev() {
+        for element in path.iter().rev() {
             // Step 12.1 If path[index]'s root-of-closed-tree is true, then increase currentHiddenLevel by 1.
             if element.root_of_closed_tree {
                 current_hidden_level += 1;
@@ -547,8 +724,9 @@ impl EventMethods<crate::DomTypeHolder> for Event {
 
         // Step 14. Set index to currentTargetIndex + 1.
         // Step 15. While index is less than path’s size:
-        // NOTE: This is just iterating the list and skipping the first current_target_index elements
-        for element in path.iter().skip(current_target_index) {
+        // NOTE: This is just iterating the list and skipping the first current_target_index + 1 elements
+        //       (The +1 is necessary because the index is 0-based and the skip method is not)
+        for element in path.iter().skip(current_target_index + 1) {
             // Step 15.1 If path[index]'s slot-in-closed-tree is true, then increase currentHiddenLevel by 1.
             if element.slot_in_closed_tree {
                 current_hidden_level += 1;
@@ -773,63 +951,101 @@ impl TaskOnce for SimpleEventTask {
 
 /// <https://dom.spec.whatwg.org/#concept-event-listener-invoke>
 fn invoke(
-    timeline_window: Option<&Window>,
-    object: &EventTarget,
+    segment: &EventPathSegment,
+    segment_index_in_path: usize,
     event: &Event,
-    phase: Option<ListenerPhase>,
+    phase: ListenerPhase,
+    timeline_window: Option<&Window>,
     can_gc: CanGc,
     // TODO legacy_output_did_listeners_throw for indexeddb
 ) {
-    // Step 1: Until shadow DOM puts the event path in the
-    // event itself, this is easier to do in dispatch before
-    // calling invoke.
+    // Step 1. Set event’s target to the shadow-adjusted target of the last struct in event’s path,
+    // that is either struct or preceding struct, whose shadow-adjusted target is non-null.
+    event.target.set(
+        event.path.borrow()[..segment_index_in_path + 1]
+            .iter()
+            .rev()
+            .flat_map(|segment| segment.shadow_adjusted_target.clone())
+            .next()
+            .as_deref(),
+    );
 
-    // Step 2 TODO: relatedTarget only matters for shadow DOM
+    // Step 2. Set event’s relatedTarget to struct’s relatedTarget.
+    event.related_target.set(segment.related_target.as_deref());
 
-    // Step 3 TODO: touch target lists not implemented
+    // TODO: Set event’s touch target list to struct’s touch target list.
 
-    // Step 4.
+    // Step 4. If event’s stop propagation flag is set, then return.
     if event.stop_propagation.get() {
         return;
     }
-    // Step 5.
-    event.current_target.set(Some(object));
 
-    // Step 6
-    let listeners = object.get_listeners_for(&event.type_(), phase, can_gc);
+    // Step 5. Initialize event’s currentTarget attribute to struct’s invocation target.
+    event.current_target.set(Some(&segment.invocation_target));
 
-    // Step 7.
-    let found = inner_invoke(timeline_window, object, event, &listeners);
+    // Step 6. Let listeners be a clone of event’s currentTarget attribute value’s event listener list.
+    let listeners =
+        segment
+            .invocation_target
+            .get_listeners_for(&event.type_(), Some(phase), can_gc);
 
-    // Step 8
+    // Step 7. Let invocationTargetInShadowTree be struct’s invocation-target-in-shadow-tree.
+    let invocation_target_in_shadow_tree = segment.invocation_target_in_shadow_tree;
+
+    // Step 8. Let found be the result of running inner invoke with event, listeners, phase,
+    // invocationTargetInShadowTree, and legacyOutputDidListenersThrowFlag if given.
+    let found = inner_invoke(
+        event,
+        &listeners,
+        phase,
+        invocation_target_in_shadow_tree,
+        timeline_window,
+    );
+
+    // Step 9. If found is false and event’s isTrusted attribute is true:
     if !found && event.trusted.get() {
-        if let Some(legacy_type) = match event.type_() {
-            atom!("animationend") => Some(atom!("webkitAnimationEnd")),
-            atom!("animationiteration") => Some(atom!("webkitAnimationIteration")),
-            atom!("animationstart") => Some(atom!("webkitAnimationStart")),
-            atom!("transitionend") => Some(atom!("webkitTransitionEnd")),
-            atom!("transitionrun") => Some(atom!("webkitTransitionRun")),
-            _ => None,
-        } {
-            let original_type = event.type_();
-            *event.type_.borrow_mut() = legacy_type;
-            inner_invoke(timeline_window, object, event, &listeners);
-            *event.type_.borrow_mut() = original_type;
-        }
+        // Step 9.1 Let originalEventType be event’s type attribute value.
+        let original_type = event.type_();
+
+        // Step 9.2 If event’s type attribute value is a match for any of the strings in the first column
+        // in the following table, set event’s type attribute value to the string in the second column on
+        // the same row as the matching string, and return otherwise.
+        let legacy_type = match event.type_() {
+            atom!("animationend") => atom!("webkitAnimationEnd"),
+            atom!("animationiteration") => atom!("webkitAnimationIteration"),
+            atom!("animationstart") => atom!("webkitAnimationStart"),
+            atom!("transitionend") => atom!("webkitTransitionEnd"),
+            atom!("transitionrun") => atom!("webkitTransitionRun"),
+            _ => return,
+        };
+        *event.type_.borrow_mut() = legacy_type;
+
+        // Step 9.3 Inner invoke with event, listeners, phase, invocationTargetInShadowTree, and legacyOutputDidListenersThrowFlag if given.
+        inner_invoke(
+            event,
+            &listeners,
+            phase,
+            invocation_target_in_shadow_tree,
+            timeline_window,
+        );
+
+        // Step 9.4 Set event’s type attribute value to originalEventType.
+        *event.type_.borrow_mut() = original_type;
     }
 }
 
 /// <https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke>
 fn inner_invoke(
-    timeline_window: Option<&Window>,
-    object: &EventTarget,
     event: &Event,
     listeners: &[CompiledEventListener],
+    _phase: ListenerPhase,
+    invocation_target_in_shadow_tree: bool,
+    timeline_window: Option<&Window>,
 ) -> bool {
-    // Step 1.
+    // Step 1. Let found be false.
     let mut found = false;
 
-    // Step 2.
+    // Step 2. For each listener in listeners, whose removed is false:
     for listener in listeners {
         // FIXME(#25479): We need an "if !listener.removed()" here,
         // but there's a subtlety. Where Servo is currently using the
@@ -842,47 +1058,67 @@ fn inner_invoke(
 
         // Steps 2.1 and 2.3-2.4 are not done because `listeners` contain only the
         // relevant ones for this invoke call during the dispatch algorithm.
+        // TODO: Step 2.1 If event’s type attribute value is not listener’s type, then continue.
 
-        // Step 2.2.
+        // Step 2.2. Set found to true.
         found = true;
 
-        // Step 2.5.
+        // TODO Step 2.3 If phase is "capturing" and listener’s capture is false, then continue.
+        // TODO Step 2.4 If phase is "bubbling" and listener’s capture is true, then continue.
+
+        // Step 2.5 If listener’s once is true, then remove an event listener given event’s currentTarget attribute value and listener.
         if let CompiledEventListener::Listener(event_listener) = listener {
-            object.remove_listener_if_once(&event.type_(), event_listener);
+            event
+                .GetCurrentTarget()
+                .expect("event target was initialized as part of \"invoke\"")
+                .remove_listener_if_once(&event.type_(), event_listener);
         }
 
-        // Step 2.6
+        // Step 2.6 Let global be listener callback’s associated realm’s global object.
         let global = listener.associated_global();
 
-        // Step 2.7-2.8
-        let current_event = if let Some(window) = global.downcast::<Window>() {
-            window.set_current_event(Some(event))
-        } else {
-            None
-        };
+        // Step 2.7 Let currentEvent be undefined.
+        let mut current_event = None;
+        // Step 2.8 If global is a Window object:
+        if let Some(window) = global.downcast::<Window>() {
+            // Step 2.8.1 Set currentEvent to global’s current event.
+            current_event = window.current_event();
 
-        // Step 2.9 TODO: EventListener passive option not implemented
+            // Step 2.8.2 If invocationTargetInShadowTree is false, then set global’s current event to event.
+            if !invocation_target_in_shadow_tree {
+                current_event = window.set_current_event(Some(event))
+            }
+        }
 
-        // Step 2.10
+        // TODO Step 2.9 If listener’s passive is true, then set event’s in passive listener flag.
+
+        // Step 2.10 If global is a Window object, then record timing info for event listener given event and listener.
+        // Step 2.11 Call a user object’s operation with listener’s callback, "handleEvent", « event »,
+        // and event’s currentTarget attribute value. If this throws an exception exception:
+        //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s associated realm’s global object.
+        //     TODO Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
         let marker = TimelineMarker::start("DOMEvent".to_owned());
-
-        // Step 2.10
-        listener.call_or_handle_event(object, event, ExceptionHandling::Report);
-
+        listener.call_or_handle_event(
+            &event
+                .GetCurrentTarget()
+                .expect("event target was initialized as part of \"invoke\""),
+            event,
+            ExceptionHandling::Report,
+        );
         if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());
         }
 
-        // Step 2.11 TODO: passive not implemented
+        // TODO Step 2.12 Unset event’s in passive listener flag.
 
-        // Step 2.12
+        // Step 2.13 If global is a Window object, then set global’s current event to currentEvent.
         if let Some(window) = global.downcast::<Window>() {
             window.set_current_event(current_event.as_deref());
         }
 
-        // Step 2.13: short-circuit instead of going to next listener
+        // Step 2.13: If event’s stop immediate propagation flag is set, then break.
         if event.stop_immediate.get() {
-            return found;
+            break;
         }
     }
 

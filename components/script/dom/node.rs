@@ -611,6 +611,7 @@ impl Node {
         self.flags.get().contains(NodeFlags::IS_IN_A_DOCUMENT_TREE)
     }
 
+    /// Return true iff node's root is a shadow-root.
     pub fn is_in_a_shadow_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
     }
