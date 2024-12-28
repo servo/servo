@@ -719,6 +719,7 @@ pub fn is_cors_safelisted_request_header<N: AsRef<str>, V: AsRef<[u8]>>(
         "accept" => is_cors_safelisted_request_accept(value),
         "accept-language" | "content-language" => is_cors_safelisted_language(value),
         "content-type" => is_cors_safelisted_request_content_type(value),
+        "range" => is_cors_safelisted_request_range(value),
         _ => false,
     }
 }
@@ -726,6 +727,40 @@ pub fn is_cors_safelisted_request_header<N: AsRef<str>, V: AsRef<[u8]>>(
 /// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
 pub fn is_cors_safelisted_method(m: &Method) -> bool {
     matches!(*m, Method::GET | Method::HEAD | Method::POST)
+}
+
+/// <https://fetch.spec.whatwg.org/#cors-safelisted-request-header>
+pub fn is_cors_safelisted_request_range(value: &[u8]) -> bool {
+    if let Ok(value_str) = std::str::from_utf8(value) {
+        return validate_range_header(value_str);
+    }
+    false
+}
+
+/// Helper function to validate the syntax of the `Range` header. Ensures it follows the format "bytes=start-end".
+fn validate_range_header(value: &str) -> bool {
+    let trimmed = value.trim();
+    if !trimmed.starts_with("bytes=") {
+        return false;
+    }
+
+    if let Some(range) = trimmed.strip_prefix("bytes=") {
+        let mut parts = range.split('-');
+        let start = parts.next();
+        let end = parts.next();
+
+        if let Some(start) = start {
+            if let Ok(start_num) = start.parse::<u64>() {
+                return match end {
+                    Some(e) if !e.is_empty() => e
+                        .parse::<u64>()
+                        .map_or(false, |end_num| start_num <= end_num),
+                    _ => true,
+                };
+            }
+        }
+    }
+    false
 }
 
 /// <https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name>
