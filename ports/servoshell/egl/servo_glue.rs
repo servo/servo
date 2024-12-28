@@ -514,7 +514,7 @@ impl ServoGlue {
                             sender.send(cb.prompt_input(message, default, trusted))
                         },
                         PromptDefinition::Credentials(_) => {
-                            warn!("implement credentials prompt for open harmony OS");
+                            warn!("implement credentials prompt for OpenHarmony OS and Android");
                         },
                     };
                     if let Err(e) = res {
