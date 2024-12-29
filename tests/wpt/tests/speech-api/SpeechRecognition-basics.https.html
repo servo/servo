@@ -4,6 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const reco = new SpeechRecognition();
   assert_equals(reco.grammars.length, 0, 'SpeechRecognition.grammars.length');
   assert_equals(reco.lang, '', 'SpeechRecognition.lang');

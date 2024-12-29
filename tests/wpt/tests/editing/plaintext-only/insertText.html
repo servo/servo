@@ -39,7 +39,7 @@ addEventListener("load", () => {
       initialInnerHTML: "{}<br>",
       insertText: " ",
       expected: collapseWhiteSpaces
-        ? (useBR ? [" <br>", "&nbsp;"] : [" \n", "&nbsp;"])
+        ? [" <br>", "&nbsp;"]
         : " ",
     },
     {
@@ -107,9 +107,7 @@ addEventListener("load", () => {
       insertText: "a",
       // To keep the style of next typing even after lost focus, the placeholder line break in
       // the empty paragraph should be wrapped in the <b>.
-      expected: useBR
-        ? "<p><b><br></b></p><p><b>aAB</b></p>"
-        : "<p><b>\n</b></p><p><b>aAB</b></p>",
+      expected: "<p><b><br></b></p><p><b>aAB</b></p>",
     },
     {
       initialInnerHTML: "<p><b>A[]B</b></p>",
@@ -132,9 +130,7 @@ addEventListener("load", () => {
       prepareDescription: "execCommand(\"insertParagraph\")",
       prepare: () => document.execCommand("insertParagraph"),
       insertText: "a",
-      expected: useBR
-        ? "<p><b><br></b></p><p><b>a</b></p>"
-        : "<p><b>\n</b></p><p><b>a</b></p>",
+      expected: "<p><b><br></b></p><p><b>a</b></p>",
     },
     {
       initialInnerHTML: "<p><b>[]AB</b></p>",

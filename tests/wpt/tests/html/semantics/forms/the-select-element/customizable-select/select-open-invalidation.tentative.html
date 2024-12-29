@@ -27,6 +27,7 @@ select, select::picker(select) {
 
 <script>
 (async () => {
+  await new Promise(requestAnimationFrame);
   await test_driver.bless();
   await new Promise(requestAnimationFrame);
   try {

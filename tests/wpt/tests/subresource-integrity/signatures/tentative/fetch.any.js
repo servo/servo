@@ -13,7 +13,7 @@
 // Content-Type: application/json
 // Identity-Digest: sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:
 // Content-Length: 18
-// Signature-Input: signature=("identity-digest";sf);alg="ed25519"; \
+// Signature-Input: signature=("identity-digest";sf); \
 //                  keyid="JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs="; \
 //                  tag="sri"
 // Signature: signature=:TUznBT2ikFq6VrtoZeC5znRtZugu1U8OHJWoBkOLDTJA2FglSR34Q \
@@ -26,8 +26,8 @@
 const kRequestWithValidSignature = {
   body: `{"hello": "world"}`,
   digest: `sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`,
-  signature: `signature=:TUznBT2ikFq6VrtoZeC5znRtZugu1U8OHJWoBkOLDTJA2FglSR34QY9j+BwN79PT4H0p8aIosnv4rXSKfIZVDA==:`,
-  signatureInput: `signature=("identity-digest";sf);alg="ed25519";keyid="${kValidKeys['rfc']}";tag="sri"`
+  signature: `signature=:eTKYITprfJYJmsOZlRTmu0szHbt0yLxHYBU0oXDdkx8najLl59IPO0zUofe5T23RGuquHLdZx177tBX45CUcAg==:`,
+  signatureInput: `signature=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
 };
 
 // Metadata from the response above, but with an incorrect signature:
@@ -35,7 +35,7 @@ const kRequestWithInvalidSignature = {
   body: `{"hello": "world"}`,
   digest: `sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`,
   signature: `signature=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==:`,
-  signatureInput: `signature=("identity-digest";sf);alg="ed25519";keyid="${kValidKeys['rfc']}";tag="sri"`
+  signatureInput: `signature=("identity-digest";sf);keyid="${kValidKeys['rfc']}";tag="sri"`
 };
 
 generate_fetch_test({}, "", EXPECT_LOADED,
