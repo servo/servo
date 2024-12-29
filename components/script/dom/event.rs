@@ -222,7 +222,8 @@ impl Event {
         // Step 1. Let invocationTargetInShadowTree be false.
         let mut invocation_target_in_shadow_tree = false;
 
-        // Step 2. If invocationTarget is a node and its root is a shadow root, then set invocationTargetInShadowTree to true.
+        // Step 2. If invocationTarget is a node and its root is a shadow root,
+        // then set invocationTargetInShadowTree to true.
         if invocation_target
             .downcast::<Node>()
             .is_some_and(Node::is_in_shadow_tree)
@@ -242,9 +243,9 @@ impl Event {
         }
 
         // Step 5. Append a new struct to event’s path whose invocation target is invocationTarget,
-        // invocation-target-in-shadow-tree is invocationTargetInShadowTree, shadow-adjusted target is shadowAdjustedTarget,
-        // relatedTarget is relatedTarget, touch target list is touchTargets, root-of-closed-tree is root-of-closed-tree,
-        // and slot-in-closed-tree is slot-in-closed-tree.
+        // invocation-target-in-shadow-tree is invocationTargetInShadowTree, shadow-adjusted target is
+        // shadowAdjustedTarget, relatedTarget is relatedTarget, touch target list is touchTargets,
+        // root-of-closed-tree is root-of-closed-tree, and slot-in-closed-tree is slot-in-closed-tree.
         let event_path_segment = EventPathSegment {
             invocation_target: Dom::from_ref(invocation_target),
             shadow_adjusted_target: shadow_adjusted_target.map(Dom::from_ref),
@@ -269,7 +270,8 @@ impl Event {
         // Step 1. Set event’s dispatch flag.
         self.dispatch.set(true);
 
-        // Step 2. Let targetOverride be target, if legacy target override flag is not given, and target’s associated Document otherwise.
+        // Step 2. Let targetOverride be target, if legacy target override flag is not given,
+        // and target’s associated Document otherwise.
         let target_override_document; // upcasted EventTarget's lifetime depends on this
         let target_override = if legacy_target_override {
             target_override_document = target
@@ -302,7 +304,8 @@ impl Event {
             // TODO Step 5.2 For each touchTarget of event’s touch target list, append the result of retargeting
             // touchTarget against target to touchTargets.
 
-            // Step 5.3 Append to an event path with event, target, targetOverride, relatedTarget, touchTargets, and false.
+            // Step 5.3 Append to an event path with event, target, targetOverride, relatedTarget,
+            // touchTargets, and false.
             self.append_to_path(
                 &target,
                 Some(target_override.upcast::<EventTarget>()),
@@ -310,10 +313,12 @@ impl Event {
                 false,
             );
 
-            // Step 5.4 Let isActivationEvent be true, if event is a MouseEvent object and event’s type attribute is "click"; otherwise false.
+            // Step 5.4 Let isActivationEvent be true, if event is a MouseEvent object and
+            // event’s type attribute is "click"; otherwise false.
             let is_activation_event = self.is::<MouseEvent>() && self.type_() == atom!("click");
 
-            // Step 5.5 If isActivationEvent is true and target has activation behavior, then set activationTarget to target.
+            // Step 5.5 If isActivationEvent is true and target has activation behavior,
+            // then set activationTarget to target.
             if is_activation_event {
                 if let Some(element) = target.downcast::<Element>() {
                     if element.as_maybe_activatable().is_some() {
@@ -356,8 +361,8 @@ impl Event {
                         })
                     });
                 if parent.is::<Window>() || root_is_shadow_inclusive_ancestor {
-                    // Step 5.9.6.1 If isActivationEvent is true, event’s bubbles attribute is true, activationTarget is null,
-                    // and parent has activation behavior, then set activationTarget to parent.
+                    // Step 5.9.6.1 If isActivationEvent is true, event’s bubbles attribute is true, activationTarget
+                    // is null, and parent has activation behavior, then set activationTarget to parent.
                     if is_activation_event && activation_target.is_none() && self.bubbles.get() {
                         if let Some(element) = parent.downcast::<Element>() {
                             if element.as_maybe_activatable().is_some() {
@@ -366,7 +371,8 @@ impl Event {
                         }
                     }
 
-                    // Step 5.9.6.2 Append to an event path with event, parent, null, relatedTarget, touchTargets, and slot-in-closed-tree.
+                    // Step 5.9.6.2 Append to an event path with event, parent, null, relatedTarget, touchTargets,
+                    // and slot-in-closed-tree.
                     self.append_to_path(
                         &parent,
                         None,
@@ -385,8 +391,8 @@ impl Event {
                     // Step 5.9.8.1 Set target to parent.
                     target = parent.clone();
 
-                    // Step 5.9.8.2 If isActivationEvent is true, activationTarget is null, and target has activation behavior,
-                    // then set activationTarget to target.
+                    // Step 5.9.8.2 If isActivationEvent is true, activationTarget is null, and target has
+                    // activation behavior, then set activationTarget to target.
                     if is_activation_event && activation_target.is_none() {
                         if let Some(element) = parent.downcast::<Element>() {
                             if element.as_maybe_activatable().is_some() {
@@ -395,7 +401,8 @@ impl Event {
                         }
                     }
 
-                    // Step 5.9.8.3 Append to an event path with event, parent, target, relatedTarget, touchTargets, and slot-in-closed-tree.
+                    // Step 5.9.8.3 Append to an event path with event, parent, target, relatedTarget,
+                    // touchTargets, and slot-in-closed-tree.
                     self.append_to_path(
                         &parent,
                         Some(&target),
@@ -404,7 +411,8 @@ impl Event {
                     );
                 }
 
-                // Step 5.9.9 If parent is non-null, then set parent to the result of invoking parent’s get the parent with event
+                // Step 5.9.9 If parent is non-null, then set parent to the result of invoking parent’s
+                // get the parent with event
                 if !done {
                     parent_or_none = parent.get_the_parent(self);
                 }
@@ -412,9 +420,11 @@ impl Event {
                 // TODO Step 5.9.10 Set slot-in-closed-tree to false.
             }
 
-            // Step 5.10 Let clearTargetsStruct be the last struct in event’s path whose shadow-adjusted target is non-null.
-            // Step 5.11 Let clearTargets be true if clearTargetsStruct’s shadow-adjusted target, clearTargetsStruct’s relatedTarget,
-            // or an EventTarget object in clearTargetsStruct’s touch target list is a node and its root is a shadow root; otherwise false.
+            // Step 5.10 Let clearTargetsStruct be the last struct in event’s path whose shadow-adjusted target
+            // is non-null.
+            // Step 5.11 Let clearTargets be true if clearTargetsStruct’s shadow-adjusted target,
+            // clearTargetsStruct’s relatedTarget, or an EventTarget object in clearTargetsStruct’s
+            // touch target list is a node and its root is a shadow root; otherwise false.
             // TODO: Handle touch target list
             clear_targets = self
                 .path
@@ -453,7 +463,8 @@ impl Event {
 
             // Step 5.13 For each struct in event’s path, in reverse order:
             for (index, segment) in self.path.borrow().iter().enumerate().rev() {
-                // Step 5.13.1 If struct’s shadow-adjusted target is non-null, then set event’s eventPhase attribute to AT_TARGET.
+                // Step 5.13.1 If struct’s shadow-adjusted target is non-null, then set event’s
+                // eventPhase attribute to AT_TARGET.
                 if segment.shadow_adjusted_target.is_some() {
                     self.phase.set(EventPhase::AtTarget);
                 }
@@ -475,7 +486,8 @@ impl Event {
 
             // Step 5.14 For each struct in event’s path:
             for (index, segment) in self.path.borrow().iter().enumerate() {
-                //  Step 5.14.1 If struct’s shadow-adjusted target is non-null, then set event’s eventPhase attribute to AT_TARGET.
+                // Step 5.14.1 If struct’s shadow-adjusted target is non-null, then set event’s
+                // eventPhase attribute to AT_TARGET.
                 if segment.shadow_adjusted_target.is_some() {
                     self.phase.set(EventPhase::AtTarget);
                 }
@@ -551,7 +563,8 @@ impl Event {
         if let Some(activation_target) = activation_target {
             // NOTE: The activation target may have been disabled by an event handler
             if let Some(activatable) = activation_target.as_maybe_activatable() {
-                // Step 11.1 If event’s canceled flag is unset, then run activationTarget’s activation behavior with event.
+                // Step 11.1 If event’s canceled flag is unset, then run activationTarget’s
+                // activation behavior with event.
                 if !self.DefaultPrevented() {
                     activatable.activation_behavior(self, &target, can_gc);
                 }
@@ -689,12 +702,14 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         // Step 9. While index is greater than or equal to 0:
         // NOTE: This is just iterating the path in reverse
         for (index, element) in path.iter().enumerate().rev() {
-            // Step 9.1 If path[index]'s root-of-closed-tree is true, then increase currentTargetHiddenSubtreeLevel by 1.
+            // Step 9.1 If path[index]'s root-of-closed-tree is true, then increase
+            // currentTargetHiddenSubtreeLevel by 1.
             if element.root_of_closed_tree {
                 current_target_hidden_subtree_level += 1;
             }
 
-            // Step 9.2 If path[index]'s invocation target is currentTarget, then set currentTargetIndex to index and break.
+            // Step 9.2 If path[index]'s invocation target is currentTarget, then set
+            // currentTargetIndex to index and break.
             if current_target
                 .as_ref()
                 .is_some_and(|target| target.as_traced() == element.invocation_target)
@@ -703,7 +718,8 @@ impl EventMethods<crate::DomTypeHolder> for Event {
                 break;
             }
 
-            // Step 9.3 If path[index]'s slot-in-closed-tree is true, then decrease currentTargetHiddenSubtreeLevel by 1.
+            // Step 9.3 If path[index]'s slot-in-closed-tree is true, then decrease
+            // currentTargetHiddenSubtreeLevel by 1.
             if element.slot_in_closed_tree {
                 current_target_hidden_subtree_level -= 1;
             }
@@ -735,7 +751,8 @@ impl EventMethods<crate::DomTypeHolder> for Event {
                 // Step 12.3.1 Decrease currentHiddenLevel by 1.
                 current_hidden_level -= 1;
 
-                // Step 12.3.2 If currentHiddenLevel is less than maxHiddenLevel, then set maxHiddenLevel to currentHiddenLevel.
+                // Step 12.3.2 If currentHiddenLevel is less than maxHiddenLevel, then set
+                // maxHiddenLevel to currentHiddenLevel.
                 if current_hidden_level < max_hidden_level {
                     max_hidden_level = current_hidden_level;
                 }
@@ -769,7 +786,8 @@ impl EventMethods<crate::DomTypeHolder> for Event {
                 // Step 15.3.1 Decrease currentHiddenLevel by 1.
                 current_hidden_level -= 1;
 
-                // Step 15.3.2 If currentHiddenLevel is less than maxHiddenLevel, then set maxHiddenLevel to currentHiddenLevel.
+                // Step 15.3.2 If currentHiddenLevel is less than maxHiddenLevel, then set
+                // maxHiddenLevel to currentHiddenLevel.
                 if current_hidden_level < max_hidden_level {
                     max_hidden_level = current_hidden_level;
                 }
@@ -1046,7 +1064,8 @@ fn invoke(
         };
         *event.type_.borrow_mut() = legacy_type;
 
-        // Step 9.3 Inner invoke with event, listeners, phase, invocationTargetInShadowTree, and legacyOutputDidListenersThrowFlag if given.
+        // Step 9.3 Inner invoke with event, listeners, phase, invocationTargetInShadowTree,
+        // and legacyOutputDidListenersThrowFlag if given.
         inner_invoke(
             event,
             &listeners,
@@ -1092,7 +1111,8 @@ fn inner_invoke(
         // TODO Step 2.3 If phase is "capturing" and listener’s capture is false, then continue.
         // TODO Step 2.4 If phase is "bubbling" and listener’s capture is true, then continue.
 
-        // Step 2.5 If listener’s once is true, then remove an event listener given event’s currentTarget attribute value and listener.
+        // Step 2.5 If listener’s once is true, then remove an event listener given event’s currentTarget
+        // attribute value and listener.
         if let CompiledEventListener::Listener(event_listener) = listener {
             event
                 .GetCurrentTarget()
@@ -1121,7 +1141,8 @@ fn inner_invoke(
         // Step 2.10 If global is a Window object, then record timing info for event listener given event and listener.
         // Step 2.11 Call a user object’s operation with listener’s callback, "handleEvent", « event »,
         // and event’s currentTarget attribute value. If this throws an exception exception:
-        //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s associated realm’s global object.
+        //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s
+        //     associated realm’s global object.
         //     TODO Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
         let marker = TimelineMarker::start("DOMEvent".to_owned());
         listener.call_or_handle_event(
