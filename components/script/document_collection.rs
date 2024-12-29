@@ -14,7 +14,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::window::Window;
 
-/// The collection of all [`Document`]s managed by the [`crate::script_thread::SriptThread`].
+/// The collection of all [`Document`]s managed by the [`crate::script_thread::ScriptThread`].
 /// This is stored as a mapping of [`PipelineId`] to [`Document`], but for updating the
 /// rendering, [`Document`]s should be processed in order via [`Self::documents_in_order`].
 #[derive(JSTraceable)]

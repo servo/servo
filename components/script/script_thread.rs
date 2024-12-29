@@ -287,12 +287,12 @@ pub struct ScriptThread {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
 
-    /// A [`ScriptThreadReceivers`] holding all of the incoming [`Receiver`]s for messages
+    /// A [`ScriptThreadReceivers`] holding all of the incoming `Receiver`s for messages
     /// to this [`ScriptThread`].
     receivers: ScriptThreadReceivers,
 
-    /// A [`ScriptThreadMessaging`] that holds all data necessary to communicate to and
-    /// from the [`ScriptThread`].
+    /// A [`ScriptThreadSenders`] that holds all outgoing sending channels necessary to communicate
+    /// to other parts of Servo.
     senders: ScriptThreadSenders,
 
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if

@@ -104,7 +104,7 @@ struct ClosedPromiseRejectionHandler {
 
 impl Callback for ClosedPromiseRejectionHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
-    /// Upon rejection of reader.[[closedPromise]] with reason r,
+    /// Upon rejection of `reader.closedPromise` with reason `r``,
     fn callback(&self, _cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, _can_gc: CanGc) {
         let branch_1_controller = &self.branch_1_controller;
         let branch_2_controller = &self.branch_2_controller;
