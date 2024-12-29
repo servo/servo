@@ -32,7 +32,10 @@ use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{GCReason, Heap, JSAutoRealm, JSObject, StackFormat, JSPROP_ENUMERATE, JS_GC};
+use js::glue::DumpJSStack;
+use js::jsapi::{
+    GCReason, Heap, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JS_GC,
+};
 use js::jsval::{NullValue, UndefinedValue};
 use js::rust::wrappers::JS_DefineProperty;
 use js::rust::{
@@ -1125,14 +1128,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     #[allow(unsafe_code)]
     fn Js_backtrace(&self) {
         unsafe {
-            capture_stack!(in(*self.get_cx()) let stack);
-            let js_stack = stack.and_then(|s| s.as_string(None, StackFormat::SpiderMonkey));
+            println!("Current JS stack:");
+            dump_js_stack(*self.get_cx());
             let rust_stack = Backtrace::new();
-            println!(
-                "Current JS stack:\n{}\nCurrent Rust stack:\n{:?}",
-                js_stack.unwrap_or_default(),
-                rust_stack
-            );
+            println!("Current Rust stack:\n{:?}", rust_stack);
         }
     }
 
@@ -3059,4 +3058,11 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is_html_element()
+}
+
+#[allow(unsafe_code)]
+#[no_mangle]
+/// Helper for interactive debugging sessions in lldb/gdb.
+unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
+    DumpJSStack(cx, true, false, false);
 }
