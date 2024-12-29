@@ -37,6 +37,10 @@ addEventListener("load", () => {
   let lastBeforeInputEvent;
   editingHost.addEventListener("beforeinput", event => lastBeforeInputEvent = event);
 
+  // When a preformatted linefeed is preferred, it should be used instead of <br> for making the
+  // content can be retrieved with `.textContent`.  However, padding line breaks which is required
+  // for empty block or empty last line should be <br> because it won't appear in `.textContent`.
+  // So, it helps to make the `.textContent` result better.
   for (const data of [
     {
       initialInnerHTML: "A[]B",
@@ -44,7 +48,7 @@ addEventListener("load", () => {
     },
     {
       initialInnerHTML: "<p>{}<br></p>",
-      expected: useBR ? "<p><br><br></p>" : "<p>\n\n</p>",
+      expected: useBR ? "<p><br><br></p>" : "<p>\n<br></p>",
     },
     {
       initialInnerHTML: `<p style="white-space:normal">A[]B</p>`,
@@ -74,7 +78,7 @@ addEventListener("load", () => {
       initialInnerHTML: "<ul><li>AB[]</li></ul>",
       expected: useBR
         ? "<ul><li>AB<br><br></li></ul>"
-        : "<ul><li>AB\n\n</li></ul>",
+        : "<ul><li>AB\n<br></li></ul>",
     },
     {
       initialInnerHTML: "<dl><dt>[]AB</dt></dl>",
@@ -88,7 +92,7 @@ addEventListener("load", () => {
       initialInnerHTML: "<dl><dt>AB[]</dt></dl>",
       expected: useBR
         ? "<dl><dt>AB<br><br></dt></dl>"
-        : "<dl><dt>AB\n\n</dt></dl>",
+        : "<dl><dt>AB\n<br></dt></dl>",
     },
     {
       initialInnerHTML: "<dl><dd>[]AB</dd></dl>",
@@ -102,7 +106,7 @@ addEventListener("load", () => {
       initialInnerHTML: "<dl><dd>AB[]</dd></dl>",
       expected: useBR
         ? "<dl><dd>AB<br><br></dd></dl>"
-        : "<dl><dd>AB\n\n</dd></dl>",
+        : "<dl><dd>AB\n<br></dd></dl>",
     },
     {
       initialInnerHTML: "<table><tbody><tr><td>[]AB</td></tr></tbody></table>",
@@ -120,7 +124,7 @@ addEventListener("load", () => {
       initialInnerHTML: "<table><tbody><tr><td>AB[]</td></tr></tbody></table>",
       expected: useBR
         ? "<table><tbody><tr><td>AB<br><br></td></tr></tbody></table>"
-        : "<table><tbody><tr><td>AB\n\n</td></tr></tbody></table>",
+        : "<table><tbody><tr><td>AB\n<br></td></tr></tbody></table>",
     },
     {
       initialInnerHTML: "<h1>[]AB</h1>",
@@ -132,7 +136,7 @@ addEventListener("load", () => {
     },
     {
       initialInnerHTML: "<h1>AB[]</h1>",
-      expected: useBR ? "<h1>AB<br><br></h1>" : "<h1>AB\n\n</h1>",
+      expected: useBR ? "<h1>AB<br><br></h1>" : "<h1>AB\n<br></h1>",
     },
   ]) {
     test(() => {

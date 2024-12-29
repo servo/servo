@@ -183,6 +183,14 @@ const validButUnsupportedConfigs = [
       height: 480,
     },
   },
+  {
+    comment: 'codec with spaces',
+    config: {
+      codec: '  vp09.00.10.08  ',
+      width: 640,
+      height: 480,
+    }
+  }
 ];
 
 validButUnsupportedConfigs.forEach(entry => {

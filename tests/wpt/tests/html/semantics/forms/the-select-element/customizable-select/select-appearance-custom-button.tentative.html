@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html class=reftest-wait>
+<meta name=fuzzy content="maxDifference=0-3;totalPixels=0-1">
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://github.com/whatwg/html/issues/9799">
 <link rel=match href="select-appearance-button-ref.html">
@@ -20,8 +21,10 @@ select, select::picker(select) {
 
 <script>
 (async () => {
+  await new Promise(requestAnimationFrame);
   await test_driver.bless();
   document.querySelector('select').showPicker();
+  await new Promise(requestAnimationFrame);
   document.documentElement.classList.remove('reftest-wait');
 })();
 </script>

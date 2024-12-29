@@ -1,110 +1,57 @@
 <!DOCTYPE html>
-
 <meta name="timeout" content="long">
-
 <link rel="help" href="http://crbug.com/377620848">
-
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
 <style>
-  select,
-  select::picker(select) {
+  select, select::picker(select) {
     appearance: base-select;
   }
 </style>
 
-<select id="target">
-  <option id="alpha">alpha</option>
+<select id=target>
+  <option id=alpha>alpha</option>
   <option hidden>bravo</option>
-  <option id="charlie">charlie</option>
+  <option id=charlie>charlie</option>
   <option hidden>delta</option>
   <option hidden>echo</option>
-  <option id="foxtrot">foxtrot</option>
+  <option id=foxtrot>foxtrot</option>
   <option hidden>golf</option>
 </select>
 
 <script>
-  const Space = ' ';
-  const ArrowUp = '\uE013';
-  const ArrowDown = '\uE015';
+const Space = ' ';
+const ArrowUp = '\uE013';
+const ArrowDown = '\uE015';
 
-  promise_test(async (t) => {
-    assert_false(
-      target.matches(':open'),
-      'The select should initially be closed.'
-    );
+promise_test(async (t) => {
+  assert_false(target.matches(':open'));
+  assert_equals(target.value,'alpha','Initial select value should be alpha.');
+  target.focus();
+  assert_equals(document.activeElement,target,'The select should be focused.');
 
-    assert_equals(
-      target.value,
-      'alpha',
-      'Initial select value should be alpha.'
-    );
 
-    target.focus();
-    assert_equals(
-      document.activeElement,
-      target,
-      'The select should be focused.'
-    );
+  await test_driver.send_keys(document.activeElement, Space);
+  assert_true(target.matches(':open'),'The select should be open after pressing space.');
+  assert_equals(document.activeElement,alpha,'The `alpha` option should be initially focused.');
 
-    await test_driver.send_keys(document.activeElement, Space);
-    assert_true(
-      target.matches(':open'),
-      'The select should be open after pressing space.'
-    );
+  // ArrowDown tests
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement,charlie,'The `charlie` option should be focused after pressing `ArrowDown`.');
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement,foxtrot,'The `foxtrot` option should be focused after pressing `ArrowDown`.');
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement,foxtrot,'The `foxtrot` option should still be focused after pressing `ArrowDown`.');
 
-    assert_equals(
-      document.activeElement,
-      alpha,
-      'The `alpha` option should be initially focused.'
-    );
-
-    // ArrowDown tests
-    await test_driver.send_keys(document.activeElement, ArrowDown);
-    assert_equals(
-      document.activeElement,
-      charlie,
-      'The `charlie` option should be focused after pressing `ArrowDown`.'
-    );
-
-    await test_driver.send_keys(document.activeElement, ArrowDown);
-    assert_equals(
-      document.activeElement,
-      foxtrot,
-      'The `foxtrot` option should be focused after pressing `ArrowDown`.'
-    );
-
-    await test_driver.send_keys(document.activeElement, ArrowDown);
-    assert_equals(
-      document.activeElement,
-      foxtrot,
-      'The `foxtrot` option should still be focused after pressing `ArrowDown`.'
-    );
-
-    // ArrowUp tests
-    await test_driver.send_keys(document.activeElement, ArrowUp);
-    assert_equals(
-      document.activeElement,
-      charlie,
-      'The `charlie` option should be focused after pressing `ArrowUp`.'
-    );
-
-    await test_driver.send_keys(document.activeElement, ArrowUp);
-    assert_equals(
-      document.activeElement,
-      alpha,
-      'The `alpha` option should be focused after pressing `ArrowUp`.'
-    );
-
-    await test_driver.send_keys(document.activeElement, ArrowUp);
-    assert_equals(
-      document.activeElement,
-      alpha,
-      'The `alpha` option should still be focused after pressing `ArrowUp`.'
-    );
-  }, 'Hidden options should be skipped when changing focus using the up and down keys.');
+  // ArrowUp tests
+  await test_driver.send_keys(document.activeElement, ArrowUp);
+  assert_equals(document.activeElement,charlie,'The `charlie` option should be focused after pressing `ArrowUp`.');
+  await test_driver.send_keys(document.activeElement, ArrowUp);
+  assert_equals(document.activeElement,alpha,'The `alpha` option should be focused after pressing `ArrowUp`.');
+  await test_driver.send_keys(document.activeElement, ArrowUp);
+  assert_equals(document.activeElement,alpha,'The `alpha` option should still be focused after pressing `ArrowUp`.');
+}, 'Hidden options should be skipped when changing focus using the up and down keys.');
 </script>

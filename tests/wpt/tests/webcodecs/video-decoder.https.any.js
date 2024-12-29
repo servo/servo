@@ -1,6 +1,5 @@
 // META: global=window,dedicatedworker
 // META: script=/webcodecs/utils.js
-//
 
 const detachedArrayBuffer = new ArrayBuffer(4);
 var b = detachedArrayBuffer.transferToFixedLength();

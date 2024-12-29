@@ -145,3 +145,16 @@ function testNestedSandboxedIFrame(policy, parent, child, expectation) {
         injectNestedIframe(policy, parent == SAME_ORIGIN ? "same" : "cross", child == SAME_ORIGIN ? "same" : "cross", expectation == EXPECT_LOAD ? "allowed" : "blocked", true /* isSandboxed */);
     };
 }
+
+function testUrlWithPathIgnored() {
+    window.onload = function () {
+        // A policy with a URL with a path should block the load, because no
+        // origin matches against a source expression with a path. See
+        // https://issues.chromium.org/issues/40779556#comment12 and
+        // https://w3c.github.io/webappsec-csp/#frame-ancestors-navigation-response
+        // steps 6.2 and 6.3.
+        injectIFrame(SAMEORIGIN_ORIGIN + "/test", SAME_ORIGIN, EXPECT_BLOCK);
+        // The same policy with no path should allow the load (smoke test).
+        injectIFrame(SAMEORIGIN_ORIGIN, SAME_ORIGIN, EXPECT_LOAD);
+    };
+}
