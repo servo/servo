@@ -608,6 +608,11 @@ impl Node {
         self.flags.get().contains(NodeFlags::IS_CONNECTED)
     }
 
+    /// Return true iff the node's root is a Document or a ShadowRoot
+    pub fn is_connected_to_tree(&self) -> bool {
+        self.is_connected() || self.is_in_shadow_tree()
+    }
+
     /// Returns the type ID of this node.
     pub fn type_id(&self) -> NodeTypeId {
         match *self.eventtarget.type_id() {
@@ -3559,6 +3564,8 @@ pub struct UnbindContext<'a> {
     /// The next sibling of the inclusive ancestor that was removed.
     pub next_sibling: Option<&'a Node>,
     /// Whether the tree is connected.
+    ///
+    /// A tree is connected iff it's root is a Document or a ShadowRoot.
     pub tree_connected: bool,
     /// Whether the tree is in doc.
     pub tree_in_doc: bool,
@@ -3577,7 +3584,7 @@ impl<'a> UnbindContext<'a> {
             parent,
             prev_sibling,
             next_sibling,
-            tree_connected: parent.is_connected(),
+            tree_connected: parent.is_connected_to_tree(),
             tree_in_doc: parent.is_in_doc(),
         }
     }
