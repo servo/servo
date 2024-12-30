@@ -25,7 +25,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredDataHolder;
+use crate::dom::bindings::structuredclone::{StructuredDataReader, StructuredDataWriter};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -93,12 +93,7 @@ impl Blob {
 
 impl Serializable for Blob {
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
-    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()> {
-        let blob_impls = match sc_holder {
-            StructuredDataHolder::Write { blobs, .. } => blobs,
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
-
+    fn serialize(&self, sc_writer: &mut StructuredDataWriter) -> Result<StorageKey, ()> {
         let blob_id = self.blob_id;
 
         // 1. Get a clone of the blob impl.
@@ -108,7 +103,7 @@ impl Serializable for Blob {
         let new_blob_id = blob_impl.blob_id();
 
         // 2. Store the object at a given key.
-        let blobs = blob_impls.get_or_insert_with(HashMap::new);
+        let blobs = sc_writer.blobs.get_or_insert_with(HashMap::new);
         blobs.insert(new_blob_id, blob_impl);
 
         let PipelineNamespaceId(name_space) = new_blob_id.namespace_id;
@@ -130,7 +125,7 @@ impl Serializable for Blob {
     /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
-        sc_holder: &mut StructuredDataHolder,
+        sc_reader: &mut StructuredDataReader,
         storage_key: StorageKey,
         can_gc: CanGc,
     ) -> Result<(), ()> {
@@ -145,27 +140,21 @@ impl Serializable for Blob {
             index,
         };
 
-        let (blobs, blob_impls) = match sc_holder {
-            StructuredDataHolder::Read {
-                blobs, blob_impls, ..
-            } => (blobs, blob_impls),
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
-
         // 2. Get the transferred object from its storage, using the key.
-        let blob_impls_map = blob_impls
+        let blob_impls_map = sc_reader
+            .blob_impls
             .as_mut()
             .expect("The SC holder does not have any blob impls");
         let blob_impl = blob_impls_map
             .remove(&id)
             .expect("No blob to be deserialized found.");
         if blob_impls_map.is_empty() {
-            *blob_impls = None;
+            sc_reader.blob_impls = None;
         }
 
         let deserialized_blob = Blob::new(owner, blob_impl, can_gc);
 
-        let blobs = blobs.get_or_insert_with(HashMap::new);
+        let blobs = sc_reader.blobs.get_or_insert_with(HashMap::new);
         blobs.insert(storage_key, deserialized_blob);
 
         Ok(())
