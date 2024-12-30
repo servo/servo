@@ -483,9 +483,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         );
 
         // Step 6
-        return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
+        Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
             element_node.downcast::<Element>().unwrap(),
-        )));
+        )))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
