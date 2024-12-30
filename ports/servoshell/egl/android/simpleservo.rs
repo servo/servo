@@ -107,7 +107,6 @@ pub fn init(
         callbacks,
         RefCell::new(init_opts.coordinates),
         init_opts.density,
-        rendering_context.clone(),
     ));
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(

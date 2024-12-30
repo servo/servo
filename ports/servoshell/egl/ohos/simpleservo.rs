@@ -134,7 +134,6 @@ pub fn init(
         callbacks,
         RefCell::new(Coordinates::new(0, 0, width, height, width, height)),
         options.display_density as f32,
-        rendering_context.clone(),
     ));
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(

@@ -58,7 +58,6 @@ pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    rendering_context: RenderingContext,
 }
 
 impl ServoWindowCallbacks {
@@ -66,13 +65,11 @@ impl ServoWindowCallbacks {
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
         hidpi_factor: f32,
-        rendering_context: RenderingContext,
     ) -> Self {
         Self {
             host_callbacks,
             coordinates,
             hidpi_factor: Scale::new(hidpi_factor),
-            rendering_context,
         }
     }
 }
