@@ -1429,10 +1429,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn hit_test_at_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
-        return self
+        self
             .hit_test_at_point_with_flags_and_pipeline(point, HitTestFlags::empty(), None)
             .first()
-            .cloned();
+            .cloned()
     }
 
     fn hit_test_at_point_with_flags_and_pipeline(
