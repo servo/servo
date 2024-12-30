@@ -14,9 +14,9 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 
-/// The constellation uses logging to perform crash reporting.
-/// The constellation receives all `warn!`, `error!` and `panic!` messages,
-/// and generates a crash report when it receives a panic.
+// The constellation uses logging to perform crash reporting.
+// The constellation receives all `warn!`, `error!` and `panic!` messages,
+// and generates a crash report when it receives a panic.
 
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]
