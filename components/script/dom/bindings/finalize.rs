@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Generic finalizer implementations for DOM binding implementations.
+
 use std::any::type_name;
 use std::mem;
 
@@ -11,8 +13,6 @@ use js::jsval::UndefinedValue;
 
 use crate::dom::bindings::utils::finalize_global as do_finalize_global;
 use crate::dom::bindings::weakref::{WeakBox, WeakReferenceable, DOM_WEAK_SLOT};
-
-// Generic finalizer implementations for DOM binding implementations.
 
 pub unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {
