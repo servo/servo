@@ -545,6 +545,8 @@ impl ServoGlue {
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     self.focused_webview_id = Some(webview_id);
+                    self.events
+                        .push(EmbedderEvent::ShowWebView(webview_id, true));
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
