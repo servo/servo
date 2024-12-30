@@ -11,7 +11,7 @@ use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
+use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use log::warn;
@@ -295,14 +295,16 @@ impl FileManager {
                     .get_final(Some(buf.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
-                let range = range.to_abs_range(buf.size as usize);
+                let range = range.to_abs_blob_range(buf.size as usize);
                 let len = range.len() as u64;
-
+                let content_range =
+                    ContentRange::bytes(range.start as u64..range.end as u64, buf.size).unwrap();
                 set_headers(
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
                     /* filename */ None,
+                    Some(content_range),
                 );
 
                 let mut bytes = vec![];
@@ -339,7 +341,7 @@ impl FileManager {
                     .file_name()
                     .and_then(|osstr| osstr.to_str())
                     .map(|s| s.to_string());
-
+    
                 set_headers(
                     &mut response.headers,
                     metadata.size,
@@ -347,6 +349,7 @@ impl FileManager {
                         .first()
                         .unwrap_or(mime::TEXT_PLAIN),
                     filename,
+                    None,
                 );
 
                 self.fetch_file_in_chunks(
@@ -924,8 +927,17 @@ fn read_file_in_chunks(
     }
 }
 
-fn set_headers(headers: &mut HeaderMap, content_length: u64, mime: Mime, filename: Option<String>) {
+fn set_headers(
+    headers: &mut HeaderMap,
+    content_length: u64,
+    mime: Mime,
+    filename: Option<String>,
+    content_range: Option<ContentRange>,
+) {
     headers.typed_insert(ContentLength(content_length));
+    if let Some(content_range) = content_range {
+        headers.typed_insert(content_range);
+    }
     headers.typed_insert(ContentType::from(mime.clone()));
     let name = match filename {
         Some(name) => name,
