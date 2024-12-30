@@ -9,6 +9,7 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 
 use getopts::Options;
+use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
 pub use servo::config::prefs::{add_user_prefs, PrefValue};
@@ -93,8 +94,14 @@ pub fn init(
             SurfaceType::Widget { native_widget }
         },
     };
-    let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
+    let rendering_context = RenderingContext::create(&connection, &adapter, false)
         .or(Err("Failed to create surface manager"))?;
+    let surface = rendering_context
+        .create_surface(surface_type)
+        .or(Err("Failed to create surface"))?;
+    rendering_context
+        .bind_surface(surface)
+        .or(Err("Failed to bind surface"))?;
 
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
@@ -110,6 +117,7 @@ pub fn init(
     ));
 
     let servo = Servo::new(
+        rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
         None,
@@ -117,8 +125,8 @@ pub fn init(
     );
 
     SERVO.with(|s| {
-        let mut servo_glue = ServoGlue::new(rendering_context, servo.servo, window_callbacks, None);
-        let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, servo.browser_id));
+        let mut servo_glue = ServoGlue::new(rendering_context, servo, window_callbacks, None);
+        let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, WebViewId::new()));
         *s.borrow_mut() = Some(servo_glue);
     });
 

@@ -713,8 +713,4 @@ impl WindowMethods for ServoWindowCallbacks {
         self.host_callbacks
             .on_animating_changed(state == AnimationState::Animating);
     }
-
-    fn rendering_context(&self) -> RenderingContext {
-        self.rendering_context.clone()
-    }
 }
