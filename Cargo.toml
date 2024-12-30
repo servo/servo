@@ -162,6 +162,9 @@ wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65
 xi-unicode = "0.3.0"
 xml5ever = "0.20"
 
+[workspace.lints.clippy]
+needless_lifetimes = "allow"
+
 [profile.release]
 opt-level = 3
 debug-assertions = true
