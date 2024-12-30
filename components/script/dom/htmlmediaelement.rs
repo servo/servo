@@ -106,7 +106,6 @@ use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 
 #[derive(PartialEq)]
 enum FrameStatus {

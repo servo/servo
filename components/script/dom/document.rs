@@ -192,7 +192,7 @@ use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{with_script_thread, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before

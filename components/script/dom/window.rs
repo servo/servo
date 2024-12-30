@@ -158,7 +158,7 @@ use crate::script_runtime::{
 };
 use crate::script_thread::ScriptThread;
 use crate::task_manager::TaskManager;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::jsval_to_webdriver;

@@ -17,14 +17,13 @@ use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::script_runtime::CanGc;
 use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 
 /// An off-thread sink for async network event tasks. All such events are forwarded to
 /// a target thread, where they are invoked on the provided context object.
 pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<Listener>>,
-    pub task_source: NetworkingTaskSource,
+    pub task_source: TaskSource,
     pub canceller: Option<TaskCanceller>,
 }
 

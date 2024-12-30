@@ -84,7 +84,6 @@ use crate::dom::window::Window;
 use crate::links::{get_element_target, LinkRelations};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);

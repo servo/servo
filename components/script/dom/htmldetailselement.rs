@@ -20,7 +20,6 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {

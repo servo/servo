@@ -68,7 +68,6 @@ use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
-use crate::task_source::TaskSource;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]

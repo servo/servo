@@ -148,11 +148,11 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptThreadEventCategory,
+    ThreadSafeJSContext,
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::TaskQueue;
-use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::{devtools, webdriver_handlers};
 
@@ -690,6 +690,7 @@ impl ScriptThread {
                     }
                 });
                 global
+                    .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task, global.upcast())
                     .expect("Enqueing navigate js task on the DOM manipulation task source failed");
@@ -901,10 +902,11 @@ impl ScriptThread {
 
         let (self_sender, self_receiver) = unbounded();
         let self_sender = MainThreadScriptChan(self_sender.clone());
-        let runtime = Runtime::new(Some(NetworkingTaskSource(
-            Box::new(self_sender.clone()),
-            state.id,
-        )));
+        let runtime = Runtime::new(Some(TaskSource {
+            sender: self_sender.as_boxed(),
+            pipeline_id: state.id,
+            name: TaskSourceName::Networking,
+        }));
         let cx = runtime.cx();
 
         unsafe {
