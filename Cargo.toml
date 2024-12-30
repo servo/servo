@@ -155,8 +155,8 @@ webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "53f40794f275329a48efc7d1c637c91b8e51327d" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "53f40794f275329a48efc7d1c637c91b8e51327d" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "0f5f0580e4cb2fd2feac0e8ed7e8d3050e4d9c93" }
 windows-sys = "0.59"
 wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.65" }
 xi-unicode = "0.3.0"
