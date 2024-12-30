@@ -198,8 +198,8 @@ impl Performance {
         self.resource_timing_buffer_size_limit.set(0);
     }
 
-    /// Add a PerformanceObserver to the list of observers with a set of
-    /// observed entry types.
+    // Add a PerformanceObserver to the list of observers with a set of
+    // observed entry types.
 
     pub fn add_multiple_type_observer(
         &self,

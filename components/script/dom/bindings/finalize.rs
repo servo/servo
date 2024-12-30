@@ -12,7 +12,7 @@ use js::jsval::UndefinedValue;
 use crate::dom::bindings::utils::finalize_global as do_finalize_global;
 use crate::dom::bindings::weakref::{WeakBox, WeakReferenceable, DOM_WEAK_SLOT};
 
-/// Generic finalizer implementations for DOM binding implementations.
+// Generic finalizer implementations for DOM binding implementations.
 
 pub unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {

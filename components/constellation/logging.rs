@@ -25,9 +25,9 @@ pub struct FromScriptLogger {
     pub script_to_constellation_chan: Arc<ReentrantMutex<ScriptToConstellationChan>>,
 }
 
-/// The constellation uses logging to perform crash reporting.
-/// The constellation receives all `warn!`, `error!` and `panic!` messages,
-/// and generates a crash report when it receives a panic.
+// The constellation uses logging to perform crash reporting.
+// The constellation receives all `warn!`, `error!` and `panic!` messages,
+// and generates a crash report when it receives a panic.
 
 /// A logger directed at the constellation from content processes
 impl FromScriptLogger {

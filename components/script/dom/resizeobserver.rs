@@ -221,8 +221,8 @@ enum ObservationState {
 /// <https://drafts.csswg.org/resize-observer/#resizeobservation>
 #[derive(JSTraceable, MallocSizeOf)]
 struct ResizeObservation {
-    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-target>
-    /// Note: `target` is kept out of here, to avoid having to root the `ResizeObservation`.
+    // <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-target>
+    // Note: `target` is kept out of here, to avoid having to root the `ResizeObservation`.
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox>
     observed_box: RefCell<ResizeObserverBoxOptions>,
