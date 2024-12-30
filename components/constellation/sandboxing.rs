@@ -203,7 +203,9 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
         setup_common(&mut child_process, token);
         let _ = child_process
             .spawn()
-            .expect("Failed to start unsandboxed child process!");
+            .expect("Failed to start unsandboxed child process!")
+            .wait()
+            .expect("Failed to wait on unsandboxed child process!");
     }
 
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
