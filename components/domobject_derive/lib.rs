@@ -75,7 +75,6 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     );
 
     let mut dummy_items = quote! {
-
         // Generic trait with a blanket impl over `()` for all types.
         // becomes ambiguous if impl
         trait NoDomObjectInDomObject<A> {
