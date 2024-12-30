@@ -144,6 +144,7 @@ pub fn init(
     ));
 
     let servo = Servo::new(
+        rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
         // User agent: Mozilla/5.0 (<Phone|PC|Tablet>; HarmonyOS 5.0) bla bla
