@@ -16,8 +16,7 @@ use servo::compositing::windowing::{
 use servo::config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
-use servo::webrender_traits::RenderingContext;
-use surfman::{Context, Device, SurfaceType};
+use surfman::{Context, Device};
 
 use crate::desktop::window_trait::WindowPortsMethods;
 
@@ -34,23 +33,9 @@ pub struct Window {
 impl Window {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
-        rendering_context: &RenderingContext,
         size: Size2D<u32, DeviceIndependentPixel>,
         device_pixel_ratio_override: Option<f32>,
     ) -> Rc<dyn WindowPortsMethods> {
-        // Initialize surfman
-        let surface_type = SurfaceType::Generic {
-            size: size.to_untyped().to_i32(),
-        };
-        let surface = rendering_context
-            .create_surface(surface_type)
-            .expect("Failed to create surface");
-        rendering_context
-            .bind_surface(surface)
-            .expect("Failed to bind surface");
-        // Make sure the gl context is made current.
-        rendering_context.make_gl_context_current().unwrap();
-
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);

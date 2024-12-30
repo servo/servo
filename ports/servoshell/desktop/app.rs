@@ -110,8 +110,12 @@ impl App {
             let adapter = connection
                 .create_software_adapter()
                 .expect("Failed to create adapter");
-            RenderingContext::create(&connection, &adapter, true)
-                .expect("Failed to create WR surfman")
+            RenderingContext::create(
+                &connection,
+                &adapter,
+                Some(opts::get().initial_window_size.to_untyped().to_i32()),
+            )
+            .expect("Failed to create WR surfman")
         } else {
             let display_handle = event_loop
                 .unwrap()
@@ -122,13 +126,12 @@ impl App {
             let adapter = connection
                 .create_adapter()
                 .expect("Failed to create adapter");
-            RenderingContext::create(&connection, &adapter, false)
+            RenderingContext::create(&connection, &adapter, None)
                 .expect("Failed to create WR surfman")
         };
 
         let window = if opts::get().headless {
             headless_window::Window::new(
-                &rendering_context,
                 opts::get().initial_window_size,
                 self.device_pixel_ratio_override,
             )

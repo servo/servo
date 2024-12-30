@@ -43,7 +43,7 @@ impl RenderingContext {
     pub fn create(
         connection: &Connection,
         adapter: &Adapter,
-        headless: bool,
+        headless: Option<Size2D<i32>>,
     ) -> Result<Self, Error> {
         let mut device = connection.create_device(adapter)?;
         let flags = ContextAttributeFlags::ALPHA |
@@ -57,7 +57,16 @@ impl RenderingContext {
         let context_descriptor = device.create_context_descriptor(&context_attributes)?;
         let mut context = device.create_context(&context_descriptor, None)?;
         let surface_access = SurfaceAccess::GPUOnly;
-        let swap_chain = if headless {
+        let swap_chain = if let Some(size) = headless {
+            let surface_type = SurfaceType::Generic { size };
+            let surface = device.create_surface(&context, surface_access, surface_type)?;
+            device
+                .bind_surface_to_context(&mut context, surface)
+                .map_err(|(err, mut surface)| {
+                    let _ = device.destroy_surface(&mut context, &mut surface);
+                    err
+                })?;
+            device.make_context_current(&context)?;
             Some(SwapChain::create_attached(
                 &mut device,
                 &mut context,

@@ -94,7 +94,7 @@ pub fn init(
             SurfaceType::Widget { native_widget }
         },
     };
-    let rendering_context = RenderingContext::create(&connection, &adapter, false)
+    let rendering_context = RenderingContext::create(&connection, &adapter, None)
         .or(Err("Failed to create surface manager"))?;
     let surface = rendering_context
         .create_surface(surface_type)
