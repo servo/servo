@@ -101,12 +101,11 @@ fn find_primitive_impls<'tcx>(tcx: TyCtxt<'tcx>, name: &str) -> impl Iterator<It
         _ => {
             return Result::<_, rustc_errors::ErrorGuaranteed>::Ok(&[] as &[_])
                 .into_iter()
-                .flatten()
                 .copied();
         },
     };
 
-    tcx.incoherent_impls(ty).into_iter().flatten().copied()
+    tcx.incoherent_impls(ty).into_iter().copied()
 }
 
 fn non_local_item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol) -> Vec<Res> {
