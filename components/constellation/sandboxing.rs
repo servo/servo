@@ -182,6 +182,26 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
+    // TODO: Move this impl out of the function. It is only currently here to avoid
+    // duplicating the feature flagging.
+    #[allow(non_local_definitions)]
+    impl CommandMethods for gaol::sandbox::Command {
+        fn arg<T>(&mut self, arg: T)
+        where
+            T: AsRef<OsStr>,
+        {
+            self.arg(arg);
+        }
+
+        fn env<T, U>(&mut self, key: T, val: U)
+        where
+            T: AsRef<OsStr>,
+            U: AsRef<OsStr>,
+        {
+            self.env(key, val);
+        }
+    }
+
     // Note that this function can panic, due to process creation,
     // avoiding this panic would require a mechanism for dealing
     // with low-resource scenarios.
@@ -247,31 +267,6 @@ trait CommandMethods {
     where
         T: AsRef<OsStr>,
         U: AsRef<OsStr>;
-}
-
-#[cfg(all(
-    not(target_os = "windows"),
-    not(target_os = "ios"),
-    not(target_os = "android"),
-    not(target_env = "ohos"),
-    not(target_arch = "arm"),
-    not(target_arch = "aarch64")
-))]
-impl CommandMethods for gaol::sandbox::Command {
-    fn arg<T>(&mut self, arg: T)
-    where
-        T: AsRef<OsStr>,
-    {
-        self.arg(arg);
-    }
-
-    fn env<T, U>(&mut self, key: T, val: U)
-    where
-        T: AsRef<OsStr>,
-        U: AsRef<OsStr>,
-    {
-        self.env(key, val);
-    }
 }
 
 impl CommandMethods for process::Command {
