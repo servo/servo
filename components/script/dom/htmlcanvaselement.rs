@@ -446,7 +446,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // FIXME(nox): https://github.com/image-rs/image-png/issues/86
         // FIXME(nox): https://github.com/image-rs/image-png/issues/87
         PngEncoder::new(&mut encoder)
-            .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8)
+            .write_image(&file, self.Width(), self.Height(), ColorType::Rgba8.into())
             .unwrap();
         encoder.into_inner();
         Ok(USVString(url))
