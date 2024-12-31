@@ -26,81 +26,46 @@ extern crate servo_atoms;
 
 mod animation_timeline;
 mod animations;
-#[warn(deprecated)]
 #[macro_use]
 mod task;
-#[warn(deprecated)]
 mod body;
-#[warn(deprecated)]
 pub mod clipboard_provider;
-#[warn(deprecated)]
 pub mod conversions;
-#[warn(deprecated)]
 mod devtools;
-#[warn(deprecated)]
 pub mod document_loader;
-#[warn(deprecated)]
 #[macro_use]
 mod dom;
-#[warn(deprecated)]
 mod canvas_state;
-#[warn(deprecated)]
 pub mod fetch;
-#[warn(deprecated)]
 mod image_listener;
-#[warn(deprecated)]
 mod init;
-#[warn(deprecated)]
 mod layout_image;
 
-#[warn(deprecated)]
 pub mod document_collection;
-#[warn(deprecated)]
 pub mod iframe_collection;
 pub mod layout_dom;
-#[warn(deprecated)]
 mod mem;
-#[warn(deprecated)]
 #[allow(unsafe_code)]
 pub mod messaging;
-#[warn(deprecated)]
 mod microtask;
-#[warn(deprecated)]
 mod network_listener;
-#[warn(deprecated)]
 mod realms;
-#[warn(deprecated)]
 mod script_module;
-#[warn(deprecated)]
 pub mod script_runtime;
-#[warn(deprecated)]
 #[allow(unsafe_code)]
 pub mod script_thread;
-#[warn(deprecated)]
 pub mod security_manager;
-#[warn(deprecated)]
 pub mod serviceworker_manager;
-#[warn(deprecated)]
 mod stylesheet_loader;
-#[warn(deprecated)]
 mod stylesheet_set;
-#[warn(deprecated)]
 mod task_manager;
-#[warn(deprecated)]
 mod task_queue;
-#[warn(deprecated)]
 mod task_source;
-#[warn(deprecated)]
 pub mod test;
-#[warn(deprecated)]
 pub mod textinput;
-#[warn(deprecated)]
 mod timers;
-#[warn(deprecated)]
 mod unpremultiplytable;
-#[warn(deprecated)]
 mod webdriver_handlers;
-#[warn(deprecated)]
 mod window_named_properties;
 
 mod unminify;
