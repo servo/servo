@@ -7028,7 +7028,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 [[package]]
 name = "surfman"
 version = "0.9.8"
-source = "git+https://github.com/servo/surfman?rev=c8d6b4b65aeab739ee7651602e29c8d58ceee123#c8d6b4b65aeab739ee7651602e29c8d58ceee123"
+source = "git+https://github.com/servo/surfman?rev=300789ddbda45c89e9165c31118bf1c4c07f89f6#300789ddbda45c89e9165c31118bf1c4c07f89f6"
 dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases",
@@ -8292,7 +8292,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825694b7"
+source = "git+https://github.com/servo/webxr#db11d8d3c72b88ae5e3eb59679a0b2f7dd0bce7f"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -8309,7 +8309,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#84c3022dc6e980119e2a04e1e248e74f825694b7"
+source = "git+https://github.com/servo/webxr#db11d8d3c72b88ae5e3eb59679a0b2f7dd0bce7f"
 dependencies = [
  "euclid",
  "ipc-channel",
