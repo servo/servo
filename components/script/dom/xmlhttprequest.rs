@@ -98,6 +98,71 @@ struct XHRContext {
     url: ServoUrl,
 }
 
+impl FetchResponseListener for XHRContext {
+    fn process_request_body(&mut self, _: RequestId) {
+        // todo
+    }
+
+    fn process_request_eof(&mut self, _: RequestId) {
+        // todo
+    }
+
+    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+        let xhr = self.xhr.root();
+        let rv = xhr.process_headers_available(self.gen_id, metadata, CanGc::note());
+        if rv.is_err() {
+            *self.sync_status.borrow_mut() = Some(rv);
+        }
+    }
+
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
+        self.xhr
+            .root()
+            .process_data_available(self.gen_id, chunk, CanGc::note());
+    }
+
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        let rv = self.xhr.root().process_response_complete(
+            self.gen_id,
+            response.map(|_| ()),
+            CanGc::note(),
+        );
+        *self.sync_status.borrow_mut() = Some(rv);
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self, CanGc::note())
+    }
+}
+
+impl ResourceTimingListener for XHRContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::XMLHttpRequest, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.xhr.root().global()
+    }
+}
+
+impl PreInvoke for XHRContext {
+    fn should_invoke(&self) -> bool {
+        self.xhr.root().generation_id.get() == self.gen_id
+    }
+}
+
 #[derive(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
@@ -234,75 +299,6 @@ impl XMLHttpRequest {
         init: RequestBuilder,
         cancellation_chan: ipc::IpcReceiver<()>,
     ) {
-        impl FetchResponseListener for XHRContext {
-            fn process_request_body(&mut self, _: RequestId) {
-                // todo
-            }
-
-            fn process_request_eof(&mut self, _: RequestId) {
-                // todo
-            }
-
-            fn process_response(
-                &mut self,
-                _: RequestId,
-                metadata: Result<FetchMetadata, NetworkError>,
-            ) {
-                let xhr = self.xhr.root();
-                let rv = xhr.process_headers_available(self.gen_id, metadata, CanGc::note());
-                if rv.is_err() {
-                    *self.sync_status.borrow_mut() = Some(rv);
-                }
-            }
-
-            fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-                self.xhr
-                    .root()
-                    .process_data_available(self.gen_id, chunk, CanGc::note());
-            }
-
-            fn process_response_eof(
-                &mut self,
-                _: RequestId,
-                response: Result<ResourceFetchTiming, NetworkError>,
-            ) {
-                let rv = self.xhr.root().process_response_complete(
-                    self.gen_id,
-                    response.map(|_| ()),
-                    CanGc::note(),
-                );
-                *self.sync_status.borrow_mut() = Some(rv);
-            }
-
-            fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-                &mut self.resource_timing
-            }
-
-            fn resource_timing(&self) -> &ResourceFetchTiming {
-                &self.resource_timing
-            }
-
-            fn submit_resource_timing(&mut self) {
-                network_listener::submit_timing(self, CanGc::note())
-            }
-        }
-
-        impl ResourceTimingListener for XHRContext {
-            fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-                (InitiatorType::XMLHttpRequest, self.url.clone())
-            }
-
-            fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-                self.xhr.root().global()
-            }
-        }
-
-        impl PreInvoke for XHRContext {
-            fn should_invoke(&self) -> bool {
-                self.xhr.root().generation_id.get() == self.gen_id
-            }
-        }
-
         global.fetch(init, context, task_source, Some(cancellation_chan));
     }
 }

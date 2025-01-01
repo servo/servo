@@ -179,7 +179,7 @@ impl AudioBuffer {
                 *self.shared_channels.borrow_mut() = channels;
             }
         }
-        return self.shared_channels.borrow();
+        self.shared_channels.borrow()
     }
 }
 

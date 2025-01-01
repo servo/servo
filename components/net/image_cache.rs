@@ -25,15 +25,15 @@ use webrender_traits::{CrossProcessCompositorApi, SerializableImageData};
 
 use crate::resource_thread::CoreResourceThreadPool;
 
-///
-/// TODO(gw): Remaining work on image cache:
-///     * Make use of the prefetch support in various parts of the code.
-///     * Profile time in GetImageIfAvailable - might be worth caching these
-///       results per paint / layout.
-///
-/// MAYBE(Yoric):
-///     * For faster lookups, it might be useful to store the LoadKey in the
-///       DOM once we have performed a first load.
+//
+// TODO(gw): Remaining work on image cache:
+//     * Make use of the prefetch support in various parts of the code.
+//     * Profile time in GetImageIfAvailable - might be worth caching these
+//       results per paint / layout.
+//
+// MAYBE(Yoric):
+//     * For faster lookups, it might be useful to store the LoadKey in the
+//       DOM once we have performed a first load.
 
 // ======================================================================
 // Helper functions.

@@ -11,6 +11,7 @@
 #![register_tool(crown)]
 #![cfg_attr(any(doc, clippy), allow(unknown_lints))]
 #![deny(crown_is_not_used)]
+#![allow(clippy::needless_lifetimes)]
 
 // These are used a lot so let's keep them for now
 #[macro_use]

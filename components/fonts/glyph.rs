@@ -353,7 +353,7 @@ pub enum GlyphInfo<'a> {
     Detail(&'a GlyphStore, ByteIndex, u16),
 }
 
-impl<'a> GlyphInfo<'a> {
+impl GlyphInfo<'_> {
     pub fn id(self) -> GlyphId {
         match self {
             GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].id(),
