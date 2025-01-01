@@ -10,20 +10,17 @@ use std::sync::RwLock;
 
 use euclid::num::Zero;
 use euclid::{Box2D, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
-use log::warn;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
 use servo::config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
-use servo::webrender_traits::RenderingContext;
-use surfman::{Connection, Context, Device, SurfaceType};
+use surfman::{Context, Device};
 
 use crate::desktop::window_trait::WindowPortsMethods;
 
 pub struct Window {
-    rendering_context: RenderingContext,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
@@ -39,17 +36,6 @@ impl Window {
         size: Size2D<u32, DeviceIndependentPixel>,
         device_pixel_ratio_override: Option<f32>,
     ) -> Rc<dyn WindowPortsMethods> {
-        // Initialize surfman
-        let connection = Connection::new().expect("Failed to create connection");
-        let adapter = connection
-            .create_software_adapter()
-            .expect("Failed to create adapter");
-        let surface_type = SurfaceType::Generic {
-            size: size.to_untyped().to_i32(),
-        };
-        let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
-            .expect("Failed to create WR surfman");
-
         let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
             device_pixel_ratio_override.map(Scale::new);
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
@@ -64,7 +50,6 @@ impl Window {
         );
 
         let window = Window {
-            rendering_context,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
@@ -97,19 +82,11 @@ impl WindowPortsMethods for Window {
             return Some(new_size);
         }
 
-        match self.rendering_context.resize(new_size.to_untyped()) {
-            Ok(()) => {
-                self.inner_size.set(new_size);
-                if let Ok(ref mut queue) = self.event_queue.write() {
-                    queue.push(EmbedderEvent::WindowResize);
-                }
-                Some(new_size)
-            },
-            Err(error) => {
-                warn!("Could not resize window: {error:?}");
-                None
-            },
+        self.inner_size.set(new_size);
+        if let Ok(ref mut queue) = self.event_queue.write() {
+            queue.push(EmbedderEvent::WindowResize);
         }
+        Some(new_size)
     }
 
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
@@ -123,12 +100,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn page_height(&self) -> f32 {
-        let height = self
-            .rendering_context
-            .context_surface_info()
-            .unwrap_or(None)
-            .map(|info| info.size.height)
-            .unwrap_or(0);
+        let height = self.inner_size.get().height;
         let dpr = self.hidpi_factor();
         height as f32 * dpr.get()
     }
@@ -184,10 +156,6 @@ impl WindowMethods for Window {
 
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
-    }
-
-    fn rendering_context(&self) -> RenderingContext {
-        self.rendering_context.clone()
     }
 }
 

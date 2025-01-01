@@ -219,11 +219,6 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     }
 }
 
-pub struct InitializedServo<Window: WindowMethods + 'static + ?Sized> {
-    pub servo: Servo<Window>,
-    pub browser_id: TopLevelBrowsingContextId,
-}
-
 impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
@@ -238,11 +233,12 @@ where
     )]
     #[allow(clippy::new_ret_no_self)]
     pub fn new(
+        rendering_context: RenderingContext,
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
         user_agent: Option<String>,
         composite_target: CompositeTarget,
-    ) -> InitializedServo<Window> {
+    ) -> Servo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -277,9 +273,6 @@ where
                 .unwrap_or(default_user_agent_string_for(DEFAULT_USER_AGENT).into()),
         };
 
-        // Initialize surfman
-        let rendering_context = window.rendering_context();
-
         // Get GL bindings
         let webrender_gl = match rendering_context.connection().gl_api() {
             GLApi::GL => unsafe { gl::GlFns::load_with(|s| rendering_context.get_proc_address(s)) },
@@ -302,7 +295,6 @@ where
 
         // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
-        let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -525,21 +517,16 @@ where
             composite_target,
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
-            top_level_browsing_context_id,
             embedder.get_version_string().unwrap_or_default(),
         );
 
-        let servo = Servo {
+        Servo {
             compositor,
             constellation_chan,
             embedder_receiver,
             messages_for_embedder: Vec::new(),
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
-        };
-        InitializedServo {
-            servo,
-            browser_id: top_level_browsing_context_id,
         }
     }
 

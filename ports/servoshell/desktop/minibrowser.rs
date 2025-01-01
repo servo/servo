@@ -28,11 +28,10 @@ use servo::webrender_api::units::DevicePixel;
 use servo::webrender_traits::RenderingContext;
 use servo::TopLevelBrowsingContextId;
 use winit::event::{ElementState, MouseButton, WindowEvent};
-use winit::event_loop::EventLoop;
+use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
 
 use super::egui_glue::EguiGlow;
-use super::events_loop::WakerEvent;
 use super::geometry::winit_position_to_euclid_point;
 use super::webview::{LoadStatus, WebViewManager};
 use super::window_trait::WindowPortsMethods;
@@ -80,7 +79,7 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
 impl Minibrowser {
     pub fn new(
         rendering_context: &RenderingContext,
-        event_loop: &EventLoop<WakerEvent>,
+        event_loop: &ActiveEventLoop,
         initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
