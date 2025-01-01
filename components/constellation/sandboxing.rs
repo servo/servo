@@ -158,11 +158,11 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     let path_to_self = env::current_exe().expect("Failed to get current executor.");
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
+
+    #[allow(clippy::zombie_processes)]
     let _ = child_process
         .spawn()
-        .expect("Failed to start unsandboxed child process!")
-        .wait()
-        .expect("Failed to wait on unsandboxed child process!");
+        .expect("Failed to start unsandboxed child process!");
 
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
     sender.send(content)?;
@@ -221,11 +221,11 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
         let path_to_self = env::current_exe().expect("Failed to get current executor.");
         let mut child_process = process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
+
+        #[allow(clippy::zombie_processes)]
         let _ = child_process
             .spawn()
-            .expect("Failed to start unsandboxed child process!")
-            .wait()
-            .expect("Failed to wait on unsandboxed child process!");
+            .expect("Failed to start unsandboxed child process!");
     }
 
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
