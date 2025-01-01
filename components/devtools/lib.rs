@@ -22,9 +22,9 @@ use std::thread;
 use base::id::{BrowsingContextId, PipelineId};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{
-    ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolScriptControlMsg, DevtoolsControlMsg,
-    DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
-    ScriptToDevtoolsControlMsg, WorkerId,
+    ChromeToDevtoolsControlMsg, ConsoleLog, ConsoleMessage, ConsoleMessageBuilder,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState,
+    NetworkEvent, PageError, ScriptToDevtoolsControlMsg, WorkerId,
 };
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
@@ -688,19 +688,19 @@ fn run_server(
                 id,
                 css_error,
             )) => {
-                let console_message = ConsoleMessage {
-                    message: css_error.msg,
-                    log_level: LogLevel::Warn,
-                    filename: css_error.filename,
-                    line_number: css_error.line as usize,
-                    column_number: css_error.column as usize,
-                    stacktrace: vec![],
-                };
+                let mut console_message = ConsoleMessageBuilder::new(
+                    LogLevel::Warn,
+                    css_error.filename,
+                    css_error.line,
+                    css_error.column,
+                );
+                console_message.add_argument(css_error.msg.into());
+
                 handle_console_message(
                     actors.clone(),
                     id,
                     None,
-                    console_message,
+                    console_message.finish(),
                     &browsing_contexts,
                     &actor_workers,
                     &pipelines,
