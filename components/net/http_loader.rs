@@ -10,7 +10,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{HistoryStateId, PipelineId};
+use base::id::{HistoryStateId, PipelineId, TopLevelBrowsingContextId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -1571,8 +1571,10 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            let Some(credentials) = prompt_user_for_credentials(&context.state.embedder_proxy)
-            else {
+            let Some(credentials) = prompt_user_for_credentials(
+                &context.state.embedder_proxy,
+                http_request.target_browsing_context.clone(),
+            ) else {
                 return response;
             };
             let Some(username) = credentials.username else {
@@ -1625,7 +1627,10 @@ async fn http_network_or_cache_fetch(
 
         // Step 15.4 Prompt the end user as appropriate in request’s window
         // window and store the result as a proxy-authentication entry.
-        let Some(credentials) = prompt_user_for_credentials(&context.state.embedder_proxy) else {
+        let Some(credentials) = prompt_user_for_credentials(
+            &context.state.embedder_proxy,
+            http_request.target_browsing_context.clone(),
+        ) else {
             return response;
         };
         let Some(user_name) = credentials.username else {
@@ -1762,13 +1767,14 @@ impl Drop for ResponseEndTimer {
 
 fn prompt_user_for_credentials(
     embedder_proxy: &Mutex<EmbedderProxy>,
+    source_top_ctx_id: Option<TopLevelBrowsingContextId>,
 ) -> Option<PromptCredentialsInput> {
     let proxy = embedder_proxy.lock().unwrap();
 
     let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
 
     proxy.send((
-        None,
+        source_top_ctx_id,
         EmbedderMsg::Prompt(
             PromptDefinition::Credentials(ipc_sender),
             PromptOrigin::Trusted,

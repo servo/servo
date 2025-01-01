@@ -1617,6 +1617,7 @@ where
             },
 
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
+                let req_init = req_init.target_browsing_context(Some(source_top_ctx_id));
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
