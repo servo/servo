@@ -28,7 +28,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct XRTest {

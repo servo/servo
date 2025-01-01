@@ -20,7 +20,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::range::Range;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum Direction {

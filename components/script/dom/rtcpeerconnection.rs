@@ -53,7 +53,6 @@ use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
-use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -81,7 +80,7 @@ pub struct RTCPeerConnection {
 
 struct RTCSignaller {
     trusted: Trusted<RTCPeerConnection>,
-    task_source: NetworkingTaskSource,
+    task_source: TaskSource,
     canceller: TaskCanceller,
 }
 

@@ -17,7 +17,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct AudioScheduledSourceNode {
