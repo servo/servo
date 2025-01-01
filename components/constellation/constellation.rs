@@ -1617,8 +1617,12 @@ where
             },
 
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
-                let req_init = req_init.target_browsing_context(Some(source_top_ctx_id));
-                self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
+                self.handle_navigate_request(
+                    source_pipeline_id,
+                    source_top_ctx_id,
+                    req_init,
+                    cancel_chan,
+                );
             },
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
@@ -3210,9 +3214,12 @@ where
     fn handle_navigate_request(
         &self,
         id: PipelineId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
         request_builder: RequestBuilder,
         cancel_chan: IpcReceiver<()>,
     ) {
+        let request_builder =
+            request_builder.target_browsing_context(Some(top_level_browsing_context_id));
         let listener = NetworkListener::new(
             request_builder,
             id,
