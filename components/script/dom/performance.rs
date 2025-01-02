@@ -247,7 +247,7 @@ impl Performance {
                 let task = task!(notify_performance_observers: move || {
                     owner.root().notify_observers();
                 });
-                let _ = task_source.queue(task, global);
+                let _ = task_source.queue(task);
             }
         }
         let mut observers = self.observers.borrow_mut();
@@ -334,7 +334,7 @@ impl Performance {
         let task = task!(notify_performance_observers: move || {
             owner.root().notify_observers();
         });
-        let _ = task_source.queue(task, global);
+        let _ = task_source.queue(task);
 
         Some(entry_last_index)
     }

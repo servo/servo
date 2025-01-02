@@ -21,6 +21,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTex
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
@@ -651,8 +652,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
-                let window = window_from_node(self);
-                window
+                window_from_node(self)
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -660,7 +660,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
-                        &window,
                     );
             }
         } else if event.type_() == atom!("compositionstart") ||

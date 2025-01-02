@@ -9,6 +9,7 @@ use js::rust::HandleObject;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -104,6 +105,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         let target = self.upcast::<EventTarget>();
         let win = window_from_node(self);
 
+
         // Step 1 & 2
         if element
             .remove_attribute(&ns!(), &local_name!("open"))
@@ -122,6 +124,6 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // Step 5
         win.task_manager()
             .dom_manipulation_task_source()
-            .queue_simple_event(target, atom!("close"), &win);
+            .queue_simple_event(target, atom!("close"));
     }
 }

@@ -697,37 +697,34 @@ impl Document {
         // But it's now Step 4 in https://html.spec.whatwg.org/multipage/#reactivate-a-document
         // TODO: See #32687 for more information.
         let document = Trusted::new(self);
-        self.window
+        self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(fire_pageshow_event: move || {
-                    let document = document.root();
-                    let window = document.window();
-                    // Step 4.6.1
-                    if document.page_showing.get() {
-                        return;
-                    }
-                    // Step 4.6.2 Set document's page showing flag to true.
-                    document.page_showing.set(true);
-                    // Step 4.6.3 Update the visibility state of document to "visible".
-                    document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::note());
-                    // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
-                    // global object with true.
-                    let event = PageTransitionEvent::new(
-                        window,
-                        atom!("pageshow"),
-                        false, // bubbles
-                        false, // cancelable
-                        true, // persisted
-                        CanGc::note(),
-                    );
-                    let event = event.upcast::<Event>();
-                    event.set_trusted(true);
-                    window.dispatch_event_with_target_override(event, CanGc::note());
-                }),
-                self.window.upcast(),
-            )
+            .queue(task!(fire_pageshow_event: move || {
+                let document = document.root();
+                let window = document.window();
+                // Step 4.6.1
+                if document.page_showing.get() {
+                    return;
+                }
+                // Step 4.6.2 Set document's page showing flag to true.
+                document.page_showing.set(true);
+                // Step 4.6.3 Update the visibility state of document to "visible".
+                document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::note());
+                // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
+                // global object with true.
+                let event = PageTransitionEvent::new(
+                    window,
+                    atom!("pageshow"),
+                    false, // bubbles
+                    false, // cancelable
+                    true, // persisted
+                    CanGc::note(),
+                );
+                let event = event.upcast::<Event>();
+                event.set_trusted(true);
+                window.dispatch_event_with_target_override(event, CanGc::note());
+            }))
             .unwrap();
     }
 
@@ -2130,14 +2127,9 @@ impl Document {
         request: RequestBuilder,
         listener: Listener,
     ) {
-        let (task_source, canceller) = self
-            .window()
-            .task_manager()
-            .networking_task_source_with_canceller();
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
-            task_source,
-            canceller: Some(canceller),
+            task_source: self.global().task_manager().networking_task_source(),
         }
         .into_callback();
         self.loader_mut()
@@ -2150,14 +2142,9 @@ impl Document {
         listener: Listener,
         cancel_override: Option<ipc::IpcReceiver<()>>,
     ) {
-        let (task_source, canceller) = self
-            .window()
-            .task_manager()
-            .networking_task_source_with_canceller();
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
-            task_source,
-            canceller: Some(canceller),
+            task_source: self.global().task_manager().networking_task_source(),
         }
         .into_callback();
         self.loader_mut()
@@ -2385,81 +2372,75 @@ impl Document {
         // Step 7.
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
-        self.window
+        self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(fire_load_event: move || {
-                    let document = document.root();
-                    let window = document.window();
-                    if !window.is_alive() {
-                        return;
-                    }
+            .queue(task!(fire_load_event: move || {
+                let document = document.root();
+                let window = document.window();
+                if !window.is_alive() {
+                    return;
+                }
 
-                    // Step 7.1.
-                    document.set_ready_state(DocumentReadyState::Complete, CanGc::note());
+                // Step 7.1.
+                document.set_ready_state(DocumentReadyState::Complete, CanGc::note());
 
-                    // Step 7.2.
-                    if document.browsing_context().is_none() {
-                        return;
-                    }
-                    let event = Event::new(
-                        window.upcast(),
-                        atom!("load"),
-                        EventBubbles::DoesNotBubble,
-                        EventCancelable::NotCancelable,
-                        CanGc::note(),
-                    );
-                    event.set_trusted(true);
+                // Step 7.2.
+                if document.browsing_context().is_none() {
+                    return;
+                }
+                let event = Event::new(
+                    window.upcast(),
+                    atom!("load"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    CanGc::note(),
+                );
+                event.set_trusted(true);
 
-                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-                    update_with_current_instant(&document.load_event_start);
+                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+                update_with_current_instant(&document.load_event_start);
 
-                    debug!("About to dispatch load for {:?}", document.url());
-                    window.dispatch_event_with_target_override(&event, CanGc::note());
+                debug!("About to dispatch load for {:?}", document.url());
+                window.dispatch_event_with_target_override(&event, CanGc::note());
 
-                    // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-                    update_with_current_instant(&document.load_event_end);
+                // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+                update_with_current_instant(&document.load_event_end);
 
-                    if let Some(fragment) = document.url().fragment() {
-                        document.check_and_scroll_fragment(fragment, CanGc::note());
-                    }
-                }),
-                self.window.upcast(),
-            )
+                if let Some(fragment) = document.url().fragment() {
+                    document.check_and_scroll_fragment(fragment, CanGc::note());
+                }
+            }))
             .unwrap();
 
         // Step 8.
         let document = Trusted::new(self);
         if document.root().browsing_context().is_some() {
-            self.window
+            self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(
-                    task!(fire_pageshow_event: move || {
-                        let document = document.root();
-                        let window = document.window();
-                        if document.page_showing.get() || !window.is_alive() {
-                            return;
-                        }
+                .queue(task!(fire_pageshow_event: move || {
+                    let document = document.root();
+                    let window = document.window();
+                    if document.page_showing.get() || !window.is_alive() {
+                        return;
+                    }
 
-                        document.page_showing.set(true);
+                    document.page_showing.set(true);
 
-                        let event = PageTransitionEvent::new(
-                            window,
-                            atom!("pageshow"),
-                            false, // bubbles
-                            false, // cancelable
-                            false, // persisted
-                            CanGc::note(),
-                        );
-                        let event = event.upcast::<Event>();
-                        event.set_trusted(true);
+                    let event = PageTransitionEvent::new(
+                        window,
+                        atom!("pageshow"),
+                        false, // bubbles
+                        false, // cancelable
+                        false, // persisted
+                        CanGc::note(),
+                    );
+                    let event = event.upcast::<Event>();
+                    event.set_trusted(true);
 
-                        window.dispatch_event_with_target_override(event, CanGc::note());
-                    }),
-                    self.window.upcast(),
-                )
+                    window.dispatch_event_with_target_override(event, CanGc::note());
+                }))
                 .unwrap();
         }
 
@@ -2487,32 +2468,29 @@ impl Document {
         // TODO: fully implement "completely loaded".
         let document = Trusted::new(self);
         if document.root().browsing_context().is_some() {
-            self.window
+            self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(
-                    task!(completely_loaded: move || {
-                        let document = document.root();
-                        document.completely_loaded.set(true);
-                        if let Some(DeclarativeRefresh::PendingLoad {
-                            url,
-                            time
-                        }) = &*document.declarative_refresh.borrow() {
-                            // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
-                            document.window.upcast::<GlobalScope>().schedule_callback(
-                                OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
-                                    window: window_from_node(&*document),
-                                    url: url.clone(),
-                                }),
-                                Duration::from_secs(*time),
-                            );
-                        }
-                        // Note: this will, among others, result in the "iframe-load-event-steps" being run.
-                        // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-                        document.notify_constellation_load();
-                    }),
-                    self.window.upcast(),
-                )
+                .queue(task!(completely_loaded: move || {
+                    let document = document.root();
+                    document.completely_loaded.set(true);
+                    if let Some(DeclarativeRefresh::PendingLoad {
+                        url,
+                        time
+                    }) = &*document.declarative_refresh.borrow() {
+                        // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
+                        document.window.upcast::<GlobalScope>().schedule_callback(
+                            OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
+                                window: window_from_node(&*document),
+                                url: url.clone(),
+                            }),
+                            Duration::from_secs(*time),
+                        );
+                    }
+                    // Note: this will, among others, result in the "iframe-load-event-steps" being run.
+                    // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+                    document.notify_constellation_load();
+                }))
                 .unwrap();
         }
     }
@@ -2658,9 +2636,8 @@ impl Document {
         update_with_current_instant(&self.dom_content_loaded_event_start);
 
         // Step 4.1.
-        let window = self.window();
         let document = Trusted::new(self);
-        window
+        self.global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(
@@ -2668,8 +2645,7 @@ impl Document {
                 let document = document.root();
                 document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
                 update_with_current_instant(&document.dom_content_loaded_event_end);
-                }),
-                window.upcast(),
+                })
             )
             .unwrap();
 
@@ -2714,8 +2690,9 @@ impl Document {
         // Note: the spec says to discard any tasks queued for fetch.
         // This cancels all tasks on the networking task source, which might be too broad.
         // See https://github.com/whatwg/html/issues/3837
-        self.window
-            .cancel_all_tasks_from_source(TaskSourceName::Networking);
+        self.window()
+            .task_manager()
+            .cancel_pending_tasks_for_source(TaskSourceName::Networking);
 
         // Step 3.
         if let Some(parser) = self.get_current_parser() {

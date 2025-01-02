@@ -19,6 +19,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
@@ -136,11 +137,10 @@ impl HTMLStyleElement {
 
         // No subresource loads were triggered, queue load event
         if self.pending_loads.get() == 0 {
-            let window = window_from_node(self);
-            window
+            window_from_node(self)
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue_simple_event(self.upcast(), atom!("load"), &window);
+                .queue_simple_event(self.upcast(), atom!("load"));
         }
 
         self.set_stylesheet(sheet);

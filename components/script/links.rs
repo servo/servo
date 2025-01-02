@@ -13,6 +13,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::referrer_policy_for_element;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
@@ -434,7 +435,7 @@ pub fn follow_hyperlink(
         target_window
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task, target_window.upcast())
+            .queue(task)
             .unwrap();
     };
 }

@@ -1566,6 +1566,7 @@ impl XMLHttpRequest {
                     sender,
                     pipeline_id: global.pipeline_id(),
                     name: TaskSourceName::Networking,
+                    canceller: Default::default(),
                 },
                 Some(receiver),
             )

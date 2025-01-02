@@ -9,12 +9,9 @@ use base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_atoms::Atom;
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::types::GlobalScope;
-use crate::dom::window::Window;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 
@@ -92,32 +89,21 @@ pub(crate) struct TaskSource {
     #[no_trace]
     pub pipeline_id: PipelineId,
     pub name: TaskSourceName,
+    pub canceller: TaskCanceller,
 }
 
 impl TaskSource {
-    pub(crate) fn queue_with_canceller<T>(
-        &self,
-        task: T,
-        canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    pub(crate) fn queue<T>(&self, task: T) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {
         let msg = CommonScriptMsg::Task(
             self.name.into(),
-            Box::new(canceller.wrap_task(task)),
+            Box::new(self.canceller.wrap_task(task)),
             Some(self.pipeline_id),
             self.name,
         );
         self.sender.send(msg).map_err(|_| ())
-    }
-
-    pub(crate) fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
-    where
-        T: TaskOnce + 'static,
-    {
-        let canceller = global.task_canceller(self.name);
-        self.queue_with_canceller(task, &canceller)
     }
 
     /// This queues a task that will not be cancelled when its associated global scope gets destroyed.
@@ -133,9 +119,9 @@ impl TaskSource {
         ))
     }
 
-    pub(crate) fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
+    pub(crate) fn queue_simple_event(&self, target: &EventTarget, name: Atom) {
         let target = Trusted::new(target);
-        let _ = self.queue(SimpleEventTask { target, name }, window.upcast());
+        let _ = self.queue(SimpleEventTask { target, name });
     }
 
     pub(crate) fn queue_event(
@@ -144,16 +130,14 @@ impl TaskSource {
         name: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        window: &Window,
     ) {
         let target = Trusted::new(target);
-        let task = EventTask {
+        let _ = self.queue(EventTask {
             target,
             name,
             bubbles,
             cancelable,
-        };
-        let _ = self.queue(task, window.upcast());
+        });
     }
 }
 
@@ -163,6 +147,7 @@ impl Clone for TaskSource {
             sender: self.sender.as_boxed(),
             pipeline_id: self.pipeline_id,
             name: self.name,
+            canceller: self.canceller.clone(),
         }
     }
 }

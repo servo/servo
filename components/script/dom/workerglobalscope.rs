@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{RefCell, RefMut};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,13 +44,12 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
-use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
@@ -60,7 +59,6 @@ use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
-use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, TimerCallback};
 
 pub fn prepare_workerscope_init(
@@ -124,13 +122,10 @@ pub struct WorkerGlobalScope {
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
 
-    /// A [`TimerScheduler`] used to schedule timers for this [`ServiceWorkerGlobalScope`].
+    /// A [`TimerScheduler`] used to schedule timers for this [`WorkerGlobalScope`].
     /// Timers are handled in the service worker event loop.
     #[no_trace]
     timer_scheduler: RefCell<TimerScheduler>,
-
-    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
-    task_manager: OnceCell<TaskManager>,
 }
 
 impl WorkerGlobalScope {
@@ -185,7 +180,6 @@ impl WorkerGlobalScope {
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
-            task_manager: Default::default(),
         }
     }
 
@@ -232,12 +226,6 @@ impl WorkerGlobalScope {
         self.worker_id
     }
 
-    pub fn task_canceller(&self) -> TaskCanceller {
-        TaskCanceller {
-            cancelled: self.closing.clone(),
-        }
-    }
-
     pub fn pipeline_id(&self) -> PipelineId {
         self.globalscope.pipeline_id()
     }
@@ -249,6 +237,14 @@ impl WorkerGlobalScope {
     /// Get a mutable reference to the [`TimerScheduler`] for this [`ServiceWorkerGlobalScope`].
     pub(crate) fn timer_scheduler(&self) -> RefMut<TimerScheduler> {
         self.timer_scheduler.borrow_mut()
+    }
+
+    /// Return a copy to the shared task canceller that is used to cancel all tasks
+    /// when this worker is closing.
+    pub(crate) fn shared_task_canceller(&self) -> TaskCanceller {
+        TaskCanceller {
+            cancelled: self.closing.clone(),
+        }
     }
 }
 
@@ -495,23 +491,6 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
-        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
-        if let Some(dedicated) = dedicated {
-            dedicated.script_chan()
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.script_chan();
-        } else {
-            panic!("need to implement a sender for SharedWorker")
-        }
-    }
-
-    pub(crate) fn task_manager(&self) -> &TaskManager {
-        self.task_manager
-            .get_or_init(|| TaskManager::new(self.script_chan(), self.pipeline_id()))
-    }
-
     pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
@@ -542,5 +521,8 @@ impl WorkerGlobalScope {
 
     pub fn close(&self) {
         self.closing.store(true, Ordering::SeqCst);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
     }
 }
