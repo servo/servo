@@ -226,7 +226,7 @@ where
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(
-            skip(embedder, window),
+            skip(rendering_context, embedder, window),
             fields(servo_profiling = true),
             level = "trace",
         )

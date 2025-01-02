@@ -73,6 +73,7 @@ use net_traits::{
 };
 use percent_encoding::percent_decode;
 use profile_traits::mem::ReportsChan;
+use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
     node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
@@ -1666,12 +1667,130 @@ impl ScriptThread {
             .notify_activity(HangAnnotation::Script(category.into()));
         let start = Instant::now();
         let value = if self.profile_script_events {
-            time_profile!(
-                category.into(),
-                None,
-                self.senders.time_profiler_sender.clone(),
-                f
-            )
+            let profiler_chan = self.senders.time_profiler_sender.clone();
+            match category {
+                ScriptThreadEventCategory::AttachLayout => {
+                    time_profile!(ProfilerCategory::ScriptAttachLayout, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::ConstellationMsg => time_profile!(
+                    ProfilerCategory::ScriptConstellationMsg,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::DevtoolsMsg => {
+                    time_profile!(ProfilerCategory::ScriptDevtoolsMsg, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::DocumentEvent => time_profile!(
+                    ProfilerCategory::ScriptDocumentEvent,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::DomEvent => {
+                    time_profile!(ProfilerCategory::ScriptDomEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::FileRead => {
+                    time_profile!(ProfilerCategory::ScriptFileRead, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::FormPlannedNavigation => time_profile!(
+                    ProfilerCategory::ScriptPlannedNavigation,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::HistoryEvent => {
+                    time_profile!(ProfilerCategory::ScriptHistoryEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::ImageCacheMsg => time_profile!(
+                    ProfilerCategory::ScriptImageCacheMsg,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::InputEvent => {
+                    time_profile!(ProfilerCategory::ScriptInputEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::NetworkEvent => {
+                    time_profile!(ProfilerCategory::ScriptNetworkEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::PortMessage => {
+                    time_profile!(ProfilerCategory::ScriptPortMessage, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::Resize => {
+                    time_profile!(ProfilerCategory::ScriptResize, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::ScriptEvent => {
+                    time_profile!(ProfilerCategory::ScriptEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::SetScrollState => time_profile!(
+                    ProfilerCategory::ScriptSetScrollState,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::UpdateReplacedElement => time_profile!(
+                    ProfilerCategory::ScriptUpdateReplacedElement,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::StylesheetLoad => time_profile!(
+                    ProfilerCategory::ScriptStylesheetLoad,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::SetViewport => {
+                    time_profile!(ProfilerCategory::ScriptSetViewport, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::TimerEvent => {
+                    time_profile!(ProfilerCategory::ScriptTimerEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::WebSocketEvent => time_profile!(
+                    ProfilerCategory::ScriptWebSocketEvent,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::WorkerEvent => {
+                    time_profile!(ProfilerCategory::ScriptWorkerEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::WorkletEvent => {
+                    time_profile!(ProfilerCategory::ScriptWorkletEvent, None, profiler_chan, f)
+                },
+                ScriptThreadEventCategory::ServiceWorkerEvent => time_profile!(
+                    ProfilerCategory::ScriptServiceWorkerEvent,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::EnterFullscreen => time_profile!(
+                    ProfilerCategory::ScriptEnterFullscreen,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::ExitFullscreen => time_profile!(
+                    ProfilerCategory::ScriptExitFullscreen,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::PerformanceTimelineTask => time_profile!(
+                    ProfilerCategory::ScriptPerformanceEvent,
+                    None,
+                    profiler_chan,
+                    f
+                ),
+                ScriptThreadEventCategory::Rendering => {
+                    time_profile!(ProfilerCategory::ScriptRendering, None, profiler_chan, f)
+                },
+                #[cfg(feature = "webgpu")]
+                ScriptThreadEventCategory::WebGPUMsg => {
+                    time_profile!(ProfilerCategory::ScriptWebGPUMsg, None, profiler_chan, f)
+                },
+            }
         } else {
             f()
         };
