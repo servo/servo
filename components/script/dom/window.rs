@@ -11,7 +11,6 @@ use std::default::Default;
 use std::io::{stderr, stdout, Write};
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -153,12 +152,9 @@ use crate::messaging::{
 };
 use crate::microtask::MicrotaskQueue;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
-};
+use crate::script_runtime::{CanGc, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::script_thread::ScriptThread;
 use crate::task_manager::TaskManager;
-use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
 use crate::webdriver_handlers::jsval_to_webdriver;
@@ -208,7 +204,6 @@ pub struct Window {
     globalscope: GlobalScope,
     #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    task_manager: TaskManager,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
@@ -383,10 +378,6 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn task_manager(&self) -> &TaskManager {
-        &self.task_manager
-    }
-
     pub fn layout(&self) -> Ref<Box<dyn Layout>> {
         self.layout.borrow()
     }
@@ -411,7 +402,8 @@ impl Window {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.window_proxy.set(None);
             self.current_state.set(WindowState::Zombie);
-            self.ignore_all_tasks();
+            self.task_manager()
+                .cancel_all_tasks_and_ignore_future_tasks();
         }
     }
 
@@ -426,16 +418,8 @@ impl Window {
         // Step 4 of https://html.spec.whatwg.org/multipage/#discard-a-document
         // Other steps performed when the `PipelineExit` message
         // is handled by the ScriptThread.
-        self.ignore_all_tasks();
-    }
-
-    /// Cancel all current, and ignore all subsequently queued, tasks.
-    pub fn ignore_all_tasks(&self) {
-        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
-        for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(*task_source_name).or_default();
-            flag.store(true, Ordering::SeqCst);
-        }
+        self.task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
     }
 
     /// Get a sender to the time profiler thread.
@@ -571,6 +555,10 @@ impl Window {
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
     pub fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) -> EventStatus {
         event.dispatch(self.upcast(), true, can_gc)
+    }
+
+    pub(crate) fn task_manager(&self) -> &TaskManager {
+        self.upcast::<GlobalScope>().task_manager()
     }
 }
 
@@ -825,9 +813,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                         window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
                     }
                 });
-                self.task_manager()
+                self.global()
+                    .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, self.upcast::<GlobalScope>())
+                    .queue(task)
                     .expect("Queuing window_close_browsing_context task to work");
             }
         }
@@ -1657,29 +1646,6 @@ impl Window {
         self.document.get().is_some()
     }
 
-    /// Cancels all the tasks associated with that window.
-    ///
-    /// This sets the current `task_manager.task_cancellers` sentinel value to
-    /// `true` and replaces it with a brand new one for future tasks.
-    pub fn cancel_all_tasks(&self) {
-        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
-        for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(*task_source_name).or_default();
-            let cancelled = std::mem::take(&mut *flag);
-            cancelled.store(true, Ordering::SeqCst);
-        }
-    }
-
-    /// Cancels all the tasks from a given task source.
-    /// This sets the current sentinel value to
-    /// `true` and replaces it with a brand new one for future tasks.
-    pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
-        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
-        let flag = ignore_flags.entry(task_source_name).or_default();
-        let cancelled = std::mem::take(&mut *flag);
-        cancelled.store(true, Ordering::SeqCst);
-    }
-
     pub fn clear_js_runtime(&self) {
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
@@ -1721,7 +1687,8 @@ impl Window {
         if let Some(performance) = self.performance.get() {
             performance.clear_and_disable_performance_entry_buffer();
         }
-        self.ignore_all_tasks();
+        self.task_manager()
+            .cancel_all_tasks_and_ignore_future_tasks();
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
@@ -2368,17 +2335,10 @@ impl Window {
                         CanGc::note());
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
                 });
-                // FIXME(nox): Why are errors silenced here?
-                let _ = self.script_chan.send(CommonScriptMsg::Task(
-                    ScriptThreadEventCategory::DomEvent,
-                    Box::new(
-                        self.task_manager
-                            .task_canceller(TaskSourceName::DOMManipulation)
-                            .wrap_task(task),
-                    ),
-                    Some(self.pipeline_id()),
-                    TaskSourceName::DOMManipulation,
-                ));
+                let _ = self
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task);
                 doc.set_url(load_data.url.clone());
                 return;
             }
@@ -2715,7 +2675,6 @@ impl Window {
     pub(crate) fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
-        task_manager: TaskManager,
         layout: Box<dyn Layout>,
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<dyn ImageCache>,
@@ -2726,7 +2685,7 @@ impl Window {
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
         constellation_chan: ScriptToConstellationChan,
         control_chan: IpcSender<ConstellationControlMsg>,
-        pipelineid: PipelineId,
+        pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
         window_size: WindowSizeData,
         origin: MutableOrigin,
@@ -2751,7 +2710,7 @@ impl Window {
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
-            pipelineid,
+            pipelineid: pipeline_id,
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
 
@@ -2762,7 +2721,7 @@ impl Window {
 
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
-                pipelineid,
+                pipeline_id,
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
@@ -2779,7 +2738,6 @@ impl Window {
                 unminify_js,
             ),
             script_chan,
-            task_manager,
             layout: RefCell::new(layout),
             image_cache_chan,
             image_cache,
@@ -2838,6 +2796,10 @@ impl Window {
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
+    }
+
+    pub(crate) fn event_loop_sender(&self) -> Box<dyn ScriptChan + Send> {
+        Box::new(self.script_chan.clone())
     }
 
     pub fn pipeline_id(&self) -> PipelineId {
@@ -2983,19 +2945,11 @@ impl Window {
                 );
             }
         });
-        // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".
-        // TODO: When switching to the right task source, update the task_canceller call too.
-        let _ = self.script_chan.send(CommonScriptMsg::Task(
-            ScriptThreadEventCategory::DomEvent,
-            Box::new(
-                self.task_manager
-                    .task_canceller(TaskSourceName::DOMManipulation)
-                    .wrap_task(task),
-            ),
-            Some(self.pipeline_id()),
-            TaskSourceName::DOMManipulation,
-        ));
+        let _ = self
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task);
     }
 }
 

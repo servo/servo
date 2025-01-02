@@ -306,10 +306,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
         let global = self.global();
         let p = Promise::new(&global, can_gc);
         let mut trusted = Some(TrustedPromise::new(p.clone()));
-        let (task_source, canceller) = global
-            .as_window()
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let task_source = global.task_manager().dom_manipulation_task_source();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
@@ -318,7 +315,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
                 let trusted = trusted
                     .take()
                     .expect("disconnect callback called multiple times");
-                let _ = task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+                let _ = task_source.queue(trusted.resolve_task(()));
             }),
         );
         self.disconnect(sender);

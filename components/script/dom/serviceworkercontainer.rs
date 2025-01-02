@@ -26,8 +26,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
-use crate::task::TaskCanceller;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct ServiceWorkerContainer {
@@ -141,15 +140,10 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 
         // Setup the callback for reject/resolve of the promise,
         // from steps running "in-parallel" from here in the serviceworker manager.
-        let (task_source, task_canceller) = (
-            global.task_manager().dom_manipulation_task_source(),
-            global.task_canceller(TaskSourceName::DOMManipulation),
-        );
-
+        let task_source = global.task_manager().dom_manipulation_task_source();
         let mut handler = RegisterJobResultHandler {
             trusted_promise: Some(TrustedPromise::new(promise.clone())),
             task_source,
-            task_canceller,
         };
 
         let (job_result_sender, job_result_receiver) = ipc::channel().expect("ipc channel failure");
@@ -190,7 +184,6 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
 struct RegisterJobResultHandler {
     trusted_promise: Option<TrustedPromise>,
     task_source: TaskSource,
-    task_canceller: TaskCanceller,
 }
 
 impl RegisterJobResultHandler {
@@ -206,7 +199,7 @@ impl RegisterJobResultHandler {
                     .expect("No promise to resolve for SW Register job.");
 
                 // Step 1
-                let _ = self.task_source.queue_with_canceller(
+                let _ = self.task_source.queue(
                     task!(reject_promise_with_security_error: move || {
                         let promise = promise.root();
                         let _ac = enter_realm(&*promise.global());
@@ -219,8 +212,7 @@ impl RegisterJobResultHandler {
                             },
                         }
 
-                    }),
-                    &self.task_canceller,
+                    })
                 );
 
                 // TODO: step 2, handle equivalent jobs.
@@ -232,35 +224,32 @@ impl RegisterJobResultHandler {
                     .expect("No promise to resolve for SW Register job.");
 
                 // Step 1
-                let _ = self.task_source.queue_with_canceller(
-                    task!(resolve_promise: move || {
-                        let promise = promise.root();
-                        let global = promise.global();
-                        let _ac = enter_realm(&*global);
+                let _ = self.task_source.queue(task!(resolve_promise: move || {
+                    let promise = promise.root();
+                    let global = promise.global();
+                    let _ac = enter_realm(&*global);
 
-                        // Step 1.1
-                        let JobResultValue::Registration {
-                            id,
-                            installing_worker,
-                            waiting_worker,
-                            active_worker,
-                        } = value;
+                    // Step 1.1
+                    let JobResultValue::Registration {
+                        id,
+                        installing_worker,
+                        waiting_worker,
+                        active_worker,
+                    } = value;
 
-                        // Step 1.2 (Job type is "register").
-                        let registration = global.get_serviceworker_registration(
-                            &job.script_url,
-                            &job.scope_url,
-                            id,
-                            installing_worker,
-                            waiting_worker,
-                            active_worker,
-                        );
+                    // Step 1.2 (Job type is "register").
+                    let registration = global.get_serviceworker_registration(
+                        &job.script_url,
+                        &job.scope_url,
+                        id,
+                        installing_worker,
+                        waiting_worker,
+                        active_worker,
+                    );
 
-                        // Step 1.4
-                        promise.resolve_native(&*registration);
-                    }),
-                    &self.task_canceller,
-                );
+                    // Step 1.4
+                    promise.resolve_native(&*registration);
+                }));
 
                 // TODO: step 2, handle equivalent jobs.
             },

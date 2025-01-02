@@ -151,7 +151,6 @@ use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptThreadEventCategory,
     ThreadSafeJSContext,
 };
-use crate::task_manager::TaskManager;
 use crate::task_queue::TaskQueue;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::{devtools, webdriver_handlers};
@@ -692,7 +691,7 @@ impl ScriptThread {
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, global.upcast())
+                    .queue(task)
                     .expect("Enqueing navigate js task on the DOM manipulation task source failed");
             } else {
                 if let Some(ref sender) = script_thread.senders.devtools_server_sender {
@@ -906,6 +905,7 @@ impl ScriptThread {
             sender: self_sender.as_boxed(),
             pipeline_id: state.id,
             name: TaskSourceName::Networking,
+            canceller: Default::default(),
         }));
         let cx = runtime.cx();
 
@@ -1032,8 +1032,10 @@ impl ScriptThread {
     fn prepare_for_shutdown_inner(&self) {
         let docs = self.documents.borrow();
         for (_, document) in docs.iter() {
-            let window = document.window();
-            window.ignore_all_tasks();
+            document
+                .window()
+                .task_manager()
+                .cancel_all_tasks_and_ignore_future_tasks();
         }
     }
 
@@ -1406,7 +1408,8 @@ impl ScriptThread {
         //
         // This task is empty because any new IPC messages in the ScriptThread trigger a
         // rendering update when animations are not running.
-        let rendering_task_source = document.window().task_manager().rendering_task_source();
+        let _realm = enter_realm(&*document);
+        let rendering_task_source = document.global().task_manager().rendering_task_source();
         let _ =
             rendering_task_source.queue_unconditionally(task!(update_the_rendering: move || { }));
     }
@@ -3010,10 +3013,6 @@ impl ScriptThread {
             pipeline_id: incomplete.pipeline_id,
         };
 
-        let task_manager = TaskManager::new(
-            Box::new(self.senders.self_sender.clone()),
-            incomplete.pipeline_id,
-        );
         let paint_time_metrics = PaintTimeMetrics::new(
             incomplete.pipeline_id,
             self.senders.time_profiler_sender.clone(),
@@ -3042,7 +3041,6 @@ impl ScriptThread {
         let window = Window::new(
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
-            task_manager,
             self.layout_factory.create(layout_config),
             self.senders.image_cache_sender.clone(),
             self.image_cache.clone(),

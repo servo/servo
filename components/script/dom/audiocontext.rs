@@ -157,8 +157,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         }
 
         // Steps 4 and 5.
-        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
-        let task_source = window.task_manager().dom_manipulation_task_source();
+        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().suspend() {
             Ok(_) => {
@@ -172,27 +171,21 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                         promise.resolve_native(&());
                         if base_context.State() != AudioContextState::Suspended {
                             base_context.set_state_attribute(AudioContextState::Suspended);
-                            let window = DomRoot::downcast::<Window>(context.global()).unwrap();
-                            window.task_manager().dom_manipulation_task_source().queue_simple_event(
+                            context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
                                 context.upcast(),
                                 atom!("statechange"),
-                                &window
-                                );
+                            );
                         }
-                    }),
-                    window.upcast(),
+                    })
                 );
             },
             Err(_) => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
-                let _ = task_source.queue(
-                    task!(suspend_error: move || {
-                        let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                    }),
-                    window.upcast(),
-                );
+                let _ = task_source.queue(task!(suspend_error: move || {
+                    let promise = trusted_promise.root();
+                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                }));
             },
         };
 
@@ -218,8 +211,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         }
 
         // Steps 4 and 5.
-        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
-        let task_source = window.task_manager().dom_manipulation_task_source();
+        let task_source = self.global().task_manager().dom_manipulation_task_source();
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().close() {
             Ok(_) => {
@@ -233,27 +225,21 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                         promise.resolve_native(&());
                         if base_context.State() != AudioContextState::Closed {
                             base_context.set_state_attribute(AudioContextState::Closed);
-                            let window = DomRoot::downcast::<Window>(context.global()).unwrap();
-                            window.task_manager().dom_manipulation_task_source().queue_simple_event(
+                            context.global().task_manager().dom_manipulation_task_source().queue_simple_event(
                                 context.upcast(),
                                 atom!("statechange"),
-                                &window
-                                );
+                            );
                         }
-                    }),
-                    window.upcast(),
+                    })
                 );
             },
             Err(_) => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
-                let _ = task_source.queue(
-                    task!(suspend_error: move || {
-                        let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                    }),
-                    window.upcast(),
-                );
+                let _ = task_source.queue(task!(suspend_error: move || {
+                    let promise = trusted_promise.root();
+                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                }));
             },
         };
 
