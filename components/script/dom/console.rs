@@ -297,32 +297,32 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Debug(cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Debug(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Debug, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
-    fn Info(cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Info(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Info, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
-    fn Warn(cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Warn(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Warn, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
-    fn Error(cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Error(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Error, messages, IncludeStackTrace::No);
     }
 
     /// <https://console.spec.whatwg.org/#trace>
-    fn Trace(cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Trace(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Trace, messages, IncludeStackTrace::Yes);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    fn Assert(cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
+    fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
 
