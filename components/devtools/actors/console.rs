@@ -17,7 +17,7 @@ use devtools_traits::EvaluateJSReply::{
 };
 use devtools_traits::{
     CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleLog, ConsoleMessage,
-    DevtoolScriptControlMsg, LogLevel, PageError,
+    DevtoolScriptControlMsg, PageError,
 };
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;

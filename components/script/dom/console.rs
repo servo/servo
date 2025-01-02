@@ -6,8 +6,8 @@ use std::convert::TryFrom;
 use std::{io, ptr};
 
 use devtools_traits::{
-    ConsoleArgument, ConsoleLog, ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder,
-    LogLevel, ScriptToDevtoolsControlMsg, StackFrame,
+    ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder, LogLevel,
+    ScriptToDevtoolsControlMsg, StackFrame,
 };
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::UndefinedValue;
@@ -51,7 +51,12 @@ impl Console {
         Self::send_to_devtools(global, log_message);
     }
 
-    fn method(global: &GlobalScope, level: LogLevel, messages: Vec<HandleValue>, include_stacktrace: IncludeStackTrace) {
+    fn method(
+        global: &GlobalScope,
+        level: LogLevel,
+        messages: Vec<HandleValue>,
+        include_stacktrace: IncludeStackTrace,
+    ) {
         let cx = GlobalScope::get_cx();
 
         let mut log: ConsoleMessageBuilder = Console::build_message(level);
@@ -278,7 +283,7 @@ fn console_message(global: &GlobalScope, message: DOMString) {
     })
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Eq, PartialEq)]
 enum IncludeStackTrace {
     Yes,
     No,
@@ -286,7 +291,7 @@ enum IncludeStackTrace {
 
 impl consoleMethods<crate::DomTypeHolder> for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
-    fn Log(cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+    fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         Console::method(global, LogLevel::Log, messages, IncludeStackTrace::No);
     }
 

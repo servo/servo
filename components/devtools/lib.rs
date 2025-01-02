@@ -22,9 +22,9 @@ use std::thread;
 use base::id::{BrowsingContextId, PipelineId};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{
-    ChromeToDevtoolsControlMsg, ConsoleLog, ConsoleMessage, ConsoleMessageBuilder,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState,
-    NetworkEvent, PageError, ScriptToDevtoolsControlMsg, WorkerId,
+    ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
+    DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
+    ScriptToDevtoolsControlMsg, WorkerId,
 };
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
