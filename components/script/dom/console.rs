@@ -5,7 +5,10 @@
 use std::convert::TryFrom;
 use std::{io, ptr};
 
-use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg, StackFrame};
+use devtools_traits::{
+    ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder, LogLevel,
+    ScriptToDevtoolsControlMsg, StackFrame,
+};
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{
@@ -32,34 +35,60 @@ pub struct Console;
 
 impl Console {
     #[allow(unsafe_code)]
-    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: String) {
-        if let Some(chan) = global.devtools_chan() {
-            let caller =
-                unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
+    fn build_message(level: LogLevel) -> ConsoleMessageBuilder {
+        let cx = GlobalScope::get_cx();
+        let caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
 
-            let console_message = ConsoleMessage {
-                message,
-                log_level: level,
-                filename: caller.filename,
-                line_number: caller.line as usize,
-                column_number: caller.col as usize,
-                stacktrace: get_js_stack(*GlobalScope::get_cx()),
-            };
+        ConsoleMessageBuilder::new(level, caller.filename, caller.line, caller.col)
+    }
+
+    /// Helper to send a message that only consists of a single string to the devtools
+    fn send_string_message(global: &GlobalScope, level: LogLevel, message: String) {
+        let mut builder = Self::build_message(level);
+        builder.add_argument(message.into());
+        let log_message = builder.finish();
+
+        Self::send_to_devtools(global, log_message);
+    }
+
+    fn method(
+        global: &GlobalScope,
+        level: LogLevel,
+        messages: Vec<HandleValue>,
+        include_stacktrace: IncludeStackTrace,
+    ) {
+        let cx = GlobalScope::get_cx();
+
+        let mut log: ConsoleMessageBuilder = Console::build_message(level);
+        for message in &messages {
+            log.add_argument(console_argument_from_handle_value(cx, *message));
+        }
+
+        if include_stacktrace == IncludeStackTrace::Yes {
+            log.attach_stack_trace(get_js_stack(*GlobalScope::get_cx()));
+        }
+
+        Console::send_to_devtools(global, log.finish());
+
+        // Also log messages to stdout
+        console_messages(global, messages)
+    }
+
+    fn send_to_devtools(global: &GlobalScope, message: ConsoleMessage) {
+        if let Some(chan) = global.devtools_chan() {
             let worker_id = global
                 .downcast::<WorkerGlobalScope>()
                 .map(|worker| worker.get_worker_id());
-            let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
-                global.pipeline_id(),
-                console_message,
-                worker_id,
-            );
+            let devtools_message =
+                ScriptToDevtoolsControlMsg::ConsoleAPI(global.pipeline_id(), message, worker_id);
             chan.send(devtools_message).unwrap();
         }
     }
 
     // Directly logs a DOMString, without processing the message
     pub fn internal_warn(global: &GlobalScope, message: DOMString) {
-        console_message(global, message, LogLevel::Warn)
+        Console::send_string_message(global, LogLevel::Warn, String::from(message.clone()));
+        console_message(global, message);
     }
 }
 
@@ -87,6 +116,32 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
         },
         None => "<error converting value to string>".into(),
     }
+}
+
+#[allow(unsafe_code)]
+fn console_argument_from_handle_value(
+    cx: JSContext,
+    handle_value: HandleValue,
+) -> ConsoleMessageArgument {
+    if handle_value.is_string() {
+        let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
+        let dom_string = unsafe { jsstring_to_str(*cx, js_string) };
+        return ConsoleMessageArgument::String(dom_string.into());
+    }
+
+    if handle_value.is_int32() {
+        let integer = handle_value.to_int32();
+        return ConsoleMessageArgument::Integer(integer);
+    }
+
+    if handle_value.is_number() {
+        let number = handle_value.to_number();
+        return ConsoleMessageArgument::Number(number);
+    }
+
+    // FIXME: Handle more complex argument types here
+    let stringified_value = stringify_handle_value(handle_value);
+    ConsoleMessageArgument::String(stringified_value.into())
 }
 
 #[allow(unsafe_code)]
@@ -208,110 +263,116 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
     }
 }
 
-fn stringify_handle_values(messages: Vec<HandleValue>) -> DOMString {
+fn stringify_handle_values(messages: &[HandleValue]) -> DOMString {
     DOMString::from(itertools::join(
-        messages.into_iter().map(stringify_handle_value),
+        messages.iter().copied().map(stringify_handle_value),
         " ",
     ))
 }
 
-fn console_messages(global: &GlobalScope, messages: Vec<HandleValue>, level: LogLevel) {
-    let message = stringify_handle_values(messages);
-    console_message(global, message, level)
+fn console_messages(global: &GlobalScope, messages: Vec<HandleValue>) {
+    let message = stringify_handle_values(&messages);
+    console_message(global, message)
 }
 
-fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
+fn console_message(global: &GlobalScope, message: DOMString) {
     with_stderr_lock(move || {
         let prefix = global.current_group_label().unwrap_or_default();
         let message = format!("{}{}", prefix, message);
         println!("{}", message);
-        Console::send_to_devtools(global, level, message);
     })
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum IncludeStackTrace {
+    Yes,
+    No,
 }
 
 impl consoleMethods<crate::DomTypeHolder> for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        console_messages(global, messages, LogLevel::Log)
+        Console::method(global, LogLevel::Log, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/clear
     fn Clear(global: &GlobalScope) {
-        let message: Vec<HandleValue> = Vec::new();
-        console_messages(global, message, LogLevel::Clear)
+        let message = Console::build_message(LogLevel::Clear).finish();
+        Console::send_to_devtools(global, message);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
     fn Debug(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        console_messages(global, messages, LogLevel::Debug)
+        Console::method(global, LogLevel::Debug, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
     fn Info(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        console_messages(global, messages, LogLevel::Info)
+        Console::method(global, LogLevel::Info, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
     fn Warn(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        console_messages(global, messages, LogLevel::Warn)
+        Console::method(global, LogLevel::Warn, messages, IncludeStackTrace::No);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
     fn Error(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        console_messages(global, messages, LogLevel::Error)
+        Console::method(global, LogLevel::Error, messages, IncludeStackTrace::No);
     }
 
     /// <https://console.spec.whatwg.org/#trace>
     fn Trace(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        console_messages(global, messages, LogLevel::Trace)
+        Console::method(global, LogLevel::Trace, messages, IncludeStackTrace::Yes);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, messages: Vec<HandleValue>) {
         if !condition {
-            let message = DOMString::from(format!(
-                "Assertion failed: {}",
-                stringify_handle_values(messages)
-            ));
-            console_message(global, message, LogLevel::Error);
+            let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
+
+            Console::send_string_message(global, LogLevel::Log, message.clone());
+            console_message(global, DOMString::from(message));
         }
     }
 
     // https://console.spec.whatwg.org/#time
     fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
-            let message = DOMString::from(format!("{label}: timer started"));
-            console_message(global, message, LogLevel::Log);
+            let message = format!("{label}: timer started");
+            Console::send_string_message(global, LogLevel::Log, message.clone());
+            console_message(global, DOMString::from(message));
         }
     }
 
     // https://console.spec.whatwg.org/#timelog
     fn TimeLog(_cx: JSContext, global: &GlobalScope, label: DOMString, data: Vec<HandleValue>) {
         if let Ok(delta) = global.time_log(&label) {
-            let message = DOMString::from(format!(
-                "{label}: {delta}ms {}",
-                stringify_handle_values(data)
-            ));
-            console_message(global, message, LogLevel::Log);
+            let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
+
+            Console::send_string_message(global, LogLevel::Log, message.clone());
+            console_message(global, DOMString::from(message));
         }
     }
 
     // https://console.spec.whatwg.org/#timeend
     fn TimeEnd(global: &GlobalScope, label: DOMString) {
         if let Ok(delta) = global.time_end(&label) {
-            let message = DOMString::from(format!("{label}: {delta}ms"));
-            console_message(global, message, LogLevel::Log);
+            let message = format!("{label}: {delta}ms");
+
+            Console::send_string_message(global, LogLevel::Log, message.clone());
+            console_message(global, DOMString::from(message));
         }
     }
 
     // https://console.spec.whatwg.org/#group
     fn Group(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        global.push_console_group(stringify_handle_values(messages));
+        global.push_console_group(stringify_handle_values(&messages));
     }
 
     // https://console.spec.whatwg.org/#groupcollapsed
     fn GroupCollapsed(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        global.push_console_group(stringify_handle_values(messages));
+        global.push_console_group(stringify_handle_values(&messages));
     }
 
     // https://console.spec.whatwg.org/#groupend
@@ -322,8 +383,10 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     /// <https://console.spec.whatwg.org/#count>
     fn Count(global: &GlobalScope, label: DOMString) {
         let count = global.increment_console_count(&label);
-        let message = DOMString::from(format!("{label}: {count}"));
-        console_message(global, message, LogLevel::Log);
+        let message = format!("{label}: {count}");
+
+        Console::send_string_message(global, LogLevel::Log, message.clone());
+        console_message(global, DOMString::from(message));
     }
 
     /// <https://console.spec.whatwg.org/#countreset>
