@@ -462,7 +462,7 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
-        request.top_level_browsing_context_id = self.target_browsing_context_id;
+        request.target_browsing_context_id = self.target_browsing_context_id;
         request
     }
 }
@@ -490,7 +490,7 @@ pub struct Request {
     pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
-    pub top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
+    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
@@ -566,7 +566,7 @@ impl Request {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
-            top_level_browsing_context_id: None,
+            target_browsing_context_id: None,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
