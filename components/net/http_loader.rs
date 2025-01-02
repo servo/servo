@@ -1767,7 +1767,7 @@ impl Drop for ResponseEndTimer {
 
 fn prompt_user_for_credentials(
     embedder_proxy: &Mutex<EmbedderProxy>,
-    source_top_ctx_id: Option<TopLevelBrowsingContextId>,
+    top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
 ) -> Option<PromptCredentialsInput> {
     let proxy = embedder_proxy.lock().unwrap();
 
