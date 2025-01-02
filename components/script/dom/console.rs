@@ -125,8 +125,13 @@ fn console_argument_from_handle_value(
     }
 
     if handle_value.is_int32() {
-        let number = handle_value.to_int32();
-        return ConsoleMessageArgument::Integer(number);
+        let integer = handle_value.to_int32();
+        return ConsoleMessageArgument::Integer(integer);
+    }
+
+    if handle_value.is_number() {
+        let number = handle_value.to_number();
+        return ConsoleMessageArgument::Number(number);
     }
 
     // FIXME: Handle more complex argument types here

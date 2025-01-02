@@ -299,6 +299,7 @@ pub struct ConsoleMessage {
 pub enum ConsoleMessageArgument {
     String(String),
     Integer(i32),
+    Number(f64),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -457,13 +458,15 @@ pub struct CssDatabaseProperty {
 pub enum ConsoleArgument {
     String(String),
     Integer(i32),
+    Number(f64),
 }
 
 impl From<ConsoleMessageArgument> for ConsoleArgument {
     fn from(value: ConsoleMessageArgument) -> Self {
         match value {
-            ConsoleMessageArgument::String(s) => Self::String(s),
-            ConsoleMessageArgument::Integer(i) => Self::Integer(i),
+            ConsoleMessageArgument::String(string) => Self::String(string),
+            ConsoleMessageArgument::Integer(integer) => Self::Integer(integer),
+            ConsoleMessageArgument::Number(number) => Self::Number(number),
         }
     }
 }
