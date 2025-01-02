@@ -35,7 +35,6 @@ use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
-use crate::desktop::events_loop::with_current_event_loop;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -187,17 +186,8 @@ impl App {
         };
 
         let glwindow_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
-            let window = window.clone();
-            let factory = Box::new(move || {
-                with_current_event_loop(|w| Ok(window.new_glwindow(w)))
-                    .expect("An event loop should always be active in headed mode")
-            });
-            Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
-                rendering_context.connection(),
-                rendering_context.adapter(),
-                rendering_context.context_attributes(),
-                factory,
-            )))
+            let window = window.new_glwindow(event_loop.unwrap());
+            Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(window)))
         } else {
             None
         };

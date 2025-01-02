@@ -189,23 +189,3 @@ impl Drop for EventLoopGuard {
         CURRENT_EVENT_LOOP.with(|cell| cell.set(None));
     }
 }
-
-// Helper function to safely use the current event loop
-#[allow(unsafe_code)]
-pub fn with_current_event_loop<F, R>(f: F) -> Option<R>
-where
-    F: FnOnce(&ActiveEventLoop) -> R,
-{
-    CURRENT_EVENT_LOOP.with(|cell| {
-        cell.get().map(|ptr| {
-            // SAFETY:
-            // 1. The pointer is guaranteed to be valid when it's Some, as the EventLoopGuard that created it
-            //    lives at least as long as the reference, and clears it when it's dropped. Only run_forever creates
-            //    a new EventLoopGuard, and does not leak it.
-            // 2. Since the pointer was created from a borrow which lives at least as long as this pointer there are
-            //    no mutable references to the ActiveEventLoop.
-            let event_loop = unsafe { &*ptr };
-            f(event_loop)
-        })
-    })
-}

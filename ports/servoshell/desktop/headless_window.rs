@@ -9,14 +9,13 @@ use std::rc::Rc;
 use std::sync::RwLock;
 
 use euclid::num::Zero;
-use euclid::{Box2D, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
 use servo::config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
-use surfman::{Context, Device};
 
 use crate::desktop::window_trait::WindowPortsMethods;
 
@@ -124,7 +123,7 @@ impl WindowPortsMethods for Window {
     fn new_glwindow(
         &self,
         _events_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Box<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }
 
@@ -156,23 +155,5 @@ impl WindowMethods for Window {
 
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
-    }
-}
-
-impl webxr::glwindow::GlWindow for Window {
-    fn get_render_target(
-        &self,
-        _device: &mut Device,
-        _context: &mut Context,
-    ) -> webxr::glwindow::GlWindowRenderTarget {
-        unimplemented!()
-    }
-
-    fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
-        Rotation3D::identity()
-    }
-
-    fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
-        Vector3D::zero()
     }
 }

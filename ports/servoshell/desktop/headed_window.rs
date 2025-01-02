@@ -498,7 +498,7 @@ impl WindowPortsMethods for Window {
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-    ) -> Box<dyn webxr::glwindow::GlWindow> {
+    ) -> Rc<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
         let window_attr = winit::window::Window::default_attributes()
@@ -515,7 +515,7 @@ impl WindowPortsMethods for Window {
             xr_translation: Cell::new(Vector3D::zero()),
         });
         self.xr_window_poses.borrow_mut().push(pose.clone());
-        Box::new(XRWindow { winit_window, pose })
+        Rc::new(XRWindow { winit_window, pose })
     }
 
     fn winit_window(&self) -> Option<&winit::window::Window> {
