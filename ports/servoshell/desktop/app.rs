@@ -30,7 +30,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::window::WindowId;
 
-use super::events_loop::{EventLoopGuard, EventsLoop, WakerEvent};
+use super::events_loop::{EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
@@ -413,7 +413,6 @@ impl App {
 
 impl ApplicationHandler<WakerEvent> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let _guard = EventLoopGuard::new(event_loop);
         self.init(Some(event_loop));
     }
 

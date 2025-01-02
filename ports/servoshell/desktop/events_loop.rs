@@ -4,7 +4,6 @@
 
 //! An event loop implementation that works in headless mode.
 
-use std::cell::Cell;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
@@ -12,7 +11,7 @@ use log::warn;
 use servo::config::{pref, set_pref};
 use servo::embedder_traits::EventLoopWaker;
 use winit::error::EventLoopError;
-use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
+use winit::event_loop::EventLoop as WinitEventLoop;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -162,30 +161,5 @@ impl EventLoopWaker for HeadlessEventLoopWaker {
     }
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(HeadlessEventLoopWaker(self.0.clone()))
-    }
-}
-
-thread_local! {
-    static CURRENT_EVENT_LOOP: Cell<Option<*const ActiveEventLoop>> = const { Cell::new(None) };
-}
-
-pub struct EventLoopGuard;
-
-impl EventLoopGuard {
-    pub fn new(event_loop: &ActiveEventLoop) -> Self {
-        CURRENT_EVENT_LOOP.with(|cell| {
-            assert!(
-                cell.get().is_none(),
-                "Attempted to set a new event loop while one is already set"
-            );
-            cell.set(Some(event_loop as *const ActiveEventLoop));
-        });
-        Self
-    }
-}
-
-impl Drop for EventLoopGuard {
-    fn drop(&mut self) {
-        CURRENT_EVENT_LOOP.with(|cell| cell.set(None));
     }
 }
