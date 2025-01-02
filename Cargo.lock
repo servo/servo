@@ -7591,9 +7591,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-perfetto"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85b5136116bbb100a509d72c1cbde21079a818b0555933612ab703279b645394"
+checksum = "cf599f51530a7211f5aa92c84abdfc1137362d471f0473a4b1be8d625167fb0d"
 dependencies = [
  "anyhow",
  "bytes",
