@@ -209,29 +209,25 @@ impl Storage {
         let global = self.global();
         let this = Trusted::new(self);
         global
-            .as_window()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(send_storage_notification: move || {
-                    let this = this.root();
-                    let global = this.global();
-                    let event = StorageEvent::new(
-                        global.as_window(),
-                        atom!("storage"),
-                        EventBubbles::DoesNotBubble,
-                        EventCancelable::NotCancelable,
-                        key.map(DOMString::from),
-                        old_value.map(DOMString::from),
-                        new_value.map(DOMString::from),
-                        DOMString::from(url.into_string()),
-                        Some(&this),
-                        CanGc::note()
-                    );
-                    event.upcast::<Event>().fire(global.upcast(), CanGc::note());
-                }),
-                global.upcast(),
-            )
+            .queue(task!(send_storage_notification: move || {
+                let this = this.root();
+                let global = this.global();
+                let event = StorageEvent::new(
+                    global.as_window(),
+                    atom!("storage"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    key.map(DOMString::from),
+                    old_value.map(DOMString::from),
+                    new_value.map(DOMString::from),
+                    DOMString::from(url.into_string()),
+                    Some(&this),
+                    CanGc::note()
+                );
+                event.upcast::<Event>().fire(global.upcast(), CanGc::note());
+            }))
             .unwrap();
     }
 }

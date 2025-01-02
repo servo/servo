@@ -67,15 +67,15 @@ impl fmt::Debug for dyn TaskBox {
 }
 
 /// Encapsulated state required to create cancellable tasks from non-script threads.
-#[derive(Clone)]
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 pub struct TaskCanceller {
+    #[ignore_malloc_size_of = "This is difficult, because only one of them should be measured"]
     pub cancelled: Arc<AtomicBool>,
 }
 
 impl TaskCanceller {
-    /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller`
-    /// says so.
-    pub fn wrap_task<T>(&self, task: T) -> impl TaskOnce
+    /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller` says so.
+    pub(crate) fn wrap_task<T>(&self, task: T) -> impl TaskOnce
     where
         T: TaskOnce,
     {

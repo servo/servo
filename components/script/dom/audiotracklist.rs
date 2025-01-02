@@ -89,18 +89,11 @@ impl AudioTrackList {
         // Queue a task to fire an event named change.
         let global = &self.global();
         let this = Trusted::new(self);
-        let (source, canceller) = global
-            .as_window()
-            .task_manager()
-            .media_element_task_source_with_canceller();
-
-        let _ = source.queue_with_canceller(
-            task!(media_track_change: move || {
-                let this = this.root();
-                this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
-            }),
-            &canceller,
-        );
+        let task_source = global.task_manager().media_element_task_source();
+        let _ = task_source.queue(task!(media_track_change: move || {
+            let this = this.root();
+            this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
+        }));
     }
 
     pub fn add(&self, track: &AudioTrack) {

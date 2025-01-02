@@ -39,8 +39,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::script_runtime::CanGc;
-use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::task::TaskOnce;
+use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {
@@ -71,7 +71,6 @@ mod close_code {
 fn close_the_websocket_connection(
     address: Trusted<WebSocket>,
     task_source: &TaskSource,
-    canceller: &TaskCanceller,
     code: Option<u16>,
     reason: String,
 ) {
@@ -81,21 +80,17 @@ fn close_the_websocket_connection(
         code,
         reason: Some(reason),
     };
-    let _ = task_source.queue_with_canceller(close_task, canceller);
+    let _ = task_source.queue(close_task);
 }
 
-fn fail_the_websocket_connection(
-    address: Trusted<WebSocket>,
-    task_source: &TaskSource,
-    canceller: &TaskCanceller,
-) {
+fn fail_the_websocket_connection(address: Trusted<WebSocket>, task_source: &TaskSource) {
     let close_task = CloseTask {
         address,
         failed: true,
         code: Some(close_code::ABNORMAL),
         reason: None,
     };
-    let _ = task_source.queue_with_canceller(close_task, canceller);
+    let _ = task_source.queue(close_task);
 }
 
 #[dom_struct]
@@ -276,7 +271,6 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
             .send(CoreResourceMsg::Fetch(request, channels));
 
         let task_source = global.task_manager().websocket_task_source();
-        let canceller = global.task_canceller(TaskSourceName::WebSocket);
         ROUTER.add_typed_route(
             dom_event_receiver.to_ipc_receiver(),
             Box::new(move |message| match message.unwrap() {
@@ -285,26 +279,20 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                         address: address.clone(),
                         protocol_in_use,
                     };
-                    let _ = task_source.queue_with_canceller(open_thread, &canceller);
+                    let _ = task_source.queue(open_thread);
                 },
                 WebSocketNetworkEvent::MessageReceived(message) => {
                     let message_thread = MessageReceivedTask {
                         address: address.clone(),
                         message,
                     };
-                    let _ = task_source.queue_with_canceller(message_thread, &canceller);
+                    let _ = task_source.queue(message_thread);
                 },
                 WebSocketNetworkEvent::Fail => {
-                    fail_the_websocket_connection(address.clone(), &task_source, &canceller);
+                    fail_the_websocket_connection(address.clone(), &task_source);
                 },
                 WebSocketNetworkEvent::Close(code, reason) => {
-                    close_the_websocket_connection(
-                        address.clone(),
-                        &task_source,
-                        &canceller,
-                        code,
-                        reason,
-                    );
+                    close_the_websocket_connection(address.clone(), &task_source, code, reason);
                 },
             }),
         );
@@ -439,15 +427,8 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
-                // TODO: use a dedicated task source,
-                // https://html.spec.whatwg.org/multipage/#websocket-task-source
-                // When making the switch, also update the task_canceller call.
                 let task_source = self.global().task_manager().websocket_task_source();
-                fail_the_websocket_connection(
-                    address,
-                    &task_source,
-                    &self.global().task_canceller(TaskSourceName::WebSocket),
-                );
+                fail_the_websocket_connection(address, &task_source);
             },
             WebSocketRequestState::Open => {
                 self.ready_state.set(WebSocketRequestState::Closing);

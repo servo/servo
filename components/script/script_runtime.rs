@@ -399,8 +399,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                     );
 
                     event.upcast::<Event>().fire(&target, CanGc::note());
-                }),
-                global.upcast(),
+                })
             ).unwrap();
             },
         };
@@ -455,7 +454,7 @@ unsafe extern "C" fn content_security_policy_allows(
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, &global)
+                    .queue(task)
                     .unwrap();
             }
         }
@@ -529,8 +528,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                             target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
                         }
                     }
-                }),
-                global.upcast(),
+                })
             ).unwrap();
         }
     }

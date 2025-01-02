@@ -37,7 +37,6 @@ use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
-use crate::task_source::TaskSourceName;
 
 #[allow(dead_code)]
 pub enum FileReadingTask {
@@ -503,20 +502,27 @@ impl FileReader {
 
         let filereader = Trusted::new(self);
         let global = self.global();
-        let canceller = global.task_canceller(TaskSourceName::FileReading);
         let task_source = global.task_manager().file_reading_task_source();
 
         // Queue tasks as appropriate.
-        let task = FileReadingTask::ProcessRead(filereader.clone(), gen_id);
-        task_source.queue_with_canceller(task, &canceller).unwrap();
+        task_source
+            .queue(FileReadingTask::ProcessRead(filereader.clone(), gen_id))
+            .unwrap();
 
         if !blob_contents.is_empty() {
-            let task = FileReadingTask::ProcessReadData(filereader.clone(), gen_id);
-            task_source.queue_with_canceller(task, &canceller).unwrap();
+            task_source
+                .queue(FileReadingTask::ProcessReadData(filereader.clone(), gen_id))
+                .unwrap();
         }
 
-        let task = FileReadingTask::ProcessReadEOF(filereader, gen_id, load_data, blob_contents);
-        task_source.queue_with_canceller(task, &canceller).unwrap();
+        task_source
+            .queue(FileReadingTask::ProcessReadEOF(
+                filereader,
+                gen_id,
+                load_data,
+                blob_contents,
+            ))
+            .unwrap();
 
         Ok(())
     }

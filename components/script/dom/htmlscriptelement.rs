@@ -64,7 +64,6 @@ use crate::script_module::{
     fetch_external_module_script, fetch_inline_module_script, ModuleOwner, ScriptFetchOptions,
 };
 use crate::script_runtime::CanGc;
-use crate::task::TaskCanceller;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::unminify::{unminify_js, ScriptSource};
 
@@ -102,7 +101,6 @@ impl ScriptSource for ScriptOrigin {
     final_url: ServoUrl,
     url: ServoUrl,
     task_source: TaskSource,
-    canceller: TaskCanceller,
     script_text: String,
     fetch_options: ScriptFetchOptions,
 }
@@ -123,7 +121,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
     let fetch_options = context.fetch_options.clone();
 
     // Continue with <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
-    let _ = context.task_source.queue_with_canceller(
+    let _ = context.task_source.queue(
         task!(off_thread_compile_continue: move || {
             let elem = script_element.root();
             let global = elem.global();
@@ -157,8 +155,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
             };
 
             finish_fetching_a_classic_script(&elem, script_kind, url, load);
-        }),
-        &context.canceller,
+        })
     );
 }*/
 
@@ -476,7 +473,6 @@ impl FetchResponseListener for ClassicContext {
                 final_url,
                 url: self.url.clone(),
                 task_source: global.task_manager().dom_manipulation_task_source(),
-                canceller: global.task_canceller(TaskSourceName::DOMManipulation),
                 script_text: source_string,
                 fetch_options: self.fetch_options.clone(),
             });
@@ -1061,11 +1057,10 @@ impl HTMLScriptElement {
     }
 
     pub fn queue_error_event(&self) {
-        let window = self.owner_window();
-        window
+        self.owner_window()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue_simple_event(self.upcast(), atom!("error"), &window);
+            .queue_simple_event(self.upcast(), atom!("error"));
     }
 
     pub fn dispatch_load_event(&self, can_gc: CanGc) {

@@ -75,7 +75,6 @@ use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingLi
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
-use crate::task_source::TaskSourceName;
 
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
@@ -1768,13 +1767,9 @@ fn fetch_single_module_script(
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
-    let task_source = global.task_manager().networking_task_source();
-    let canceller = global.task_canceller(TaskSourceName::Networking);
-
     let network_listener = NetworkListener {
         context,
-        task_source,
-        canceller: Some(canceller),
+        task_source: global.task_manager().networking_task_source(),
     };
     match document {
         Some(document) => {
