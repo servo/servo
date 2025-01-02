@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
-use raw_window_handle::HasWindowHandle;
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
 };
@@ -504,7 +504,7 @@ impl WindowPortsMethods for Window {
         let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo XR".to_string())
             .with_inner_size(size)
-            .with_visible(true);
+            .with_visible(false);
 
         let winit_window = event_loop
             .create_window(window_attr)
@@ -602,6 +602,7 @@ impl webxr::glwindow::GlWindow for XRWindow {
         device: &mut Device,
         _context: &mut Context,
     ) -> webxr::glwindow::GlWindowRenderTarget {
+        self.winit_window.set_visible(true);
         let window_handle = self
             .winit_window
             .window_handle()
@@ -635,6 +636,10 @@ impl webxr::glwindow::GlWindow for XRWindow {
         } else {
             webxr::glwindow::GlWindowMode::Blit
         }
+    }
+
+    fn display_handle(&self) -> raw_window_handle::DisplayHandle {
+        self.winit_window.display_handle().unwrap()
     }
 }
 

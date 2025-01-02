@@ -8292,13 +8292,14 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/wusyong/webxr?branch=rc#6dbe84a33ba5025007ea0299abff910f39174008"
+source = "git+https://github.com/wusyong/webxr?branch=rc#cdc4d26160be509785729c07bf40c143bdb6f823"
 dependencies = [
  "crossbeam-channel",
  "euclid",
  "glow",
  "log",
  "openxr",
+ "raw-window-handle",
  "serde",
  "surfman",
  "webxr-api",
@@ -8309,7 +8310,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/wusyong/webxr?branch=rc#6dbe84a33ba5025007ea0299abff910f39174008"
+source = "git+https://github.com/wusyong/webxr?branch=rc#cdc4d26160be509785729c07bf40c143bdb6f823"
 dependencies = [
  "euclid",
  "ipc-channel",
