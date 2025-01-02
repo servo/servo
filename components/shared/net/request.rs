@@ -267,7 +267,7 @@ pub struct RequestBuilder {
     pub referrer: Referrer,
     pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
-    pub target_browsing_context: Option<TopLevelBrowsingContextId>,
+    pub target_browsing_context_id: Option<TopLevelBrowsingContextId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
     // to keep track of redirects
@@ -302,7 +302,7 @@ impl RequestBuilder {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
-            target_browsing_context: None,
+            target_browsing_context_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
             url_list: vec![],
@@ -384,11 +384,11 @@ impl RequestBuilder {
         self
     }
 
-    pub fn target_browsing_context(
+    pub fn target_browsing_context_id(
         mut self,
-        target_browsing_context: Option<TopLevelBrowsingContextId>,
+        target_browsing_context_id: Option<TopLevelBrowsingContextId>,
     ) -> RequestBuilder {
-        self.target_browsing_context = target_browsing_context;
+        self.target_browsing_context_id = target_browsing_context_id;
         self
     }
 
@@ -462,7 +462,7 @@ impl RequestBuilder {
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
-        request.target_browsing_context = self.target_browsing_context;
+        request.top_level_browsing_context_id = self.target_browsing_context_id;
         request
     }
 }
@@ -490,7 +490,7 @@ pub struct Request {
     pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
-    pub target_browsing_context: Option<TopLevelBrowsingContextId>,
+    pub top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
@@ -566,7 +566,7 @@ impl Request {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
-            target_browsing_context: None,
+            top_level_browsing_context_id: None,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,

@@ -3219,7 +3219,7 @@ where
         cancel_chan: IpcReceiver<()>,
     ) {
         let request_builder =
-            request_builder.target_browsing_context(Some(top_level_browsing_context_id));
+            request_builder.target_browsing_context_id(Some(top_level_browsing_context_id));
         let listener = NetworkListener::new(
             request_builder,
             id,

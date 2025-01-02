@@ -1573,7 +1573,7 @@ async fn http_network_or_cache_fetch(
         if !http_request.use_url_credentials || authentication_fetch_flag {
             let Some(credentials) = prompt_user_for_credentials(
                 &context.state.embedder_proxy,
-                http_request.target_browsing_context,
+                http_request.top_level_browsing_context_id,
             ) else {
                 return response;
             };
@@ -1629,7 +1629,7 @@ async fn http_network_or_cache_fetch(
         // window and store the result as a proxy-authentication entry.
         let Some(credentials) = prompt_user_for_credentials(
             &context.state.embedder_proxy,
-            http_request.target_browsing_context,
+            http_request.top_level_browsing_context_id,
         ) else {
             return response;
         };
@@ -1774,7 +1774,7 @@ fn prompt_user_for_credentials(
     let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
 
     proxy.send((
-        source_top_ctx_id,
+        top_level_browsing_context_id,
         EmbedderMsg::Prompt(
             PromptDefinition::Credentials(ipc_sender),
             PromptOrigin::Trusted,
