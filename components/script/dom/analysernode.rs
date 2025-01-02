@@ -27,7 +27,6 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct AnalyserNode {

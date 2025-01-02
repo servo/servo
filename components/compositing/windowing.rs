@@ -23,7 +23,6 @@ use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
 };
 use webrender_api::ScrollLocation;
-use webrender_traits::RenderingContext;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -218,8 +217,6 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
-    /// Get the [`RenderingContext`] of this Window.
-    fn rendering_context(&self) -> RenderingContext;
 }
 
 pub trait EmbedderMethods {

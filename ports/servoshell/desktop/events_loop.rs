@@ -9,6 +9,7 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
 use log::warn;
+use servo::config::{pref, set_pref};
 use servo::embedder_traits::EventLoopWaker;
 use winit::error::EventLoopError;
 use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
@@ -79,14 +80,7 @@ impl EventsLoop {
             EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
-    pub fn as_winit(&self) -> &WinitEventLoop<WakerEvent> {
-        match self.0 {
-            EventLoop::Winit(Some(ref event_loop)) => event_loop,
-            EventLoop::Winit(None) | EventLoop::Headless(..) => {
-                panic!("Can't access winit event loop while using the fake headless event loop")
-            },
-        }
-    }
+
     pub fn run_app(self, app: &mut App) {
         match self.0 {
             EventLoop::Winit(events_loop) => {
@@ -97,7 +91,12 @@ impl EventsLoop {
             },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
-                app.init();
+                if pref!(media.glvideo.enabled) {
+                    warn!("GL video rendering is not supported on headless windows.");
+                    set_pref!(media.glvideo.enabled, false);
+                }
+
+                app.init(None);
                 loop {
                     self.sleep(flag, condvar);
                     if app.handle_events_with_headless() {

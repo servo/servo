@@ -22,7 +22,6 @@ use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::node::document_from_node;
 use crate::dom::types::{Element, GlobalScope};
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 bitflags::bitflags! {
     /// Describes the different relations that can be specified on elements using the `rel`

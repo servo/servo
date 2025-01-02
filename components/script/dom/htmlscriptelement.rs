@@ -67,7 +67,6 @@ use crate::script_module::{
 };
 use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::unminify::{unminify_js, ScriptSource};
 
@@ -104,7 +103,7 @@ impl ScriptSource for ScriptOrigin {
     script_kind: ExternalScriptKind,
     final_url: ServoUrl,
     url: ServoUrl,
-    task_source: DOMManipulationTaskSource,
+    task_source: TaskSource,
     canceller: TaskCanceller,
     script_text: String,
     fetch_options: ScriptFetchOptions,
@@ -478,7 +477,7 @@ impl FetchResponseListener for ClassicContext {
                 script_kind: self.kind,
                 final_url,
                 url: self.url.clone(),
-                task_source: global.dom_manipulation_task_source(),
+                task_source: global.task_manager().dom_manipulation_task_source(),
                 canceller: global.task_canceller(TaskSourceName::DOMManipulation),
                 script_text: source_string,
                 fetch_options: self.fetch_options.clone(),

@@ -10,6 +10,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use time_03::Duration;
 
+use super::bindings::refcounted::Trusted;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
@@ -198,8 +199,8 @@ impl Performance {
         self.resource_timing_buffer_size_limit.set(0);
     }
 
-    /// Add a PerformanceObserver to the list of observers with a set of
-    /// observed entry types.
+    // Add a PerformanceObserver to the list of observers with a set of
+    // observed entry types.
 
     pub fn add_multiple_type_observer(
         &self,
@@ -237,8 +238,16 @@ impl Performance {
 
             if !self.pending_notification_observers_task.get() {
                 self.pending_notification_observers_task.set(true);
-                let task_source = self.global().performance_timeline_task_source();
-                task_source.queue_notification(&self.global());
+                let task_source = self
+                    .global()
+                    .task_manager()
+                    .performance_timeline_task_source();
+                let global = &self.global();
+                let owner = Trusted::new(&*global.performance());
+                let task = task!(notify_performance_observers: move || {
+                    owner.root().notify_observers();
+                });
+                let _ = task_source.queue(task, global);
             }
         }
         let mut observers = self.observers.borrow_mut();
@@ -315,8 +324,17 @@ impl Performance {
         // Step 6.
         // Queue a new notification task.
         self.pending_notification_observers_task.set(true);
-        let task_source = self.global().performance_timeline_task_source();
-        task_source.queue_notification(&self.global());
+        let task_source = self
+            .global()
+            .task_manager()
+            .performance_timeline_task_source();
+
+        let global = &self.global();
+        let owner = Trusted::new(&*global.performance());
+        let task = task!(notify_performance_observers: move || {
+            owner.root().notify_observers();
+        });
+        let _ = task_source.queue(task, global);
 
         Some(entry_last_index)
     }

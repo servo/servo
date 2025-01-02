@@ -1,6 +1,6 @@
 [toolchain]
 # Be sure to update shell.nix and support/crown/rust-toolchain.toml when bumping this!
-channel = "1.82.0"
+channel = "1.83.0"
 
 components = [
     "clippy",

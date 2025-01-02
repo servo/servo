@@ -68,7 +68,6 @@ use crate::dom::stereopannernode::StereoPannerNode;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[allow(dead_code)]
 pub enum BaseAudioContextOptions {

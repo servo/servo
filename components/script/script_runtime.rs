@@ -49,6 +49,7 @@ use js::rust::{
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
 };
 use malloc_size_of::MallocSizeOfOps;
+use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
@@ -84,7 +85,6 @@ use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskBox;
-use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
@@ -124,15 +124,15 @@ impl fmt::Debug for CommonScriptMsg {
 }
 
 /// A cloneable interface for communicating with an event loop.
-pub trait ScriptChan: JSTraceable {
+pub trait ScriptChan: JSTraceable + Send {
     /// Send a message to the associated event loop.
     #[allow(clippy::result_unit_err)]
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
     /// Return a cloned version of this sender in a [`Box`].
-    fn as_boxed(&self) -> Box<dyn ScriptChan + Send>;
+    fn as_boxed(&self) -> Box<dyn ScriptChan>;
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
@@ -146,6 +146,7 @@ pub enum ScriptThreadEventCategory {
     InputEvent,
     NetworkEvent,
     PortMessage,
+    Rendering,
     Resize,
     ScriptEvent,
     SetScrollState,
@@ -187,6 +188,7 @@ impl From<ScriptThreadEventCategory> for ProfilerCategory {
             },
             ScriptThreadEventCategory::PortMessage => ProfilerCategory::ScriptPortMessage,
             ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
+            ScriptThreadEventCategory::Rendering => ProfilerCategory::ScriptRendering,
             ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
             ScriptThreadEventCategory::ServiceWorkerEvent => {
                 ProfilerCategory::ScriptServiceWorkerEvent
@@ -223,6 +225,7 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
             ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
             ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
             ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
+            ScriptThreadEventCategory::Rendering => ScriptHangAnnotation::Rendering,
             ScriptThreadEventCategory::Resize => ScriptHangAnnotation::Resize,
             ScriptThreadEventCategory::ScriptEvent => ScriptHangAnnotation::ScriptEvent,
             ScriptThreadEventCategory::SetScrollState => ScriptHangAnnotation::SetScrollState,
@@ -376,7 +379,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 let trusted_promise = TrustedPromise::new(promise.clone());
 
                 // Step 5-4.
-                global.dom_manipulation_task_source().queue(
+                global.task_manager().dom_manipulation_task_source().queue(
                 task!(rejection_handled_event: move || {
                     let target = target.root();
                     let cx = GlobalScope::get_cx();
@@ -450,6 +453,7 @@ unsafe extern "C" fn content_security_policy_allows(
                     scripted_caller.col,
                 );
                 global
+                    .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task, &global)
                     .unwrap();
@@ -485,7 +489,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
             let target = Trusted::new(global.upcast::<EventTarget>());
 
             // Step 4.
-            global.dom_manipulation_task_source().queue(
+            global.task_manager().dom_manipulation_task_source().queue(
                 task!(unhandled_rejection_event: move || {
                     let target = target.root();
                     let cx = GlobalScope::get_cx();
@@ -537,11 +541,11 @@ pub struct Runtime {
     rt: RustRuntime,
     pub microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
-    networking_task_src: Option<Box<NetworkingTaskSource>>,
+    networking_task_src: Option<Box<TaskSource>>,
 }
 
 impl Runtime {
-    /// Create a new runtime, optionally with the given [`NetworkingTaskSource`].
+    /// Create a new runtime, optionally with the given [`TaskSource`] for networking.
     ///
     /// # Safety
     ///
@@ -551,11 +555,12 @@ impl Runtime {
     ///
     /// This, like many calls to SpiderMoney API, is unsafe.
     #[allow(unsafe_code)]
-    pub(crate) fn new(networking_task_source: Option<NetworkingTaskSource>) -> Runtime {
+    pub(crate) fn new(networking_task_source: Option<TaskSource>) -> Runtime {
         unsafe { Self::new_with_parent(None, networking_task_source) }
     }
 
-    /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`NetworkingTaskSource`].
+    /// Create a new runtime, optionally with the given [`ParentRuntime`] and [`TaskSource`]
+    /// for networking.
     ///
     /// # Safety
     ///
@@ -569,7 +574,7 @@ impl Runtime {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn new_with_parent(
         parent: Option<ParentRuntime>,
-        networking_task_source: Option<NetworkingTaskSource>,
+        networking_task_source: Option<TaskSource>,
     ) -> Runtime {
         LiveDOMReferences::initialize();
         let (cx, runtime) = if let Some(parent) = parent {
@@ -617,8 +622,7 @@ impl Runtime {
             closure: *mut c_void,
             dispatchable: *mut JSRunnable,
         ) -> bool {
-            let networking_task_src: &NetworkingTaskSource =
-                &*(closure as *mut NetworkingTaskSource);
+            let networking_task_src: &TaskSource = &*(closure as *mut TaskSource);
             let runnable = Runnable(dispatchable);
             let task = task!(dispatch_to_event_loop_message: move || {
                 if let Some(cx) = RustRuntime::get() {

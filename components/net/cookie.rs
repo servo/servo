@@ -206,6 +206,7 @@ impl ServoCookie {
 
             // 3. The cookie-attribute-list contains an attribute with an attribute-name of "Path",
             // and the cookie's path is /.
+            #[allow(clippy::nonminimal_bool)]
             if !has_path_specified || !cookie.path().is_some_and(|path| path == "/") {
                 return None;
             }

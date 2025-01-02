@@ -75,7 +75,10 @@ impl Iterator for ChildIter {
 }
 
 impl taffy::TraversePartialTree for TaffyContainerContext<'_> {
-    type ChildIter<'a> = ChildIter where Self: 'a;
+    type ChildIter<'a>
+        = ChildIter
+    where
+        Self: 'a;
 
     fn child_ids(&self, _node_id: taffy::NodeId) -> Self::ChildIter<'_> {
         ChildIter(0..self.source_child_nodes.len())
@@ -91,7 +94,10 @@ impl taffy::TraversePartialTree for TaffyContainerContext<'_> {
 }
 
 impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
-    type CoreContainerStyle<'a> = TaffyStyloStyle<&'a ComputedValues> where Self: 'a;
+    type CoreContainerStyle<'a>
+        = TaffyStyloStyle<&'a ComputedValues>
+    where
+        Self: 'a;
 
     fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
         TaffyStyloStyle(self.style)
@@ -283,11 +289,13 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
 }
 
 impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
-    type GridContainerStyle<'a> = TaffyStyloStyle<&'a ComputedValues>
+    type GridContainerStyle<'a>
+        = TaffyStyloStyle<&'a ComputedValues>
     where
         Self: 'a;
 
-    type GridItemStyle<'a> = TaffyStyloStyle<AtomicRef<'a, ComputedValues>>
+    type GridItemStyle<'a>
+        = TaffyStyloStyle<AtomicRef<'a, ComputedValues>>
     where
         Self: 'a;
 

@@ -435,8 +435,8 @@ fn valid_compressed_data_len(
     let block_width = compression.block_width as u32;
     let block_height = compression.block_height as u32;
 
-    let required_blocks_hor = (width + block_width - 1) / block_width;
-    let required_blocks_ver = (height + block_height - 1) / block_height;
+    let required_blocks_hor = width.div_ceil(block_width);
+    let required_blocks_ver = height.div_ceil(block_height);
     let required_blocks = required_blocks_hor * required_blocks_ver;
 
     let required_bytes = required_blocks * compression.bytes_per_block as u32;
