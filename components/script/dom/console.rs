@@ -124,6 +124,11 @@ fn console_argument_from_handle_value(
         return ConsoleMessageArgument::String(dom_string.into());
     }
 
+    if handle_value.is_int32() {
+        let number = handle_value.to_int32();
+        return ConsoleMessageArgument::Integer(number);
+    }
+
     // FIXME: Handle more complex argument types here
     let stringified_value = stringify_handle_value(handle_value);
     ConsoleMessageArgument::String(stringified_value.into())

@@ -298,6 +298,7 @@ pub struct ConsoleMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ConsoleMessageArgument {
     String(String),
+    Integer(i32),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -455,12 +456,14 @@ pub struct CssDatabaseProperty {
 #[serde(untagged)]
 pub enum ConsoleArgument {
     String(String),
+    Integer(i32),
 }
 
 impl From<ConsoleMessageArgument> for ConsoleArgument {
     fn from(value: ConsoleMessageArgument) -> Self {
         match value {
             ConsoleMessageArgument::String(s) => Self::String(s),
+            ConsoleMessageArgument::Integer(i) => Self::Integer(i),
         }
     }
 }
